@@ -8,6 +8,7 @@ import { EntityKind, Owner } from '@core/types'
 import { CELL_SIZE } from '@data/GameConstants'
 import { towerTextureKey } from '@rendering/AssetRegistry'
 import { displaySizeForCard, displaySizeForTower } from '@rendering/assetDisplaySize'
+import { towerRenderY } from '@rendering/towerRenderPosition'
 import { entityHalfExtents } from '@core/EntityGeometry'
 import { idleSheetKey } from '@data/AssetManifest'
 import { resolveTexture } from '@rendering/PlaceholderFactory'
@@ -135,11 +136,12 @@ export class DevModeOverlay {
 
       const key = towerTextureKey(tower.isKing, tower.owner)
       const size = displaySizeForTower(this.scene, tower.isKing, key)
+      const ry = towerRenderY(tower.position.y, tower.owner)
 
       g.lineStyle(1.5, COL.sprite, 0.7)
       g.strokeRect(
         tower.position.x - size.width / 2,
-        tower.position.y - size.height / 2,
+        ry - size.height / 2,
         size.width,
         size.height,
       )

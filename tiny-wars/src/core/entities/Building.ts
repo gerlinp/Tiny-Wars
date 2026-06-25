@@ -17,6 +17,10 @@ export class Building extends Entity {
 
   private attackCooldownMs = 0
 
+  getAttackCooldownMs(): number {
+    return this.attackCooldownMs
+  }
+
   constructor(owner: Owner, stats: EntityStats, position: Vec2, cardId: string) {
     super(nextEntityId(), owner, EntityKind.BUILDING, position, stats.maxHp, cardId)
     this.stats = stats

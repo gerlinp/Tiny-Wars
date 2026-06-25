@@ -46,8 +46,9 @@ export class PreloadScene extends Phaser.Scene {
     // --- Terrain ---
     this.load.image('terrain_flat', 'assets/Terrain/Tileset/Tilemap_Flat.png')
 
-    // --- Projectiles ---
-    this.load.image('arrow', 'assets/Units/Blue Units/Archer/Arrow.png')
+    // --- Projectiles (companion Arrow.png — same sprite as Archer_Shoot frames) ---
+    this.load.image('arrow_blue', 'assets/Units/Blue Units/Archer/Arrow.png')
+    this.load.image('arrow_red',  'assets/Units/Red Units/Archer/Arrow.png')
 
     // --- Effects ---
     this.load.image('explosion_1', 'assets/Particle FX/Explosion_01.png')

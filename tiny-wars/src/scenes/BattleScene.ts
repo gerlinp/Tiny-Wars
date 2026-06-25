@@ -18,7 +18,7 @@ import type { Tower } from '@core/entities/Tower'
 import { Troop } from '@core/entities/Troop'
 import type { Building } from '@core/entities/Building'
 import { Owner, EntityKind, TroopState, BuildingState } from '@core/types'
-import type { AnimClip } from '@data/AssetManifest'
+import { getAttackWindupMs, type AnimClip } from '@data/AssetManifest'
 import { GAME_HEIGHT } from '@data/GameConstants'
 import { DevMode } from '@debug/DevMode'
 import { DevModeOverlay } from '@debug/DevModeOverlay'
@@ -147,8 +147,16 @@ export class BattleScene extends Phaser.Scene {
         case 'DAMAGE': {
           const flash = () => this.flashTarget(event.targetId)
           const attacker = event.attackerId ? this.findEntity(state, event.attackerId) : null
-          const from = event.attackerId ? this.entityPosition(state, event.attackerId) : null
+          let from = event.attackerId ? this.entityPosition(state, event.attackerId) : null
           const to = this.entityPosition(state, event.targetId)
+
+          if (attacker?.kind === EntityKind.TOWER && to) {
+            const towerSprite = this.towerSprites.get(attacker.id)
+            towerSprite?.onAttackImpact(to)
+            from = towerSprite?.getArrowOrigin() ?? from
+          } else if (event.attackerId) {
+            this.sprites.get(event.attackerId)?.onAttackImpact()
+          }
 
           if (attacker && from && to && isRangedAttacker(attacker)) {
             const attackRate = this.getAttackRate(attacker)
@@ -189,15 +197,30 @@ export class BattleScene extends Phaser.Scene {
       if (entity) {
         let anim: AnimClip = 'idle'
         let moveSpeed = 1.5
+        let attackSync: { cooldownMs: number; windupMs: number } | undefined
+
+        const cardId = this.entityCardIds.get(id) ?? entity.cardId ?? ''
+
         if (entity.kind === EntityKind.TROOP) {
           const troop = entity as Troop
           moveSpeed = troop.stats.speed
-          if (troop.state === TroopState.ATTACKING) anim = 'attack'
-          else if (troop.state === TroopState.WALKING) anim = 'run'
+          if (troop.state === TroopState.WALKING) anim = 'run'
+          else if (troop.state === TroopState.ATTACKING) {
+            attackSync = {
+              cooldownMs: troop.getAttackCooldownMs(),
+              windupMs: getAttackWindupMs(cardId, entity.owner),
+            }
+          }
         } else if (entity.kind === EntityKind.BUILDING) {
           const building = entity as Building
-          if (building.state === BuildingState.ATTACKING) anim = 'attack'
+          if (building.state === BuildingState.ATTACKING) {
+            attackSync = {
+              cooldownMs: building.getAttackCooldownMs(),
+              windupMs: getAttackWindupMs(cardId, entity.owner),
+            }
+          }
         }
+
         sprite.update(
           entity.position.x,
           entity.position.y,
@@ -205,19 +228,29 @@ export class BattleScene extends Phaser.Scene {
           anim,
           moveSpeed,
           this.shouldShowHealthBar(entity),
+          attackSync,
         )
       }
     }
 
-    // Sync tower health bars
+    // Sync tower health bars + garrison archer attacks
     for (const [id, towerSprite] of this.towerSprites) {
       const tower = state.towers.get(id)
       if (tower) {
+        const attackSync = tower.isActive() && tower.getAimPoint()
+          ? {
+              cooldownMs: tower.getAttackCooldownMs(),
+              windupMs: getAttackWindupMs('archer', tower.owner),
+              aimPoint: tower.getAimPoint(),
+            }
+          : undefined
+
         towerSprite.update(
           tower.position.x,
           tower.position.y,
           tower.hp / tower.maxHp,
           tower.hasBeenDamaged,
+          attackSync,
         )
       }
     }

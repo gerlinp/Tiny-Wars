@@ -30,6 +30,8 @@ export interface CardAssetBundle {
   contentFill?: number
   /** Fine-tune height within tier (1 = default) */
   mapHeightScale?: number
+  /** Sheet frame index where the strike/release lands (defaults to last attack frame) */
+  attackHitFrame?: number
   player: SideAssets
   bot: SideAssets
 }
@@ -120,24 +122,28 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'warrior',
     contentFill: 0.52,
+    attackHitFrame: 2,
     player: knightSide('Warrior', 'Blue'),
     bot:    knightSide('Warrior', 'Red'),
   },
   {
     cardId: 'archer',
     contentFill: 0.50,
+    attackHitFrame: 5,
     player: knightSide('Archer', 'Blue'),
     bot:    knightSide('Archer', 'Red'),
   },
   {
     cardId: 'pawn',
     contentFill: 0.52,
+    attackHitFrame: 2,
     player: knightSide('Pawn', 'Blue'),
     bot:    knightSide('Pawn', 'Red'),
   },
   {
     cardId: 'torch_goblin',
     contentFill: 0.55,
+    attackHitFrame: 18,
     player: goblinSide('torch_goblin', 'Blue', 'Troops/Torch', 'Torch_Blue.png',  { idle: [0, 6],  run: [7, 13],  attack: [14, 20] }),
     bot:    goblinSide('torch_goblin', 'Red',  'Troops/Torch', 'Torch_Red.png',   { idle: [0, 6],  run: [7, 13],  attack: [14, 20] }),
   },
@@ -203,4 +209,17 @@ export function getSideAssets(cardId: string, owner: Owner): SideAssets | null {
   const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
   if (!bundle) return null
   return owner === Owner.PLAYER ? bundle.player : bundle.bot
+}
+
+/** Ms from attack anim start → damage tick (native frame rate, not stretched). */
+export function getAttackWindupMs(cardId: string, owner: Owner): number {
+  const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
+  const side = getSideAssets(cardId, owner)
+  if (!bundle || !side || bundle.animated === false) return 0
+
+  const clip = side.attack
+  const hitFrame = bundle.attackHitFrame ?? clip.end
+  const framesBeforeHit = Math.max(0, hitFrame - clip.start)
+  if (framesBeforeHit === 0) return 0
+  return (framesBeforeHit / clip.frameRate) * 1000
 }

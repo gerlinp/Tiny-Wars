@@ -9,12 +9,18 @@ import { displaySizeForCard } from './assetDisplaySize'
 
 type DisplayObject = Phaser.GameObjects.Sprite | Phaser.GameObjects.Image
 
+export interface AttackSync {
+  cooldownMs: number
+  windupMs: number
+}
+
 export class EntitySprite {
   readonly sprite: DisplayObject
   private healthBar: HealthBar
   private lastX: number
   private flashTween: Phaser.Tweens.Tween | null = null
   private currentAnim: AnimClip = 'idle'
+  private attackSwingPlaying = false
   private readonly cardId: string
   private readonly owner: Owner
   private readonly animated: boolean
@@ -40,7 +46,7 @@ export class EntitySprite {
       const spr = scene.add.sprite(x, y, key, 0).setDepth(5)
       spr.setDisplaySize(size.width, size.height)
       this.sprite = spr
-      this.playAnim('idle', 1)
+      this.playLocomotion('idle', 1)
     } else {
       const img = scene.add.image(x, y, key, 0).setDepth(5)
       img.setDisplaySize(size.width, size.height)
@@ -53,12 +59,28 @@ export class EntitySprite {
     this.lastX = x
   }
 
-  update(x: number, y: number, hpFraction: number, anim: AnimClip = 'idle', moveSpeed = 1.5, showHealthBar = false): void {
+  update(
+    x: number, y: number,
+    hpFraction: number,
+    anim: AnimClip = 'idle',
+    moveSpeed = 1.5,
+    showHealthBar = false,
+    attackSync?: AttackSync,
+  ): void {
     if (this.animated) {
       const dx = x - this.lastX
       if (dx < -0.3) this.sprite.setFlipX(true)
       else if (dx > 0.3) this.sprite.setFlipX(false)
-      this.playAnim(anim, moveSpeed)
+
+      if (attackSync && attackSync.windupMs > 0 && !this.attackSwingPlaying) {
+        if (attackSync.cooldownMs > 0 && attackSync.cooldownMs <= attackSync.windupMs) {
+          this.beginAttackSwing()
+        }
+      }
+
+      if (!this.attackSwingPlaying) {
+        this.playLocomotion(anim, moveSpeed)
+      }
     }
 
     this.lastX = x
@@ -66,7 +88,30 @@ export class EntitySprite {
     this.healthBar.update(x, y, hpFraction, showHealthBar)
   }
 
-  private playAnim(anim: AnimClip, moveSpeed: number): void {
+  /** Fallback when windup did not start before the first strike in a engagement. */
+  onAttackImpact(): void {
+    if (!this.attackSwingPlaying) this.beginAttackSwing()
+  }
+
+  private beginAttackSwing(): void {
+    if (!this.animated || !(this.sprite instanceof Phaser.GameObjects.Sprite)) return
+    if (this.attackSwingPlaying) return
+
+    const key = clipAnimKey(this.cardId, this.owner, 'attack')
+    if (!this.scene.anims.exists(key)) return
+
+    this.attackSwingPlaying = true
+    this.currentAnim = 'attack'
+    this.sprite.anims.timeScale = 1
+    this.sprite.anims.play({ key, repeat: 0 }, true)
+
+    this.sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      this.attackSwingPlaying = false
+      if (this.currentAnim === 'attack') this.currentAnim = 'idle'
+    })
+  }
+
+  private playLocomotion(anim: AnimClip, moveSpeed: number): void {
     if (!this.animated || !(this.sprite instanceof Phaser.GameObjects.Sprite)) return
 
     const key = clipAnimKey(this.cardId, this.owner, anim)

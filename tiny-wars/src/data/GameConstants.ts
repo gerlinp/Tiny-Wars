@@ -47,16 +47,20 @@ export const ELIXIR_REGEN_MS = 2800   // ms per +1 elixir
 export const ELIXIR_FAST_MS  = 1400   // ms per +1 elixir in last 60 seconds
 export const ELIXIR_FAST_AT  = 60_000 // switch to fast regen when time_remaining <= this
 
-// Tower layout (grid rows, player at bottom, bot at top)
-export const PLAYER_KING_ROW    = 39
+// Tower layout — nudged 2 rows toward river vs original (37/39 player, 5/3 bot)
+export const PLAYER_KING_ROW    = 37
 export const PLAYER_KING_COL    = 11
-export const PLAYER_TOWER_ROW   = 37
+export const PLAYER_TOWER_ROW   = 35
 export const PLAYER_TOWER_COLS  = [4, 19] as const
 
-export const BOT_KING_ROW   = 3
+export const BOT_KING_ROW   = 5
 export const BOT_KING_COL   = 11
-export const BOT_TOWER_ROW  = 5
+export const BOT_TOWER_ROW  = 7
 export const BOT_TOWER_COLS = [4, 19] as const
+
+/** Render Y offset vs logic cell centre (negative = up, positive = down) */
+export const MAP_TOWER_RENDER_OFFSET_Y_PLAYER = -28
+export const MAP_TOWER_RENDER_OFFSET_Y_BOT    = 24
 
 // Deployment zones (player can only place in rows 23+; bot places in rows 0–19)
 export const PLAYER_DEPLOY_ROW_MIN = 23

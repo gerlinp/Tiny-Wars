@@ -28,6 +28,10 @@ export class Troop extends Entity {
   state: TroopState = TroopState.WALKING
 
   private attackCooldownMs = 0
+
+  getAttackCooldownMs(): number {
+    return this.attackCooldownMs
+  }
   private target: Entity | null = null
   private readonly grid: Grid
   private readonly pathfinder: Pathfinder
@@ -55,8 +59,8 @@ export class Troop extends Entity {
 
     if (this.target) {
       const attackReach = this.stats.attackRange * CELL_SIZE
-      const surfaceDist = surfaceDistToEntity(this.position, this.target)
-      if (surfaceDist <= attackReach) {
+      const dist = Math.sqrt(distSq(this.position, this.target.position))
+      if (dist <= attackReach) {
         this.state = TroopState.ATTACKING
         this.clearPath()
         this.trackObjective(this.target)
@@ -228,7 +232,7 @@ export class Troop extends Entity {
 
     for (const tower of state.towers.values()) {
       if (tower.owner === this.owner || !tower.isAlive) continue
-      const d = surfaceDistToEntity(this.position, tower)
+      const d = this.engageDist(tower)
       if (d <= aggroRange && d < bestDist) {
         bestDist = d
         best = tower
@@ -239,9 +243,6 @@ export class Troop extends Entity {
   }
 
   private engageDist(entity: Entity): number {
-    if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {
-      return surfaceDistToEntity(this.position, entity)
-    }
     return Math.sqrt(distSq(this.position, entity.position))
   }
 
@@ -312,7 +313,7 @@ export class Troop extends Entity {
       waypoints: [...this.pathWaypoints],
       goal: this.pathGoal ? { ...this.pathGoal } : null,
       targetPos: this.target?.isAlive ? this.moveGoalFor(this.target) : null,
-      marchGoal: this.target ? null : this.getMarchGoal(state),
+      marchGoal: this.target ? null : this.getMarchObjective(state)?.position ?? null,
     }
   }
 }

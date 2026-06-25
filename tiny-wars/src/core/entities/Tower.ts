@@ -24,15 +24,36 @@ export class Tower extends Entity {
   /** Called when a friendly Princess Tower is destroyed */
   activate(): void { this.active = true }
 
+  isActive(): boolean {
+    return this.active
+  }
+
+  getAttackCooldownMs(): number {
+    return this.attackCooldownMs
+  }
+
+  /** Nearest current target position — used to aim garrison archers. */
+  getAimPoint(): Vec2 | null {
+    return this.aimPoint
+  }
+
+  private aimPoint: Vec2 | null = null
+
   tick(deltaMs: number, state: GameState): void {
     if (!this.isAlive || !this.active) return
+
+    const target = this.acquireTarget(state)
+    if (target) {
+      this.aimPoint = { x: target.position.x, y: target.position.y }
+    } else if (this.attackCooldownMs <= 0) {
+      this.aimPoint = null
+    }
 
     if (this.attackCooldownMs > 0) {
       this.attackCooldownMs -= deltaMs
       return
     }
 
-    const target = this.acquireTarget(state)
     if (!target) return
 
     target.takeDamage(this.stats.damage)

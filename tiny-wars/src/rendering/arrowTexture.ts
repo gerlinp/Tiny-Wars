@@ -1,16 +1,22 @@
-import Phaser from 'phaser'
+import { Owner } from '@core/types'
 
-/** Procedural arrow with transparency — asset PNG has opaque padding. */
-export function ensureArrowTexture(scene: Phaser.Scene): void {
-  if (scene.textures.exists('arrow_proj')) return
+/** Visible arrow bounds inside the 64×64 Arrow.png (matches Archer_Shoot frames). */
+export const ARROW_SPRITE_CROP = { x: 10, y: 26, width: 43, height: 12 } as const
 
-  const g = scene.make.graphics({ x: 0, y: 0 })
-  g.fillStyle(0x8b5a2b, 1)
-  g.fillRect(4, 6, 26, 5)
-  g.fillStyle(0xd8d8d8, 1)
-  g.fillTriangle(30, 4, 38, 8.5, 30, 13)
-  g.fillStyle(0xf0f0f0, 1)
-  g.fillTriangle(4, 4, 9, 8.5, 4, 13)
-  g.generateTexture('arrow_proj', 40, 17)
-  g.destroy()
+export const ARROW_DISPLAY_W = 44
+export const ARROW_DISPLAY_H = 13
+
+export function arrowTextureKey(owner: Owner): string {
+  return owner === Owner.PLAYER ? 'arrow_blue' : 'arrow_red'
+}
+
+export function applyArrowSprite(img: Phaser.GameObjects.Image): void {
+  img.setCrop(
+    ARROW_SPRITE_CROP.x,
+    ARROW_SPRITE_CROP.y,
+    ARROW_SPRITE_CROP.width,
+    ARROW_SPRITE_CROP.height,
+  )
+  img.setDisplaySize(ARROW_DISPLAY_W, ARROW_DISPLAY_H)
+  img.setOrigin(0.35, 0.5)
 }
