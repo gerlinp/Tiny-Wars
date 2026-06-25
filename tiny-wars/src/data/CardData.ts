@@ -1,5 +1,6 @@
 import { CardType, UnitType, AttackType } from '@core/types'
 import type { CardDefinition, EntityStats, SpellStats } from '@core/types'
+import { BOMB_TOWER_LIFETIME_MS, CR_SPEED, crSpeedToCellsPerSec } from '@data/GameConstants'
 
 function troop(
   id: string,
@@ -8,19 +9,18 @@ function troop(
   stats: EntityStats,
   textureKeyPlayer: string,
   textureKeyBot: string,
+  deployCount = 1,
 ): CardDefinition {
-  return { id, displayName, elixirCost, cardType: CardType.TROOP, stats, textureKeyPlayer, textureKeyBot }
-}
-
-function spell(
-  id: string,
-  displayName: string,
-  elixirCost: number,
-  stats: SpellStats,
-  textureKeyPlayer: string,
-  textureKeyBot: string,
-): CardDefinition {
-  return { id, displayName, elixirCost, cardType: CardType.SPELL, stats, textureKeyPlayer, textureKeyBot }
+  return {
+    id,
+    displayName,
+    elixirCost,
+    cardType: CardType.TROOP,
+    stats,
+    textureKeyPlayer,
+    textureKeyBot,
+    deployCount,
+  }
 }
 
 function building(
@@ -34,43 +34,101 @@ function building(
   return { id, displayName, elixirCost, cardType: CardType.BUILDING, stats, textureKeyPlayer, textureKeyBot }
 }
 
+function spell(
+  id: string,
+  displayName: string,
+  elixirCost: number,
+  spellStats: SpellStats,
+  textureKeyPlayer: string,
+  textureKeyBot: string,
+): CardDefinition {
+  return {
+    id,
+    displayName,
+    elixirCost,
+    cardType: CardType.SPELL,
+    spellStats,
+    textureKeyPlayer,
+    textureKeyBot,
+  }
+}
+
+/** Stats tuned to Clash Royale equivalents at {@link BALANCE_REFERENCE_LEVEL}. */
 export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
-  warrior: troop('warrior', 'Warrior', 4, {
-    maxHp: 2000, speed: 1.5, damage: 126, attackRate: 1.0,
-    attackRange: 1.2, unitType: UnitType.GROUND, attackType: AttackType.GROUND_ONLY,
+  warrior: troop('warrior', 'Warrior', 3, {
+    maxHp: 1766,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 202,
+    attackRate: 1 / 1.2,
+    attackRange: 1.2,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
   }, 'warrior_blue_idle', 'warrior_red_idle'),
 
-  archer: troop('archer', 'Archer', 2, {
-    maxHp: 125, speed: 2.0, damage: 33, attackRate: 1.0,
-    attackRange: 5.0, unitType: UnitType.GROUND, attackType: AttackType.AIR_AND_GROUND,
-  }, 'archer_blue_idle', 'archer_red_idle'),
+  archer: troop('archer', 'Archers', 3, {
+    maxHp: 152,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 112,
+    attackRate: 1 / 0.9,
+    attackRange: 5.0,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.AIR_AND_GROUND,
+  }, 'archer_blue_idle', 'archer_red_idle', 2),
 
   pawn: troop('pawn', 'Pawn', 3, {
-    maxHp: 300, speed: 2.5, damage: 75, attackRate: 1.0,
-    attackRange: 1.2, unitType: UnitType.GROUND, attackType: AttackType.GROUND_ONLY,
+    maxHp: 1064,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 160,
+    attackRate: 1 / 1.2,
+    attackRange: 1.2,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
   }, 'pawn_blue_idle', 'pawn_red_idle'),
 
-  torch_goblin: troop('torch_goblin', 'Torch Goblin', 4, {
-    maxHp: 340, speed: 2.0, damage: 130, attackRate: 1.0,
-    attackRange: 5.0, unitType: UnitType.GROUND, attackType: AttackType.AIR_AND_GROUND,
-  }, 'torch_goblin_blue_sheet', 'torch_goblin_red_sheet'),
+  wizard: troop('wizard', 'Wizard', 5, {
+    maxHp: 755,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 281,
+    attackRate: 1 / 1.4,
+    attackRange: 5.0,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.AIR_AND_GROUND,
+    splashRadius: 1.5,
+  }, 'wizard_blue_idle', 'wizard_red_idle'),
 
-  tnt: spell('tnt', 'TNT', 3, {
-    damage: 325, radius: 2.5, duration: 0,
-  }, 'tnt_blue_sheet', 'tnt_red_sheet'),
+  torch_goblin: troop('torch_goblin', 'Torch Goblin', 3, {
+    maxHp: 261,
+    speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
+    damage: 151,
+    attackRate: 1 / 0.8,
+    attackRange: 6.5,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.AIR_AND_GROUND,
+  }, 'torch_goblin_blue_idle', 'torch_goblin_red_idle'),
 
-  barrel: troop('barrel', 'Barrel', 5, {
-    maxHp: 380, speed: 2.0, damage: 60, attackRate: 0.8,
-    attackRange: 1.2, unitType: UnitType.GROUND, attackType: AttackType.GROUND_ONLY,
-  }, 'barrel_blue_sheet', 'barrel_red_sheet'),
+  arrows: spell('arrows', 'Arrows', 3, {
+    damage: 306, radius: 4, duration: 0, delivery: 'arrows',
+  }, 'arrow_blue', 'arrow_red'),
 
-  wood_tower: building('wood_tower', 'Wood Tower', 2, {
-    maxHp: 800, speed: 0, damage: 210, attackRate: 1.5,
-    attackRange: 6.0, unitType: UnitType.GROUND, attackType: AttackType.AIR_AND_GROUND,
-    lifetimeMs: 90_000,
+  wood_tower: building('wood_tower', 'Bomb Tower', 4, {
+    maxHp: 1356,
+    speed: 0,
+    damage: 222,
+    attackRate: 1 / 1.8,
+    attackRange: 6.0,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+    splashRadius: 1.5,
+    deathSplashRadius: 3,
+    lifetimeMs: BOMB_TOWER_LIFETIME_MS,
   }, 'wood_tower_blue_sheet', 'wood_tower_red_sheet'),
+
+  tnt: spell('tnt', 'Rocket', 6, {
+    damage: 1484, radius: 2, duration: 0, groundOnly: true, delivery: 'rocket',
+  }, 'bomb_idle', 'bomb_idle'),
 }
 
 export const DEFAULT_DECK: string[] = [
-  'warrior', 'archer', 'pawn', 'torch_goblin', 'tnt', 'barrel', 'wood_tower', 'archer',
+  'warrior', 'archer', 'pawn', 'wizard', 'torch_goblin', 'arrows', 'wood_tower',
+  'tnt',
 ]

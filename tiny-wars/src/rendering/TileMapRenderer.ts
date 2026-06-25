@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GRID_COLS, GRID_ROWS, CELL_SIZE, RIVER_ROW_START, RIVER_ROW_END, BRIDGE_COLS } from '@data/GameConstants'
+import { GRID_COLS, GRID_ROWS, CELL_SIZE, RIVER_ROW_START, RIVER_ROW_END, LEFT_BRIDGE_COLS, RIGHT_BRIDGE_COLS } from '@data/GameConstants'
 
 export class TileMapRenderer {
   constructor(private scene: Phaser.Scene) {}
@@ -12,7 +12,8 @@ export class TileMapRenderer {
         const x = col * CELL_SIZE
         const y = row * CELL_SIZE
         const inRiver  = row >= RIVER_ROW_START && row <= RIVER_ROW_END
-        const isBridge = (BRIDGE_COLS as readonly number[]).includes(col)
+        const isBridge = (LEFT_BRIDGE_COLS as readonly number[]).includes(col)
+          || (RIGHT_BRIDGE_COLS as readonly number[]).includes(col)
 
         if (inRiver && !isBridge) {
           // River cell — deep blue

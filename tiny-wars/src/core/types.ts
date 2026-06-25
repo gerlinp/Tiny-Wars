@@ -12,7 +12,7 @@ export enum TroopState { WALKING = 'WALKING', ATTACKING = 'ATTACKING', DEAD = 'D
 
 export enum BuildingState { IDLE = 'IDLE', ATTACKING = 'ATTACKING' }
 
-export enum CardType { TROOP = 'TROOP', SPELL = 'SPELL', BUILDING = 'BUILDING' }
+export enum CardType { TROOP = 'TROOP', BUILDING = 'BUILDING', ELIXIR = 'ELIXIR', SPELL = 'SPELL' }
 
 export enum EntityKind { TROOP = 'TROOP', TOWER = 'TOWER', BUILDING = 'BUILDING', SPELL = 'SPELL' }
 
@@ -28,6 +28,10 @@ export interface EntityStats {
   attackType: AttackType
   /** Buildings only — lifetime before auto-expiring (ms) */
   lifetimeMs?: number
+  /** Wizard-style — damages all enemies within radius (grid cells) around the hit. */
+  splashRadius?: number
+  /** Bomb Tower — larger blast when the building is destroyed (grid cells). */
+  deathSplashRadius?: number
 }
 
 export interface SpellStats {
@@ -35,6 +39,10 @@ export interface SpellStats {
   radius: number  // grid cells
   duration: number // ms, 0 = instant
   effect?: 'RAGE' | 'SLOW'
+  /** Rocket-style — skips air troops. */
+  groundOnly?: boolean
+  /** How the spell is delivered visually and timed. */
+  delivery?: 'rocket' | 'arrows'
 }
 
 export interface CardDefinition {
@@ -42,19 +50,28 @@ export interface CardDefinition {
   displayName: string
   elixirCost: number
   cardType: CardType
-  stats: EntityStats | SpellStats
-  textureKeyPlayer: string  // Phaser texture key for player (Blue) version
-  textureKeyBot: string     // Phaser texture key for bot (Red) version
+  /** Troops and buildings only */
+  stats?: EntityStats
+  /** Spell cards only */
+  spellStats?: SpellStats
+  /** Instant elixir cards — total elixir granted on play (before ELIXIR_MAX cap) */
+  elixirGain?: number
+  /** Troops only — units spawned per play (Archers = 2). */
+  deployCount?: number
+  textureKeyPlayer: string
+  textureKeyBot: string
 }
 
 export type GameEvent =
   | { type: 'DEPLOY';       entityId: string; cardId: string; position: Vec2 }
-  | { type: 'DAMAGE'; targetId: string; amount: number; attackerId?: string }
-  | { type: 'DEATH';        entityId: string; position: Vec2 }
-  | { type: 'CROWN_LOST';   owner: Owner; towerId: string }
+  | { type: 'SPELL_CAST';  cardId: string; owner: Owner; from: Vec2; to: Vec2; flightMs: number; entityId: string }
   | { type: 'SPELL_IMPACT'; cardId: string; position: Vec2; radius: number }
+  | { type: 'DAMAGE'; targetId: string; amount: number; attackerId?: string; splash?: boolean }
+  | { type: 'DEATH'; entityId: string; position: Vec2; cardId?: string; deathSplashRadius?: number }
+  | { type: 'CROWN_LOST';   owner: Owner; towerId: string }
 
 export interface BotAction {
   cardId: string
+  handIndex: number
   position: Vec2
 }

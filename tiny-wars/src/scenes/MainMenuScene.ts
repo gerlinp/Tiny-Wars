@@ -26,12 +26,13 @@ export class MainMenuScene extends Phaser.Scene {
     const btn = this.add.image(width / 2, height * 0.56, 'button_blue')
       .setInteractive({ useHandCursor: true })
       .setScale(2)
+      .setDepth(1)
 
-    this.add.text(width / 2, height * 0.56, 'VS BOT', {
+    this.add.text(width / 2, height * 0.56, 'PLAY', {
       fontSize: '20px',
       fontStyle: 'bold',
       color: '#ffffff',
-    }).setOrigin(0.5)
+    }).setOrigin(0.5).setDepth(2)
 
     btn.on('pointerdown', () => {
       this.scene.start('BattleScene')

@@ -5,7 +5,10 @@ import type { Grid } from '@core/Grid'
 import type { DeployZoneOverlay } from '@rendering/DeployZoneOverlay'
 import type { PlacementGhost } from '@rendering/PlacementGhost'
 import { Owner } from '@core/types'
-import { GAME_HEIGHT, PLAYER_DEPLOY_ROW_MIN, PLAYER_DEPLOY_ROW_MAX } from '@data/GameConstants'
+import { CardType } from '@core/types'
+import { GAME_HEIGHT } from '@data/GameConstants'
+import { LOCAL_OWNER, enemyLaneUnlocksFor } from '@core/DeployPerspective'
+import { isTroopDeployCell } from '@core/DeployZones'
 
 type State = 'IDLE' | 'CARD_SELECTED'
 
@@ -44,10 +47,19 @@ export class CardDeployController {
     this.selectedIndex = index
     this.cardSystem.selectCard(index)
 
-    this.overlay.show()
+    this.overlay.syncExpandedZones(LOCAL_OWNER, enemyLaneUnlocksFor(this.simulator.state, LOCAL_OWNER))
+    this.overlay.show(
+      card.cardType === CardType.ELIXIR ? 'elixir'
+        : card.cardType === CardType.SPELL ? 'spell'
+        : 'troop',
+    )
     this.overlay.hideHint()
-    this.ghost.setCard(card)
-    this.ghost.show()
+    if (card.cardType === CardType.ELIXIR) {
+      this.ghost.hide()
+    } else {
+      this.ghost.setCard(card)
+      this.ghost.show()
+    }
   }
 
   deselect(): void {
@@ -68,7 +80,11 @@ export class CardDeployController {
 
     if (this.state !== 'CARD_SELECTED' || this.selectedIndex === null) {
       const cell = this.grid.worldToCell(x, y)
-      const inZone = cell.y >= PLAYER_DEPLOY_ROW_MIN && cell.y <= PLAYER_DEPLOY_ROW_MAX
+      const inZone = isTroopDeployCell(
+        LOCAL_OWNER,
+        cell,
+        this.simulator.state.enemyLaneDeploy,
+      )
       if (inZone) this.overlay.showHint()
       else this.overlay.hideHint()
       return

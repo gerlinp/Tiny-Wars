@@ -1,5 +1,5 @@
 /** Global dev-mode flag toggled from the UI. */
-let enabled = false
+let enabled = true
 
 export const DevMode = {
   get enabled(): boolean { return enabled },

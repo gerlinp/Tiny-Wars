@@ -6,6 +6,7 @@ import type { Vec2 } from './types'
 import { dist } from './Vector2'
 import { CELL_SIZE, GRID_COLS, GRID_ROWS } from '@data/GameConstants'
 import { collisionHalfExtentsForCard, collisionHalfExtentsForTower } from '@rendering/assetDisplaySize'
+import { towerCollisionCenter } from '@rendering/towerRenderPosition'
 
 export interface HalfExtents {
   halfW: number
@@ -15,6 +16,19 @@ export interface HalfExtents {
 export function troopCollisionHalf(): HalfExtents {
   const half = CELL_SIZE / 2
   return { halfW: half, halfH: half }
+}
+
+/** Buildings anchor at their base; towers anchor footprint to the visual sprite base. */
+export function entityCollisionCenter(entity: Entity): Vec2 {
+  if (entity.kind === EntityKind.BUILDING) {
+    const building = entity as Building
+    return { x: building.position.x, y: building.position.y - building.halfH }
+  }
+  if (entity.kind === EntityKind.TOWER) {
+    const tower = entity as Tower
+    return towerCollisionCenter(tower.position.x, tower.position.y)
+  }
+  return entity.position
 }
 
 export function entityHalfExtents(entity: Entity): HalfExtents {
@@ -34,38 +48,41 @@ export function entityHalfExtents(entity: Entity): HalfExtents {
 
 /** Distance from a point to the nearest edge of an entity's collision box. */
 export function surfaceDistToEntity(from: Vec2, target: Entity): number {
-  const d = dist(from, target.position)
+  const center = entityCollisionCenter(target)
+  const d = dist(from, center)
   if (d < 0.01) return 0
 
   const half = entityHalfExtents(target)
-  const nx = (from.x - target.position.x) / d
-  const ny = (from.y - target.position.y) / d
+  const nx = (from.x - center.x) / d
+  const ny = (from.y - center.y) / d
   const extent = Math.abs(nx) * half.halfW + Math.abs(ny) * half.halfH
   return Math.max(0, d - extent)
 }
 
 /** World point just outside the target's collision box, facing the attacker. */
 export function approachPointOnSurface(from: Vec2, target: Entity, margin = 2): Vec2 {
-  const d = dist(from, target.position)
-  if (d < 0.01) return { x: target.position.x, y: target.position.y }
+  const center = entityCollisionCenter(target)
+  const d = dist(from, center)
+  if (d < 0.01) return { x: center.x, y: center.y }
 
   const half = entityHalfExtents(target)
-  const nx = (from.x - target.position.x) / d
-  const ny = (from.y - target.position.y) / d
+  const nx = (from.x - center.x) / d
+  const ny = (from.y - center.y) / d
   const extent = Math.abs(nx) * half.halfW + Math.abs(ny) * half.halfH
   const stopDist = extent + margin
 
   return {
-    x: target.position.x + nx * stopDist,
-    y: target.position.y + ny * stopDist,
+    x: center.x + nx * stopDist,
+    y: center.y + ny * stopDist,
   }
 }
 
 /** Push a troop out of overlapping entity collision boxes. */
 export function resolveEntityOverlap(pos: Vec2, moverHalf: number, blocker: Entity): void {
   const half = entityHalfExtents(blocker)
-  const dx = pos.x - blocker.position.x
-  const dy = pos.y - blocker.position.y
+  const center = entityCollisionCenter(blocker)
+  const dx = pos.x - center.x
+  const dy = pos.y - center.y
   const overlapX = (moverHalf + half.halfW) - Math.abs(dx)
   const overlapY = (moverHalf + half.halfH) - Math.abs(dy)
 
@@ -76,6 +93,53 @@ export function resolveEntityOverlap(pos: Vec2, moverHalf: number, blocker: Enti
   } else {
     pos.y += overlapY * Math.sign(dy || 1)
   }
+}
+
+export function boxesOverlap(
+  posA: Vec2,
+  halfA: HalfExtents,
+  posB: Vec2,
+  halfB: HalfExtents,
+): boolean {
+  return Math.abs(posA.x - posB.x) < halfA.halfW + halfB.halfW
+    && Math.abs(posA.y - posB.y) < halfA.halfH + halfB.halfH
+}
+
+/** Separate two axis-aligned boxes; moveRatioA is the fraction applied to posA (1 = only A moves). */
+export function separateBoxPair(
+  posA: Vec2,
+  halfA: HalfExtents,
+  posB: Vec2,
+  halfB: HalfExtents,
+  moveRatioA = 0.5,
+): void {
+  const dx = posA.x - posB.x
+  const dy = posA.y - posB.y
+  const overlapX = halfA.halfW + halfB.halfW - Math.abs(dx)
+  const overlapY = halfA.halfH + halfB.halfH - Math.abs(dy)
+
+  if (overlapX <= 0 || overlapY <= 0) return
+
+  if (overlapX < overlapY) {
+    const push = overlapX * Math.sign(dx || 1)
+    posA.x += push * moveRatioA
+    posB.x -= push * (1 - moveRatioA)
+  } else {
+    const push = overlapY * Math.sign(dy || 1)
+    posA.y += push * moveRatioA
+    posB.y -= push * (1 - moveRatioA)
+  }
+}
+
+/** Push a moving troop out of a static or peer entity using per-card body boxes. */
+export function pushTroopOutOfEntity(moverPos: Vec2, mover: Entity, blocker: Entity): void {
+  separateBoxPair(
+    moverPos,
+    entityHalfExtents(mover),
+    entityCollisionCenter(blocker),
+    entityHalfExtents(blocker),
+    1,
+  )
 }
 
 /** Grid cells covered by a building's image-sized footprint. */

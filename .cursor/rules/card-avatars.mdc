@@ -1,0 +1,29 @@
+---
+description: Card-hand avatars must be explicit — never auto-placeholder
+alwaysApply: true
+---
+
+# Card-hand avatars
+
+Every card in the deck needs a **dedicated portrait** in `AssetManifest.ts` (`avatar: humanAvatar(...)` or `enemyAvatar(...)`).
+
+## When a card has no avatar
+
+1. **Stop** — do not wire a placeholder, unit spritesheet frame, or guessed asset.
+2. **Ask the user** which portrait to use (e.g. pick from `Human Avatars/`, `Enemy Avatars/`, or another asset path).
+3. Only after they choose, add `avatar` to the card bundle and preload it.
+
+## Never do for card UI
+
+- `resolveTexture(..., 'placeholder_player')` for hand icons
+- Falling back to `idleSheetKey` for `cardAvatarKey`
+- Silently showing a blue/red square on a card
+
+## Code paths
+
+- `getCardAvatarDef()` / `cardAvatarKey()` — throw if missing
+- `resolveCardAvatar()` — runtime check that texture loaded
+- `PreloadScene.create()` — validates all `DEFAULT_DECK` avatars loaded
+- Tests in `AssetManifest.test.ts` — avatar file exists on disk
+
+In-map unit sprites may still use placeholders; this rule is **card hand UI only**.

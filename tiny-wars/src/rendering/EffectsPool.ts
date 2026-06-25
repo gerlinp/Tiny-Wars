@@ -16,10 +16,12 @@ export class EffectsPool {
     }
   }
 
-  spawn(x: number, y: number): void {
+  spawn(x: number, y: number, radiusPx = 48): void {
     const img = this.pool.find(p => p.alpha === 0)
     if (!img) return
 
+    const size = Math.max(48, radiusPx * 1.6)
+    img.setDisplaySize(size, size)
     img.setPosition(x, y).setAlpha(1).setScale(0.5)
     this.scene.tweens.add({
       targets: img,

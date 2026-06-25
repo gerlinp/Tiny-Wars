@@ -8,42 +8,38 @@ export interface HandState {
 }
 
 export class CardSystem {
-  private deck: CardDefinition[]
-  private drawIndex: number
+  /** Draw pile — front is dealt next; played cards return to the back. */
+  private queue: CardDefinition[]
 
   hand: CardDefinition[]
   nextCard: CardDefinition
   selectedIndex: number | null = null
 
   constructor(deckIds: string[] = DEFAULT_DECK) {
-    // Build deck from ids, cycling through the provided list
+    if (new Set(deckIds).size !== deckIds.length) {
+      throw new Error(`Deck contains duplicate card ids: ${deckIds.join(', ')}`)
+    }
     const definitions = deckIds.map(id => {
       const def = CARD_DEFINITIONS[id]
       if (!def) throw new Error(`Unknown card id: ${id}`)
       return def
     })
-    this.deck = [...definitions]
-    this.drawIndex = 0
+    this.queue = [...definitions]
+    shuffleInPlace(this.queue)
 
-    // Deal initial 4-card hand + next
     this.hand = []
-    for (let i = 0; i < 4; i++) this.hand.push(this.draw())
-    this.nextCard = this.draw()
+    for (let i = 0; i < 4; i++) this.hand.push(this.queue.shift()!)
+    this.nextCard = this.queue.shift()!
   }
 
-  private draw(): CardDefinition {
-    const card = this.deck[this.drawIndex % this.deck.length]!
-    this.drawIndex++
-    return card
-  }
-
-  /** Remove the card at handIndex, shift nextCard in, draw new nextCard */
+  /** Play hand[slot]: next slides in, played card goes to the back of the queue. */
   consumeCard(handIndex: number): CardDefinition {
-    const card = this.hand[handIndex]!
+    const played = this.hand[handIndex]!
     this.hand[handIndex] = this.nextCard
-    this.nextCard = this.draw()
+    this.queue.push(played)
+    this.nextCard = this.queue.shift()!
     this.selectedIndex = null
-    return card
+    return played
   }
 
   selectCard(index: number): void {
@@ -61,5 +57,15 @@ export class CardSystem {
       nextCard: this.nextCard,
       selectedIndex: this.selectedIndex,
     }
+  }
+}
+
+/** Fisher–Yates shuffle — randomizes draw order each match. */
+function shuffleInPlace<T>(items: T[]): void {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const tmp = items[i]!
+    items[i] = items[j]!
+    items[j] = tmp
   }
 }

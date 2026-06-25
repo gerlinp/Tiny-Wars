@@ -13,3 +13,25 @@ export function arrowFlightMs(distancePx: number, attackRate: number): number {
     Math.max(ARROW_MIN_FLIGHT_MS, Math.min(ARROW_MAX_FLIGHT_MS, Math.max(byCooldown, byDistance))),
   )
 }
+
+/** Rocket spell — straight-line flight from king tower. */
+export const ROCKET_MIN_FLIGHT_MS = 280
+export const ROCKET_MAX_FLIGHT_MS = 900
+export const ROCKET_SPEED_PX_PER_SEC = 720
+
+export function rocketFlightMs(distancePx: number): number {
+  const byDistance = (distancePx / ROCKET_SPEED_PX_PER_SEC) * 1000
+  return Math.round(
+    Math.max(ROCKET_MIN_FLIGHT_MS, Math.min(ROCKET_MAX_FLIGHT_MS, byDistance)),
+  )
+}
+
+/** Arrows spell — rain duration before impact (Clash-style volley). */
+export const ARROWS_RAIN_MS = 650
+
+export function arrowsRainMs(): number {
+  return ARROWS_RAIN_MS
+}
+
+/** @deprecated Use rocketFlightMs */
+export const tntFlightMs = rocketFlightMs

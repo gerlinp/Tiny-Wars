@@ -1,0 +1,43 @@
+---
+description: Use the Java Clash Royale reference for game behavior parity
+alwaysApply: true
+---
+
+# Java Clash reference
+
+When changing **game behavior** (movement, pathing, targeting, combat, towers, buildings, spells, elixir, AI, card stats), consult the Java reference first:
+
+**`/home/guru/Downloads/clash-royale-main`**
+
+Do not guess Clash Royale rules from memory — read the matching Java file, then implement or adjust Tiny-Wars logic and tests.
+
+## Key reference files
+
+| Behavior | Java path |
+|----------|-----------|
+| Troop move, lanes, bridge, targeting | `client/.../runnables/HandleTroopsRunnable.java` |
+| Tower attacks | `client/.../runnables/HandleTowersRunnable.java` |
+| Building attack + lifetime decay | `client/.../runnables/HandleBuildingRunnable.java`, `core/.../cards/buildings/Building.java` |
+| Spells | `client/.../runnables/HandleSpellsRunnable.java` |
+| Elixir regen | `client/.../runnables/HandleElixirsCountRunnable.java` |
+| Bot AI | `client/.../runnables/HandleNormalBotMoveRunnable.java` |
+| Game tick / FPS | `client/.../globals/GlobalData.java` (`FRAME_PER_SECOND = 30`) |
+| Troop stats (HP, range, hit speed) | `core/src/main/java/cards/troops/**` |
+| Tower stats | `core/src/main/java/towers/` |
+
+## Tiny-Wars mapping
+
+| Java concept | Tiny-Wars |
+|--------------|-----------|
+| Lanes cols 6, 17 | `LEFT_LANE_COL` (7), `RIGHT_LANE_COL` (16) in `GameConstants.ts` |
+| Bridge row y=6 | `RIVER_BRIDGE_ROW` (21) |
+| Bridge centre (9,6) → king lock | `isBridgeCenter()` in `LaneMovement.ts` |
+| Lane step logic | `getLaneStep()` / `getLaneMarchGoal()` in `LaneMovement.ts` |
+| Troop tick | `Troop.ts` |
+
+## Intentional deviations (document in PR/commit if you change these)
+
+- **360° movement**: Java snaps one grid cell per move tick; Tiny-Wars uses continuous `moveTowardDirect` with lane-biased goals. Keep smooth movement — do not regress to 4-direction grid snapping.
+- **Chase**: Java troops do not path toward targets; they only fight when already in range. Tiny-Wars chases with `moveFree` when a target is acquired.
+
+When fixing a behavior bug, compare the Java rule first, then add/update a test in `src/**/*.test.ts` (see `no-behavior-regressions.mdc`).

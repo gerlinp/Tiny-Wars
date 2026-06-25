@@ -5,6 +5,7 @@ import { TimerDisplay } from '@ui/TimerDisplay'
 import { CrownCounter } from '@ui/CrownCounter'
 import type { HandState } from '@core/CardSystem'
 import { GAME_HEIGHT, HUD_HEIGHT } from '@data/GameConstants'
+import { deckCenterY, elixirBarY } from '@ui/cardHandLayout'
 import { DevMode } from '@debug/DevMode'
 
 export interface UISnapshot {
@@ -43,8 +44,8 @@ export class UIScene extends Phaser.Scene {
     this.timer  = new TimerDisplay(this, cx, GAME_HEIGHT - 20)
     this.crowns = new CrownCounter(this, cx, GAME_HEIGHT - 42)
 
-    this.elixirBar = new ElixirBar(this, cx, GAME_HEIGHT + 18)
-    this.cardHand  = new CardHand(this, cx, GAME_HEIGHT + 90)
+    this.elixirBar = new ElixirBar(this, cx, elixirBarY(GAME_HEIGHT))
+    this.cardHand  = new CardHand(this, cx, deckCenterY(GAME_HEIGHT))
 
     this.cardHand.onCardSelected = (i) => {
       this.onCardSelected?.(i)
@@ -62,6 +63,8 @@ export class UIScene extends Phaser.Scene {
       this.updateDevButton(on)
       this.onDevModeToggle?.()
     })
+
+    this.updateDevButton(DevMode.enabled)
 
     this.pauseBtn = this.add.text(width - 12, 12, '⏸', {
       fontSize: '22px',

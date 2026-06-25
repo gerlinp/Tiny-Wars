@@ -9,7 +9,7 @@ import { CELL_SIZE } from '@data/GameConstants'
 import { towerTextureKey } from '@rendering/AssetRegistry'
 import { displaySizeForCard, displaySizeForTower } from '@rendering/assetDisplaySize'
 import { towerRenderY } from '@rendering/towerRenderPosition'
-import { entityHalfExtents } from '@core/EntityGeometry'
+import { entityCollisionCenter, entityHalfExtents } from '@core/EntityGeometry'
 import { idleSheetKey } from '@data/AssetManifest'
 import { resolveTexture } from '@rendering/PlaceholderFactory'
 
@@ -67,17 +67,18 @@ export class DevModeOverlay {
     const g = this.gfx
 
     for (const entity of state.entities.values()) {
-      if (!entity.isAlive || entity.kind === EntityKind.SPELL) continue
+      if (!entity.isAlive) continue
 
       const ownerCol = this.ownerColor(entity.owner)
       const cardId = entityCardIds.get(entity.id)
       const half = entityHalfExtents(entity)
+      const collisionCenter = entityCollisionCenter(entity)
 
       // Collision footprint (image-sized for buildings, cell-sized for troops)
       g.lineStyle(1.5, entity.kind === EntityKind.BUILDING ? COL.building : COL.grid, 0.9)
       g.strokeRect(
-        entity.position.x - half.halfW,
-        entity.position.y - half.halfH,
+        collisionCenter.x - half.halfW,
+        collisionCenter.y - half.halfH,
         half.halfW * 2,
         half.halfH * 2,
       )
@@ -89,19 +90,29 @@ export class DevModeOverlay {
         const key = resolveTexture(this.scene, sheetKey, fallback)
         const size = displaySizeForCard(this.scene, cardId, key, 0)
         g.lineStyle(1.5, COL.sprite, 0.85)
-        g.strokeRect(
-          entity.position.x - size.width / 2,
-          entity.position.y - size.height / 2,
-          size.width,
-          size.height,
-        )
+        if (entity.kind === EntityKind.BUILDING) {
+          g.strokeRect(
+            entity.position.x - size.width / 2,
+            entity.position.y - size.height,
+            size.width,
+            size.height,
+          )
+        } else {
+          g.strokeRect(
+            entity.position.x - size.width / 2,
+            entity.position.y - size.height / 2,
+            size.width,
+            size.height,
+          )
+        }
       }
 
       // Attack range (red)
       const attackRangePx = this.attackRangePx(entity)
       if (attackRangePx > 0) {
         g.lineStyle(1.5, COL.attack, 0.55)
-        g.strokeCircle(entity.position.x, entity.position.y, attackRangePx)
+        const rangeCenter = entity.kind === EntityKind.BUILDING ? collisionCenter : entity.position
+        g.strokeCircle(rangeCenter.x, rangeCenter.y, attackRangePx)
       }
 
       // Aggro / vision range (yellow) — troops only
@@ -126,17 +137,19 @@ export class DevModeOverlay {
 
       const half = entityHalfExtents(tower)
 
+      const collisionCenter = entityCollisionCenter(tower)
+
       g.lineStyle(1.5, COL.tower, 0.9)
       g.strokeRect(
-        tower.position.x - half.halfW,
-        tower.position.y - half.halfH,
+        collisionCenter.x - half.halfW,
+        collisionCenter.y - half.halfH,
         half.halfW * 2,
         half.halfH * 2,
       )
 
       const key = towerTextureKey(tower.isKing, tower.owner)
       const size = displaySizeForTower(this.scene, tower.isKing, key)
-      const ry = towerRenderY(tower.position.y, tower.owner)
+      const ry = towerRenderY(tower.position.y, tower.owner, tower.isKing)
 
       g.lineStyle(1.5, COL.sprite, 0.7)
       g.strokeRect(

@@ -33,7 +33,7 @@ describe('GameSimulator', () => {
 
   it('rejects card deploy when player has insufficient elixir', () => {
     const sim = makeSim()
-    const card = CARD_DEFINITIONS['warrior']! // costs 4 elixir
+    const card = CARD_DEFINITIONS['warrior']! // costs 3 elixir
     // Force elixir below cost
     sim.state.playerElixir = 2
     const ok = sim.deployCard(Owner.PLAYER, card, { x: 11, y: PLAYER_DEPLOY_ROW_MIN })
@@ -43,12 +43,12 @@ describe('GameSimulator', () => {
 
   it('accepts valid card deployment and deducts elixir', () => {
     const sim = makeSim()
-    const card = CARD_DEFINITIONS['archer']! // costs 2 elixir
+    const card = CARD_DEFINITIONS['archer']! // costs 3 elixir, spawns 2
     sim.state.playerElixir = 5
     const ok = sim.deployCard(Owner.PLAYER, card, { x: 11, y: PLAYER_DEPLOY_ROW_MIN })
     expect(ok).toBe(true)
-    expect(sim.state.playerElixir).toBe(3)
-    expect(sim.state.entities.size).toBe(1)
+    expect(sim.state.playerElixir).toBe(2)
+    expect(sim.state.entities.size).toBe(2)
   })
 
   it('runs 30 ticks without crashing', () => {
@@ -96,14 +96,33 @@ describe('GameSimulator', () => {
       expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: PLAYER_DEPLOY_ROW_MIN })).toBe(false)
     })
 
-    it('allows spell in player zone even on non-walkable cell', () => {
+    it('rocket spell can target anywhere on the arena', () => {
       const sim = makeSim()
-      const spell = CARD_DEFINITIONS['tnt']!
+      const card = CARD_DEFINITIONS['tnt']!
       sim.state.playerElixir = 10
-      // Row 23 col 10 is walkable grass — use river cell col 10 row 21 which is NOT in player zone
-      expect(sim.canDeployAt(Owner.PLAYER, spell, { x: 10, y: 21 })).toBe(false)
-      // Valid player zone cell (walkable or not — spell ignores walkability)
-      expect(sim.canDeployAt(Owner.PLAYER, spell, { x: 11, y: PLAYER_DEPLOY_ROW_MIN })).toBe(true)
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: 5 })).toBe(true)
+      expect(sim.deployCard(Owner.PLAYER, card, { x: 11, y: 5 })).toBe(true)
+      expect(sim.state.playerElixir).toBe(4)
+      expect(sim.state.events.some(e => e.type === 'SPELL_CAST')).toBe(true)
+    })
+
+    it('arrows spell costs 3 and hits in a 4-cell radius', () => {
+      const sim = makeSim()
+      const card = CARD_DEFINITIONS['arrows']!
+      sim.state.playerElixir = 5
+      expect(sim.deployCard(Owner.PLAYER, card, { x: 11, y: 10 })).toBe(true)
+      expect(sim.state.playerElixir).toBe(2)
+      const cast = sim.state.events.find(e => e.type === 'SPELL_CAST')
+      expect(cast?.type === 'SPELL_CAST' && cast.cardId).toBe('arrows')
+    })
+
+    it('allows player deploy on enemy left lane after bot left tower falls', () => {
+      const sim = makeSim()
+      sim.state.enemyLaneDeploy[Owner.PLAYER].left = true
+      sim.state.playerElixir = 10
+      const card = CARD_DEFINITIONS['warrior']!
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 4, y: 5 })).toBe(true)
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 19, y: 5 })).toBe(false)
     })
   })
 })

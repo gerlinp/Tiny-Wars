@@ -1,0 +1,37 @@
+---
+description: Prevent behavior regressions when changing game logic
+alwaysApply: true
+---
+
+# No behavior regressions
+
+When changing **game behavior** (movement, combat, targeting, deployment, spells, AI, card rules, grid/pathfinding), do not ship without checking for regressions.
+
+**Reference:** Before changing rules, read the matching logic in `/home/guru/Downloads/clash-royale-main` — see `java-clash-reference.mdc` for the file map.
+
+## Before finishing
+
+1. Run `npm test` in `tiny-wars/` — all tests must pass.
+2. Run `npm run build` if types or imports changed.
+
+## When changing behavior
+
+- **Update or add a test** in `src/**/*.test.ts` that would have caught the bug or locks in the new rule.
+- Prefer testing pure logic (`LaneMovement`, `Movement`, `EntityGeometry`, `GameSimulator`, etc.) over Phaser scenes.
+- If you fix a reported bug (e.g. units stuck at bridge, lost free movement, wrong tower hitbox), add a focused test case for that scenario.
+
+## Existing coverage map
+
+| Area | Test file |
+|------|-----------|
+| Lane march / bridges | `LaneMovement.test.ts` |
+| River / bridge pathing | `Movement.test.ts` |
+| Building footprint / surface dist | `EntityGeometry.test.ts`, `Building.test.ts` |
+| Deploy rules / sim ticks | `GameSimulator.test.ts` |
+| Cards / elixir | `CardSystem.test.ts` |
+| Combat helpers | `CombatHelpers.test.ts` |
+| Pathfinding | `Pathfinder.test.ts` |
+
+## UI-only changes
+
+Visual tweaks (card layout, sprites, animations) do not require new tests unless they change gameplay input or rules.

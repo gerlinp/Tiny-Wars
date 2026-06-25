@@ -6,11 +6,11 @@ import type { Grid } from '../Grid'
 import { Pathfinder } from '../Pathfinder'
 import {
   approachPointOnSurface,
-  resolveEntityOverlap,
+  pushTroopOutOfEntity,
   surfaceDistToEntity,
-  troopCollisionHalf,
 } from '../EntityGeometry'
-import { distSq } from '../Vector2'
+import { distSq, dist } from '../Vector2'
+import { findNearestEnemy } from '../TargetSelection'
 import {
   followWaypoints,
   isDirectPathWalkable,
@@ -19,6 +19,7 @@ import {
   nearestBridgeApproach,
   reachedWorldPoint,
 } from '../Movement'
+import { isBridgeCenter, getLaneMarchGoal } from '../LaneMovement'
 import { CELL_SIZE, TROOP_AGGRO_RANGE_CELLS } from '@data/GameConstants'
 
 const PATH_REPLAN_DIST_SQ = CELL_SIZE * CELL_SIZE * 4
@@ -38,12 +39,19 @@ export class Troop extends Entity {
   private pathWaypoints: Vec2[] = []
   private pathGoal: Vec2 | null = null
   private lastObjectiveId: string | null = null
+  private lastMarchDir: Vec2
 
   constructor(owner: Owner, stats: EntityStats, position: Vec2, grid: Grid, cardId: string) {
     super(nextEntityId(), owner, EntityKind.TROOP, position, stats.maxHp, cardId)
     this.stats = stats
     this.grid = grid
     this.pathfinder = new Pathfinder(grid)
+    this.lastMarchDir = owner === Owner.PLAYER ? { x: 0, y: -1 } : { x: 0, y: 1 }
+  }
+
+  /** March direction for ally push-from-behind (normalized when moving). */
+  getMarchDirection(): Vec2 {
+    return this.lastMarchDir
   }
 
   tick(deltaMs: number, state: GameState): void {
@@ -51,29 +59,18 @@ export class Troop extends Entity {
 
     if (this.attackCooldownMs > 0) this.attackCooldownMs -= deltaMs
 
-    if (this.target && !this.target.isAlive) this.target = null
-
-    if (!this.target) {
-      this.target = this.acquireTarget(state)
-    }
+    this.refreshCombatTarget(state)
 
     if (this.target) {
       const attackReach = this.stats.attackRange * CELL_SIZE
-      const dist = Math.sqrt(distSq(this.position, this.target.position))
+      const dist = this.combatDistTo(this.target)
       if (dist <= attackReach) {
         this.state = TroopState.ATTACKING
         this.clearPath()
         this.trackObjective(this.target)
         if (this.attackCooldownMs <= 0) {
-          this.target.takeDamage(this.stats.damage)
-          state.events.push({
-            type: 'DAMAGE',
-            targetId: this.target.id,
-            amount: this.stats.damage,
-            attackerId: this.id,
-          })
+          this.performAttack(state, this.target)
           this.attackCooldownMs = 1000 / this.stats.attackRate
-          if (!this.target.isAlive) this.target = null
         }
         return
       }
@@ -85,10 +82,46 @@ export class Troop extends Entity {
     }
 
     this.state = TroopState.WALKING
-    const marchObjective = this.getMarchObjective(state)
-    if (marchObjective) {
-      this.trackObjective(marchObjective)
-      this.moveFree(deltaMs, this.moveGoalFor(marchObjective), state)
+    const laneGoal = this.getLaneMarchGoal()
+    this.trackObjective(null)
+    this.moveFree(deltaMs, laneGoal, state)
+  }
+
+  private performAttack(state: GameState, primary: Entity): void {
+    const splash = this.stats.splashRadius
+    if (splash && splash > 0) {
+      this.dealSplashDamage(state, primary.position, primary.id)
+      return
+    }
+    this.dealDamageTo(state, primary, false)
+  }
+
+  private dealDamageTo(state: GameState, target: Entity, splash: boolean): void {
+    target.takeDamage(this.stats.damage)
+    state.events.push({
+      type: 'DAMAGE',
+      targetId: target.id,
+      amount: this.stats.damage,
+      attackerId: this.id,
+      splash,
+    })
+  }
+
+  private dealSplashDamage(state: GameState, center: Vec2, primaryId: string): void {
+    const radiusPx = this.stats.splashRadius! * CELL_SIZE
+
+    for (const entity of state.entities.values()) {
+      if (entity.owner === this.owner || !entity.isAlive) continue
+      if (entity.kind !== EntityKind.TROOP && entity.kind !== EntityKind.BUILDING) continue
+      if (!this.canAttack(entity)) continue
+      if (dist(center, entity.position) > radiusPx) continue
+      this.dealDamageTo(state, entity, entity.id !== primaryId)
+    }
+
+    for (const tower of state.towers.values()) {
+      if (tower.owner === this.owner || !tower.isAlive) continue
+      if (dist(center, tower.position) > radiusPx) continue
+      this.dealDamageTo(state, tower, tower.id !== primaryId)
     }
   }
 
@@ -113,6 +146,13 @@ export class Troop extends Entity {
 
   /** 360° movement — pathfind proactively around the river, always at full speed. */
   private moveFree(deltaMs: number, goal: Vec2, state: GameState): void {
+    const dx = goal.x - this.position.x
+    const dy = goal.y - this.position.y
+    const dirLen = Math.hypot(dx, dy)
+    if (dirLen > 0.01) {
+      this.lastMarchDir = { x: dx / dirLen, y: dy / dirLen }
+    }
+
     const speed = (this.stats.speed * CELL_SIZE * deltaMs) / 1000
 
     if (this.stats.unitType === UnitType.AIR) {
@@ -121,8 +161,7 @@ export class Troop extends Entity {
     }
 
     const mustPath = isOppositeRiverBank(this.position, goal) ||
-      !isDirectPathWalkable(this.grid, this.position, goal) ||
-      this.hasEnemyBuildingInVision(state)
+      !isDirectPathWalkable(this.grid, this.position, goal)
 
     if (mustPath) {
       if (this.needsReplan(goal)) this.replanPath(goal)
@@ -137,11 +176,10 @@ export class Troop extends Entity {
   }
 
   private resolveCollisions(state: GameState): void {
-    const half = troopCollisionHalf().halfW
     for (const entity of state.entities.values()) {
       if (!entity.isAlive || entity.kind !== EntityKind.BUILDING) continue
       if (entity.owner === this.owner) continue
-      resolveEntityOverlap(this.position, half, entity)
+      pushTroopOutOfEntity(this.position, this, entity)
     }
   }
 
@@ -215,76 +253,71 @@ export class Troop extends Entity {
       : TROOP_AGGRO_RANGE_CELLS
   }
 
-  private acquireTarget(state: GameState): Entity | null {
-    const aggroRange = this.aggroRangePx()
-    let best: Entity | null = null
-    let bestDist = Infinity
-
-    for (const entity of state.entities.values()) {
-      if (entity.owner === this.owner || !entity.isAlive) continue
-      if (!this.canAttack(entity)) continue
-      const d = this.engageDist(entity)
-      if (d <= aggroRange && d < bestDist) {
-        bestDist = d
-        best = entity
-      }
+  private engageDistTo(entity: Entity): number {
+    if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {
+      return surfaceDistToEntity(this.position, entity)
     }
-
-    for (const tower of state.towers.values()) {
-      if (tower.owner === this.owner || !tower.isAlive) continue
-      const d = this.engageDist(tower)
-      if (d <= aggroRange && d < bestDist) {
-        bestDist = d
-        best = tower
-      }
-    }
-
-    return best
-  }
-
-  private engageDist(entity: Entity): number {
     return Math.sqrt(distSq(this.position, entity.position))
   }
 
-  private hasEnemyBuildingInVision(state: GameState): boolean {
-    const range = this.aggroRangePx()
-    for (const entity of state.entities.values()) {
-      if (entity.owner === this.owner || !entity.isAlive) continue
-      if (entity.kind !== EntityKind.BUILDING) continue
-      if (surfaceDistToEntity(this.position, entity) <= range) return true
-    }
-    return false
-  }
-
-  /** Nearest enemy building or tower — equal priority by surface distance. */
-  private findNearestStructure(state: GameState, maxDist = Infinity): Entity | null {
-    let best: Entity | null = null
-    let bestDist = Infinity
-
-    for (const entity of state.entities.values()) {
-      if (entity.owner === this.owner || !entity.isAlive) continue
-      if (entity.kind !== EntityKind.BUILDING || !this.canAttack(entity)) continue
-      const d = surfaceDistToEntity(this.position, entity)
-      if (d <= maxDist && d < bestDist) {
-        bestDist = d
-        best = entity
+  /**
+   * Closest enemy in aggro range while marching; once in attack range, stick until it dies.
+   */
+  private refreshCombatTarget(state: GameState): void {
+    if (!this.target?.isAlive) {
+      const cell = this.grid.worldToCell(this.position.x, this.position.y)
+      if (isBridgeCenter(cell.x, cell.y)) {
+        const king = this.findEnemyKingTower(state)
+        if (king) {
+          this.target = king
+          return
+        }
       }
     }
 
+    const attackReach = this.stats.attackRange * CELL_SIZE
+    const engaged = this.target?.isAlive && this.combatDistTo(this.target) <= attackReach
+    if (engaged) return
+
+    this.target = findNearestEnemy(state, {
+      owner: this.owner,
+      from: this.position,
+      includeTowers: true,
+      canAttack: (entity) => this.canAttack(entity),
+      distance: (_from, entity) => this.engageDistTo(entity),
+      maxDistance: this.aggroRangePx(),
+    })
+  }
+
+  private findEnemyKingTower(state: GameState): Entity | null {
     for (const tower of state.towers.values()) {
-      if (tower.owner === this.owner || !tower.isAlive) continue
-      const d = surfaceDistToEntity(this.position, tower)
-      if (d <= maxDist && d < bestDist) {
-        bestDist = d
-        best = tower
+      if (tower.owner !== this.owner && tower.isKing && tower.isAlive) {
+        return tower
       }
     }
-
-    return best
+    return null
   }
 
-  private getMarchObjective(state: GameState): Entity | null {
-    return this.findNearestStructure(state)
+  /** Lane-biased march when no combat target — goal is far ahead for smooth movement. */
+  private getLaneMarchGoal(): Vec2 {
+    return getLaneMarchGoal(
+      this.position.x,
+      this.position.y,
+      this.owner,
+      (wx, wy) => this.grid.worldToCell(wx, wy),
+      (col, row) => this.grid.cellToWorld(col, row),
+    )
+  }
+
+  /** Melee uses surface distance vs large structures; ranged uses center-to-center (tower parity). */
+  private combatDistTo(entity: Entity): number {
+    if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {
+      if (this.stats.attackRange > 2) {
+        return Math.sqrt(distSq(this.position, entity.position))
+      }
+      return surfaceDistToEntity(this.position, entity)
+    }
+    return Math.sqrt(distSq(this.position, entity.position))
   }
 
   private canAttack(entity: Entity): boolean {
@@ -303,7 +336,7 @@ export class Troop extends Entity {
   }
 
   /** Dev overlay — current path, goal, and target */
-  getDevInfo(state: GameState): {
+  getDevInfo(_state: GameState): {
     waypoints: readonly Vec2[]
     goal: Vec2 | null
     targetPos: Vec2 | null
@@ -313,7 +346,7 @@ export class Troop extends Entity {
       waypoints: [...this.pathWaypoints],
       goal: this.pathGoal ? { ...this.pathGoal } : null,
       targetPos: this.target?.isAlive ? this.moveGoalFor(this.target) : null,
-      marchGoal: this.target ? null : this.getMarchObjective(state)?.position ?? null,
+      marchGoal: this.target ? null : this.getLaneMarchGoal(),
     }
   }
 }

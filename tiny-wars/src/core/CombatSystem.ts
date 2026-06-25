@@ -1,11 +1,28 @@
 import type { GameState } from './GameState'
+import { Building } from './entities/Building'
+import { EntityKind } from './types'
 import { Owner } from './types'
+import { CELL_SIZE } from '@data/GameConstants'
+import { towerLaneFromCol } from './DeployZones'
+import { opponentOf } from './DeployPerspective'
 
 export function resolveDeaths(state: GameState): void {
   // Remove dead non-tower entities
   for (const [id, entity] of state.entities) {
     if (!entity.isAlive) {
-      state.events.push({ type: 'DEATH', entityId: id, position: { ...entity.position } })
+      if (entity.kind === EntityKind.BUILDING) {
+        const building = entity as Building
+        building.applyDeathSplash(state)
+        state.events.push({
+          type: 'DEATH',
+          entityId: id,
+          position: { ...entity.position },
+          cardId: building.cardId,
+          deathSplashRadius: building.stats.deathSplashRadius,
+        })
+      } else {
+        state.events.push({ type: 'DEATH', entityId: id, position: { ...entity.position } })
+      }
       state.entities.delete(id)
     }
   }
@@ -34,6 +51,10 @@ export function resolveDeaths(state: GameState): void {
 
       // Activate friendly King Tower when a Princess Tower dies
       if (!tower.isKing) {
+        const col = Math.floor(tower.position.x / CELL_SIZE)
+        const lane = towerLaneFromCol(col)
+        state.enemyLaneDeploy[opponentOf(tower.owner)][lane] = true
+
         for (const [, t] of state.towers) {
           if (t.owner === tower.owner && t.isKing) {
             t.activate()

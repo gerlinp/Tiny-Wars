@@ -1,7 +1,7 @@
 import type { GameState } from './GameState'
 import { createInitialGameState } from './GameState'
 import type { Grid } from './Grid'
-import { tickElixir } from './ElixirSystem'
+import { tickElixir, grantElixir } from './ElixirSystem'
 import { resolveDeaths, checkTimeWin } from './CombatSystem'
 import { Troop } from './entities/Troop'
 import { Tower } from './entities/Tower'
@@ -9,13 +9,24 @@ import { Building } from './entities/Building'
 import { Spell } from './entities/Spell'
 import { Owner, CardType, EntityKind } from './types'
 import type { Vec2 } from './types'
-import type { CardDefinition, SpellStats, EntityStats } from './types'
-import { CELL_SIZE, PLAYER_DEPLOY_ROW_MIN, PLAYER_DEPLOY_ROW_MAX, BOT_DEPLOY_ROW_MAX } from '@data/GameConstants'
-import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
+import type { CardDefinition, EntityStats } from './types'
 import {
-  PLAYER_KING_ROW, PLAYER_KING_COL, PLAYER_TOWER_ROW, PLAYER_TOWER_COLS,
-  BOT_KING_ROW, BOT_KING_COL, BOT_TOWER_ROW, BOT_TOWER_COLS,
+  CELL_SIZE,
+  TROOP_DEPLOY_SPREAD_CELLS,
+  PLAYER_KING_ROW,
+  PLAYER_KING_COL,
+  PLAYER_TOWER_ROW,
+  PLAYER_TOWER_COLS,
+  BOT_KING_ROW,
+  BOT_KING_COL,
+  BOT_TOWER_ROW,
+  BOT_TOWER_COLS,
 } from '@data/GameConstants'
+import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
+import { dist } from './Vector2'
+import { rocketFlightMs, arrowsRainMs } from '@data/ProjectileConstants'
+import { resolveTroopCollisions } from './TroopCollision'
+import { isTroopDeployCell } from './DeployZones'
 
 export class GameSimulator {
   state: GameState
@@ -62,6 +73,8 @@ export class GameSimulator {
       tower.tick(deltaMs, this.state)
     }
 
+    resolveTroopCollisions(this.state, deltaMs)
+
     this.unblockDeadBuildings()
     resolveDeaths(this.state)
     checkTimeWin(this.state, this.state.elapsedMs)
@@ -73,54 +86,92 @@ export class GameSimulator {
     if (gridPos.x < 0 || gridPos.x >= this.grid.cols) return false
     if (gridPos.y < 0 || gridPos.y >= this.grid.rows) return false
 
-    if (owner === Owner.PLAYER) {
-      if (gridPos.y < PLAYER_DEPLOY_ROW_MIN || gridPos.y > PLAYER_DEPLOY_ROW_MAX) return false
-    } else {
-      if (gridPos.y > BOT_DEPLOY_ROW_MAX) return false
-    }
-
-    if (card.cardType !== CardType.SPELL && !this.grid.isWalkable(gridPos.x, gridPos.y)) return false
-
     const elixir = owner === Owner.PLAYER ? this.state.playerElixir : this.state.botElixir
     if (elixir < card.elixirCost) return false
 
+    if (card.cardType === CardType.ELIXIR || card.cardType === CardType.SPELL) return true
+
+    if (!isTroopDeployCell(owner, gridPos, this.state.enemyLaneDeploy)) return false
+
+    if (!this.grid.isWalkable(gridPos.x, gridPos.y)) return false
+
     return true
+  }
+
+  private kingTowerPosition(owner: Owner): Vec2 {
+    for (const tower of this.state.towers.values()) {
+      if (tower.owner === owner && tower.isKing) {
+        return { x: tower.position.x, y: tower.position.y }
+      }
+    }
+    const col = owner === Owner.PLAYER ? PLAYER_KING_COL : BOT_KING_COL
+    const row = owner === Owner.PLAYER ? PLAYER_KING_ROW : BOT_KING_ROW
+    return {
+      x: col * CELL_SIZE + CELL_SIZE / 2,
+      y: row * CELL_SIZE + CELL_SIZE / 2,
+    }
   }
 
   deployCard(owner: Owner, card: CardDefinition, gridPos: Vec2): boolean {
     if (!this.canDeployAt(owner, card, gridPos)) return false
 
-    // Deduct elixir
     if (owner === Owner.PLAYER) this.state.playerElixir -= card.elixirCost
     else                        this.state.botElixir    -= card.elixirCost
+
+    if (card.cardType === CardType.ELIXIR) {
+      grantElixir(this.state, owner, card.elixirGain ?? 0)
+      return true
+    }
 
     const worldPos: Vec2 = {
       x: gridPos.x * CELL_SIZE + CELL_SIZE / 2,
       y: gridPos.y * CELL_SIZE + CELL_SIZE / 2,
     }
 
-    let entityId: string
-
     if (card.cardType === CardType.TROOP) {
-      const troop = new Troop(owner, card.stats as EntityStats, worldPos, this.grid, card.id)
-      this.state.entities.set(troop.id, troop)
-      entityId = troop.id
+      const count = card.deployCount ?? 1
+      const spreadPx = TROOP_DEPLOY_SPREAD_CELLS * CELL_SIZE
+      const offsets = count === 1
+        ? [0]
+        : Array.from({ length: count }, (_, i) => (i - (count - 1) / 2) * spreadPx)
+
+      for (const xOffset of offsets) {
+        const pos: Vec2 = { x: worldPos.x + xOffset, y: worldPos.y }
+        const troop = new Troop(owner, card.stats as EntityStats, pos, this.grid, card.id)
+        this.state.entities.set(troop.id, troop)
+        this.state.events.push({ type: 'DEPLOY', entityId: troop.id, cardId: card.id, position: pos })
+      }
+      return true
     } else if (card.cardType === CardType.BUILDING) {
       const building = new Building(owner, card.stats as EntityStats, worldPos, card.id)
       this.state.entities.set(building.id, building)
       for (const cell of building.blockedCells) {
         this.grid.blockCell(cell.x, cell.y)
       }
-      entityId = building.id
-    } else {
-      // Spell
-      const spell = new Spell(owner, card.stats as SpellStats, worldPos, card.id)
+      this.state.events.push({ type: 'DEPLOY', entityId: building.id, cardId: card.id, position: worldPos })
+      return true
+    } else if (card.cardType === CardType.SPELL) {
+      const stats = card.spellStats!
+      const launchFrom = this.kingTowerPosition(owner)
+      const flightMs = stats.delivery === 'arrows'
+        ? arrowsRainMs()
+        : rocketFlightMs(dist(launchFrom, worldPos))
+      const impactAt = this.state.elapsedMs + flightMs
+      const spell = new Spell(owner, stats, worldPos, card.id, impactAt)
       this.state.entities.set(spell.id, spell)
-      entityId = spell.id
+      this.state.events.push({
+        type: 'SPELL_CAST',
+        cardId: card.id,
+        owner,
+        from: launchFrom,
+        to: worldPos,
+        flightMs,
+        entityId: spell.id,
+      })
+      return true
+    } else {
+      return false
     }
-
-    this.state.events.push({ type: 'DEPLOY', entityId, cardId: card.id, position: worldPos })
-    return true
   }
 
   private unblockDeadBuildings(): void {

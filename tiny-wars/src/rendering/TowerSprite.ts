@@ -4,7 +4,7 @@ import { Owner } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { towerTextureKey } from './AssetRegistry'
 import { applyTowerDisplaySize, displaySizeForCard, displaySizeForTower, type DisplaySize } from './assetDisplaySize'
-import { towerRenderY } from './towerRenderPosition'
+import { towerRenderY, towerHealthBarY } from './towerRenderPosition'
 import {
   GARRISON_ARCHER_FEET_Y,
   MERLON_OVERLAY,
@@ -15,6 +15,7 @@ import {
   pickGarrisonArcherIndex,
 } from './towerGarrison'
 import { HealthBar } from './HealthBar'
+import { DamageFireOverlay } from './DamageFireOverlay'
 
 const GARRISON_DEPTH = 4.5
 const MERLON_DEPTH = 5.5
@@ -43,22 +44,30 @@ export class TowerSprite {
   private towerRy = 0
   private towerSize: DisplaySize = { width: 0, height: 0 }
   private readonly archerSize: DisplaySize
+  private readonly damageFire: DamageFireOverlay
 
   constructor(
     private scene: Phaser.Scene,
     tower: Tower,
   ) {
+    this.damageFire = new DamageFireOverlay(this.scene)
     this.isKing = tower.isKing
     this.owner = tower.owner
     const key = towerTextureKey(tower.isKing, tower.owner)
     const size = displaySizeForTower(scene, tower.isKing, key)
-    const ry = towerRenderY(tower.position.y, tower.owner)
+    const ry = towerRenderY(tower.position.y, tower.owner, tower.isKing)
 
     this.image = scene.add.image(tower.position.x, ry, key).setDepth(4)
     applyTowerDisplaySize(this.image, scene, tower.isKing, key)
     this.merlonOverlay = scene.add.image(tower.position.x, ry, key).setDepth(MERLON_DEPTH)
     this.layoutMerlonOverlay(key)
-    this.healthBar = HealthBar.forTower(scene, tower.position.x, ry, size.height, tower.isKing)
+    this.healthBar = HealthBar.forTower(
+      scene,
+      tower.position.x,
+      towerHealthBarY(tower.position.y, tower.owner, tower.isKing, size.height),
+      size.height,
+      tower.isKing,
+    )
     this.towerCx = tower.position.x
     this.towerRy = ry
     this.towerSize = size
@@ -75,14 +84,14 @@ export class TowerSprite {
     showHealthBar: boolean,
     attackSync?: TowerAttackSync,
   ): void {
-    const ry = towerRenderY(logicY, this.owner)
+    const ry = towerRenderY(logicY, this.owner, this.isKing)
     this.image.setPosition(x, ry)
     this.layoutMerlonOverlay(this.image.texture.key)
-    this.healthBar.update(x, ry, hpFraction, showHealthBar)
-
     this.towerCx = x
     this.towerRy = ry
     this.towerSize = displaySizeForTower(this.scene, this.isKing, this.image.texture.key)
+    const barY = towerHealthBarY(logicY, this.owner, this.isKing, this.towerSize.height)
+    this.healthBar.update(x, barY, hpFraction, showHealthBar)
     this.layoutGarrison()
 
     if (attackSync?.aimPoint && attackSync.windupMs > 0 && !this.garrisonShooting) {
@@ -90,6 +99,18 @@ export class TowerSprite {
         this.beginGarrisonShot(attackSync.aimPoint)
       }
     }
+
+    this.damageFire.sync(
+      {
+        centerX: x,
+        anchorY: ry,
+        width: this.towerSize.width,
+        height: this.towerSize.height,
+        origin: 'center',
+      },
+      hpFraction,
+      hpFraction > 0,
+    )
   }
 
   /** Fallback when windup did not start before the first tower shot. */
@@ -111,6 +132,7 @@ export class TowerSprite {
     this.merlonOverlay.setTint(0x666666)
     this.healthBar.setVisible(false)
     this.merlonOverlay.setVisible(false)
+    this.damageFire.hide()
     for (const archer of this.garrison) archer.setVisible(false)
   }
 
@@ -133,6 +155,7 @@ export class TowerSprite {
   }
 
   destroy(): void {
+    this.damageFire.destroy()
     this.image.destroy()
     this.merlonOverlay.destroy()
     this.healthBar.destroy()

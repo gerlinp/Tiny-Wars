@@ -5,7 +5,7 @@ import {
   isDirectPathWalkable,
   nearestBridgeApproach,
 } from './Movement'
-import { CELL_SIZE, BRIDGE_COLS } from '@data/GameConstants'
+import { CELL_SIZE, BRIDGE_COLS, RIGHT_BRIDGE_COLS } from '@data/GameConstants'
 
 describe('Movement river navigation', () => {
   const grid = new Grid()
@@ -40,6 +40,9 @@ describe('Movement river navigation', () => {
     const from = grid.cellToWorld(5, 30)
     const goal = grid.cellToWorld(18, 10)
     const approach = nearestBridgeApproach(grid, from, goal)
-    expect(approach.x).toBe(grid.cellToWorld(BRIDGE_COLS[1]!, 0).x)
+    // Goal is on the right — expect the nearer right-bridge column
+    const rightCol = RIGHT_BRIDGE_COLS.reduce((best, c) =>
+      Math.abs(goal.x - grid.cellToWorld(c, 0).x) < Math.abs(goal.x - grid.cellToWorld(best, 0).x) ? c : best)
+    expect(approach.x).toBe(grid.cellToWorld(rightCol, 0).x)
   })
 })

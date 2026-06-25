@@ -1,9 +1,9 @@
 import Phaser from 'phaser'
 import { ELIXIR_MAX } from '@data/GameConstants'
 
-const PIP_W = 28
-const PIP_H = 18
-const PIP_GAP = 4
+const PIP_W = 26
+const PIP_H = 14
+const PIP_GAP = 3
 
 export class ElixirBar {
   private pips: Phaser.GameObjects.Rectangle[] = []
@@ -22,8 +22,8 @@ export class ElixirBar {
       this.pips.push(pip)
     }
 
-    this.label = scene.add.text(cx, y + 14, '0', {
-      fontSize: '12px', color: '#cc88ff',
+    this.label = scene.add.text(cx, y + 10, '0', {
+      fontSize: '11px', color: '#cc88ff',
     }).setOrigin(0.5).setDepth(51)
   }
 

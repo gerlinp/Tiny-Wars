@@ -1,7 +1,14 @@
 import { CardType } from '@core/types'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { CARD_ASSET_BUNDLES } from '@data/AssetManifest'
-import { MAP_HEIGHT_MULTIPLIER, MAP_TOWER_CONTENT_FILL, MAP_UNIT_TARGET_HEIGHT } from '@data/GameConstants'
+import {
+  MAP_HEIGHT_MULTIPLIER,
+  MAP_TOWER_CONTENT_FILL,
+  MAP_UNIT_TARGET_HEIGHT,
+  TROOP_COLLISION_HEIGHT_RATIO,
+  TROOP_COLLISION_WIDTH_RATIO,
+  towerFootprintHalfExtents,
+} from '@data/GameConstants'
 
 const DEFAULT_CONTENT_FILL = 0.55
 
@@ -39,14 +46,19 @@ export function targetHeightForTower(isKing: boolean): number {
 /** Collision half-extents matching on-map sprite size (logic-only, no Phaser). */
 export function collisionHalfExtentsForCard(cardId: string): { halfW: number; halfH: number } {
   const targetH = targetHeightForCard(cardId)
-  const half = targetH / 2
-  return { halfW: half, halfH: half }
+  const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
+  const tier = tierForCard(cardId)
+  const widthRatio = bundle?.footprintWidthRatio
+    ?? (tier === 'troop' ? TROOP_COLLISION_WIDTH_RATIO : 1)
+  const heightRatio = bundle?.footprintHeightRatio
+    ?? (tier === 'troop' ? TROOP_COLLISION_HEIGHT_RATIO : 1)
+  const halfH = (targetH / 2) * heightRatio
+  const halfW = (targetH / 2) * widthRatio
+  return { halfW, halfH }
 }
 
 export function collisionHalfExtentsForTower(isKing: boolean): { halfW: number; halfH: number } {
-  const targetH = targetHeightForTower(isKing)
-  const half = targetH / 2
-  return { halfW: half, halfH: half }
+  return towerFootprintHalfExtents(isKing)
 }
 
 export function displaySizeForTexture(

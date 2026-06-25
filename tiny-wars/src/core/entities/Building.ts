@@ -1,8 +1,10 @@
 import { Entity, nextEntityId } from './Entity'
-import { EntityKind, BuildingState } from '../types'
+import { EntityKind, BuildingState, AttackType, UnitType } from '../types'
 import type { Owner, EntityStats, Vec2 } from '../types'
 import type { GameState } from '../GameState'
 import { surfaceDistToEntity, gridCellsForFootprint } from '../EntityGeometry'
+import { refreshStickyTarget } from '../TargetSelection'
+import { dealAreaDamage } from '../AreaDamage'
 import { CELL_SIZE, BUILDING_LIFETIME_MS } from '@data/GameConstants'
 import { collisionHalfExtentsForCard } from '@rendering/assetDisplaySize'
 
@@ -16,6 +18,7 @@ export class Building extends Entity {
   state: BuildingState = BuildingState.IDLE
 
   private attackCooldownMs = 0
+  private target: Entity | null = null
 
   getAttackCooldownMs(): number {
     return this.attackCooldownMs
@@ -27,7 +30,8 @@ export class Building extends Entity {
     const { halfW, halfH } = collisionHalfExtentsForCard(cardId)
     this.halfW = halfW
     this.halfH = halfH
-    this.blockedCells = gridCellsForFootprint(position, halfW, halfH)
+    const footprintCenter = { x: position.x, y: position.y - halfH }
+    this.blockedCells = gridCellsForFootprint(footprintCenter, halfW, halfH)
     this.totalLifetimeMs = stats.lifetimeMs ?? BUILDING_LIFETIME_MS
     this.remainingLifetimeMs = this.totalLifetimeMs
   }
@@ -47,18 +51,83 @@ export class Building extends Entity {
 
     this.state = BuildingState.IDLE
 
-    const target = this.acquireTarget(state)
-    if (!target) return
+    const range = this.stats.attackRange * CELL_SIZE
+    this.target = refreshStickyTarget(this.target, state, {
+      owner: this.owner,
+      from: this.position,
+      maxDistance: range,
+      includeTowers: this.targetsTowers(),
+      canAttack: (entity) => this.canAttack(entity),
+      distance: (from, entity) => surfaceDistToEntity(from, entity),
+    })
+
+    if (!this.target) return
+
+    if (surfaceDistToEntity(this.position, this.target) > range) return
 
     this.state = BuildingState.ATTACKING
-    target.takeDamage(this.stats.damage)
+    this.performAttack(state, this.target)
+    this.attackCooldownMs = 1000 / this.stats.attackRate
+  }
+
+  /** Death bomb — CR Bomb Tower hits air and ground in a large radius. */
+  applyDeathSplash(state: GameState): void {
+    const radius = this.stats.deathSplashRadius
+    if (!radius) return
+
+    dealAreaDamage(
+      state,
+      this.owner,
+      this.position,
+      radius,
+      this.stats.damage,
+      () => true,
+      this.id,
+    )
+  }
+
+  private performAttack(state: GameState, primary: Entity): void {
+    const splash = this.stats.splashRadius
+    if (splash && splash > 0) {
+      dealAreaDamage(
+        state,
+        this.owner,
+        primary.position,
+        splash,
+        this.stats.damage,
+        (entity) => this.canAttack(entity),
+        this.id,
+        primary.id,
+      )
+      return
+    }
+
+    primary.takeDamage(this.stats.damage)
     state.events.push({
       type: 'DAMAGE',
-      targetId: target.id,
+      targetId: primary.id,
       amount: this.stats.damage,
       attackerId: this.id,
     })
-    this.attackCooldownMs = 1000 / this.stats.attackRate
+  }
+
+  private targetsTowers(): boolean {
+    return this.stats.attackType === AttackType.AIR_AND_GROUND
+  }
+
+  private canAttack(entity: Entity): boolean {
+    if (entity.kind === EntityKind.TOWER) {
+      return this.targetsTowers()
+    }
+
+    const at = this.stats.attackType
+    if (at === AttackType.AIR_AND_GROUND) return true
+
+    const troopType = (entity as { stats?: EntityStats }).stats?.unitType
+    if (!troopType) return true
+    if (at === AttackType.AIR_ONLY) return troopType === UnitType.AIR
+    if (at === AttackType.GROUND_ONLY) return troopType === UnitType.GROUND
+    return true
   }
 
   /** HP cap drops linearly over lifetime — matches Java remainingFrameCount expiry. */
@@ -68,33 +137,5 @@ export class Building extends Entity {
     const hpCap = this.maxHp * fraction
     if (this.hp > hpCap) this.hp = hpCap
     if (this.remainingLifetimeMs <= 0) this.hp = 0
-  }
-
-  private acquireTarget(state: GameState): Entity | null {
-    const range = this.stats.attackRange * CELL_SIZE
-    let best: Entity | null = null
-    let bestDist = Infinity
-
-    for (const entity of state.entities.values()) {
-      if (entity.owner === this.owner) continue
-      if (!entity.isAlive) continue
-      const d = surfaceDistToEntity(this.position, entity)
-      if (d <= range && d < bestDist) {
-        bestDist = d
-        best = entity
-      }
-    }
-
-    for (const tower of state.towers.values()) {
-      if (tower.owner === this.owner) continue
-      if (!tower.isAlive) continue
-      const d = surfaceDistToEntity(this.position, tower)
-      if (d <= range && d < bestDist) {
-        bestDist = d
-        best = tower
-      }
-    }
-
-    return best
   }
 }

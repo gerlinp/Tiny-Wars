@@ -1,14 +1,14 @@
 import { Owner } from '@core/types'
-import { idleSheetKey } from '@data/AssetManifest'
+import { idleSheetKey, cardAvatarKey } from '@data/AssetManifest'
 
-/** Returns the idle spritesheet key for a card icon or fallback */
+/** Returns the idle spritesheet key for in-map entity sprites */
 export function cardTextureKey(cardId: string, owner: Owner): string {
   return idleSheetKey(cardId, owner)
 }
 
-/** First frame of the idle sheet — used for card hand icons and placement ghost */
-export function cardIconKey(cardId: string, owner: Owner): string {
-  return idleSheetKey(cardId, owner)
+/** Static portrait for the card hand UI */
+export function cardIconKey(cardId: string): string {
+  return cardAvatarKey(cardId)
 }
 
 /** Returns the texture key for a tower (King or Princess) */

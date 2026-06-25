@@ -1,11 +1,13 @@
 import Phaser from 'phaser'
 import { HealthBar } from './HealthBar'
 import { resolveTexture } from './PlaceholderFactory'
-import { clipAnimKey, idleSheetKey, getSideAssets, isAnimatedCard, type AnimClip } from '@data/AssetManifest'
+import { clipAnimKey, idleSheetKey, getSideAssets, isAnimatedCard, usesTintedBotSide, BOT_SIDE_TINT, type AnimClip } from '@data/AssetManifest'
 import { Owner, CardType } from '@core/types'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { CELL_SIZE } from '@data/GameConstants'
 import { displaySizeForCard } from './assetDisplaySize'
+import { DamageFireOverlay } from './DamageFireOverlay'
+import { BombTowerCrew } from './BombTowerCrew'
 
 type DisplayObject = Phaser.GameObjects.Sprite | Phaser.GameObjects.Image
 
@@ -25,6 +27,9 @@ export class EntitySprite {
   private readonly owner: Owner
   private readonly animated: boolean
   private readonly isBuilding: boolean
+  private damageFire: DamageFireOverlay | null = null
+  private bombCrew: BombTowerCrew | null = null
+  private buildingSize = { width: 0, height: 0 }
 
   constructor(
     private scene: Phaser.Scene,
@@ -45,18 +50,36 @@ export class EntitySprite {
     if (this.animated) {
       const spr = scene.add.sprite(x, y, key, 0).setDepth(5)
       spr.setDisplaySize(size.width, size.height)
+      if (this.isBuilding) spr.setOrigin(0.5, 1)
       this.sprite = spr
       this.playLocomotion('idle', 1)
     } else {
       const img = scene.add.image(x, y, key, 0).setDepth(5)
       img.setDisplaySize(size.width, size.height)
+      if (this.isBuilding) img.setOrigin(0.5, 1)
       this.sprite = img
     }
 
     this.healthBar = this.isBuilding
       ? HealthBar.forBuilding(scene, x, y, size.height)
       : HealthBar.forTroop(scene, x, y, size.height)
+    if (this.isBuilding) {
+      this.buildingSize = size
+      this.damageFire = new DamageFireOverlay(scene)
+      if (cardId === 'wood_tower') {
+        this.bombCrew = new BombTowerCrew(scene, owner)
+      }
+    }
+    this.applyTeamTint()
     this.lastX = x
+  }
+
+  private applyTeamTint(): void {
+    if (usesTintedBotSide(this.cardId) && this.owner === Owner.BOT) {
+      this.sprite.setTint(BOT_SIDE_TINT)
+    } else {
+      this.sprite.clearTint()
+    }
   }
 
   update(
@@ -86,6 +109,26 @@ export class EntitySprite {
     this.lastX = x
     this.sprite.setPosition(x, y)
     this.healthBar.update(x, y, hpFraction, showHealthBar)
+
+    if (this.isBuilding) {
+      const key = this.sprite.texture.key
+      this.buildingSize = displaySizeForCard(this.scene, this.cardId, key, 0)
+
+      this.damageFire?.sync(
+        {
+          centerX: x,
+          anchorY: y,
+          width: this.buildingSize.width,
+          height: this.buildingSize.height,
+          origin: 'bottom',
+        },
+        hpFraction,
+        hpFraction > 0,
+      )
+
+      this.bombCrew?.layout(x, y, this.buildingSize.height)
+      this.bombCrew?.syncAttack(this.owner, attackSync)
+    }
   }
 
   /** Fallback when windup did not start before the first strike in a engagement. */
@@ -145,13 +188,19 @@ export class EntitySprite {
       targets: this.sprite,
       duration: 120,
       onComplete: () => {
-        this.sprite.clearTint()
+        this.applyTeamTint()
         this.flashTween = null
       },
     })
   }
 
+  getFlipX(): boolean {
+    return this.sprite.flipX
+  }
+
   destroy(): void {
+    this.damageFire?.destroy()
+    this.bombCrew?.destroy()
     this.sprite.destroy()
     this.healthBar.destroy()
     this.flashTween?.stop()

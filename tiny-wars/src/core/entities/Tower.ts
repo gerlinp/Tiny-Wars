@@ -4,6 +4,7 @@ import type { Owner, Vec2 } from '../types'
 import type { TowerDefinition } from '@data/TowerData'
 import type { GameState } from '../GameState'
 import { distSq } from '../Vector2'
+import { refreshStickyTarget } from '../TargetSelection'
 import { CELL_SIZE } from '@data/GameConstants'
 
 export class Tower extends Entity {
@@ -12,6 +13,7 @@ export class Tower extends Entity {
 
   private attackCooldownMs = 0
   private active = false  // King Tower activates once a Princess Tower is destroyed
+  private target: Entity | null = null
 
   constructor(owner: Owner, def: TowerDefinition, position: Vec2) {
     super(nextEntityId(), owner, EntityKind.TOWER, position, def.maxHp)
@@ -32,6 +34,11 @@ export class Tower extends Entity {
     return this.attackCooldownMs
   }
 
+  /** Locked attack target — one unit at a time (nearest in range). */
+  getTarget(): Entity | null {
+    return this.target
+  }
+
   /** Nearest current target position — used to aim garrison archers. */
   getAimPoint(): Vec2 | null {
     return this.aimPoint
@@ -42,9 +49,16 @@ export class Tower extends Entity {
   tick(deltaMs: number, state: GameState): void {
     if (!this.isAlive || !this.active) return
 
-    const target = this.acquireTarget(state)
-    if (target) {
-      this.aimPoint = { x: target.position.x, y: target.position.y }
+    const rangePx = this.stats.range * CELL_SIZE
+    this.target = refreshStickyTarget(this.target, state, {
+      owner: this.owner,
+      from: this.position,
+      maxDistance: rangePx,
+      distance: (from, entity) => Math.sqrt(distSq(from, entity.position)),
+    })
+
+    if (this.target) {
+      this.aimPoint = { x: this.target.position.x, y: this.target.position.y }
     } else if (this.attackCooldownMs <= 0) {
       this.aimPoint = null
     }
@@ -54,33 +68,16 @@ export class Tower extends Entity {
       return
     }
 
-    if (!target) return
+    if (!this.target?.isAlive) return
+    if (Math.sqrt(distSq(this.position, this.target.position)) > rangePx) return
 
-    target.takeDamage(this.stats.damage)
+    this.target.takeDamage(this.stats.damage)
     state.events.push({
       type: 'DAMAGE',
-      targetId: target.id,
+      targetId: this.target.id,
       amount: this.stats.damage,
       attackerId: this.id,
     })
     this.attackCooldownMs = 1000 / this.stats.attackRate
-  }
-
-  private acquireTarget(state: GameState): Entity | null {
-    const rangeSq = (this.stats.range * CELL_SIZE) ** 2
-    let best: Entity | null = null
-    let bestDsq = Infinity
-
-    for (const entity of state.entities.values()) {
-      if (entity.owner === this.owner) continue
-      if (!entity.isAlive) continue
-      const dsq = distSq(this.position, entity.position)
-      if (dsq <= rangeSq && dsq < bestDsq) {
-        bestDsq = dsq
-        best = entity
-      }
-    }
-
-    return best
   }
 }

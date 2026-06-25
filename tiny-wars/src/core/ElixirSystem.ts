@@ -2,6 +2,14 @@ import type { GameState } from './GameState'
 import { ELIXIR_MAX, ELIXIR_REGEN_MS, ELIXIR_FAST_MS, ELIXIR_FAST_AT, GAME_DURATION_MS } from '@data/GameConstants'
 import { Owner } from './types'
 
+export function grantElixir(state: GameState, owner: Owner, amount: number): void {
+  if (owner === Owner.PLAYER) {
+    state.playerElixir = Math.min(ELIXIR_MAX, state.playerElixir + amount)
+  } else {
+    state.botElixir = Math.min(ELIXIR_MAX, state.botElixir + amount)
+  }
+}
+
 export function tickElixir(state: GameState, deltaMs: number): void {
   const timeRemaining = GAME_DURATION_MS - state.elapsedMs
   const regenMs = timeRemaining <= ELIXIR_FAST_AT ? ELIXIR_FAST_MS : ELIXIR_REGEN_MS

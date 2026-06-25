@@ -3,9 +3,85 @@ import { Owner } from '@core/types'
 export const FRAME_W = 192
 export const FRAME_H = 192
 
+/** Shared skull death VFX — Knights/Troops/Dead/Dead.png (7×2 grid @ 128px). */
+export const TROOP_DEATH_SHEET = {
+  key: 'troop_death_sheet',
+  path: 'assets/Factions/Knights/Troops/Dead/Dead.png',
+  frameWidth: 128,
+  frameHeight: 128,
+  frameStart: 0,
+  frameEnd: 13,
+  frameRate: 12,
+  animKey: 'troop_death',
+} as const
+
+/** Building/tower damage fire — horizontal strips @ 64px; one sheet per HP tier. */
+export const DAMAGE_FIRE_SHEETS = [
+  {
+    key: 'fire_01',
+    path: 'assets/Particle FX/Fire_01.png',
+    frameWidth: 64,
+    frameHeight: 64,
+    frameEnd: 7,
+    animKey: 'damage_fire_1',
+    frameRate: 10,
+  },
+  {
+    key: 'fire_02',
+    path: 'assets/Particle FX/Fire_02.png',
+    frameWidth: 64,
+    frameHeight: 64,
+    frameEnd: 9,
+    animKey: 'damage_fire_2',
+    frameRate: 10,
+  },
+  {
+    key: 'fire_03',
+    path: 'assets/Particle FX/Fire_03.png',
+    frameWidth: 64,
+    frameHeight: 64,
+    frameEnd: 11,
+    animKey: 'damage_fire_3',
+    frameRate: 10,
+  },
+] as const
+
+export const DAMAGE_FIRE_GRID = { cols: 6, rows: 2 } as const
+
+const UI_BARS = 'assets/UI Elements/UI Elements/Bars'
+
+export const HEALTH_BAR_ASSETS = {
+  small: {
+    base: { key: 'health_bar_sm_base', path: `${UI_BARS}/SmallBar_Base.png` },
+    fill: { key: 'health_bar_sm_fill', path: `${UI_BARS}/SmallBar_Fill.png` },
+    displayHeight: 9,
+  },
+  big: {
+    base: { key: 'health_bar_lg_base', path: `${UI_BARS}/BigBar_Base.png` },
+    fill: { key: 'health_bar_lg_fill', path: `${UI_BARS}/BigBar_Fill.png` },
+    displayHeight: 12,
+  },
+} as const
+
+/** Horizontal inset on each side of the bar frame for the fill strip. */
+export const HEALTH_BAR_FILL_INSET_X = 0.11
+
+/** Fill height as a fraction of the scaled bar frame height. */
+export const HEALTH_BAR_FILL_HEIGHT_RATIO = 0.58
+
+export function getHealthBarImageKeys(): { key: string; path: string }[] {
+  const keys: { key: string; path: string }[] = []
+  for (const variant of Object.values(HEALTH_BAR_ASSETS)) {
+    keys.push(variant.base, variant.fill)
+  }
+  return keys
+}
+
 export interface SheetDef {
   key: string
   path: string
+  frameWidth?: number
+  frameHeight?: number
 }
 
 export interface ClipDef {
@@ -22,16 +98,45 @@ export interface SideAssets {
   attack: ClipDef
 }
 
+export interface ImageDef {
+  key: string
+  path: string
+  /** When set, avatar is loaded as a spritesheet and `frame` selects the portrait. */
+  frameWidth?: number
+  frameHeight?: number
+  frame?: number
+}
+
 export interface CardAssetBundle {
   cardId: string
+  /** Static portrait for the card hand UI — required; never substitute a placeholder. */
+  avatar: ImageDef
+  /** Parchment/shield frame for raw unit sprites (matches enemy avatar backing). */
+  avatarBackdrop?: ImageDef
   /** When false, render first frame only — no sprite animation */
   animated?: boolean
   /** Fraction of frame height occupied by visible art (sprite-sheet padding compensation) */
   contentFill?: number
   /** Fine-tune height within tier (1 = default) */
   mapHeightScale?: number
+  /** Collision width vs height (narrow towers — default 1) */
+  footprintWidthRatio?: number
+  /** Collision height vs display height — base footprint only (default 1) */
+  footprintHeightRatio?: number
   /** Sheet frame index where the strike/release lands (defaults to last attack frame) */
   attackHitFrame?: number
+  /**
+   * Enemy Pack units with one palette — bot side gets a red battle tint.
+   * Player and bot share the same sprite files (separate texture keys for anims).
+   */
+  tintBotSide?: boolean
+  /**
+   * Card-hand portrait scale multiplier (1 = default slot fit).
+   * Warrior crest art fills more of the frame than other human avatars.
+   */
+  avatarHandScale?: number
+  /** Tall building sprites — fit full frame in the slot instead of portrait crop. */
+  avatarBuildingFit?: boolean
   player: SideAssets
   bot: SideAssets
 }
@@ -71,15 +176,6 @@ function clip(sheet: SheetDef, start: number, end: number, frameRate = 8, repeat
   return { sheet, start, end, frameRate, repeat }
 }
 
-function goblinSheet(cardId: string, side: 'Blue' | 'Red', folder: string, file: string): SheetDef {
-  const prefix = side === 'Blue' ? 'blue' : 'red'
-  return {
-    key: `${cardId}_${prefix}_sheet`,
-    path: `assets/Factions/Goblins/${folder}/${side}/${file}`,
-  }
-}
-
-/** Goblin buildings store both color variants in the same folder (no Blue/Red subdirs). */
 function goblinBuildingSheet(cardId: string, side: 'Blue' | 'Red', folder: string, file: string): SheetDef {
   const prefix = side === 'Blue' ? 'blue' : 'red'
   return {
@@ -94,8 +190,10 @@ function goblinBuildingSide(
   folder: string,
   file: string,
   rows: { idle: [number, number]; run: [number, number]; attack: [number, number] },
+  frameWidth = FRAME_W,
+  frameHeight = FRAME_H,
 ): SideAssets {
-  const sheet = goblinBuildingSheet(cardId, side, folder, file)
+  const sheet: SheetDef = { ...goblinBuildingSheet(cardId, side, folder, file), frameWidth, frameHeight }
   return {
     idle:   clip(sheet, rows.idle[0],   rows.idle[1],   10, -1),
     run:    clip(sheet, rows.run[0],    rows.run[1],    14, -1),
@@ -103,24 +201,126 @@ function goblinBuildingSide(
   }
 }
 
-function goblinSide(
-  cardId: string,
-  side: 'Blue' | 'Red',
-  folder: string,
-  file: string,
-  rows: { idle: [number, number]; run: [number, number]; attack: [number, number] },
-): SideAssets {
-  const sheet = goblinSheet(cardId, side, folder, file)
+const HUMAN_AVATARS = 'assets/UI Elements/UI Elements/Human Avatars'
+const ENEMY_AVATARS = 'assets/Enemy Pack/Enemy Avatars'
+/** Tan parchment tile behind enemy-style card portraits (Banner_Slots.png). */
+export const AVATAR_BACKDROP_BANNER: ImageDef = {
+  key: 'ui_avatar_backdrop_banner',
+  path: 'assets/UI Elements/UI Elements/Banners/Banner_Slots.png',
+}
+
+function humanAvatar(file: string): ImageDef {
+  const stem = file.replace(/\.png$/i, '').toLowerCase()
+  return { key: `avatar_${stem}`, path: `${HUMAN_AVATARS}/${file}` }
+}
+
+function enemyAvatar(file: string): ImageDef {
+  const stem = file.replace(/\.png$/i, '').replace(/\s+/g, '_').toLowerCase()
+  return { key: `avatar_${stem}`, path: `${ENEMY_AVATARS}/${file}` }
+}
+
+const ICON_FRAME = 64
+
+function iconOnlySide(key: string, path: string): SideAssets {
+  const sheet: SheetDef = { key, path, frameWidth: ICON_FRAME, frameHeight: ICON_FRAME }
+  const frame = clip(sheet, 0, 0, 1, -1)
+  return { idle: frame, run: frame, attack: frame }
+}
+
+const TORCH_GOBLIN_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin'
+const HEX_SHAMAN_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman'
+const HEX_FX_FRAME = 128
+
+export const HEX_SHAMAN_PROJECTILE_SHEET = {
+  key: 'hex_shaman_projectile',
+  path: `${HEX_SHAMAN_PATH}/Hex Shaman_Projectile.png`,
+  frameWidth: HEX_FX_FRAME,
+  frameHeight: HEX_FX_FRAME,
+} as const
+
+export const HEX_SHAMAN_EXPLOSION_SHEET = {
+  key: 'hex_shaman_explosion',
+  path: `${HEX_SHAMAN_PATH}/Hex Shaman_Explosion.png`,
+  frameWidth: HEX_FX_FRAME,
+  frameHeight: HEX_FX_FRAME,
+} as const
+
+const BOMB_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Bomb'
+const BOMB_FRAME = 128
+
+function bombSheet(suffix: string, file: string): SheetDef {
   return {
-    idle:   clip(sheet, rows.idle[0],   rows.idle[1],   10, -1),
-    run:    clip(sheet, rows.run[0],    rows.run[1],    14, -1),
-    attack: clip(sheet, rows.attack[0], rows.attack[1], 14, -1),
+    key: `bomb_${suffix}`,
+    path: `${BOMB_PATH}/${file}`,
+    frameWidth: BOMB_FRAME,
+    frameHeight: BOMB_FRAME,
   }
+}
+
+function bombSide(): SideAssets {
+  const idle     = bombSheet('idle',     'Bomb_Idle.png')
+  const spinning = bombSheet('spinning', 'Bomb_Spinning.png')
+  const fuseLit  = bombSheet('fuse_lit', 'Bomb_FuseLit.png')
+  return {
+    idle:   clip(idle,     0, 0, 10, -1),
+    run:    clip(spinning, 0, 3, 14, -1),
+    attack: clip(fuseLit,  0, 3, 12,  0),
+  }
+}
+
+/** Enemy Pack Torch Goblin — separate clips per anim (matches card avatar). */
+function torchGoblinSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `torch_goblin_${side}_idle`,
+    path: `${TORCH_GOBLIN_PATH}/Torch Goblin_Idle.png`,
+  }
+  const run: SheetDef = {
+    key: `torch_goblin_${side}_run`,
+    path: `${TORCH_GOBLIN_PATH}/Torch Goblin_Run.png`,
+  }
+  const attack: SheetDef = {
+    key: `torch_goblin_${side}_attack`,
+    path: `${TORCH_GOBLIN_PATH}/Torch Goblin_Attack.png`,
+  }
+  return {
+    idle:   clip(idle,   0, 7, 10, -1),
+    run:    clip(run,    0, 5, 14, -1),
+    attack: clip(attack, 0, 7, 14,  0),
+  }
+}
+
+/** Enemy Pack Hex Shaman — single palette; blue/red keys share the same art. */
+function hexShamanSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `wizard_${side}_idle`,
+    path: `${HEX_SHAMAN_PATH}/Hex Shaman_Idle.png`,
+  }
+  const run: SheetDef = {
+    key: `wizard_${side}_run`,
+    path: `${HEX_SHAMAN_PATH}/Hex Shaman_Run.png`,
+  }
+  const attack: SheetDef = {
+    key: `wizard_${side}_attack`,
+    path: `${HEX_SHAMAN_PATH}/Hex Shaman_Attack.png`,
+  }
+  return {
+    idle:   clip(idle,   0, 7, 10, -1),
+    run:    clip(run,    0, 3, 14, -1),
+    attack: clip(attack, 0, 9, 14,  0),
+  }
+}
+
+export const BOT_SIDE_TINT = 0xff9999
+
+export function usesTintedBotSide(cardId: string): boolean {
+  return CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)?.tintBotSide === true
 }
 
 export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'warrior',
+    avatar: humanAvatar('Avatars_01.png'),
+    avatarHandScale: 0.88,
     contentFill: 0.52,
     attackHitFrame: 2,
     player: knightSide('Warrior', 'Blue'),
@@ -128,6 +328,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'archer',
+    avatar: humanAvatar('Avatars_03.png'),
     contentFill: 0.50,
     attackHitFrame: 5,
     player: knightSide('Archer', 'Blue'),
@@ -135,6 +336,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'pawn',
+    avatar: humanAvatar('Avatars_05.png'),
     contentFill: 0.52,
     attackHitFrame: 2,
     player: knightSide('Pawn', 'Blue'),
@@ -142,31 +344,56 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'torch_goblin',
+    avatar: enemyAvatar('Torch Goblin.png'),
     contentFill: 0.55,
-    attackHitFrame: 18,
-    player: goblinSide('torch_goblin', 'Blue', 'Troops/Torch', 'Torch_Blue.png',  { idle: [0, 6],  run: [7, 13],  attack: [14, 20] }),
-    bot:    goblinSide('torch_goblin', 'Red',  'Troops/Torch', 'Torch_Red.png',   { idle: [0, 6],  run: [7, 13],  attack: [14, 20] }),
+    attackHitFrame: 3,
+    tintBotSide: true,
+    player: torchGoblinSide('blue'),
+    bot:    torchGoblinSide('red'),
   },
   {
-    cardId: 'tnt',
-    animated: false,
+    cardId: 'wizard',
+    avatar: enemyAvatar('Hex Shaman.png'),
     contentFill: 0.55,
-    player: goblinSide('tnt', 'Blue', 'Troops/TNT', 'TNT_Blue.png', { idle: [0, 6], run: [0, 6], attack: [7, 13] }),
-    bot:    goblinSide('tnt', 'Red',  'Troops/TNT', 'TNT_Red.png',  { idle: [0, 6], run: [0, 6], attack: [7, 13] }),
+    attackHitFrame: 6,
+    tintBotSide: true,
+    player: hexShamanSide('blue'),
+    bot:    hexShamanSide('red'),
   },
   {
-    cardId: 'barrel',
+    cardId: 'arrows',
+    avatar: { key: 'arrow_blue', path: 'assets/Units/Blue Units/Archer/Arrow.png' },
     animated: false,
-    contentFill: 0.48,
-    player: goblinSide('barrel', 'Blue', 'Troops/Barrel', 'Barrel_Blue.png', { idle: [0, 3], run: [4, 7], attack: [8, 11] }),
-    bot:    goblinSide('barrel', 'Red',  'Troops/Barrel', 'Barrel_Red.png',  { idle: [0, 3], run: [4, 7], attack: [8, 11] }),
+    contentFill: 0.85,
+    player: iconOnlySide('arrow_blue', 'assets/Units/Blue Units/Archer/Arrow.png'),
+    bot:    iconOnlySide('arrow_red',  'assets/Units/Red Units/Archer/Arrow.png'),
   },
   {
     cardId: 'wood_tower',
+    avatar: {
+      key: 'avatar_bomb_tower',
+      path: 'assets/Factions/Goblins/Buildings/Wood_Tower/Wood_Tower_Blue.png',
+      frameWidth: 205,
+      frameHeight: 192,
+      frame: 0,
+    },
+    avatarBuildingFit: true,
+    avatarHandScale: 0.92,
     animated: false,
     contentFill: 0.72,
-    player: goblinBuildingSide('wood_tower', 'Blue', 'Buildings/Wood_Tower', 'Wood_Tower_Blue.png', { idle: [0, 4], run: [0, 4], attack: [0, 4] }),
-    bot:    goblinBuildingSide('wood_tower', 'Red',  'Buildings/Wood_Tower', 'Wood_Tower_Red.png',  { idle: [0, 4], run: [0, 4], attack: [0, 4] }),
+    mapHeightScale: 0.78,
+    footprintWidthRatio: 0.42,
+    footprintHeightRatio: 0.36,
+    player: goblinBuildingSide('wood_tower', 'Blue', 'Buildings/Wood_Tower', 'Wood_Tower_Blue.png', { idle: [0, 4], run: [0, 4], attack: [0, 4] }, 205, 192),
+    bot:    goblinBuildingSide('wood_tower', 'Red',  'Buildings/Wood_Tower', 'Wood_Tower_Red.png',  { idle: [0, 4], run: [0, 4], attack: [0, 4] }, 205, 192),
+  },
+  {
+    cardId: 'tnt',
+    avatar: { key: 'avatar_bomb_idle', path: `${BOMB_PATH}/Bomb_Idle.png` },
+    avatarBackdrop: AVATAR_BACKDROP_BANNER,
+    contentFill: 0.82,
+    player: bombSide(),
+    bot:    bombSide(),
   },
 ]
 
@@ -189,6 +416,63 @@ export function idleSheetKey(cardId: string, owner: Owner): string {
   return side.idle.sheet.key
 }
 
+/** Card-hand portrait definition — throws if the card has no dedicated avatar. */
+export function getCardAvatarDef(cardId: string): ImageDef {
+  const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
+  if (!bundle) throw new Error(`Unknown card id: ${cardId}`)
+  if (!bundle.avatar) {
+    throw new Error(
+      `Card "${cardId}" has no card-hand avatar. Ask which portrait to use — do not use a placeholder or unit spritesheet.`,
+    )
+  }
+  return bundle.avatar
+}
+
+/** Static card-hand portrait texture key — never falls back to idle sheets or placeholders. */
+export function cardAvatarKey(cardId: string): string {
+  return getCardAvatarDef(cardId).key
+}
+
+export function getCardAvatars(): ImageDef[] {
+  const seen = new Set<string>()
+  const avatars: ImageDef[] = []
+  for (const bundle of CARD_ASSET_BUNDLES) {
+    if (bundle.avatar && !seen.has(bundle.avatar.key)) {
+      seen.add(bundle.avatar.key)
+      avatars.push(bundle.avatar)
+    }
+  }
+  return avatars
+}
+
+export function getCardAvatarBackdrops(): ImageDef[] {
+  const seen = new Set<string>()
+  const backdrops: ImageDef[] = []
+  for (const bundle of CARD_ASSET_BUNDLES) {
+    if (bundle.avatarBackdrop && !seen.has(bundle.avatarBackdrop.key)) {
+      seen.add(bundle.avatarBackdrop.key)
+      backdrops.push(bundle.avatarBackdrop)
+    }
+  }
+  return backdrops
+}
+
+/** Optional card-hand frame behind raw portraits (e.g. bomb sprite). */
+export function getCardAvatarBackdrop(cardId: string): ImageDef | null {
+  const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
+  return bundle?.avatarBackdrop ?? null
+}
+
+export function getCardAvatarHandScale(cardId: string): number {
+  const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
+  return bundle?.avatarHandScale ?? 1
+}
+
+export function getCardAvatarBuildingFit(cardId: string): boolean {
+  const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
+  return bundle?.avatarBuildingFit === true
+}
+
 export function getUniqueSheets(): SheetDef[] {
   const seen = new Set<string>()
   const sheets: SheetDef[] = []
@@ -209,6 +493,15 @@ export function getSideAssets(cardId: string, owner: Owner): SideAssets | null {
   const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
   if (!bundle) return null
   return owner === Owner.PLAYER ? bundle.player : bundle.bot
+}
+
+/** Wall-clock duration of a clip at its native frame rate. */
+export function getClipDurationMs(cardId: string, owner: Owner, anim: AnimClip): number {
+  const side = getSideAssets(cardId, owner)
+  if (!side) return 0
+  const clip = side[anim]
+  const frameCount = clip.end - clip.start + 1
+  return (frameCount / clip.frameRate) * 1000
 }
 
 /** Ms from attack anim start → damage tick (native frame rate, not stretched). */
