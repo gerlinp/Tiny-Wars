@@ -12,12 +12,15 @@ export abstract class Entity {
   position: Vec2
   hp: number
   readonly maxHp: number
+  readonly cardId?: string
+  hasBeenDamaged = false
   abstract readonly stats: EntityStats | TowerDefinition | SpellStats
 
-  constructor(id: string, owner: Owner, kind: EntityKind, position: Vec2, maxHp: number) {
+  constructor(id: string, owner: Owner, kind: EntityKind, position: Vec2, maxHp: number, cardId?: string) {
     this.id       = id
     this.owner    = owner
     this.kind     = kind
+    this.cardId   = cardId
     this.position = { ...position }
     this.maxHp    = maxHp
     this.hp       = maxHp
@@ -26,6 +29,7 @@ export abstract class Entity {
   get isAlive(): boolean { return this.hp > 0 }
 
   takeDamage(amount: number): void {
+    if (amount > 0) this.hasBeenDamaged = true
     this.hp = Math.max(0, this.hp - amount)
   }
 

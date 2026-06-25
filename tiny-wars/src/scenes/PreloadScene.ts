@@ -1,4 +1,6 @@
 import Phaser from 'phaser'
+import { FRAME_W, FRAME_H, getUniqueSheets } from '@data/AssetManifest'
+import { registerCardAnimations } from '@rendering/AnimationRegistry'
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -8,7 +10,6 @@ export class PreloadScene extends Phaser.Scene {
   preload(): void {
     const { width, height } = this.scale
 
-    // Progress bar background
     const barBg = this.add.rectangle(width / 2, height / 2, 300, 20, 0x333366)
     const bar = this.add.rectangle(width / 2 - 150, height / 2, 0, 16, 0x6688cc)
     bar.setOrigin(0, 0.5)
@@ -23,34 +24,17 @@ export class PreloadScene extends Phaser.Scene {
       label.setText(`Loading... ${Math.round(value * 100)}%`)
     })
 
-    // Keep bar bg reference to avoid unused-var warning
     void barBg
 
-    // --- Troops (Knights faction) ---
-    this.load.image('warrior_blue', 'assets/Factions/Knights/Troops/Warrior/Blue/Warrior_Blue.png')
-    this.load.image('warrior_red',  'assets/Factions/Knights/Troops/Warrior/Red/Warrior_Red.png')
+    // Card unit spritesheets (animated)
+    for (const sheet of getUniqueSheets()) {
+      this.load.spritesheet(sheet.key, sheet.path, {
+        frameWidth: FRAME_W,
+        frameHeight: FRAME_H,
+      })
+    }
 
-    this.load.image('archer_blue', 'assets/Factions/Knights/Troops/Archer/Blue/Archer_Blue.png')
-    this.load.image('archer_red',  'assets/Factions/Knights/Troops/Archer/Red/Archer_Red.png')
-
-    this.load.image('pawn_blue', 'assets/Factions/Knights/Troops/Pawn/Blue/Pawn_Blue.png')
-    this.load.image('pawn_red',  'assets/Factions/Knights/Troops/Pawn/Red/Pawn_Red.png')
-
-    // --- Troops (Goblins faction) ---
-    this.load.image('torch_blue', 'assets/Factions/Goblins/Troops/Torch/Blue/Torch_Blue.png')
-    this.load.image('torch_red',  'assets/Factions/Goblins/Troops/Torch/Red/Torch_Red.png')
-
-    this.load.image('tnt_blue', 'assets/Factions/Goblins/Troops/TNT/Blue/TNT_Blue.png')
-    this.load.image('tnt_red',  'assets/Factions/Goblins/Troops/TNT/Red/TNT_Red.png')
-
-    this.load.image('barrel_blue', 'assets/Factions/Goblins/Troops/Barrel/Blue/Barrel_Blue.png')
-    this.load.image('barrel_red',  'assets/Factions/Goblins/Troops/Barrel/Red/Barrel_Red.png')
-
-    // --- Buildings ---
-    this.load.image('wood_tower_blue', 'assets/Factions/Goblins/Buildings/Wood_Tower/Wood_Tower_Blue.png')
-    this.load.image('wood_tower_red',  'assets/Factions/Goblins/Buildings/Wood_Tower/Wood_Tower_Red.png')
-
-    // --- Towers ---
+    // --- Towers (static) ---
     this.load.image('castle_blue', 'assets/Factions/Knights/Buildings/Castle/Castle_Blue.png')
     this.load.image('castle_red',  'assets/Factions/Knights/Buildings/Castle/Castle_Red.png')
     this.load.image('castle_destroyed', 'assets/Factions/Knights/Buildings/Castle/Castle_Destroyed.png')
@@ -61,6 +45,9 @@ export class PreloadScene extends Phaser.Scene {
 
     // --- Terrain ---
     this.load.image('terrain_flat', 'assets/Terrain/Tileset/Tilemap_Flat.png')
+
+    // --- Projectiles ---
+    this.load.image('arrow', 'assets/Units/Blue Units/Archer/Arrow.png')
 
     // --- Effects ---
     this.load.image('explosion_1', 'assets/Particle FX/Explosion_01.png')
@@ -76,6 +63,7 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
+    registerCardAnimations(this)
     this.scene.start('MainMenuScene')
   }
 }

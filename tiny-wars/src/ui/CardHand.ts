@@ -47,7 +47,7 @@ export class CardHand {
 
     const nextKey = handState.nextCard.textureKeyPlayer
     if (scene.textures.exists(nextKey)) {
-      this.nextIcon.setTexture(nextKey).setDisplaySize(30, 30)
+      this.nextIcon.setTexture(nextKey, 0).setDisplaySize(30, 30)
     }
     void this.nextLabel
   }

@@ -36,7 +36,12 @@ export class Tower extends Entity {
     if (!target) return
 
     target.takeDamage(this.stats.damage)
-    state.events.push({ type: 'DAMAGE', targetId: target.id, amount: this.stats.damage })
+    state.events.push({
+      type: 'DAMAGE',
+      targetId: target.id,
+      amount: this.stats.damage,
+      attackerId: this.id,
+    })
     this.attackCooldownMs = 1000 / this.stats.attackRate
   }
 

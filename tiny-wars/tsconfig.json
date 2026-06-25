@@ -27,7 +27,8 @@
       "@scenes/*":    ["./src/scenes/*"],
       "@ui/*":        ["./src/ui/*"],
       "@input/*":     ["./src/input/*"],
-      "@config/*":    ["./src/config/*"]
+      "@config/*":    ["./src/config/*"],
+      "@debug/*":     ["./src/debug/*"]
     }
   },
   "include": ["src", "vite.config.ts", "capacitor.config.ts"]

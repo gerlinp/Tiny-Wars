@@ -6,14 +6,26 @@ import { BotAI } from '@core/BotAI'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { TileMapRenderer } from '@rendering/TileMapRenderer'
 import { EntitySprite } from '@rendering/EntitySprite'
+import { TowerSprite } from '@rendering/TowerSprite'
 import { EffectsPool } from '@rendering/EffectsPool'
+import { ArrowPool } from '@rendering/ArrowPool'
 import { ensurePlaceholders } from '@rendering/PlaceholderFactory'
-import { cardTextureKey, towerTextureKey } from '@rendering/AssetRegistry'
 import { CardDeployController } from '@input/CardDeployController'
+import { DeployZoneOverlay } from '@rendering/DeployZoneOverlay'
+import { PlacementGhost } from '@rendering/PlacementGhost'
 import type { UIScene, UISnapshot } from './UIScene'
 import type { Tower } from '@core/entities/Tower'
-import { Owner } from '@core/types'
-import { GRID_ROWS, CELL_SIZE } from '@data/GameConstants'
+import { Troop } from '@core/entities/Troop'
+import type { Building } from '@core/entities/Building'
+import { Owner, EntityKind, TroopState, BuildingState } from '@core/types'
+import type { AnimClip } from '@data/AssetManifest'
+import { GAME_HEIGHT } from '@data/GameConstants'
+import { DevMode } from '@debug/DevMode'
+import { DevModeOverlay } from '@debug/DevModeOverlay'
+import { isRangedAttacker } from '@core/CombatHelpers'
+import type { GameState } from '@core/GameState'
+import type { Entity } from '@core/entities/Entity'
+import type { Vec2 } from '@core/types'
 
 export class BattleScene extends Phaser.Scene {
   private grid!: Grid
@@ -22,9 +34,14 @@ export class BattleScene extends Phaser.Scene {
   private botCardSystem!: CardSystem
   private botAI!: BotAI
   private sprites: Map<string, EntitySprite> = new Map()
-  private towerSprites: Map<string, Phaser.GameObjects.Image> = new Map()
+  private towerSprites: Map<string, TowerSprite> = new Map()
   private effects!: EffectsPool
+  private arrows!: ArrowPool
   private deployCtrl!: CardDeployController
+  private deployOverlay!: DeployZoneOverlay
+  private placementGhost!: PlacementGhost
+  private devOverlay!: DevModeOverlay
+  private entityCardIds = new Map<string, string>()
 
   constructor() {
     super({ key: 'BattleScene' })
@@ -40,6 +57,7 @@ export class BattleScene extends Phaser.Scene {
     this.botAI    = new BotAI()
     this.sprites  = new Map()
     this.effects  = new EffectsPool(this)
+    this.arrows   = new ArrowPool(this)
 
     // Tile map
     new TileMapRenderer(this).draw()
@@ -49,41 +67,45 @@ export class BattleScene extends Phaser.Scene {
       this.addTowerSprite(tower)
     }
 
-    // Camera — scrollable, starts at player's base (bottom)
-    const worldHeight = GRID_ROWS * CELL_SIZE
-    this.cameras.main.setBounds(0, 0, 480, worldHeight)
-    this.cameras.main.scrollY = worldHeight - 854  // show player's base initially
+    // Camera — fixed, shows the full 24×43 map at once (no scrolling, matching Java layout)
+    this.cameras.main.setScroll(0, 0)
 
-    // Drag to scroll
-    let lastPointerY = 0
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { lastPointerY = p.y })
-    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      if (p.isDown && !this.isUIArea(p.y)) {
-        const dy = lastPointerY - p.y
-        this.cameras.main.scrollY += dy
-        lastPointerY = p.y
-      }
-    })
+    this.deployOverlay  = new DeployZoneOverlay(this)
+    this.placementGhost = new PlacementGhost(this)
+    this.devOverlay     = new DevModeOverlay(this)
 
-    // Tap to deploy
+    this.deployCtrl = new CardDeployController(
+      this,
+      this.playerCardSystem,
+      this.simulator,
+      this.grid,
+      this.deployOverlay,
+      this.placementGhost,
+    )
+
+    // Tap to deploy — ignore taps in the HUD area at the bottom
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (this.isUIArea(p.y)) return
-      this.deployCtrl?.handleMapTap(p.x, p.y)
+      this.deployCtrl.handleMapTap(p.x, p.y)
+    })
+
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      if (this.isUIArea(p.y)) {
+        this.placementGhost.hide()
+        return
+      }
+      this.deployCtrl.handlePointerMove(p.x, p.y)
     })
 
     // Launch UI scene in parallel
     this.scene.launch('UIScene')
     const uiScene = this.scene.get('UIScene') as UIScene
     uiScene.onCardSelected = (i) => {
-      this.deployCtrl.selectCard(i)
+      this.deployCtrl.selectCard(i, this.simulator.state.playerElixir)
     }
-
-    this.deployCtrl = new CardDeployController(
-      this,
-      this.playerCardSystem,
-      this.simulator,
-      this.cameras.main,
-    )
+    uiScene.onDevModeToggle = () => {
+      this.devOverlay.setVisible(DevMode.enabled)
+    }
   }
 
   update(_time: number, delta: number): void {
@@ -109,16 +131,31 @@ export class BattleScene extends Phaser.Scene {
       switch (event.type) {
         case 'DEPLOY': {
           const entity = state.entities.get(event.entityId)
-          if (entity) {
-            const key = cardTextureKey(event.cardId, entity.owner)
-            const sprite = new EntitySprite(this, entity.position.x, entity.position.y, key, entity.owner)
+          if (entity && entity.kind !== EntityKind.SPELL) {
+            this.entityCardIds.set(event.entityId, event.cardId)
+            const sprite = new EntitySprite(
+              this,
+              entity.position.x,
+              entity.position.y,
+              event.cardId,
+              entity.owner,
+            )
             this.sprites.set(entity.id, sprite)
           }
           break
         }
         case 'DAMAGE': {
-          const sprite = this.sprites.get(event.targetId)
-          sprite?.flashDamage()
+          const flash = () => this.flashTarget(event.targetId)
+          const attacker = event.attackerId ? this.findEntity(state, event.attackerId) : null
+          const from = event.attackerId ? this.entityPosition(state, event.attackerId) : null
+          const to = this.entityPosition(state, event.targetId)
+
+          if (attacker && from && to && isRangedAttacker(attacker)) {
+            const attackRate = this.getAttackRate(attacker)
+            this.arrows.spawn(from, to, attacker.owner, attackRate, flash)
+          } else {
+            flash()
+          }
           break
         }
         case 'DEATH': {
@@ -127,6 +164,7 @@ export class BattleScene extends Phaser.Scene {
             this.effects.spawn(event.position.x, event.position.y)
             sprite.destroy()
             this.sprites.delete(event.entityId)
+            this.entityCardIds.delete(event.entityId)
           }
           break
         }
@@ -143,12 +181,44 @@ export class BattleScene extends Phaser.Scene {
         }
       }
     }
+    state.events = []
 
     // Sync sprite positions each frame
     for (const [id, sprite] of this.sprites) {
       const entity = state.entities.get(id)
       if (entity) {
-        sprite.update(entity.position.x, entity.position.y, entity.hp / entity.maxHp)
+        let anim: AnimClip = 'idle'
+        let moveSpeed = 1.5
+        if (entity.kind === EntityKind.TROOP) {
+          const troop = entity as Troop
+          moveSpeed = troop.stats.speed
+          if (troop.state === TroopState.ATTACKING) anim = 'attack'
+          else if (troop.state === TroopState.WALKING) anim = 'run'
+        } else if (entity.kind === EntityKind.BUILDING) {
+          const building = entity as Building
+          if (building.state === BuildingState.ATTACKING) anim = 'attack'
+        }
+        sprite.update(
+          entity.position.x,
+          entity.position.y,
+          entity.hp / entity.maxHp,
+          anim,
+          moveSpeed,
+          this.shouldShowHealthBar(entity),
+        )
+      }
+    }
+
+    // Sync tower health bars
+    for (const [id, towerSprite] of this.towerSprites) {
+      const tower = state.towers.get(id)
+      if (tower) {
+        towerSprite.update(
+          tower.position.x,
+          tower.position.y,
+          tower.hp / tower.maxHp,
+          tower.hasBeenDamaged,
+        )
       }
     }
 
@@ -163,35 +233,68 @@ export class BattleScene extends Phaser.Scene {
       hand:         this.playerCardSystem.snapshot,
     }
     uiScene.updateState(snapshot)
+
+    if (DevMode.enabled) {
+      this.devOverlay.update(state, this.grid, this.entityCardIds)
+    }
+  }
+
+  private getAttackRate(entity: Entity): number {
+    if (entity.kind === EntityKind.TOWER) return (entity as Tower).stats.attackRate
+    return (entity as Troop | Building).stats.attackRate
+  }
+
+  /** Troops/towers: after combat hit. Buildings: any HP loss (decay or combat). */
+  private shouldShowHealthBar(entity: Entity): boolean {
+    if (entity.kind === EntityKind.BUILDING) {
+      return entity.hp < entity.maxHp
+    }
+    return entity.hasBeenDamaged
+  }
+
+  private findEntity(state: GameState, id: string): Entity | null {
+    return state.entities.get(id) ?? state.towers.get(id) ?? null
+  }
+
+  private entityPosition(state: GameState, id: string): Vec2 | null {
+    const entity = this.findEntity(state, id)
+    return entity ? entity.position : null
+  }
+
+  private flashTarget(targetId: string): void {
+    const sprite = this.sprites.get(targetId)
+    if (sprite) {
+      sprite.flashDamage()
+      return
+    }
+
+    const towerSprite = this.towerSprites.get(targetId)
+    if (towerSprite) {
+      towerSprite.flashDamage()
+    }
   }
 
   private addTowerSprite(tower: Tower): void {
-    const key = towerTextureKey(tower.isKing, tower.owner)
-    const img = this.add.image(tower.position.x, tower.position.y, key)
-      .setDepth(4)
-      .setDisplaySize(tower.isKing ? CELL_SIZE * 4 : CELL_SIZE * 3, tower.isKing ? CELL_SIZE * 4 : CELL_SIZE * 3)
-    this.towerSprites.set(tower.id, img)
+    this.towerSprites.set(tower.id, new TowerSprite(this, tower))
   }
 
   private updateTowerSprite(towerId: string, owner: Owner): void {
-    const img = this.towerSprites.get(towerId)
-    if (!img) return
-    // Find the tower def to know isKing — search destroyed towers in original placement
-    const key = towerTextureKey(false, owner, true) // assume princess for now; king ends game
-    img.setTexture(key)
-    img.setTint(0x666666)
+    const towerSprite = this.towerSprites.get(towerId)
+    if (!towerSprite) return
+    towerSprite.setDestroyed(owner)
   }
 
   private getTowerPos(towerId: string): [number, number] {
-    const img = this.towerSprites.get(towerId)
-    return img ? [img.x, img.y] : [240, 427]
+    const towerSprite = this.towerSprites.get(towerId)
+    return towerSprite ? [towerSprite.image.x, towerSprite.image.y] : [240, 427]
   }
 
   private isUIArea(screenY: number): boolean {
-    return screenY > this.scale.height - 120
+    return screenY >= GAME_HEIGHT
   }
 
   private endGame(): void {
+    this.deployCtrl.deselect()
     this.scene.stop('UIScene')
     const winner = this.simulator.state.winner
     this.scene.start('ResultScene', { winner })

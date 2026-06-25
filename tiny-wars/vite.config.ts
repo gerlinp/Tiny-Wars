@@ -12,6 +12,7 @@ export default defineConfig({
       '@ui':        resolve(__dirname, 'src/ui'),
       '@input':     resolve(__dirname, 'src/input'),
       '@config':    resolve(__dirname, 'src/config'),
+      '@debug':     resolve(__dirname, 'src/debug'),
     },
   },
   build: {

@@ -7,10 +7,10 @@ import { Troop } from './entities/Troop'
 import { Tower } from './entities/Tower'
 import { Building } from './entities/Building'
 import { Spell } from './entities/Spell'
-import { Owner, CardType } from './types'
+import { Owner, CardType, EntityKind } from './types'
 import type { Vec2 } from './types'
 import type { CardDefinition, SpellStats, EntityStats } from './types'
-import { CELL_SIZE, PLAYER_DEPLOY_ROW_MIN, BOT_DEPLOY_ROW_MAX } from '@data/GameConstants'
+import { CELL_SIZE, PLAYER_DEPLOY_ROW_MIN, PLAYER_DEPLOY_ROW_MAX, BOT_DEPLOY_ROW_MAX } from '@data/GameConstants'
 import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
 import {
   PLAYER_KING_ROW, PLAYER_KING_COL, PLAYER_TOWER_ROW, PLAYER_TOWER_COLS,
@@ -49,7 +49,6 @@ export class GameSimulator {
   tick(deltaMs: number): GameState {
     if (this.state.phase === 'ENDED') return this.state
 
-    this.state.events = []
     this.state.tick++
     this.state.elapsedMs += deltaMs
 
@@ -63,23 +62,33 @@ export class GameSimulator {
       tower.tick(deltaMs, this.state)
     }
 
+    this.unblockDeadBuildings()
     resolveDeaths(this.state)
     checkTimeWin(this.state, this.state.elapsedMs)
 
     return this.state
   }
 
-  deployCard(owner: Owner, card: CardDefinition, gridPos: Vec2): boolean {
-    // Validate placement zone
-    if (owner === Owner.PLAYER && gridPos.y < PLAYER_DEPLOY_ROW_MIN) return false
-    if (owner === Owner.BOT    && gridPos.y > BOT_DEPLOY_ROW_MAX)    return false
+  canDeployAt(owner: Owner, card: CardDefinition, gridPos: Vec2): boolean {
+    if (gridPos.x < 0 || gridPos.x >= this.grid.cols) return false
+    if (gridPos.y < 0 || gridPos.y >= this.grid.rows) return false
 
-    // Validate walkability (spells can land anywhere in zone)
+    if (owner === Owner.PLAYER) {
+      if (gridPos.y < PLAYER_DEPLOY_ROW_MIN || gridPos.y > PLAYER_DEPLOY_ROW_MAX) return false
+    } else {
+      if (gridPos.y > BOT_DEPLOY_ROW_MAX) return false
+    }
+
     if (card.cardType !== CardType.SPELL && !this.grid.isWalkable(gridPos.x, gridPos.y)) return false
 
-    // Validate elixir
     const elixir = owner === Owner.PLAYER ? this.state.playerElixir : this.state.botElixir
     if (elixir < card.elixirCost) return false
+
+    return true
+  }
+
+  deployCard(owner: Owner, card: CardDefinition, gridPos: Vec2): boolean {
+    if (!this.canDeployAt(owner, card, gridPos)) return false
 
     // Deduct elixir
     if (owner === Owner.PLAYER) this.state.playerElixir -= card.elixirCost
@@ -93,21 +102,35 @@ export class GameSimulator {
     let entityId: string
 
     if (card.cardType === CardType.TROOP) {
-      const troop = new Troop(owner, card.stats as EntityStats, worldPos, this.grid)
+      const troop = new Troop(owner, card.stats as EntityStats, worldPos, this.grid, card.id)
       this.state.entities.set(troop.id, troop)
       entityId = troop.id
     } else if (card.cardType === CardType.BUILDING) {
-      const building = new Building(owner, card.stats as EntityStats, worldPos)
+      const building = new Building(owner, card.stats as EntityStats, worldPos, card.id)
       this.state.entities.set(building.id, building)
+      for (const cell of building.blockedCells) {
+        this.grid.blockCell(cell.x, cell.y)
+      }
       entityId = building.id
     } else {
       // Spell
-      const spell = new Spell(owner, card.stats as SpellStats, worldPos)
+      const spell = new Spell(owner, card.stats as SpellStats, worldPos, card.id)
       this.state.entities.set(spell.id, spell)
       entityId = spell.id
     }
 
     this.state.events.push({ type: 'DEPLOY', entityId, cardId: card.id, position: worldPos })
     return true
+  }
+
+  private unblockDeadBuildings(): void {
+    for (const entity of this.state.entities.values()) {
+      if (!entity.isAlive && entity.kind === EntityKind.BUILDING) {
+        const building = entity as Building
+        for (const cell of building.blockedCells) {
+          this.grid.unblockCell(cell.x, cell.y)
+        }
+      }
+    }
   }
 }

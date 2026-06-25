@@ -10,9 +10,9 @@ export class Spell extends Entity {
   readonly stats: SpellStats
   private applied = false
 
-  constructor(owner: Owner, stats: SpellStats, position: Vec2) {
+  constructor(owner: Owner, stats: SpellStats, position: Vec2, cardId: string) {
     // Spells have no HP — set to 1 and die after applying
-    super(nextEntityId(), owner, EntityKind.SPELL, position, 1)
+    super(nextEntityId(), owner, EntityKind.SPELL, position, 1, cardId)
     this.stats = stats
   }
 
@@ -43,7 +43,7 @@ export class Spell extends Entity {
 
     state.events.push({
       type: 'SPELL_IMPACT',
-      cardId: 'tnt',
+      cardId: this.cardId ?? 'tnt',
       position: { ...this.position },
       radius: radiusPx,
     })

@@ -11,6 +11,7 @@ export class CardSlot {
   private costText: Phaser.GameObjects.Text
   private nameText: Phaser.GameObjects.Text
   private _selected = false
+  private canPlay = true
   onTap: (() => void) | null = null
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -19,7 +20,9 @@ export class CardSlot {
       .setStrokeStyle(2, 0x4455aa)
       .setInteractive({ useHandCursor: true })
 
-    this.bg.on('pointerdown', () => this.onTap?.())
+    this.bg.on('pointerdown', () => {
+      if (this.canPlay) this.onTap?.()
+    })
     this.bg.on('pointerover', () => { if (!this._selected) this.bg.setStrokeStyle(2, 0x8899ff) })
     this.bg.on('pointerout',  () => { if (!this._selected) this.bg.setStrokeStyle(2, 0x4455aa) })
 
@@ -38,16 +41,25 @@ export class CardSlot {
 
   setCard(scene: Phaser.Scene, card: CardDefinition, playerElixir: number): void {
     const key = resolveTexture(scene, card.textureKeyPlayer, 'placeholder_player')
-    this.icon.setTexture(key).setDisplaySize(40, 40)
+    this.icon.setTexture(key, 0).setDisplaySize(40, 40).setAlpha(1)
     this.costText.setText(`${card.elixirCost}e`)
     this.nameText.setText(card.displayName)
 
     const canPlay = card.elixirCost <= playerElixir
+    this.canPlay = canPlay
     this.bg.setFillStyle(canPlay ? 0x222244 : 0x221122)
     this.costText.setColor(canPlay ? '#cc88ff' : '#664466')
+
+    if (canPlay) {
+      this.bg.setInteractive({ useHandCursor: true })
+    } else {
+      this.bg.disableInteractive()
+    }
   }
 
   setEmpty(): void {
+    this.canPlay = false
+    this.bg.disableInteractive()
     this.icon.setTexture('placeholder_player').setAlpha(0.3)
     this.costText.setText('')
     this.nameText.setText('')
@@ -56,6 +68,10 @@ export class CardSlot {
   setSelected(selected: boolean): void {
     this._selected = selected
     this.bg.setStrokeStyle(2, selected ? 0xffdd44 : 0x4455aa)
-    this.bg.setFillStyle(selected ? 0x443322 : 0x222244)
+    if (!selected && this.canPlay) {
+      this.bg.setFillStyle(0x222244)
+    } else if (selected) {
+      this.bg.setFillStyle(0x443322)
+    }
   }
 }

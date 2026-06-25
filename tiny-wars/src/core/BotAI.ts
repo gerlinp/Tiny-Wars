@@ -2,7 +2,7 @@ import type { GameState } from './GameState'
 import type { CardSystem } from './CardSystem'
 import type { BotAction } from './types'
 import { Owner } from './types'
-import { BOT_THINK_MIN_MS, BOT_THINK_MAX_MS, BOT_DEPLOY_ROW_MIN, BOT_DEPLOY_ROW_MAX, BRIDGE_COLS, GRID_COLS } from '@data/GameConstants'
+import { BOT_THINK_MIN_MS, BOT_THINK_MAX_MS, BOT_DEPLOY_ROW_MIN, BOT_DEPLOY_ROW_MAX } from '@data/GameConstants'
 
 export class BotAI {
   private thinkCooldownMs = BOT_THINK_MIN_MS
@@ -22,17 +22,11 @@ export class BotAI {
 
     const chosen = playable[Math.floor(Math.random() * playable.length)]!
 
-    // Pick a random deployment position in bot territory
-    // Bias toward bridge columns to create natural lane pressure
-    const useBridge = Math.random() < 0.6
-    const col = useBridge
-      ? BRIDGE_COLS[Math.floor(Math.random() * BRIDGE_COLS.length)]!
-      : 1 + Math.floor(Math.random() * (GRID_COLS - 2))
+    const col = 2 + Math.floor(Math.random() * 20)
     const row = BOT_DEPLOY_ROW_MIN + Math.floor(Math.random() * (BOT_DEPLOY_ROW_MAX - BOT_DEPLOY_ROW_MIN + 1))
 
-    // Consume from bot's hand
+    // Consume card from hand — elixir deduction is handled by simulator.deployCard()
     cardSystem.consumeCard(chosen.index)
-    state.botElixir -= chosen.card.elixirCost
 
     return {
       cardId: chosen.card.id,

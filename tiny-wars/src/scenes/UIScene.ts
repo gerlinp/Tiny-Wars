@@ -4,6 +4,8 @@ import { CardHand } from '@ui/CardHand'
 import { TimerDisplay } from '@ui/TimerDisplay'
 import { CrownCounter } from '@ui/CrownCounter'
 import type { HandState } from '@core/CardSystem'
+import { GAME_HEIGHT, HUD_HEIGHT } from '@data/GameConstants'
+import { DevMode } from '@debug/DevMode'
 
 export interface UISnapshot {
   playerElixir: number
@@ -20,33 +22,46 @@ export class UIScene extends Phaser.Scene {
   private timer!: TimerDisplay
   private crowns!: CrownCounter
   private pauseBtn!: Phaser.GameObjects.Text
+  private devBtn!: Phaser.GameObjects.Text
 
   onCardSelected: ((index: number) => void) | null = null
+  onDevModeToggle: (() => void) | null = null
 
   constructor() {
     super({ key: 'UIScene' })
   }
 
   create(): void {
-    const { width, height } = this.scale
+    const { width } = this.scale
 
-    // Fixed camera — never scrolls
     this.cameras.main.setScroll(0, 0)
 
-    // Semi-transparent bottom bar background
-    this.add.rectangle(0, height - 110, width, 110, 0x111122, 0.85).setOrigin(0).setDepth(45)
+    this.add.rectangle(0, GAME_HEIGHT, width, HUD_HEIGHT, 0x111122, 0.88).setOrigin(0).setDepth(45)
 
     const cx = width / 2
-    const barY = height - 98
 
-    this.crowns   = new CrownCounter(this, cx, barY - 36)
-    this.timer    = new TimerDisplay(this, cx, barY - 54)
-    this.elixirBar = new ElixirBar(this, cx, barY - 16)
-    this.cardHand  = new CardHand(this, cx, height - 52)
+    this.timer  = new TimerDisplay(this, cx, GAME_HEIGHT - 20)
+    this.crowns = new CrownCounter(this, cx, GAME_HEIGHT - 42)
+
+    this.elixirBar = new ElixirBar(this, cx, GAME_HEIGHT + 18)
+    this.cardHand  = new CardHand(this, cx, GAME_HEIGHT + 90)
 
     this.cardHand.onCardSelected = (i) => {
       this.onCardSelected?.(i)
     }
+
+    this.devBtn = this.add.text(12, 12, 'DEV: OFF', {
+      fontSize: '13px',
+      color: '#888888',
+      backgroundColor: '#222244',
+      padding: { x: 6, y: 4 },
+    }).setOrigin(0, 0).setDepth(60).setInteractive({ useHandCursor: true })
+
+    this.devBtn.on('pointerdown', () => {
+      const on = DevMode.toggle()
+      this.updateDevButton(on)
+      this.onDevModeToggle?.()
+    })
 
     this.pauseBtn = this.add.text(width - 12, 12, '⏸', {
       fontSize: '22px',
@@ -55,6 +70,11 @@ export class UIScene extends Phaser.Scene {
     this.pauseBtn.on('pointerdown', () => {
       this.scene.pause('BattleScene')
     })
+  }
+
+  private updateDevButton(on: boolean): void {
+    this.devBtn.setText(on ? 'DEV: ON' : 'DEV: OFF')
+    this.devBtn.setColor(on ? '#44ff88' : '#888888')
   }
 
   updateState(snapshot: UISnapshot): void {

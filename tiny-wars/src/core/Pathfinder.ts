@@ -15,11 +15,19 @@ interface Node {
 export class Pathfinder {
   constructor(private grid: Grid) {}
 
+  /** Returns world-space waypoints (cell centres) from current position to goal. */
+  findPathWorld(fromWorld: Vec2, toWorld: Vec2, unitType: UnitType): Vec2[] {
+    if (unitType === UnitType.AIR) return [toWorld]
+
+    const from = this.grid.worldToCell(fromWorld.x, fromWorld.y)
+    const to = this.grid.worldToCell(toWorld.x, toWorld.y)
+    const gridPath = this.findPath(from, to, unitType)
+
+    return gridPath.map(cell => this.grid.cellToWorld(cell.x, cell.y))
+  }
+
   findPath(from: Vec2, to: Vec2, unitType: UnitType): Vec2[] {
-    // Air units move in a straight line — no pathfinding needed
-    if (unitType === UnitType.AIR) {
-      return [to]
-    }
+    if (unitType === UnitType.AIR) return [to]
 
     const startCol = Math.round(from.x)
     const startRow = Math.round(from.y)
@@ -28,7 +36,6 @@ export class Pathfinder {
 
     if (startCol === goalCol && startRow === goalRow) return []
 
-    // Use integer grid coords for the open/closed sets
     const openMap  = new Map<number, Node>()
     const closedSet = new Set<number>()
 
@@ -43,7 +50,6 @@ export class Pathfinder {
     openMap.set(gridKey(startCol, startRow), startNode)
 
     while (openMap.size > 0) {
-      // Find node with lowest f in open set
       let current: Node | null = null
       for (const node of openMap.values()) {
         if (!current || node.f < current.f) current = node
@@ -57,11 +63,11 @@ export class Pathfinder {
       openMap.delete(gridKey(current.col, current.row))
       closedSet.add(gridKey(current.col, current.row))
 
-      for (const { col, row } of this.grid.neighbors(current.col, current.row)) {
+      for (const { col, row, cost } of this.grid.neighbors(current.col, current.row)) {
         const key = gridKey(col, row)
         if (closedSet.has(key)) continue
 
-        const g = current.g + 1
+        const g = current.g + cost
         const existing = openMap.get(key)
         if (!existing || g < existing.g) {
           const h = this.heuristic(col, row, goalCol, goalRow)
@@ -70,16 +76,16 @@ export class Pathfinder {
         }
       }
 
-      // Safety cap — prevent infinite loops on very large maps
       if (closedSet.size > 2000) break
     }
 
-    // No path found — return direct target (unit will be stuck but won't crash)
     return [to]
   }
 
   private heuristic(ac: number, ar: number, bc: number, br: number): number {
-    return Math.abs(ac - bc) + Math.abs(ar - br)
+    const dx = Math.abs(ac - bc)
+    const dy = Math.abs(ar - br)
+    return Math.max(dx, dy) + (Math.SQRT2 - 1) * Math.min(dx, dy)
   }
 
   private reconstructPath(node: Node): Vec2[] {
@@ -89,7 +95,6 @@ export class Pathfinder {
       path.unshift({ x: current.col, y: current.row })
       current = current.parent
     }
-    // Drop the start cell (the unit is already there)
     path.shift()
     return path
   }

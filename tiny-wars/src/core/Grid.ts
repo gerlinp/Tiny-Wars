@@ -73,13 +73,26 @@ export class Grid {
     }
   }
 
-  neighbors(col: number, row: number): Array<{ col: number; row: number }> {
-    const result: Array<{ col: number; row: number }> = []
-    const dirs = [{ dc: 0, dr: -1 }, { dc: 0, dr: 1 }, { dc: -1, dr: 0 }, { dc: 1, dr: 0 }]
-    for (const { dc, dr } of dirs) {
+  /** 4- and 8-connected neighbors for pathfinding */
+  neighbors(col: number, row: number, allowDiagonal = true): Array<{ col: number; row: number; cost: number }> {
+    const result: Array<{ col: number; row: number; cost: number }> = []
+    const cardinals = [{ dc: 0, dr: -1 }, { dc: 1, dr: 0 }, { dc: 0, dr: 1 }, { dc: -1, dr: 0 }]
+    for (const { dc, dr } of cardinals) {
       const nc = col + dc
       const nr = row + dr
-      if (this.isWalkable(nc, nr)) result.push({ col: nc, row: nr })
+      if (this.isWalkable(nc, nr)) result.push({ col: nc, row: nr, cost: 1 })
+    }
+
+    if (!allowDiagonal) return result
+
+    const diagonals = [{ dc: 1, dr: -1 }, { dc: 1, dr: 1 }, { dc: -1, dr: 1 }, { dc: -1, dr: -1 }]
+    for (const { dc, dr } of diagonals) {
+      const nc = col + dc
+      const nr = row + dr
+      if (!this.isWalkable(nc, nr)) continue
+      // Prevent cutting corners through blocked cells
+      if (!this.isWalkable(col + dc, row) || !this.isWalkable(col, row + dr)) continue
+      result.push({ col: nc, row: nr, cost: Math.SQRT2 })
     }
     return result
   }

@@ -1,11 +1,14 @@
 import { Owner } from '@core/types'
-import { CARD_DEFINITIONS } from '@data/CardData'
+import { idleSheetKey } from '@data/AssetManifest'
 
-/** Returns the Phaser texture key for a given card + owner */
+/** Returns the idle spritesheet key for a card icon or fallback */
 export function cardTextureKey(cardId: string, owner: Owner): string {
-  const def = CARD_DEFINITIONS[cardId]
-  if (!def) return owner === Owner.PLAYER ? 'placeholder_player' : 'placeholder_bot'
-  return owner === Owner.PLAYER ? def.textureKeyPlayer : def.textureKeyBot
+  return idleSheetKey(cardId, owner)
+}
+
+/** First frame of the idle sheet — used for card hand icons and placement ghost */
+export function cardIconKey(cardId: string, owner: Owner): string {
+  return idleSheetKey(cardId, owner)
 }
 
 /** Returns the texture key for a tower (King or Princess) */

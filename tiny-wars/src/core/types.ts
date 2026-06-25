@@ -10,6 +10,8 @@ export enum AttackType {
 
 export enum TroopState { WALKING = 'WALKING', ATTACKING = 'ATTACKING', DEAD = 'DEAD' }
 
+export enum BuildingState { IDLE = 'IDLE', ATTACKING = 'ATTACKING' }
+
 export enum CardType { TROOP = 'TROOP', SPELL = 'SPELL', BUILDING = 'BUILDING' }
 
 export enum EntityKind { TROOP = 'TROOP', TOWER = 'TOWER', BUILDING = 'BUILDING', SPELL = 'SPELL' }
@@ -24,6 +26,8 @@ export interface EntityStats {
   attackRange: number // in grid cells
   unitType: UnitType
   attackType: AttackType
+  /** Buildings only — lifetime before auto-expiring (ms) */
+  lifetimeMs?: number
 }
 
 export interface SpellStats {
@@ -45,7 +49,7 @@ export interface CardDefinition {
 
 export type GameEvent =
   | { type: 'DEPLOY';       entityId: string; cardId: string; position: Vec2 }
-  | { type: 'DAMAGE';       targetId: string; amount: number }
+  | { type: 'DAMAGE'; targetId: string; amount: number; attackerId?: string }
   | { type: 'DEATH';        entityId: string; position: Vec2 }
   | { type: 'CROWN_LOST';   owner: Owner; towerId: string }
   | { type: 'SPELL_IMPACT'; cardId: string; position: Vec2; radius: number }

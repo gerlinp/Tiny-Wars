@@ -3,7 +3,7 @@ import { Grid } from './Grid'
 import { GameSimulator } from './GameSimulator'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { Owner } from './types'
-import { PLAYER_DEPLOY_ROW_MIN } from '@data/GameConstants'
+import { PLAYER_DEPLOY_ROW_MIN, PLAYER_DEPLOY_ROW_MAX } from '@data/GameConstants'
 
 function makeSim() {
   return new GameSimulator(new Grid())
@@ -33,7 +33,7 @@ describe('GameSimulator', () => {
 
   it('rejects card deploy when player has insufficient elixir', () => {
     const sim = makeSim()
-    const card = CARD_DEFINITIONS['warrior']! // costs 5 elixir
+    const card = CARD_DEFINITIONS['warrior']! // costs 4 elixir
     // Force elixir below cost
     sim.state.playerElixir = 2
     const ok = sim.deployCard(Owner.PLAYER, card, { x: 11, y: PLAYER_DEPLOY_ROW_MIN })
@@ -43,11 +43,11 @@ describe('GameSimulator', () => {
 
   it('accepts valid card deployment and deducts elixir', () => {
     const sim = makeSim()
-    const card = CARD_DEFINITIONS['archer']! // costs 3 elixir
+    const card = CARD_DEFINITIONS['archer']! // costs 2 elixir
     sim.state.playerElixir = 5
     const ok = sim.deployCard(Owner.PLAYER, card, { x: 11, y: PLAYER_DEPLOY_ROW_MIN })
     expect(ok).toBe(true)
-    expect(sim.state.playerElixir).toBe(2)
+    expect(sim.state.playerElixir).toBe(3)
     expect(sim.state.entities.size).toBe(1)
   })
 
@@ -71,5 +71,39 @@ describe('GameSimulator', () => {
     sim.state.elapsedMs = 180_000 - 34
     sim.tick(35)
     expect(sim.state.phase).toBe('ENDED')
+  })
+
+  describe('canDeployAt', () => {
+    it('rejects player deploy on row 22 (river boundary)', () => {
+      const sim = makeSim()
+      const card = CARD_DEFINITIONS['archer']!
+      sim.state.playerElixir = 10
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: 22 })).toBe(false)
+    })
+
+    it('accepts player deploy at row 23 and row 42 (zone edges)', () => {
+      const sim = makeSim()
+      const card = CARD_DEFINITIONS['archer']!
+      sim.state.playerElixir = 10
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: PLAYER_DEPLOY_ROW_MIN })).toBe(true)
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: PLAYER_DEPLOY_ROW_MAX })).toBe(true)
+    })
+
+    it('rejects deploy when player has insufficient elixir', () => {
+      const sim = makeSim()
+      const card = CARD_DEFINITIONS['warrior']!
+      sim.state.playerElixir = 2
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: PLAYER_DEPLOY_ROW_MIN })).toBe(false)
+    })
+
+    it('allows spell in player zone even on non-walkable cell', () => {
+      const sim = makeSim()
+      const spell = CARD_DEFINITIONS['tnt']!
+      sim.state.playerElixir = 10
+      // Row 23 col 10 is walkable grass — use river cell col 10 row 21 which is NOT in player zone
+      expect(sim.canDeployAt(Owner.PLAYER, spell, { x: 10, y: 21 })).toBe(false)
+      // Valid player zone cell (walkable or not — spell ignores walkability)
+      expect(sim.canDeployAt(Owner.PLAYER, spell, { x: 11, y: PLAYER_DEPLOY_ROW_MIN })).toBe(true)
+    })
   })
 })
