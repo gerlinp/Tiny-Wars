@@ -15,6 +15,7 @@ export class CardHand {
   private nextBorder: Phaser.GameObjects.Rectangle
   private nextBackdrop: Phaser.GameObjects.Image
   private nextIcon: Phaser.GameObjects.Image
+  private nextLabel: Phaser.GameObjects.Text
   private nextCardId: string | null = null
   onCardSelected: ((index: number) => void) | null = null
 
@@ -26,10 +27,14 @@ export class CardHand {
     }
 
     const nextX = nextCardCenterX(cx)
-    this.nextBorder = scene.add.rectangle(nextX, y, NEXT_SLOT_W, NEXT_SLOT_H, 0x111133, 0.55)
-      .setDepth(50)
-      .setStrokeStyle(2, 0x7788cc)
+    this.nextBorder = scene.add.rectangle(nextX, y, NEXT_SLOT_W, NEXT_SLOT_H, 0x0d1b3e, 0.9)
+      .setDepth(49)
+      .setStrokeStyle(1.5, 0x2e4480)
       .setVisible(false)
+
+    this.nextLabel = scene.add.text(nextX, y + NEXT_SLOT_H / 2 + 4, 'NEXT', {
+      fontSize: '8px', color: '#8899cc', fontStyle: 'bold',
+    }).setOrigin(0.5, 0).setDepth(50).setVisible(false)
 
     this.nextBackdrop = scene.add.image(nextX, y, cardAvatarKey('warrior'))
       .setAlpha(0.85)
@@ -89,5 +94,6 @@ export class CardHand {
 
     this.nextBorder.setVisible(true)
     this.nextIcon.setVisible(true)
+    this.nextLabel.setVisible(true)
   }
 }

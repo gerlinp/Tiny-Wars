@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, getHealthBarImageKeys } from '@data/AssetManifest'
+import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, getHealthBarImageKeys, HEALTH_BAR_ASSETS } from '@data/AssetManifest'
 import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims } from '@rendering/AnimationRegistry'
 import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET } from '@data/AssetManifest'
 import { DEFAULT_DECK } from '@data/CardData'
@@ -113,6 +113,21 @@ export class PreloadScene extends Phaser.Scene {
           `Card avatar "${def.key}" for "${cardId}" failed to load (path: ${def.path}).`,
         )
       }
+    }
+
+    // Register sub-frames using measured art bounds so setDisplaySize scales against
+    // actual art dimensions — not the full 320×64 or 64×64 sheet.
+    for (const variant of Object.values(HEALTH_BAR_ASSETS)) {
+      const baseTex = this.textures.get(variant.base.key)
+      const r = variant.baseRegions
+      const bf = variant.baseFrame
+      baseTex.add('leftCap',  0, r.leftCap.x,  bf.y, r.leftCap.w,  bf.h)
+      baseTex.add('mid',      0, r.mid.x,      bf.y, r.mid.w,      bf.h)
+      baseTex.add('rightCap', 0, r.rightCap.x, bf.y, r.rightCap.w, bf.h)
+
+      const fillTex = this.textures.get(variant.fill.key)
+      const ff = variant.fillFrame
+      fillTex.add('fill', 0, 0, ff.y, 64, ff.h)
     }
 
     registerCardAnimations(this)

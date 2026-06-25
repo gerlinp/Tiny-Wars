@@ -7,8 +7,7 @@ const HAND_SLOTS = 4
 const DECK_MARGIN_X = 6
 const CARD_SLOT_GAP = 4
 const NEXT_HAND_GAP = 8
-/** Preview card size vs hand cards (original asset ratio was 48×56 vs 64×72). */
-const NEXT_SLOT_SCALE = 0.52
+const NEXT_SLOT_SCALE = 0.65
 
 export const ELIXIR_BAND_H = 18
 export const DECK_PAD_TOP = 1
@@ -17,14 +16,14 @@ export const DECK_PAD_BOTTOM = 2
 export const CARD_SLOT_H = HUD_HEIGHT - ELIXIR_BAND_H - DECK_PAD_TOP - DECK_PAD_BOTTOM
 
 const deckInnerW = GAME_WIDTH - DECK_MARGIN_X * 2
-const nextWidthRatio = NEXT_SLOT_SCALE * (48 / 64)
+const nextWidthRatio = NEXT_SLOT_SCALE
 export const CARD_SLOT_W = Math.floor(
   (deckInnerW - (HAND_SLOTS - 1) * CARD_SLOT_GAP - NEXT_HAND_GAP)
   / (HAND_SLOTS + nextWidthRatio),
 )
 
 export const NEXT_SLOT_W = Math.round(CARD_SLOT_W * nextWidthRatio)
-export const NEXT_SLOT_H = Math.round(CARD_SLOT_H * NEXT_SLOT_SCALE * (56 / 72))
+export const NEXT_SLOT_H = Math.round(CARD_SLOT_H * NEXT_SLOT_SCALE)
 
 const DECK_ROW_WIDTH =
   HAND_SLOTS * CARD_SLOT_W
@@ -34,7 +33,7 @@ const DECK_ROW_WIDTH =
 
 const DECK_ROW_LEFT = (GAME_WIDTH - DECK_ROW_WIDTH) / 2
 
-export const CARD_SELECTED_LIFT = 2
+export const CARD_SELECTED_LIFT = 6
 
 /** Draw avatars slightly inside the slot so frame art isn't clipped. */
 const AVATAR_SLOT_FILL = 0.94

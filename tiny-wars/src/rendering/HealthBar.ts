@@ -1,11 +1,13 @@
 import Phaser from 'phaser'
 import {
   HEALTH_BAR_ASSETS,
-  HEALTH_BAR_FILL_HEIGHT_RATIO,
-  HEALTH_BAR_FILL_INSET_X,
+  HEALTH_BAR_BASE_SHEET_W,
+  HEALTH_BAR_TEXTURE_H,
 } from '@data/AssetManifest'
 
 type HealthBarVariant = keyof typeof HEALTH_BAR_ASSETS
+
+const HEALTH_BAR_FILL_SHEET_W = 64
 
 export interface HealthBarOptions {
   /** Pixels above entity centre; zero = y is already the bar centre */
@@ -15,70 +17,90 @@ export interface HealthBarOptions {
   variant?: HealthBarVariant
 }
 
+/**
+ * Tiny Swords live bars: 3 named sub-frames (leftCap | mid stretch | rightCap) + fill on top.
+ * Frames are registered in PreloadScene so setDisplaySize scales against the art width,
+ * not the full 320 px sheet — eliminating the gap artefact.
+ */
 export class HealthBar {
-  private bg: Phaser.GameObjects.Image
-  private fill: Phaser.GameObjects.Image
+  private readonly frameLeft: Phaser.GameObjects.Image
+  private readonly frameCenter: Phaser.GameObjects.Image
+  private readonly frameRight: Phaser.GameObjects.Image
+  private readonly fill: Phaser.GameObjects.Image
   private readonly barW: number
   private readonly offsetY: number
   private readonly barH: number
-  private readonly fillInnerW: number
+  private readonly depth: number
+  private readonly fillInsetX: number
+  private readonly fillHeightRatio: number
+  private readonly fillMinW: number
+  private readonly fillFrameH: number
+  private readonly leftCapTexW: number
+  private readonly rightCapTexW: number
+  private readonly baseArtH: number
 
   constructor(scene: Phaser.Scene, x: number, y: number, options: HealthBarOptions = {}) {
     const variant = options.variant ?? 'small'
     const assets = HEALTH_BAR_ASSETS[variant]
-    this.barW = options.barWidth ?? 28
     this.offsetY = options.offsetY ?? -14
     this.barH = assets.displayHeight
-    this.fillInnerW = this.barW * (1 - 2 * HEALTH_BAR_FILL_INSET_X)
-    const depth = options.depth ?? 12
+    this.depth = options.depth ?? 12
+    this.fillInsetX = assets.fillInsetX
+    this.fillHeightRatio = assets.fillHeightRatio
+    this.fillMinW = 4
+    this.fillFrameH = assets.fillFrame.h
+    this.leftCapTexW = assets.baseRegions.leftCap.w
+    this.rightCapTexW = assets.baseRegions.rightCap.w
+    this.baseArtH = assets.baseFrame.h
+
+    const minBarW = this.minBarWidth()
+    this.barW = Math.max(options.barWidth ?? minBarW, minBarW)
     const cy = y + this.offsetY
+    const baseKey = assets.base.key
 
-    this.bg = scene.add.image(x, cy, assets.base.key)
-      .setDepth(depth)
-      .setVisible(false)
-    this.bg.setDisplaySize(this.barW, this.barH)
+    const frameOpts = { depth: this.depth, visible: false as boolean }
+    this.frameLeft   = scene.add.image(0, cy, baseKey, 'leftCap').setOrigin(0.5, 0.5).setDepth(frameOpts.depth).setVisible(frameOpts.visible)
+    this.frameCenter = scene.add.image(0, cy, baseKey, 'mid').setOrigin(0.5, 0.5).setDepth(frameOpts.depth).setVisible(frameOpts.visible)
+    this.frameRight  = scene.add.image(0, cy, baseKey, 'rightCap').setOrigin(0.5, 0.5).setDepth(frameOpts.depth).setVisible(frameOpts.visible)
 
-    this.fill = scene.add.image(
-      x - this.barW / 2 + this.barW * HEALTH_BAR_FILL_INSET_X,
-      cy,
-      assets.fill.key,
-    )
+    this.fill = scene.add.image(0, cy, assets.fill.key, 'fill')
       .setOrigin(0, 0.5)
-      .setDepth(depth + 1)
+      .setDepth(this.depth + 1)
       .setVisible(false)
-    this.layoutFill(cy, 1)
+
+    this.layout(x, cy, 1)
   }
 
-  /** Troop bar — sits just above the unit sprite */
+  /** Troop bar — thin bar above the unit */
   static forTroop(scene: Phaser.Scene, x: number, y: number, spriteHeight: number): HealthBar {
     return new HealthBar(scene, x, y, {
-      barWidth: Math.max(28, Math.round(spriteHeight * 0.55)),
-      offsetY: -Math.round(spriteHeight * 0.45),
+      barWidth: Math.max(56, Math.round(spriteHeight * 0.85)),
+      offsetY: -Math.round(spriteHeight * 0.52),
       variant: 'small',
     })
   }
 
-  /** Building bar — sits above the full building height */
+  /** Building bar — above the structure */
   static forBuilding(scene: Phaser.Scene, x: number, y: number, spriteHeight: number): HealthBar {
     return new HealthBar(scene, x, y, {
-      barWidth: Math.max(40, Math.round(spriteHeight * 0.65)),
-      offsetY: -(Math.round(spriteHeight / 2) + 10),
+      barWidth: Math.max(64, Math.round(spriteHeight * 0.8)),
+      offsetY: -(Math.round(spriteHeight / 2) + 12),
       depth: 25,
       variant: 'small',
     })
   }
 
-  /** Princess / king tower bar — arena-facing edge of the sprite */
+  /** Princess / king tower bar */
   static forTower(
     scene: Phaser.Scene,
     x: number,
     barY: number,
-    spriteHeight: number,
+    spriteWidth: number,
     isKing: boolean,
   ): HealthBar {
-    const widthMult = isKing ? 0.75 : 0.65
+    const widthMult = isKing ? 0.68 : 0.58
     return new HealthBar(scene, x, barY, {
-      barWidth: Math.max(48, Math.round(spriteHeight * widthMult)),
+      barWidth: Math.max(isKing ? 96 : 84, Math.round(spriteWidth * widthMult)),
       offsetY: 0,
       depth: 25,
       variant: 'big',
@@ -86,7 +108,9 @@ export class HealthBar {
   }
 
   setVisible(visible: boolean): void {
-    this.bg.setVisible(visible)
+    this.frameLeft.setVisible(visible)
+    this.frameCenter.setVisible(visible)
+    this.frameRight.setVisible(visible)
     this.fill.setVisible(visible)
   }
 
@@ -97,36 +121,77 @@ export class HealthBar {
     }
 
     this.setVisible(true)
-    const cy = y + this.offsetY
-    this.bg.setPosition(x, cy)
-    this.bg.setDisplaySize(this.barW, this.barH)
-    this.layoutFill(cy, fraction)
+    this.layout(x, y + this.offsetY, fraction)
     this.applyFillTint(fraction)
   }
 
   destroy(): void {
-    this.bg.destroy()
+    this.frameLeft.destroy()
+    this.frameCenter.destroy()
+    this.frameRight.destroy()
     this.fill.destroy()
   }
 
-  private layoutFill(cy: number, fraction: number): void {
-    const fillW = Math.max(0, this.fillInnerW * fraction)
-    const fillH = this.barH * HEALTH_BAR_FILL_HEIGHT_RATIO
-    const fillX = this.bg.x - this.barW / 2 + this.barW * HEALTH_BAR_FILL_INSET_X
+  private minBarWidth(): number {
+    const capPx = this.texToDisplayW(this.leftCapTexW + this.rightCapTexW)
+    return Math.max(capPx + 8, Math.round(this.barH * (HEALTH_BAR_BASE_SHEET_W / HEALTH_BAR_TEXTURE_H)))
+  }
 
-    this.fill.setPosition(fillX, cy)
-    this.fill.setDisplaySize(fillW, fillH)
+  private texToDisplayW(texW: number): number {
+    return Math.max(1, Math.round(this.barH * (texW / this.baseArtH)))
+  }
+
+  private layoutFramePart(
+    img: Phaser.GameObjects.Image,
+    displayW: number,
+    centerX: number,
+    cy: number,
+  ): void {
+    img
+      .setDisplaySize(displayW, this.barH)
+      .setPosition(centerX, cy)
+  }
+
+  private layout(cx: number, cy: number, fraction: number): void {
+    const leftX = cx - this.barW / 2
+    const capLW = this.texToDisplayW(this.leftCapTexW)
+    const capRW = this.texToDisplayW(this.rightCapTexW)
+    const centerW = Math.max(0, this.barW - capLW - capRW)
+
+    this.layoutFramePart(this.frameLeft,   capLW,   leftX + capLW / 2,              cy)
+    this.layoutFramePart(this.frameCenter, centerW, leftX + capLW + centerW / 2,    cy)
+    this.layoutFramePart(this.frameRight,  capRW,   leftX + this.barW - capRW / 2,  cy)
+
+    const inset = Math.max(1, Math.round(capLW * this.fillInsetX))
+    const innerW = Math.max(0, this.barW - inset * 2)
+    const fillW = fraction <= 0 ? 0 : Math.max(this.fillMinW, innerW * fraction)
+    const fillH = this.barH * this.fillHeightRatio
+
+    if (fillW <= 0) {
+      this.fill.setVisible(false)
+      return
+    }
+
+    this.fill.setVisible(true)
+    const cropW = Math.min(
+      HEALTH_BAR_FILL_SHEET_W,
+      Math.max(12, Math.round(HEALTH_BAR_FILL_SHEET_W * fraction)),
+    )
+    this.fill
+      .setCrop(0, 0, cropW, this.fillFrameH)
+      .setDisplaySize(fillW, fillH)
+      .setPosition(leftX + inset, cy)
   }
 
   private applyFillTint(fraction: number): void {
-    if (fraction > 0.5) {
+    if (fraction > 0.3) {
       this.fill.clearTint()
       return
     }
-    if (fraction > 0.25) {
+    if (fraction > 0.15) {
       this.fill.setTint(0xffcc66)
       return
     }
-    this.fill.setTint(0xff5555)
+    this.fill.setTint(0xff6666)
   }
 }

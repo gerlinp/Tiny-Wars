@@ -66,10 +66,10 @@ export function towerHealthBarY(
 ): number {
   const { renderY } = towerVisualBounds(logicY, owner, isKing)
   const halfH = spriteHeight / 2
-  const margin = 12
+  const margin = 6
   return owner === Owner.PLAYER
-    ? renderY - halfH - margin
-    : renderY + halfH + margin
+    ? renderY + halfH + margin   // player towers sit at screen-bottom — bar goes below
+    : renderY - halfH - margin   // bot towers sit at screen-top — bar goes above
 }
 
 /** @deprecated Use towerFootprintRiverEdge */

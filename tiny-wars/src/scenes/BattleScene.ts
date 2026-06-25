@@ -355,9 +355,9 @@ export class BattleScene extends Phaser.Scene {
       return
     }
 
-    const towerSprite = this.towerSprites.get(targetId)
-    if (towerSprite) {
-      towerSprite.flashDamage()
+    const tower = this.simulator.state.towers.get(targetId)
+    if (tower?.isAlive) {
+      this.towerSprites.get(targetId)?.flashDamage()
     }
   }
 

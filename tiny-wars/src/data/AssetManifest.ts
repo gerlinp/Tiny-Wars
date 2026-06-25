@@ -50,24 +50,78 @@ export const DAMAGE_FIRE_GRID = { cols: 6, rows: 2 } as const
 
 const UI_BARS = 'assets/UI Elements/UI Elements/Bars'
 
+/**
+ * Tiny Swords "Live Bars" — 320×64 base sheets with 3 separated art clusters.
+ * Crop only opaque art (not sheet padding); centre is the 64px middle strip only.
+ */
+export const HEALTH_BAR_TEXTURE_H = 64
+export const HEALTH_BAR_BASE_SHEET_W = 320
+
+export interface HealthBarTextureRegion {
+  /** Left edge column in the base sheet (inclusive). */
+  x: number
+  /** Width in texture pixels. */
+  w: number
+}
+
+export interface HealthBarBaseRegions {
+  leftCap: HealthBarTextureRegion
+  mid: HealthBarTextureRegion
+  rightCap: HealthBarTextureRegion
+}
+
+export interface HealthBarArtFrame {
+  /** Y offset of the art band in the texture. */
+  y: number
+  /** Height of the art band in pixels. */
+  h: number
+}
+
 export const HEALTH_BAR_ASSETS = {
   small: {
     base: { key: 'health_bar_sm_base', path: `${UI_BARS}/SmallBar_Base.png` },
     fill: { key: 'health_bar_sm_fill', path: `${UI_BARS}/SmallBar_Fill.png` },
-    displayHeight: 9,
+    displayHeight: 12,
+    baseRegions: {
+      leftCap:  { x: 49,  w: 15 },
+      mid:      { x: 128, w: 64 },
+      rightCap: { x: 256, w: 15 },
+    },
+    /** Opaque art band in SmallBar_Base.png — rows 22–40 of the 64-row sheet. */
+    baseFrame: { y: 22, h: 19 },
+    /** Opaque art band in SmallBar_Fill.png — rows 30–32 of the 64-row sheet. */
+    fillFrame: { y: 30, h: 3 },
+    /** Fraction of cap display width to leave as visible outer border on each side. */
+    fillInsetX: 0.22,
+    /** Fill height as a fraction of the bar display height. */
+    fillHeightRatio: 0.55,
   },
   big: {
     base: { key: 'health_bar_lg_base', path: `${UI_BARS}/BigBar_Base.png` },
     fill: { key: 'health_bar_lg_fill', path: `${UI_BARS}/BigBar_Fill.png` },
-    displayHeight: 12,
+    displayHeight: 20,
+    baseRegions: {
+      leftCap:  { x: 40,  w: 24 },
+      mid:      { x: 128, w: 64 },
+      rightCap: { x: 256, w: 24 },
+    },
+    /** Opaque art band in BigBar_Base.png — rows 9–59 of the 64-row sheet. */
+    baseFrame: { y: 9, h: 51 },
+    /** Opaque art band in BigBar_Fill.png — rows 20–43 of the 64-row sheet. */
+    fillFrame: { y: 20, h: 24 },
+    fillInsetX: 0.22,
+    fillHeightRatio: 0.72,
   },
-} as const
-
-/** Horizontal inset on each side of the bar frame for the fill strip. */
-export const HEALTH_BAR_FILL_INSET_X = 0.11
-
-/** Fill height as a fraction of the scaled bar frame height. */
-export const HEALTH_BAR_FILL_HEIGHT_RATIO = 0.58
+} as const satisfies Record<string, {
+  base: { key: string; path: string }
+  fill: { key: string; path: string }
+  displayHeight: number
+  baseRegions: HealthBarBaseRegions
+  baseFrame: HealthBarArtFrame
+  fillFrame: HealthBarArtFrame
+  fillInsetX: number
+  fillHeightRatio: number
+}>
 
 export function getHealthBarImageKeys(): { key: string; path: string }[] {
   const keys: { key: string; path: string }[] = []

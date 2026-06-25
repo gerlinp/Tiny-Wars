@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tiny Wars — Layout Editor (DevTools)</title>
+  <!--
+    WORKFLOW
+    1. npm run dev  →  open /layout-editor.html
+    2. DevTools → pick any element with class "tw-*" and id "tw-*"
+    3. Edit inline styles or CSS variables (--tw-x, --tw-y, --tw-w, --tw-h, …)
+    4. Click "Export for AI" → paste the JSON into chat so changes apply to game code
+    Each element has data-tw-file + data-tw-key pointing at the source to update.
+  -->
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1a1a2e;
+      color: #ccd;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    #tw-sidebar {
+      width: 300px;
+      flex-shrink: 0;
+      padding: 12px;
+      background: #12122a;
+      border-right: 1px solid #334;
+      overflow-y: auto;
+      max-height: 100vh;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    #tw-sidebar h1 { font-size: 15px; margin-bottom: 8px; color: #aaf; }
+    #tw-sidebar code { font-size: 11px; color: #9cf; }
+    #tw-sidebar p { margin-bottom: 8px; color: #99a; }
+    #tw-sidebar ol { margin: 0 0 12px 18px; color: #99a; }
+    #tw-sidebar button {
+      width: 100%; padding: 8px; margin-top: 6px;
+      background: #335; border: 1px solid #557; color: #eef; border-radius: 4px; cursor: pointer;
+    }
+    #tw-sidebar button:hover { background: #446; }
+    #tw-export {
+      font-family: ui-monospace, monospace; font-size: 10px;
+      white-space: pre-wrap; background: #0a0a14; padding: 8px; margin-top: 8px;
+      max-height: 280px; overflow: auto; border: 1px solid #334;
+    }
+    .tw-toggle { display: flex; align-items: center; gap: 6px; margin: 4px 0; cursor: pointer; }
+
+    #tw-stage-wrap {
+      flex: 1; overflow: auto; padding: 16px;
+      display: flex; justify-content: center; align-items: flex-start;
+    }
+
+    /* ── Stage: 480 × 1000 (matches GameConfig) ── */
+    #tw-stage {
+      position: relative;
+      width: 480px;
+      height: 1000px;
+      background: #0d0d18;
+      box-shadow: 0 0 0 2px #445, 0 8px 32px #0008;
+    }
+
+    #tw-arena {
+      position: absolute;
+      left: 0; top: 0;
+      width: 480px;
+      height: 860px;
+      overflow: hidden;
+    }
+
+    #tw-hud {
+      position: absolute;
+      left: 0; top: 860px;
+      width: 480px;
+      height: 140px;
+      background: rgba(17, 17, 34, 0.88);
+    }
+
+    /* Layers */
+    #tw-layer-map { position: absolute; inset: 0; }
+    .tw-map-tile { position: absolute; width: 20px; height: 20px; }
+    #tw-layer-grid { position: absolute; inset: 0; pointer-events: none; }
+    #tw-layer-grid canvas { display: block; }
+    #tw-layer-deploy { position: absolute; inset: 0; pointer-events: none; }
+    #tw-deploy-friendly {
+      position: absolute; left: 0; top: 460px; width: 480px; height: 400px;
+      background: rgba(68, 136, 255, 0.1); border: 1px dashed rgba(68, 136, 255, 0.35);
+    }
+    #tw-deploy-enemy {
+      position: absolute; left: 0; top: 0; width: 480px; height: 400px;
+      background: rgba(255, 68, 68, 0.08); border: 1px dashed rgba(255, 68, 68, 0.25);
+    }
+
+    /*
+     * Tunable elements — edit these CSS variables in DevTools (Styles panel).
+     * left/top are pixel positions on #tw-stage (origin top-left).
+     */
+    .tw-entity {
+      position: absolute;
+      left: var(--tw-x, 0px);
+      top: var(--tw-y, 0px);
+      transform: translate(-50%, -50%);
+      z-index: 10;
+    }
+    .tw-entity__sprite {
+      display: block;
+      height: var(--tw-h, 50px);
+      width: auto;
+      image-rendering: pixelated;
+      pointer-events: none;
+    }
+    .tw-entity__label {
+      position: absolute; left: 50%; top: 100%;
+      transform: translateX(-50%);
+      font-size: 9px; color: #6f8; white-space: nowrap; margin-top: 2px;
+      pointer-events: none;
+    }
+
+    .tw-healthbar {
+      position: absolute;
+      left: var(--tw-x, 0px);
+      top: var(--tw-y, 0px);
+      width: var(--tw-w, 80px);
+      height: var(--tw-h, 12px);
+      transform: translate(-50%, -50%);
+      z-index: 11;
+    }
+  /*
+   * Frame: CSS border-image — slice at cap art only (15px caps, 64px centre art cols 128–191).
+   * Caps scale with height; centre repeats horizontally (tile) when bar is wide.
+   */
+    .tw-healthbar__frame {
+      position: absolute;
+      inset: 0;
+      box-sizing: border-box;
+      border-style: solid;
+      border-color: transparent;
+      border-image-repeat: repeat stretch;
+      border-image-slice: 0 49 0 64 fill;
+      border-width: 0 calc(var(--tw-h) * 15 / 64) 0 calc(var(--tw-h) * 15 / 64);
+      pointer-events: none;
+    }
+    .tw-healthbar__frame--small {
+      border-image-source: url('assets/UI Elements/UI Elements/Bars/SmallBar_Base.png');
+    }
+    .tw-healthbar__frame--big {
+      border-image-source: url('assets/UI Elements/UI Elements/Bars/BigBar_Base.png');
+    }
+    .tw-healthbar__fill-wrap {
+      position: absolute;
+      left: calc(var(--tw-h) * 15 / 64 * 0.85);
+      right: calc(var(--tw-h) * 15 / 64 * 0.85);
+      top: 22%;
+      bottom: 22%;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .tw-healthbar__fill {
+      height: 100%;
+      width: var(--tw-fill-pct, 70%);
+      box-sizing: border-box;
+      border-style: solid;
+      border-color: transparent;
+      border-image-slice: 0 8 0 8 fill;
+      border-width: 0 calc(var(--tw-h) * 8 / 64) 0 calc(var(--tw-h) * 8 / 64);
+      border-image-repeat: repeat stretch;
+    }
+    .tw-healthbar__fill--small {
+      border-image-source: url('assets/UI Elements/UI Elements/Bars/SmallBar_Fill.png');
+    }
+    .tw-healthbar__fill--big {
+      border-image-source: url('assets/UI Elements/UI Elements/Bars/BigBar_Fill.png');
+    }
+
+    /* HUD widgets */
+    .tw-hud-widget {
+      position: absolute;
+      left: var(--tw-x, 240px);
+      top: var(--tw-y, 0px);
+      transform: translateX(-50%);
+    }
+    #tw-hud-timer { font-size: var(--tw-font-size, 18px); font-weight: bold; color: #fff; }
+    #tw-hud-crowns { font-size: var(--tw-font-size, 13px); color: #fc4; transform: translateX(-50%); }
+
+    #tw-elixir-bar {
+      position: absolute;
+      left: var(--tw-x, 177px);
+      top: var(--tw-y, 8px);
+      display: flex;
+      gap: var(--tw-gap, 3px);
+    }
+    .tw-elixir-pip {
+      width: var(--tw-pip-w, 26px);
+      height: var(--tw-pip-h, 14px);
+      background: #c4f;
+      border: 1px solid #80c;
+      border-radius: 2px;
+    }
+    .tw-elixir-pip--empty { background: #203; }
+
+    .tw-card-slot {
+      position: absolute;
+      left: var(--tw-x, 0px);
+      top: var(--tw-y, 0px);
+      width: var(--tw-w, 88px);
+      height: var(--tw-h, 119px);
+      border: 2px solid #556;
+      background: #1a1a33;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .tw-card-slot__img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+    .tw-card-slot__cost {
+      position: absolute; bottom: 2px; right: 4px;
+      font-size: 11px; font-weight: bold; color: #fff;
+      text-shadow: 0 0 3px #000;
+    }
+  </style>
+</head>
+<body>
+
+  <aside id="tw-sidebar">
+    <h1>Layout Editor</h1>
+    <p>Health bar frame crops opaque art only: caps 15px, middle 64px (see <code>HEALTH_BAR_BASE_REGIONS</code>).</p>
+    <ol>
+      <li>Open DevTools → Elements</li>
+      <li>Select any <code>#tw-…</code> node</li>
+      <li>Edit <code>style</code> or CSS vars (<code>--tw-x</code>, <code>--tw-y</code>, <code>--tw-h</code>…)</li>
+      <li>Card slots use <code>top-left</code> anchor; towers/troops use <code>center</code></li>
+    </ol>
+    <label class="tw-toggle"><input type="checkbox" id="tw-show-grid" checked /> Grid overlay</label>
+    <label class="tw-toggle"><input type="checkbox" id="tw-show-deploy" checked /> Deploy zones</label>
+    <label class="tw-toggle"><input type="checkbox" id="tw-show-labels" checked /> Entity labels</label>
+    <button type="button" id="tw-btn-export">Export for AI (copy JSON)</button>
+    <button type="button" id="tw-btn-highlight">Highlight all tw-* elements</button>
+    <pre id="tw-export">Click export after editing in DevTools…</pre>
+  </aside>
+
+  <div id="tw-stage-wrap">
+    <div id="tw-stage">
+
+      <section id="tw-arena" data-tw-file="src/scenes/BattleScene.ts" data-tw-key="arena">
+        <div id="tw-layer-map" data-tw-file="src/rendering/TileMapRenderer.ts" data-tw-key="map"></div>
+
+        <div id="tw-layer-grid" data-tw-file="src/debug/DevModeOverlay.ts" data-tw-key="grid">
+          <canvas id="tw-grid-canvas" width="480" height="860"></canvas>
+        </div>
+
+        <div id="tw-layer-deploy" data-tw-file="src/core/DeployPerspective.ts" data-tw-key="deployZones">
+          <div id="tw-deploy-friendly"
+               data-tw-file="src/data/GameConstants.ts"
+               data-tw-key="PLAYER_DEPLOY_ROW_MIN"></div>
+          <div id="tw-deploy-enemy"
+               data-tw-file="src/data/GameConstants.ts"
+               data-tw-key="BOT_DEPLOY_ROW_MAX"></div>
+        </div>
+
+        <!-- Bot towers -->
+        <div id="tw-tower-bot-left" class="tw-entity"
+             data-tw-file="src/rendering/towerRenderPosition.ts"
+             data-tw-key="towerRenderY.bot.princess"
+             style="--tw-x: 90px; --tw-y: 118px; --tw-h: 194px;">
+          <img class="tw-entity__sprite" src="assets/Factions/Knights/Buildings/Tower/Tower_Red.png" alt="" />
+          <span class="tw-entity__label">bot-left tower</span>
+        </div>
+        <div id="tw-healthbar-tower-bot-left" class="tw-healthbar"
+             data-tw-file="src/rendering/HealthBar.ts"
+             data-tw-key="forTower.big"
+             data-tw-parent="tw-tower-bot-left"
+             style="--tw-x: 90px; --tw-y: 148px; --tw-w: 110px; --tw-h: 20px; --tw-fill-pct: 85%;">
+          <div class="tw-healthbar__frame tw-healthbar__frame--big" data-tw-part="frame"></div>
+          <div class="tw-healthbar__fill-wrap" data-tw-part="fill-wrap">
+            <div class="tw-healthbar__fill tw-healthbar__fill--big" data-tw-part="fill"></div>
+          </div>
+        </div>
+
+        <div id="tw-tower-bot-right" class="tw-entity"
+             data-tw-file="src/rendering/towerRenderPosition.ts"
+             data-tw-key="towerRenderY.bot.princess"
+             style="--tw-x: 390px; --tw-y: 118px; --tw-h: 194px;">
+          <img class="tw-entity__sprite" src="assets/Factions/Knights/Buildings/Tower/Tower_Red.png" alt="" />
+          <span class="tw-entity__label">bot-right tower</span>
+        </div>
+        <div id="tw-healthbar-tower-bot-right" class="tw-healthbar"
+             data-tw-file="src/rendering/HealthBar.ts"
+             data-tw-key="forTower.big"
+             data-tw-parent="tw-tower-bot-right"
+             style="--tw-x: 390px; --tw-y: 148px; --tw-w: 110px; --tw-h: 20px; --tw-fill-pct: 85%;">
+          <div class="tw-healthbar__frame tw-healthbar__frame--big" data-tw-part="frame"></div>
+          <div class="tw-healthbar__fill-wrap" data-tw-part="fill-wrap">
+            <div class="tw-healthbar__fill tw-healthbar__fill--big" data-tw-part="fill"></div>
+          </div>
+        </div>
+
+        <div id="tw-tower-bot-king" class="tw-entity"
+             data-tw-file="src/rendering/towerRenderPosition.ts"
+             data-tw-key="towerRenderY.bot.king"
+             style="--tw-x: 240px; --tw-y: 72px; --tw-h: 142px;">
+          <img class="tw-entity__sprite" src="assets/Factions/Knights/Buildings/Castle/Castle_Red.png" alt="" />
+          <span class="tw-entity__label">bot king</span>
+        </div>
+        <div id="tw-healthbar-tower-bot-king" class="tw-healthbar"
+             data-tw-file="src/rendering/HealthBar.ts"
+             data-tw-key="forTower.big"
+             data-tw-parent="tw-tower-bot-king"
+             style="--tw-x: 240px; --tw-y: 98px; --tw-w: 96px; --tw-h: 20px; --tw-fill-pct: 100%;">
+          <div class="tw-healthbar__frame tw-healthbar__frame--big" data-tw-part="frame"></div>
+          <div class="tw-healthbar__fill-wrap" data-tw-part="fill-wrap">
+            <div class="tw-healthbar__fill tw-healthbar__fill--big" data-tw-part="fill"></div>
+          </div>
+        </div>
+
+        <!-- Player towers -->
+        <div id="tw-tower-ply-left" class="tw-entity"
+             data-tw-file="src/rendering/towerRenderPosition.ts"
+             data-tw-key="towerRenderY.player.princess"
+             style="--tw-x: 90px; --tw-y: 742px; --tw-h: 194px;">
+          <img class="tw-entity__sprite" src="assets/Factions/Knights/Buildings/Tower/Tower_Blue.png" alt="" />
+          <span class="tw-entity__label">player-left tower</span>
+        </div>
+        <div id="tw-healthbar-tower-ply-left" class="tw-healthbar"
+             data-tw-file="src/rendering/towerRenderPosition.ts"
+             data-tw-key="towerHealthBarY"
+             data-tw-parent="tw-tower-ply-left"
+             style="--tw-x: 90px; --tw-y: 712px; --tw-w: 110px; --tw-h: 20px; --tw-fill-pct: 60%;">
+          <div class="tw-healthbar__frame tw-healthbar__frame--big" data-tw-part="frame"></div>
+          <div class="tw-healthbar__fill-wrap" data-tw-part="fill-wrap">
+            <div class="tw-healthbar__fill tw-healthbar__fill--big" data-tw-part="fill"></div>
+          </div>
+        </div>
+
+        <div id="tw-tower-ply-right" class="tw-entity"
+             data-tw-file="src/rendering/towerRenderPosition.ts"
+             data-tw-key="towerRenderY.player.princess"
+             style="--tw-x: 390px; --tw-y: 742px; --tw-h: 194px;">
+          <img class="tw-entity__sprite" src="assets/Factions/Knights/Buildings/Tower/Tower_Blue.png" alt="" />
+          <span class="tw-entity__label">player-right tower</span>
+        </div>
+        <div id="tw-healthbar-tower-ply-right" class="tw-healthbar"
+             data-tw-file="src/rendering/towerRenderPosition.ts"
+             data-tw-key="towerHealthBarY"
+             data-tw-parent="tw-tower-ply-right"
+             style="--tw-x: 390px; --tw-y: 712px; --tw-w: 110px; --tw-h: 20px; --tw-fill-pct: 60%;">
+          <div class="tw-healthbar__frame tw-healthbar__frame--big" data-tw-part="frame"></div>
+          <div class="tw-healthbar__fill-wrap" data-tw-part="fill-wrap">
+            <div class="tw-healthbar__fill tw-healthbar__fill--big" data-tw-part="fill"></div>
+          </div>
+        </div>
+
+        <div id="tw-tower-ply-king" class="tw-entity"
+             data-tw-file="src/rendering/towerRenderPosition.ts"
+             data-tw-key="towerRenderY.player.king"
+             style="--tw-x: 240px; --tw-y: 788px; --tw-h: 142px;">
+          <img class="tw-entity__sprite" src="assets/Factions/Knights/Buildings/Castle/Castle_Blue.png" alt="" />
+          <span class="tw-entity__label">player king</span>
+        </div>
+        <div id="tw-healthbar-tower-ply-king" class="tw-healthbar"
+             data-tw-file="src/rendering/towerRenderPosition.ts"
+             data-tw-key="towerHealthBarY"
+             data-tw-parent="tw-tower-ply-king"
+             style="--tw-x: 240px; --tw-y: 758px; --tw-w: 96px; --tw-h: 20px; --tw-fill-pct: 100%;">
+          <div class="tw-healthbar__frame tw-healthbar__frame--big" data-tw-part="frame"></div>
+          <div class="tw-healthbar__fill-wrap" data-tw-part="fill-wrap">
+            <div class="tw-healthbar__fill tw-healthbar__fill--big" data-tw-part="fill"></div>
+          </div>
+        </div>
+
+        <!-- Sample troop + health bar -->
+        <div id="tw-troop-sample" class="tw-entity"
+             data-tw-file="src/rendering/HealthBar.ts"
+             data-tw-key="forTroop"
+             style="--tw-x: 240px; --tw-y: 580px; --tw-h: 50px;">
+          <img class="tw-entity__sprite" src="assets/Units/Blue Units/Warrior/Warrior_Idle.png" alt="" />
+          <span class="tw-entity__label">sample troop</span>
+        </div>
+        <div id="tw-healthbar-troop-sample" class="tw-healthbar"
+             data-tw-file="src/rendering/HealthBar.ts"
+             data-tw-key="forTroop"
+             data-tw-parent="tw-troop-sample"
+             style="--tw-x: 240px; --tw-y: 552px; --tw-w: 56px; --tw-h: 12px; --tw-fill-pct: 70%;">
+          <div class="tw-healthbar__frame tw-healthbar__frame--small" data-tw-part="frame"></div>
+          <div class="tw-healthbar__fill-wrap" data-tw-part="fill-wrap">
+            <div class="tw-healthbar__fill tw-healthbar__fill--small" data-tw-part="fill"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tw-hud" data-tw-file="src/scenes/UIScene.ts" data-tw-key="hud">
+        <div id="tw-hud-timer" class="tw-hud-widget"
+             data-tw-file="src/ui/TimerDisplay.ts"
+             data-tw-key="timerY"
+             style="--tw-x: 240px; --tw-y: 20px; --tw-font-size: 18px;">2:45</div>
+
+        <div id="tw-hud-crowns" class="tw-hud-widget"
+             data-tw-file="src/ui/CrownCounter.ts"
+             data-tw-key="crownsY"
+             style="--tw-x: 240px; --tw-y: 42px; --tw-font-size: 13px;">👑 0 — 0 👑</div>
+
+        <div id="tw-elixir-bar"
+             data-tw-file="src/ui/ElixirBar.ts"
+             data-tw-key="elixirBarY"
+             style="--tw-x: 177px; --tw-y: 8px; --tw-gap: 3px; --tw-pip-w: 26px; --tw-pip-h: 14px;">
+          <div class="tw-elixir-pip" data-tw-index="0"></div>
+          <div class="tw-elixir-pip" data-tw-index="1"></div>
+          <div class="tw-elixir-pip" data-tw-index="2"></div>
+          <div class="tw-elixir-pip" data-tw-index="3"></div>
+          <div class="tw-elixir-pip" data-tw-index="4"></div>
+          <div class="tw-elixir-pip" data-tw-index="5"></div>
+          <div class="tw-elixir-pip" data-tw-index="6"></div>
+          <div class="tw-elixir-pip tw-elixir-pip--empty" data-tw-index="7"></div>
+          <div class="tw-elixir-pip tw-elixir-pip--empty" data-tw-index="8"></div>
+          <div class="tw-elixir-pip tw-elixir-pip--empty" data-tw-index="9"></div>
+        </div>
+
+        <div id="tw-card-0" class="tw-card-slot"
+             data-tw-file="src/ui/cardHandLayout.ts"
+             data-tw-key="handSlotCenterX.0"
+             style="--tw-x: 6px; --tw-y: 921px; --tw-w: 88px; --tw-h: 119px;">
+          <img class="tw-card-slot__img" src="assets/UI Elements/UI Elements/Human Avatars/Avatars_01.png" alt="" />
+          <span class="tw-card-slot__cost">4</span>
+        </div>
+        <div id="tw-card-1" class="tw-card-slot"
+             data-tw-file="src/ui/cardHandLayout.ts"
+             data-tw-key="handSlotCenterX.1"
+             style="--tw-x: 98px; --tw-y: 921px; --tw-w: 88px; --tw-h: 119px;">
+          <img class="tw-card-slot__img" src="assets/UI Elements/UI Elements/Human Avatars/Avatars_03.png" alt="" />
+          <span class="tw-card-slot__cost">3</span>
+        </div>
+        <div id="tw-card-2" class="tw-card-slot"
+             data-tw-file="src/ui/cardHandLayout.ts"
+             data-tw-key="handSlotCenterX.2"
+             style="--tw-x: 190px; --tw-y: 921px; --tw-w: 88px; --tw-h: 119px;">
+          <img class="tw-card-slot__img" src="assets/UI Elements/UI Elements/Human Avatars/Avatars_05.png" alt="" />
+          <span class="tw-card-slot__cost">2</span>
+        </div>
+        <div id="tw-card-3" class="tw-card-slot"
+             data-tw-file="src/ui/cardHandLayout.ts"
+             data-tw-key="handSlotCenterX.3"
+             style="--tw-x: 282px; --tw-y: 921px; --tw-w: 88px; --tw-h: 119px;">
+          <img class="tw-card-slot__img" src="assets/Factions/Goblins/Troops/Torch Goblin/Torch Goblin_Blue.png" alt="" />
+          <span class="tw-card-slot__cost">2</span>
+        </div>
+        <div id="tw-card-next" class="tw-card-slot"
+             data-tw-file="src/ui/cardHandLayout.ts"
+             data-tw-key="nextCardCenterX"
+             style="--tw-x: 382px; --tw-y: 933px; --tw-w: 46px; --tw-h: 62px; opacity: 0.75;">
+          <img class="tw-card-slot__img" src="assets/Factions/Goblins/Troops/Hex Shaman/Hex Shaman_Blue.png" alt="" />
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    const CELL = 20
+    const COLS = 24
+    const ROWS = 43
+    const RIVER_START = 20
+    const RIVER_END = 22
+    const BRIDGE_COLS = [6, 7, 16, 17]
+
+    // Map tiles (not exported — too many nodes)
+    const mapLayer = document.getElementById('tw-layer-map')
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) {
+        const tile = document.createElement('div')
+        tile.className = 'tw-map-tile'
+        tile.style.left = col * CELL + 'px'
+        tile.style.top = row * CELL + 'px'
+        const inRiver = row >= RIVER_START && row <= RIVER_END
+        const isBridge = BRIDGE_COLS.includes(col)
+        if (inRiver && !isBridge) tile.style.background = '#1a3a6a'
+        else if (inRiver && isBridge) tile.style.background = '#8b6914'
+        else {
+          tile.style.backgroundImage = "url('assets/Terrain/Tileset/Tilemap_Flat.png')"
+          tile.style.backgroundSize = 'cover'
+          tile.style.filter = row > RIVER_END ? 'hue-rotate(10deg) brightness(1.1)' : 'hue-rotate(-5deg)'
+        }
+        mapLayer.append(tile)
+      }
+    }
+
+    // Grid canvas
+    const canvas = document.getElementById('tw-grid-canvas')
+    const ctx = canvas.getContext('2d')
+    ctx.strokeStyle = 'rgba(68, 255, 136, 0.22)'
+    for (let c = 0; c <= COLS; c++) {
+      ctx.beginPath(); ctx.moveTo(c * CELL, 0); ctx.lineTo(c * CELL, 860); ctx.stroke()
+    }
+    for (let r = 0; r <= ROWS; r++) {
+      ctx.beginPath(); ctx.moveTo(0, r * CELL); ctx.lineTo(480, r * CELL); ctx.stroke()
+    }
+
+    // Toggles
+    document.getElementById('tw-show-grid').addEventListener('change', (e) => {
+      document.getElementById('tw-layer-grid').style.display = e.target.checked ? '' : 'none'
+    })
+    document.getElementById('tw-show-deploy').addEventListener('change', (e) => {
+      document.getElementById('tw-layer-deploy').style.display = e.target.checked ? '' : 'none'
+    })
+    document.getElementById('tw-show-labels').addEventListener('change', (e) => {
+      document.querySelectorAll('.tw-entity__label').forEach((n) => {
+        n.style.display = e.target.checked ? '' : 'none'
+      })
+    })
+
+    document.getElementById('tw-btn-highlight').addEventListener('click', () => {
+      document.querySelectorAll('[data-tw-key]').forEach((el) => {
+        el.style.outline = '1px dashed #4f8'
+        el.style.outlineOffset = '1px'
+      })
+    })
+
+    /** Read computed layout from every exported element for AI handoff */
+    function collectElement(el) {
+      const cs = getComputedStyle(el)
+      const rect = el.getBoundingClientRect()
+      const stage = document.getElementById('tw-stage').getBoundingClientRect()
+      const vars = {}
+      for (const name of el.style) {
+        if (name.startsWith('--tw-')) vars[name] = el.style.getPropertyValue(name)
+      }
+      // Also read vars set via stylesheet on the element
+      for (const prop of cs) {
+        if (prop.startsWith('--tw-')) vars[prop] = cs.getPropertyValue(prop).trim()
+      }
+      return {
+        id: el.id || null,
+        file: el.dataset.twFile || null,
+        key: el.dataset.twKey || null,
+        parent: el.dataset.twParent || null,
+        anchor: el.dataset.twAnchor || (
+          el.classList.contains('tw-entity') || el.classList.contains('tw-healthbar') ? 'center' :
+          el.classList.contains('tw-hud-widget') ? 'top-center' : 'top-left'
+        ),
+        inlineStyle: el.getAttribute('style') || '',
+        cssVariables: vars,
+        box: {
+          x: Math.round(rect.left - stage.left + rect.width / 2),
+          y: Math.round(rect.top - stage.top + rect.height / 2),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+        },
+        stageRelative: {
+          left: Math.round(parseFloat(cs.left) || 0),
+          top: Math.round(parseFloat(cs.top) || 0),
+        },
+      }
+    }
+
+    document.getElementById('tw-btn-export').addEventListener('click', () => {
+      const selectors = [
+        '.tw-entity',
+        '.tw-healthbar',
+        '.tw-hud-widget',
+        '#tw-elixir-bar',
+        '.tw-card-slot',
+        '#tw-deploy-friendly',
+        '#tw-deploy-enemy',
+      ]
+      const seen = new Set()
+      const elements = []
+      for (const sel of selectors) {
+        document.querySelectorAll(sel).forEach((el) => {
+          if (!el.id || seen.has(el.id)) return
+          seen.add(el.id)
+          elements.push(collectElement(el))
+        })
+      }
+
+      const payload = {
+        _instructions: 'Paste this JSON to AI: apply layout changes to data-tw-file / data-tw-key in the game.',
+        stage: { width: 480, height: 1000, arenaHeight: 860, hudHeight: 140 },
+        elements,
+      }
+      const text = JSON.stringify(payload, null, 2)
+      document.getElementById('tw-export').textContent = text
+      navigator.clipboard?.writeText(text).catch(() => {})
+    })
+  </script>
+</body>
+</html>

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "layout": "vite --open /layout-editor.html",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",

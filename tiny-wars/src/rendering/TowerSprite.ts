@@ -32,8 +32,9 @@ export interface TowerAttackSync {
 export class TowerSprite {
   readonly image: Phaser.GameObjects.Image
   private readonly merlonOverlay: Phaser.GameObjects.Image
-  private healthBar: HealthBar
+  private healthBar: HealthBar | null
   private flashTween: Phaser.Tweens.Tween | null = null
+  private defeated = false
   private readonly garrison: Phaser.GameObjects.Sprite[] = []
   private readonly isKing: boolean
   private readonly owner: Owner
@@ -65,7 +66,7 @@ export class TowerSprite {
       scene,
       tower.position.x,
       towerHealthBarY(tower.position.y, tower.owner, tower.isKing, size.height),
-      size.height,
+      size.width,
       tower.isKing,
     )
     this.towerCx = tower.position.x
@@ -84,6 +85,8 @@ export class TowerSprite {
     showHealthBar: boolean,
     attackSync?: TowerAttackSync,
   ): void {
+    if (this.defeated) return
+
     const ry = towerRenderY(logicY, this.owner, this.isKing)
     this.image.setPosition(x, ry)
     this.layoutMerlonOverlay(this.image.texture.key)
@@ -91,7 +94,7 @@ export class TowerSprite {
     this.towerRy = ry
     this.towerSize = displaySizeForTower(this.scene, this.isKing, this.image.texture.key)
     const barY = towerHealthBarY(logicY, this.owner, this.isKing, this.towerSize.height)
-    this.healthBar.update(x, barY, hpFraction, showHealthBar)
+    this.healthBar?.update(x, barY, hpFraction, showHealthBar)
     this.layoutGarrison()
 
     if (attackSync?.aimPoint && attackSync.windupMs > 0 && !this.garrisonShooting) {
@@ -115,7 +118,8 @@ export class TowerSprite {
 
   /** Fallback when windup did not start before the first tower shot. */
   onAttackImpact(aimPoint: Vec2): void {
-    if (!this.garrisonShooting) this.beginGarrisonShot(aimPoint)
+    if (this.defeated || this.garrisonShooting) return
+    this.beginGarrisonShot(aimPoint)
   }
 
   /** World position of the archer that fired the current/last volley. */
@@ -124,20 +128,30 @@ export class TowerSprite {
   }
 
   setDestroyed(owner: Owner): void {
+    this.defeated = true
+    this.flashTween?.stop()
+    this.flashTween = null
+
     const key = towerTextureKey(this.isKing, owner, true)
     this.image.setTexture(key)
     applyTowerDisplaySize(this.image, this.scene, this.isKing, key)
     this.layoutMerlonOverlay(key)
     this.image.setTint(0x666666)
-    this.merlonOverlay.setTint(0x666666)
-    this.healthBar.setVisible(false)
     this.merlonOverlay.setVisible(false)
     this.damageFire.hide()
-    for (const archer of this.garrison) archer.setVisible(false)
+
+    this.healthBar?.destroy()
+    this.healthBar = null
+
+    for (const archer of this.garrison) {
+      archer.anims.stop()
+      archer.setVisible(false)
+    }
   }
 
   flashDamage(): void {
-    this.healthBar.setVisible(true)
+    if (this.defeated) return
+    this.healthBar?.setVisible(true)
     if (this.flashTween) return
     this.image.setTint(0xff4444)
     this.merlonOverlay.setTint(0xff4444)
@@ -158,7 +172,7 @@ export class TowerSprite {
     this.damageFire.destroy()
     this.image.destroy()
     this.merlonOverlay.destroy()
-    this.healthBar.destroy()
+    this.healthBar?.destroy()
     this.flashTween?.stop()
     for (const archer of this.garrison) archer.destroy()
   }

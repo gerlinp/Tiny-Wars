@@ -13,6 +13,7 @@ import {
 const COST_FONT = Math.max(11, Math.round(CARD_SLOT_W * 0.13))
 
 export class CardSlot {
+  private bg: Phaser.GameObjects.Rectangle
   private hitArea: Phaser.GameObjects.Rectangle
   private iconBackdrop: Phaser.GameObjects.Image
   private icon: Phaser.GameObjects.Image
@@ -27,6 +28,10 @@ export class CardSlot {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.cx = x
     this.cy = y
+
+    this.bg = scene.add.rectangle(x, y, CARD_SLOT_W, CARD_SLOT_H, 0x0d1b3e, 0.9)
+      .setDepth(49)
+      .setStrokeStyle(1.5, 0x2e4480)
 
     this.hitArea = scene.add.rectangle(x, y, CARD_SLOT_W, CARD_SLOT_H, 0x000000, 0)
       .setDepth(50)
@@ -44,17 +49,18 @@ export class CardSlot {
       .setDepth(52)
       .setVisible(false)
 
-    this.costText = scene.add.text(x + CARD_SLOT_W / 2 - 3, y - CARD_SLOT_H / 2 + 2, '', {
+    this.costText = scene.add.text(x - CARD_SLOT_W / 2 + 4, y + CARD_SLOT_H / 2 - 3, '', {
       fontSize: `${COST_FONT}px`, color: '#f0d8ff', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(1, 0).setDepth(53)
+    }).setOrigin(0, 1).setDepth(53)
 
     this.layoutIcon(false)
   }
 
   private layoutIcon(selected: boolean): void {
     const { w, h } = cardIconDisplaySize()
-    const y = selected ? this.cy - CARD_SELECTED_LIFT : this.cy
+    const yOff = selected ? -CARD_SELECTED_LIFT : 0
+    const y = this.cy + yOff
     const hasBackdrop = this.iconBackdrop.visible
 
     this.iconBackdrop.setPosition(this.cx, y)
@@ -77,6 +83,7 @@ export class CardSlot {
         this.icon.setScale(this.icon.scaleX * handScale, this.icon.scaleY * handScale)
       }
     }
+    this.costText.setY(this.cy + CARD_SLOT_H / 2 - 3 + yOff)
   }
 
   setCard(scene: Phaser.Scene, card: CardDefinition, playerElixir: number): void {
@@ -124,6 +131,7 @@ export class CardSlot {
 
   setSelected(selected: boolean): void {
     this._selected = selected
+    this.bg.setStrokeStyle(selected ? 2 : 1.5, selected ? 0x88aaf0 : 0x2e4480)
     if (this.icon.visible) this.layoutIcon(selected)
   }
 }
