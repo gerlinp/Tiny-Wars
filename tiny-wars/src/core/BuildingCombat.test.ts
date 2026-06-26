@@ -90,7 +90,7 @@ describe('Building CR combat hull', () => {
 
     warrior.position.x = approach.x
     warrior.position.y = approach.y
-    expect(edgeDistBetweenEntities(warrior, building)).toBeCloseTo(1.2 * CELL_SIZE, 0)
+    expect(edgeDistBetweenEntities(warrior, building)).toBeCloseTo(1.2 * CELL_SIZE - CELL_SIZE * 0.5, 0)
   })
 
   it('surface distance uses combat radius not sprite footprint', () => {

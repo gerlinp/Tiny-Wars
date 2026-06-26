@@ -48,7 +48,7 @@ describe('Troop targeting', () => {
 
     const targetPos = warrior.getDevInfo(state).targetPos
     // Melee standoff toward the nearer troop (~260), not the distant building (~350)
-    expect(targetPos?.x).toBeLessThan(230)
+    expect(targetPos?.x).toBeLessThan(255)
     expect(targetPos?.y).toBeCloseTo(500, 0)
   })
 

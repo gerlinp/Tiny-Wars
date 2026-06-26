@@ -26,11 +26,29 @@ export class Pathfinder {
     return gridPath.map(cell => this.grid.cellToWorld(cell.x, cell.y))
   }
 
+  /**
+   * BFS up to `radius` cells to find the nearest walkable cell when a unit
+   * is inside a blocked cell (e.g. pushed off a bridge into river).
+   */
+  private nearestWalkableStart(col: number, row: number, radius = 3): { col: number; row: number } {
+    if (this.grid.isWalkable(col, row)) return { col, row }
+    for (let r = 1; r <= radius; r++) {
+      for (let dc = -r; dc <= r; dc++) {
+        for (let dr = -r; dr <= r; dr++) {
+          if (Math.abs(dc) !== r && Math.abs(dr) !== r) continue
+          if (this.grid.isWalkable(col + dc, row + dr)) return { col: col + dc, row: row + dr }
+        }
+      }
+    }
+    return { col, row }
+  }
+
   findPath(from: Vec2, to: Vec2, unitType: UnitType): Vec2[] {
     if (unitType === UnitType.AIR) return [to]
 
-    const startCol = Math.round(from.x)
-    const startRow = Math.round(from.y)
+    const rawCol = Math.round(from.x)
+    const rawRow = Math.round(from.y)
+    const { col: startCol, row: startRow } = this.nearestWalkableStart(rawCol, rawRow)
     const goalCol  = Math.round(to.x)
     const goalRow  = Math.round(to.y)
 

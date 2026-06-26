@@ -5,7 +5,7 @@ import { tryAllyLateralSeparation, clampGroundTroopToWalkable } from './TroopAvo
 import { EntityKind, UnitType } from './types'
 import { CELL_SIZE, EPSILON_DISTANCE } from '@data/GameConstants'
 
-const RESOLVE_PASSES = 6
+const RESOLVE_PASSES = 10
 
 function groundTroops(state: GameState): Troop[] {
   const troops: Troop[] = []

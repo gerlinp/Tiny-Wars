@@ -136,7 +136,7 @@ describe('EntityGeometry', () => {
     lancer.position.x = approach.x
     lancer.position.y = approach.y
 
-    expect(edgeDistBetweenEntities(lancer, tower)).toBeCloseTo(1.6 * CELL_SIZE, 0)
+    expect(edgeDistBetweenEntities(lancer, tower)).toBeCloseTo(1.6 * CELL_SIZE - CELL_SIZE * 0.5, 0)
   })
 
   it('bot tower melee approach uses attack range standoff for melee troops', () => {
@@ -155,7 +155,7 @@ describe('EntityGeometry', () => {
     expect(approach.y).toBeLessThan(lancer.position.y)
     lancer.position.x = approach.x
     lancer.position.y = approach.y
-    expect(edgeDistBetweenEntities(lancer, tower)).toBeCloseTo(1.6 * CELL_SIZE, 0)
+    expect(edgeDistBetweenEntities(lancer, tower)).toBeCloseTo(1.6 * CELL_SIZE - CELL_SIZE * 0.5, 0)
   })
 
   it('bot and player tower footprints mirror on the grid around logic centres', () => {

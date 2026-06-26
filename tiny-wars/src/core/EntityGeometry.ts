@@ -150,7 +150,9 @@ export function edgeDistBetweenEntities(fromEntity: Entity, toEntity: Entity): n
   return Math.max(0, d - extentA - extentB)
 }
 
-/** Standoff point where a melee attacker can strike at `rangeCells` edge-to-edge gap. */
+/** Standoff point where a melee attacker can strike at `rangeCells` edge-to-edge gap.
+ * Stops slightly inside the attack range (APPROACH_SLACK) so floating-point rounding
+ * never leaves the unit just outside and unable to trigger the attack check. */
 export function meleeApproachPoint(
   from: Vec2,
   attacker: Entity,
@@ -166,6 +168,8 @@ export function meleeApproachPoint(
   const nx = (from.x - center.x) / d
   const ny = (from.y - center.y) / d
 
+  const APPROACH_SLACK = CELL_SIZE * 0.5
+
   if (target.kind === EntityKind.BUILDING || target.kind === EntityKind.TROOP) {
     const targetR = target.kind === EntityKind.BUILDING
       ? buildingCombatRadius()
@@ -173,13 +177,13 @@ export function meleeApproachPoint(
     const attackerR = attacker.kind === EntityKind.TROOP
       ? troopCollisionRadius(attacker)
       : Math.abs(nx) * halfA.halfW + Math.abs(ny) * halfA.halfH
-    const centerDist = rangeCells * CELL_SIZE + targetR + attackerR
+    const centerDist = rangeCells * CELL_SIZE + targetR + attackerR - APPROACH_SLACK
     return { x: center.x + nx * centerDist, y: center.y + ny * centerDist }
   }
 
   const targetExtent = Math.abs(nx) * halfT.halfW + Math.abs(ny) * halfT.halfH
   const attackerExtent = Math.abs(nx) * halfA.halfW + Math.abs(ny) * halfA.halfH
-  const centerDist = rangeCells * CELL_SIZE + targetExtent + attackerExtent
+  const centerDist = rangeCells * CELL_SIZE + targetExtent + attackerExtent - APPROACH_SLACK
 
   return {
     x: center.x + nx * centerDist,
