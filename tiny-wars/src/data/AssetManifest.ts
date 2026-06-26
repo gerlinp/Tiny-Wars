@@ -3,6 +3,9 @@ import { Owner } from '@core/types'
 export const FRAME_W = 192
 export const FRAME_H = 192
 
+/** Default center-crop for card-hand portraits (see cardHandLayout). */
+export const AVATAR_CROP_RATIO_DEFAULT = 0.62
+
 /** Shared skull death VFX — Knights/Troops/Dead/Dead.png (7×2 grid @ 128px). */
 export const TROOP_DEATH_SHEET = {
   key: 'troop_death_sheet',
@@ -91,10 +94,10 @@ export const HEALTH_BAR_ASSETS = {
     baseFrame: { y: 22, h: 19 },
     /** Opaque art band in SmallBar_Fill.png — rows 30–32 of the 64-row sheet. */
     fillFrame: { y: 30, h: 3 },
-    /** Fraction of cap display width to leave as visible outer border on each side. */
-    fillInsetX: 0.22,
-    /** Fill height as a fraction of the bar display height. */
-    fillHeightRatio: 0.55,
+    /** Fraction of cap display width to leave as visible outer border on each side (thin fills). */
+    fillInsetX: 0.28,
+    /** Fill height as a fraction of the bar display height (thin small-bar stripe only). */
+    fillHeightRatio: 0.48,
   },
   big: {
     base: { key: 'health_bar_lg_base', path: `${UI_BARS}/BigBar_Base.png` },
@@ -109,7 +112,8 @@ export const HEALTH_BAR_ASSETS = {
     baseFrame: { y: 9, h: 51 },
     /** Opaque art band in BigBar_Fill.png — rows 20–43 of the 64-row sheet. */
     fillFrame: { y: 20, h: 24 },
-    fillInsetX: 0.22,
+    fillInsetX: 0.28,
+    /** Ignored for big bars — fill height is derived from fill/base art bands. */
     fillHeightRatio: 0.72,
   },
 } as const satisfies Record<string, {
@@ -153,6 +157,9 @@ export interface SideAssets {
   /** Lancer — vertical attack clips (horizontal uses `attack`). */
   attackUp?: ClipDef
   attackDown?: ClipDef
+  /** Knights archer — diagonal/down-left shoot clips (horizontal uses `attack` + flipX). */
+  attackDownRight?: ClipDef
+  attackDownLeft?: ClipDef
 }
 
 export interface ImageDef {
@@ -192,6 +199,11 @@ export interface CardAssetBundle {
    * Warrior crest art fills more of the frame than other human avatars.
    */
   avatarHandScale?: number
+  /**
+   * Center-crop fraction for the hand portrait (default 0.62). Higher = more of the frame
+   * visible, slightly smaller on screen. Use 1 for full-frame contain (no crop).
+   */
+  avatarCropRatio?: number
   /** Tall building sprites — fit full frame in the slot instead of portrait crop. */
   avatarBuildingFit?: boolean
   player: SideAssets
@@ -226,6 +238,33 @@ function knightSide(unit: string, side: 'Blue' | 'Red'): SideAssets {
     idle:   clip(idle,   0, c.idle,   10, -1),
     run:    clip(run,    0, c.run,    14, -1),
     attack: clip(attack, 0, c.attack, 14, -1),
+  }
+}
+
+/** Knights faction Archer — 1536×1344 combined sheet (8×7 grid @ 192px).
+ *  Row 0: idle/walk down-right (0–5)   Row 1: idle/walk down-left (8–13)
+ *  Row 2: death (16–23) — unused       Row 3: shoot right (24–31)
+ *  Row 4: shoot down-right (32–39)     Row 5: shoot down (40–47)
+ *  Row 6: shoot down-left (48–55)      Arrow releases on frame 4 of each shoot row. */
+function knightsArcherSheet(side: 'Blue' | 'Red'): SheetDef {
+  const prefix = side === 'Blue' ? 'blue' : 'red'
+  return {
+    key: `knights_archer_${prefix}_sheet`,
+    path: `assets/Factions/Knights/Troops/Archer/${side}/Archer_${side}.png`,
+    frameWidth: FRAME_W,
+    frameHeight: FRAME_H,
+  }
+}
+
+function knightsArcherSide(side: 'Blue' | 'Red'): SideAssets {
+  const sheet = knightsArcherSheet(side)
+  return {
+    idle:            clip(sheet, 0,  5,  10, -1),
+    run:             clip(sheet, 0,  5,  14, -1),
+    attack:          clip(sheet, 24, 31, 14,  0),
+    attackDownRight: clip(sheet, 32, 39, 14,  0),
+    attackDown:      clip(sheet, 40, 47, 14,  0),
+    attackDownLeft:  clip(sheet, 48, 55, 14,  0),
   }
 }
 
@@ -388,6 +427,89 @@ function torchGoblinSide(side: 'blue' | 'red'): SideAssets {
   }
 }
 
+const SKULL_PATH = 'assets/Enemy Pack/Enemies/Skull'
+
+/** Enemy Pack Skull — separate clips per anim; Guard sheet unused (block pose only). */
+function skullSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `skeleton_${side}_idle`,
+    path: `${SKULL_PATH}/Skull_Idle.png`,
+  }
+  const run: SheetDef = {
+    key: `skeleton_${side}_run`,
+    path: `${SKULL_PATH}/Skull_Run.png`,
+  }
+  const attack: SheetDef = {
+    key: `skeleton_${side}_attack`,
+    path: `${SKULL_PATH}/Skull_Attack.png`,
+  }
+  return {
+    idle:   clip(idle,   0, 7, 10, -1),
+    run:    clip(run,    0, 5, 14, -1),
+    attack: clip(attack, 0, 6, 14,  0),
+  }
+}
+
+const SPEAR_GOBLIN_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin'
+const SPEAR_GOBLIN_FRAME = 256
+
+/** Enemy Pack Spear Goblin — 256×256 frames; Attack Strong sheet unused. */
+function spearGoblinSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `spear_goblin_${side}_idle`,
+    path: `${SPEAR_GOBLIN_PATH}/Spear Goblin_Idle.png`,
+    frameWidth: SPEAR_GOBLIN_FRAME,
+    frameHeight: SPEAR_GOBLIN_FRAME,
+  }
+  const run: SheetDef = {
+    key: `spear_goblin_${side}_run`,
+    path: `${SPEAR_GOBLIN_PATH}/Spear Goblin_Run.png`,
+    frameWidth: SPEAR_GOBLIN_FRAME,
+    frameHeight: SPEAR_GOBLIN_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `spear_goblin_${side}_attack`,
+    path: `${SPEAR_GOBLIN_PATH}/Spear Goblin_Attack Fast.png`,
+    frameWidth: SPEAR_GOBLIN_FRAME,
+    frameHeight: SPEAR_GOBLIN_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0, 7, 10, -1),
+    run:    clip(run,    0, 5, 14, -1),
+    attack: clip(attack, 0, 6, 14,  0),
+  }
+}
+
+const TROLL_PATH = 'assets/Enemy Pack/Enemies/Troll'
+const TROLL_FRAME = 384
+
+/** Enemy Pack Troll — 384×384 frames; Windup/Recovery/Dead sheets unused. */
+function trollSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `troll_${side}_idle`,
+    path: `${TROLL_PATH}/Troll_Idle.png`,
+    frameWidth: TROLL_FRAME,
+    frameHeight: TROLL_FRAME,
+  }
+  const run: SheetDef = {
+    key: `troll_${side}_run`,
+    path: `${TROLL_PATH}/Troll_Walk.png`,
+    frameWidth: TROLL_FRAME,
+    frameHeight: TROLL_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `troll_${side}_attack`,
+    path: `${TROLL_PATH}/Troll_Attack.png`,
+    frameWidth: TROLL_FRAME,
+    frameHeight: TROLL_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0, 11,  8, -1),
+    run:    clip(run,    0,  9, 10, -1),
+    attack: clip(attack, 0,  5, 12,  0),
+  }
+}
+
 /** Enemy Pack Hex Shaman — single palette; blue/red keys share the same art. */
 function hexShamanSide(side: 'blue' | 'red'): SideAssets {
   const idle: SheetDef = {
@@ -427,6 +549,21 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'archer',
+    avatar: {
+      key: 'avatar_knights_archer',
+      path: 'assets/Factions/Knights/Troops/Archer/Archer + Bow/Archer_Blue_(NoArms).png',
+      frameWidth: FRAME_W,
+      frameHeight: FRAME_H,
+      frame: 0,
+    },
+    avatarCropRatio: 0.88,
+    contentFill: 0.50,
+    attackHitFrame: 27,
+    player: knightsArcherSide('Blue'),
+    bot:    knightsArcherSide('Red'),
+  },
+  {
+    cardId: 'elite_archer',
     avatar: humanAvatar('Avatars_03.png'),
     contentFill: 0.50,
     attackHitFrame: 5,
@@ -451,8 +588,40 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     bot:    lancerSide('Red'),
   },
   {
+    cardId: 'skeleton',
+    avatar: enemyAvatar('Enemy Avatars_01.png'),
+    contentFill: 0.55,
+    mapHeightScale: 0.88,
+    attackHitFrame: 4,
+    tintBotSide: true,
+    player: skullSide('blue'),
+    bot:    skullSide('red'),
+  },
+  {
+    cardId: 'troll',
+    avatar: enemyAvatar('Enemy Avatars_16.png'),
+    contentFill: 0.48,
+    mapHeightScale: 1.35,
+    attackHitFrame: 4,
+    tintBotSide: true,
+    player: trollSide('blue'),
+    bot:    trollSide('red'),
+  },
+  {
+    cardId: 'spear_goblin',
+    avatar: enemyAvatar('Spear Goblin.png'),
+    avatarCropRatio: 0.88,
+    contentFill: 0.55,
+    mapHeightScale: 0.88,
+    attackHitFrame: 4,
+    tintBotSide: true,
+    player: spearGoblinSide('blue'),
+    bot:    spearGoblinSide('red'),
+  },
+  {
     cardId: 'torch_goblin',
     avatar: enemyAvatar('Torch Goblin.png'),
+    avatarCropRatio: 0.88,
     contentFill: 0.55,
     attackHitFrame: 3,
     tintBotSide: true,
@@ -462,6 +631,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'wizard',
     avatar: enemyAvatar('Hex Shaman.png'),
+    avatarCropRatio: 0.88,
     contentFill: 0.55,
     attackHitFrame: 6,
     tintBotSide: true,
@@ -506,7 +676,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
 ]
 
 export type AnimClip = 'idle' | 'run' | 'attack'
-export type AttackAnimVariant = 'up' | 'down'
+export type AttackAnimVariant = 'up' | 'down' | 'down_right' | 'down_left'
 
 export function clipAnimKey(
   cardId: string,
@@ -519,7 +689,7 @@ export function clipAnimKey(
   return `${cardId}_${side}_${anim}`
 }
 
-/** Pick horizontal (right+flip) vs up/down attack clip from aim vector. */
+/** Pick attack clip from aim vector — lancer up/down, knights archer 4-way shoot. */
 export function resolveAttackAnimKey(
   cardId: string,
   owner: Owner,
@@ -531,8 +701,23 @@ export function resolveAttackAnimKey(
   const side = getSideAssets(cardId, owner)
   const dx = aimX - fromX
   const dy = aimY - fromY
+  const absDx = Math.abs(dx)
+  const absDy = Math.abs(dy)
 
-  if (side?.attackUp && side?.attackDown && Math.abs(dy) > Math.abs(dx)) {
+  if (side?.attackDownRight && side?.attackDownLeft && side?.attackDown) {
+    if (dy > 0 && absDy > absDx * 0.25) {
+      if (absDx < absDy * 0.5) {
+        return { key: clipAnimKey(cardId, owner, 'attack', 'down'), flipX: false }
+      }
+      if (dx >= 0) {
+        return { key: clipAnimKey(cardId, owner, 'attack', 'down_right'), flipX: false }
+      }
+      return { key: clipAnimKey(cardId, owner, 'attack', 'down_left'), flipX: false }
+    }
+    return { key: clipAnimKey(cardId, owner, 'attack'), flipX: dx < 0 }
+  }
+
+  if (side?.attackUp && side?.attackDown && absDy > absDx) {
     if (dy < 0) {
       return { key: clipAnimKey(cardId, owner, 'attack', 'up'), flipX: false }
     }
@@ -607,6 +792,11 @@ export function getCardAvatarBackdrop(cardId: string): ImageDef | null {
 export function getCardAvatarHandScale(cardId: string): number {
   const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
   return bundle?.avatarHandScale ?? 1
+}
+
+export function getCardAvatarCropRatio(cardId: string): number {
+  const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
+  return bundle?.avatarCropRatio ?? AVATAR_CROP_RATIO_DEFAULT
 }
 
 export function getCardAvatarBuildingFit(cardId: string): boolean {

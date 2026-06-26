@@ -4,6 +4,11 @@ import {
   HEALTH_BAR_BASE_SHEET_W,
   HEALTH_BAR_TEXTURE_H,
 } from '@data/AssetManifest'
+import {
+  healthBarFillDisplayHeight,
+  healthBarFillHorizontalInset,
+  healthBarInnerWidth,
+} from './healthBarLayout'
 
 type HealthBarVariant = keyof typeof HEALTH_BAR_ASSETS
 
@@ -164,10 +169,20 @@ export class HealthBar {
     this.layoutFramePart(this.frameCenter, centerW, leftX + capLW + centerW / 2,    cy)
     this.layoutFramePart(this.frameRight,  capRW,   leftX + this.barW - capRW / 2,  cy)
 
-    const inset = Math.max(1, Math.round(capLW * this.fillInsetX))
-    const innerW = Math.max(0, this.barW - inset * 2)
+    const inset = healthBarFillHorizontalInset(this.barH, capLW, {
+      baseArtH: this.baseArtH,
+      fillFrameH: this.fillFrameH,
+      fillInsetX: this.fillInsetX,
+      fillHeightRatio: this.fillHeightRatio,
+    })
+    const innerW = healthBarInnerWidth(this.barW, inset)
     const fillW = fraction <= 0 ? 0 : Math.max(this.fillMinW, innerW * fraction)
-    const fillH = this.barH * this.fillHeightRatio
+    const fillH = healthBarFillDisplayHeight(this.barH, {
+      baseArtH: this.baseArtH,
+      fillFrameH: this.fillFrameH,
+      fillInsetX: this.fillInsetX,
+      fillHeightRatio: this.fillHeightRatio,
+    })
 
     if (fillW <= 0) {
       this.fill.setVisible(false)

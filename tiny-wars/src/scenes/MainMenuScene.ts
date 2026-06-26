@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
-import { createMenuButton } from '../ui/SceneButton'
+import { createMenuButton, menuButtonRowCenters } from '../ui/SceneButton'
+import { startBattleLoading } from '../ui/loadingScreenUi'
 
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -30,7 +31,9 @@ export class MainMenuScene extends Phaser.Scene {
       strokeThickness: 2,
     }).setOrigin(0.5)
 
-    createMenuButton(this, width / 2, height * 0.56, 'PLAY', '22px', 1, () => this.scene.start('BattleScene'))
-    createMenuButton(this, width / 2, height * 0.66, 'DECK BUILDER', '15px', 1, () => this.scene.start('DeckBuilderScene'))
+    const menuBtnY = height * 0.58
+    const [playX, deckX] = menuButtonRowCenters(width, 2, 12)
+    createMenuButton(this, playX, menuBtnY, 'PLAY', '20px', 1, () => startBattleLoading(this))
+    createMenuButton(this, deckX, menuBtnY, 'DECK', '20px', 1, () => this.scene.start('DeckBuilderScene'))
   }
 }

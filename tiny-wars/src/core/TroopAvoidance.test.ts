@@ -116,9 +116,9 @@ describe('TroopAvoidance', () => {
   })
 
   it('does not avoid allies for ranged troops', () => {
-    const archerStats = CARD_DEFINITIONS.archer!.stats!
-    const front = new Troop(Owner.PLAYER, archerStats, { x: 240, y: 360 }, grid, 'archer')
-    const rear = new Troop(Owner.PLAYER, archerStats, { x: 240, y: 390 }, grid, 'archer')
+    const archerStats = CARD_DEFINITIONS.elite_archer!.stats!
+    const front = new Troop(Owner.PLAYER, archerStats, { x: 240, y: 360 }, grid, 'elite_archer')
+    const rear = new Troop(Owner.PLAYER, archerStats, { x: 240, y: 390 }, grid, 'elite_archer')
     const goal = { x: 240, y: 240 }
     const state = createInitialGameState()
     state.entities.set(front.id, front)

@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { Owner } from '@core/types'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
 import { createMenuButton } from '../ui/SceneButton'
+import { startBattleLoading } from '../ui/loadingScreenUi'
 
 interface ResultData { winner: Owner | null }
 
@@ -31,10 +32,11 @@ export class ResultScene extends Phaser.Scene {
       strokeThickness: 7,
     }).setOrigin(0.5).setDepth(10)
 
-    createMenuButton(this, width / 2, height * 0.56, 'PLAY AGAIN', '19px', 10, () => this.scene.start('BattleScene'))
+    createMenuButton(this, width / 2, height * 0.56, 'PLAY AGAIN', '19px', 10, () => startBattleLoading(this))
+    createMenuButton(this, width / 2, height * 0.66, 'DECK', '19px', 10, () => this.scene.start('DeckBuilderScene'))
 
     // Main Menu
-    this.add.text(width / 2, height * 0.65, 'Main Menu', {
+    this.add.text(width / 2, height * 0.75, 'Main Menu', {
       fontSize: '14px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
       color: '#aabbff', stroke: '#000022', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(11)

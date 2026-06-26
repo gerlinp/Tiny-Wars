@@ -29,6 +29,14 @@ function registerClip(
   })
 }
 
+/** Register only the run clip — used on the loading screen before the full asset pass. */
+export function registerCardRunAnim(scene: Phaser.Scene, cardId: string, owner: Owner): void {
+  const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
+  if (!bundle || bundle.animated === false) return
+  const side = owner === Owner.PLAYER ? bundle.player : bundle.bot
+  registerClip(scene, side.run, clipAnimKey(cardId, owner, 'run'))
+}
+
 function registerSideClips(scene: Phaser.Scene, cardId: string, owner: Owner, side: SideAssets): void {
   registerClip(scene, side.idle, clipAnimKey(cardId, owner, 'idle'))
   registerClip(scene, side.run, clipAnimKey(cardId, owner, 'run'))
@@ -38,6 +46,12 @@ function registerSideClips(scene: Phaser.Scene, cardId: string, owner: Owner, si
   }
   if (side.attackDown) {
     registerClip(scene, side.attackDown, clipAnimKey(cardId, owner, 'attack', 'down'))
+  }
+  if (side.attackDownRight) {
+    registerClip(scene, side.attackDownRight, clipAnimKey(cardId, owner, 'attack', 'down_right'))
+  }
+  if (side.attackDownLeft) {
+    registerClip(scene, side.attackDownLeft, clipAnimKey(cardId, owner, 'attack', 'down_left'))
   }
 }
 

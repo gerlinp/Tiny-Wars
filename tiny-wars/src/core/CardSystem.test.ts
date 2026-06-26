@@ -14,6 +14,8 @@ describe('CardSystem', () => {
     expect(new Set(DEFAULT_DECK).size).toBe(8)
     expect(DEFAULT_DECK).not.toContain('wood_tower')
     expect(DEFAULT_DECK).toContain('lancer')
+    expect(DEFAULT_DECK).toContain('skeleton')
+    expect(DEFAULT_DECK).not.toContain('pawn')
   })
 
   it('DEFAULT_DECK has no duplicate card ids', () => {

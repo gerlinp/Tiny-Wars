@@ -62,7 +62,7 @@ export interface CardDefinition {
   spellStats?: SpellStats
   /** Instant elixir cards — total elixir granted on play (before ELIXIR_MAX cap) */
   elixirGain?: number
-  /** Troops only — units spawned per play (Archers = 2). */
+  /** Troops only — units spawned per play (default 1). */
   deployCount?: number
   textureKeyPlayer: string
   textureKeyBot: string

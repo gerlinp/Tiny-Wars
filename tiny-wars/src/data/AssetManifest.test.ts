@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
-import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarDef, resolveAttackAnimKey } from './AssetManifest'
+import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, AVATAR_CROP_RATIO_DEFAULT, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarCropRatio, getCardAvatarDef, resolveAttackAnimKey } from './AssetManifest'
 import { DEFAULT_DECK } from './CardData'
 import { Owner } from '@core/types'
 
@@ -83,6 +83,107 @@ describe('Card avatars', () => {
     expect(getCardAvatarDef('arrows').path).toContain('Archer/Arrow.png')
   })
 
+  it('knights archer uses faction combined sheets with directional shoot clips', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'archer')!
+    expect(cardAvatarKey('archer')).toBe('avatar_knights_archer')
+    expect(getCardAvatarDef('archer').path).toContain('Archer_Blue_(NoArms).png')
+    expect(getCardAvatarDef('archer').frame).toBe(0)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Factions/Knights/Troops/Archer/')
+      expect(side.idle.sheet.path).toMatch(/Archer_(Blue|Red)\.png$/)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(6)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
+    expect(bundle.player.idle.start).toBe(0)
+    expect(bundle.player.run.start).toBe(0)
+    expect(bundle.player.attack.start).toBe(24)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(8)
+    expect(bundle.player.attackDownRight!.start).toBe(32)
+    expect(bundle.player.attackDown!.start).toBe(40)
+    expect(bundle.player.attackDownLeft!.start).toBe(48)
+    expect(bundle.attackHitFrame).toBe(27)
+  })
+
+  it('knights archer picks shoot clips from aim direction', () => {
+    expect(resolveAttackAnimKey('archer', Owner.PLAYER, 100, 200, 100, 100))
+      .toEqual({ key: 'archer_blue_attack', flipX: false })
+    expect(resolveAttackAnimKey('archer', Owner.PLAYER, 100, 200, 100, 300))
+      .toEqual({ key: 'archer_blue_attack_down', flipX: false })
+    expect(resolveAttackAnimKey('archer', Owner.PLAYER, 100, 200, 160, 280))
+      .toEqual({ key: 'archer_blue_attack_down_right', flipX: false })
+    expect(resolveAttackAnimKey('archer', Owner.PLAYER, 100, 200, 40, 280))
+      .toEqual({ key: 'archer_blue_attack_down_left', flipX: false })
+    expect(resolveAttackAnimKey('archer', Owner.PLAYER, 100, 200, 160, 205))
+      .toEqual({ key: 'archer_blue_attack', flipX: false })
+    expect(resolveAttackAnimKey('archer', Owner.PLAYER, 100, 200, 40, 205))
+      .toEqual({ key: 'archer_blue_attack', flipX: true })
+  })
+
+  it('skeleton uses Skull sheets, tints bot side, and dedicated enemy avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'skeleton')!
+    expect(cardAvatarKey('skeleton')).toBe('avatar_enemy_avatars_01')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('skeleton').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Enemies/Skull/Skull_Idle.png')
+      expect(side.run.sheet.path).toContain('Skull_Run.png')
+      expect(side.attack.sheet.path).toContain('Skull_Attack.png')
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(7)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.mapHeightScale).toBe(0.88)
+    expect(bundle.attackHitFrame).toBe(4)
+  })
+
+  it('spear goblin uses 256×256 Spear Goblin sheets with dedicated avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'spear_goblin')!
+    expect(cardAvatarKey('spear_goblin')).toBe('avatar_spear_goblin')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('spear_goblin').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Spear Goblin/Spear Goblin_Idle.png')
+      expect(side.run.sheet.path).toContain('Spear Goblin_Run.png')
+      expect(side.attack.sheet.path).toContain('Spear Goblin_Attack Fast.png')
+      expect(side.idle.sheet.frameWidth).toBe(256)
+      expect(side.idle.sheet.frameHeight).toBe(256)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(7)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.mapHeightScale).toBe(0.88)
+    expect(bundle.attackHitFrame).toBe(4)
+  })
+
+  it('troll uses 384×384 Troll sheets with dedicated enemy avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'troll')!
+    expect(cardAvatarKey('troll')).toBe('avatar_enemy_avatars_16')
+    expect(getCardAvatarDef('troll').path).toContain('Enemy Avatars_16.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('troll').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Enemies/Troll/Troll_Idle.png')
+      expect(side.run.sheet.path).toContain('Troll_Walk.png')
+      expect(side.attack.sheet.path).toContain('Troll_Attack.png')
+      expect(side.idle.sheet.frameWidth).toBe(384)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(12)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(10)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(6)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.mapHeightScale).toBe(1.35)
+    expect(bundle.attackHitFrame).toBe(4)
+  })
+
   it('lancer uses 320×320 Lancer sheets with correct frame counts', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'lancer')!
     for (const side of [bundle.player, bundle.bot] as const) {
@@ -122,6 +223,14 @@ describe('Card avatars', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'warrior')!
     expect(bundle.avatarHandScale).toBeGreaterThan(0.8)
     expect(bundle.avatarHandScale).toBeLessThan(1)
+  })
+
+  it('unit sprites that fill the frame use a looser hand crop', () => {
+    for (const id of ['archer', 'spear_goblin', 'torch_goblin', 'wizard'] as const) {
+      const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === id)!
+      expect(bundle.avatarCropRatio).toBeGreaterThan(AVATAR_CROP_RATIO_DEFAULT)
+    }
+    expect(getCardAvatarCropRatio('warrior')).toBe(AVATAR_CROP_RATIO_DEFAULT)
   })
 
   it('bomb tower uses the wood tower building sprite in the card hand', () => {

@@ -20,7 +20,9 @@ export class DeckBuilderScene extends Phaser.Scene {
   private slots: DeckSlot[] = []
   private collection: DeckCard[] = []
   private counterText!: Phaser.GameObjects.Text
+  private elixirText!: Phaser.GameObjects.Text
   private saveBtn!: { setEnabled: (on: boolean) => void }
+  private clearBtn!: { setEnabled: (on: boolean) => void }
 
   constructor() {
     super({ key: 'DeckBuilderScene' })
@@ -64,6 +66,14 @@ export class DeckBuilderScene extends Phaser.Scene {
     }).setOrigin(0, 0.5)
 
     const { cellW, cellH } = this.cellSize()
+    const deckBottom = DECK_TOP + 2 * cellH + CELL_GAP_Y
+    this.elixirText = this.add.text(GAME_WIDTH / 2, deckBottom + 14, '', {
+      fontSize: '14px',
+      fontFamily: CINZEL_FONT,
+      fontStyle: 'bold',
+      color: '#d8a8ff',
+    }).setOrigin(0.5, 0)
+
     this.buildSlots(cellW, cellH)
     this.buildCollection(cellW, cellH)
     this.buildButtons()
@@ -122,6 +132,13 @@ export class DeckBuilderScene extends Phaser.Scene {
     this.refresh()
   }
 
+  /** Empty the deck so the player can rebuild from scratch. */
+  private clearDeck(): void {
+    if (this.deck.length === 0) return
+    this.deck = []
+    this.refresh()
+  }
+
   private refresh(): void {
     for (let i = 0; i < this.slots.length; i++) {
       const id = this.deck[i]
@@ -133,7 +150,9 @@ export class DeckBuilderScene extends Phaser.Scene {
     const full = this.deck.length === DECK_SIZE
     this.counterText.setText(`${this.deck.length} / ${DECK_SIZE}`)
     this.counterText.setColor(full ? '#7dff9b' : '#ffd27d')
+    this.elixirText.setText(formatAvgElixir(this.deck))
     this.saveBtn.setEnabled(full)
+    this.clearBtn.setEnabled(this.deck.length > 0)
   }
 
   private flashCounter(): void {
@@ -145,18 +164,38 @@ export class DeckBuilderScene extends Phaser.Scene {
     })
   }
 
+  private flashSaved(): void {
+    this.counterText.setText('Saved!')
+    this.counterText.setColor('#7dff9b')
+    this.tweens.add({
+      targets: this.counterText,
+      scale: { from: 1.25, to: 1 },
+      duration: 220,
+      ease: 'Quad.easeOut',
+    })
+    this.time.delayedCall(900, () => {
+      if (this.counterText.active) this.refresh()
+    })
+  }
+
   private buildButtons(): void {
     const y = CANVAS_HEIGHT - 70
-    const btnW = 180
-    const gap = 24
+    const btnW = 130
+    const gap = 12
+    const totalW = btnW * 3 + gap * 2
+    const left = (GAME_WIDTH - totalW) / 2 + btnW / 2
 
-    makeButton(this, GAME_WIDTH / 2 - btnW / 2 - gap / 2, y, btnW, 'BACK', 0x44324f, () => {
+    makeButton(this, left, y, btnW, 'BACK', 0x44324f, () => {
       this.scene.start('MainMenuScene')
+    })
+
+    this.clearBtn = makeButton(this, left + btnW + gap, y, btnW, 'CLEAR', 0x8b3a3a, () => {
+      this.clearDeck()
     })
 
     this.saveBtn = makeButton(
       this,
-      GAME_WIDTH / 2 + btnW / 2 + gap / 2,
+      left + (btnW + gap) * 2,
       y,
       btnW,
       'SAVE',
@@ -164,10 +203,16 @@ export class DeckBuilderScene extends Phaser.Scene {
       () => {
         if (this.deck.length !== DECK_SIZE) return
         savePlayerDeck([...this.deck])
-        this.scene.start('MainMenuScene')
+        this.flashSaved()
       },
     )
   }
+}
+
+function formatAvgElixir(deckIds: string[]): string {
+  if (deckIds.length === 0) return 'Avg Elixir: —'
+  const sum = deckIds.reduce((acc, id) => acc + (CARD_DEFINITIONS[id]?.elixirCost ?? 0), 0)
+  return `Avg Elixir: ${(sum / deckIds.length).toFixed(1)}`
 }
 
 /** A flat coloured button with an enable/disable handle for the Save action. */

@@ -7,13 +7,27 @@ import { DEFAULT_DECK } from '@data/CardData'
 import { setActiveMapConfig, getActiveMapConfig } from '@data/ActiveMapConfig'
 import { DEFAULT_MAP_CONFIG } from '@data/DefaultMapConfig'
 import type { MapConfig } from '@data/MapConfig'
+import { createLoadingWalker } from '@ui/loadingScreenUnit'
+import { loadingWalkerRunSheet, pickRandomLoadingUnitId } from '@ui/loadingScreenUnitPick'
+import { createLoadingBar, loadingBarProgress, loadingLayoutY, loadingWaitMs, setLoadingProgress } from '@ui/loadingScreenUi'
 
 export class PreloadScene extends Phaser.Scene {
+  private loadingUnitId = ''
+  private loadingWalkerShown = false
+  private loadingBar: ReturnType<typeof createLoadingBar> | null = null
+  private walkerY = 0
+  private loadStartedAt = 0
+  private barTimer: ReturnType<typeof setInterval> | null = null
+
   constructor() {
     super({ key: 'PreloadScene' })
   }
 
   preload(): void {
+    this.loadStartedAt = Date.now()
+    this.loadingUnitId = pickRandomLoadingUnitId()
+    const previewSheet = loadingWalkerRunSheet(this.loadingUnitId)
+
     this.load.json('map-config', 'map.json')
     this.load.on('filecomplete-json-map-config', (_key: string, _type: string, data: unknown) => {
       setActiveMapConfig(data as MapConfig)
@@ -25,25 +39,27 @@ export class PreloadScene extends Phaser.Scene {
     })
 
     const { width, height } = this.scale
+    this.add.rectangle(0, 0, width, height, 0x1a1a2e).setOrigin(0)
 
-    const barBg = this.add.rectangle(width / 2, height / 2, 300, 20, 0x333366)
-    const bar = this.add.rectangle(width / 2 - 150, height / 2, 0, 16, 0x6688cc)
-    bar.setOrigin(0, 0.5)
+    const layout = loadingLayoutY(height)
+    this.walkerY = layout.walkerY
+    this.loadingBar = createLoadingBar(this, width, layout.barY, layout.labelY)
 
-    const label = this.add.text(width / 2, height / 2 + 24, 'Loading...', {
-      fontSize: '14px',
-      color: '#aabbff',
-    }).setOrigin(0.5)
+    this.barTimer = setInterval(() => this.tickLoadingBar(), 32)
 
-    this.load.on('progress', (value: number) => {
-      bar.width = 296 * value
-      label.setText(`Loading... ${Math.round(value * 100)}%`)
+    this.load.on('filecomplete', (key: string) => {
+      if (key === previewSheet.key) this.tryShowLoadingWalker()
     })
 
-    void barBg
+    // Random troop run sheet first so the walker can appear while the rest loads.
+    this.load.spritesheet(previewSheet.key, previewSheet.path, {
+      frameWidth: previewSheet.frameWidth,
+      frameHeight: previewSheet.frameHeight,
+    })
 
     // Card unit spritesheets (animated)
     for (const sheet of getUniqueSheets()) {
+      if (sheet.key === previewSheet.key) continue
       this.load.spritesheet(sheet.key, sheet.path, {
         frameWidth: sheet.frameWidth ?? FRAME_W,
         frameHeight: sheet.frameHeight ?? FRAME_H,
@@ -167,7 +183,48 @@ export class PreloadScene extends Phaser.Scene {
     }
   }
 
+  private tryShowLoadingWalker(): void {
+    if (this.loadingWalkerShown) return
+    this.loadingWalkerShown = true
+    createLoadingWalker(this, this.loadingUnitId, this.scale.width / 2, this.walkerY)
+  }
+
+  private tickLoadingBar(): void {
+    if (!this.loadingBar) return
+    setLoadingProgress(this.loadingBar, loadingBarProgress(Date.now() - this.loadStartedAt))
+  }
+
+  private stopBarTimer(): void {
+    if (this.barTimer !== null) {
+      clearInterval(this.barTimer)
+      this.barTimer = null
+    }
+  }
+
   create(): void {
+    this.stopBarTimer()
+
+    if (!this.loadingWalkerShown) {
+      this.tryShowLoadingWalker()
+    }
+
+    const elapsed = Date.now() - this.loadStartedAt
+    const waitMs = loadingWaitMs(elapsed)
+    const startFrac = loadingBarProgress(elapsed)
+
+    if (waitMs > 0 && this.loadingBar) {
+      this.tweens.addCounter({
+        from: startFrac,
+        to: 1,
+        duration: waitMs,
+        onUpdate: (tween) => {
+          if (this.loadingBar) setLoadingProgress(this.loadingBar, tween.getValue() ?? 0)
+        },
+      })
+    } else if (this.loadingBar) {
+      setLoadingProgress(this.loadingBar, 1)
+    }
+
     if (!getActiveMapConfig()) {
       setActiveMapConfig(DEFAULT_MAP_CONFIG)
     }
@@ -205,6 +262,7 @@ export class PreloadScene extends Phaser.Scene {
     registerCardAnimations(this)
     registerTroopDeathAnim(this)
     registerDamageFireAnims(this)
-    this.scene.start('MainMenuScene')
+
+    this.time.delayedCall(waitMs, () => this.scene.start('MainMenuScene'))
   }
 }

@@ -1,6 +1,21 @@
 import Phaser from 'phaser'
 import { CINZEL_FONT } from './cardHandLayout'
 
+export const MENU_BUTTON_SCALE = 2
+const MENU_BUTTON_SRC_W = 64
+
+export function menuButtonDisplayWidth(): number {
+  return MENU_BUTTON_SRC_W * MENU_BUTTON_SCALE
+}
+
+/** Center X positions for N menu buttons in a horizontal row. */
+export function menuButtonRowCenters(screenWidth: number, count: number, gap: number): number[] {
+  const btnW = menuButtonDisplayWidth()
+  const rowW = count * btnW + (count - 1) * gap
+  const startX = screenWidth / 2 - rowW / 2 + btnW / 2
+  return Array.from({ length: count }, (_, i) => startX + i * (btnW + gap))
+}
+
 export function createMenuButton(
   scene: Phaser.Scene,
   x: number,
@@ -12,7 +27,7 @@ export function createMenuButton(
 ): void {
   const btn = scene.add.image(x, y, 'button_blue')
     .setInteractive({ useHandCursor: true })
-    .setScale(2)
+    .setScale(MENU_BUTTON_SCALE)
     .setDepth(depth)
   scene.add.text(x, y, label, {
     fontSize,

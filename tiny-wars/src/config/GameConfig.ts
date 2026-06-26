@@ -6,6 +6,7 @@ import { DeckBuilderScene } from '@scenes/DeckBuilderScene'
 import { BattleScene }   from '@scenes/BattleScene'
 import { UIScene }       from '@scenes/UIScene'
 import { ResultScene }   from '@scenes/ResultScene'
+import { TransitionLoadingScene } from '@scenes/TransitionLoadingScene'
 import { GAME_WIDTH, CANVAS_HEIGHT } from '@data/GameConstants'
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
@@ -22,5 +23,5 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     target: 30,
     forceSetTimeOut: false,
   },
-  scene: [BootScene, PreloadScene, MainMenuScene, DeckBuilderScene, BattleScene, UIScene, ResultScene],
+  scene: [BootScene, PreloadScene, MainMenuScene, DeckBuilderScene, TransitionLoadingScene, BattleScene, UIScene, ResultScene],
 }
