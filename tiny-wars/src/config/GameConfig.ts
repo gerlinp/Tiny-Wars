@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { BootScene }     from '@scenes/BootScene'
 import { PreloadScene }  from '@scenes/PreloadScene'
 import { MainMenuScene } from '@scenes/MainMenuScene'
+import { DeckBuilderScene } from '@scenes/DeckBuilderScene'
 import { BattleScene }   from '@scenes/BattleScene'
 import { UIScene }       from '@scenes/UIScene'
 import { ResultScene }   from '@scenes/ResultScene'
@@ -21,5 +22,5 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     target: 30,
     forceSetTimeOut: false,
   },
-  scene: [BootScene, PreloadScene, MainMenuScene, BattleScene, UIScene, ResultScene],
+  scene: [BootScene, PreloadScene, MainMenuScene, DeckBuilderScene, BattleScene, UIScene, ResultScene],
 }

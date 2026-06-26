@@ -31,5 +31,6 @@ export class MainMenuScene extends Phaser.Scene {
     }).setOrigin(0.5)
 
     createMenuButton(this, width / 2, height * 0.56, 'PLAY', '22px', 1, () => this.scene.start('BattleScene'))
+    createMenuButton(this, width / 2, height * 0.66, 'DECK BUILDER', '15px', 1, () => this.scene.start('DeckBuilderScene'))
   }
 }

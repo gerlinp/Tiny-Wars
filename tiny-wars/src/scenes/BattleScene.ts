@@ -26,6 +26,7 @@ import { Owner, EntityKind, TroopState, BuildingState, CardType } from '@core/ty
 import type { EntityStats } from '@core/types'
 import { getAttackWindupMs, type AnimClip } from '@data/AssetManifest'
 import { CARD_DEFINITIONS } from '@data/CardData'
+import { loadPlayerDeck } from '@data/PlayerDeck'
 import { GAME_HEIGHT } from '@data/GameConstants'
 import { CELL_SIZE } from '@data/GameConstants'
 import { DevMode } from '@debug/DevMode'
@@ -64,7 +65,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.grid      = new Grid()
     this.simulator = new GameSimulator(this.grid)
-    this.playerCardSystem = new CardSystem()
+    this.playerCardSystem = new CardSystem(loadPlayerDeck())
     this.botCardSystem    = new CardSystem()
     this.botAI    = new BotAI()
     this.sprites  = new Map()
