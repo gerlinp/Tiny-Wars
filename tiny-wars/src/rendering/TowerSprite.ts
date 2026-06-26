@@ -4,7 +4,7 @@ import { Owner } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { towerTextureKey } from './AssetRegistry'
 import { applyTowerDisplaySize, displaySizeForCard, displaySizeForTower, type DisplaySize } from './assetDisplaySize'
-import { towerRenderY, towerHealthBarY } from './towerRenderPosition'
+import { towerRenderY, towerHealthBarX, towerHealthBarY } from './towerRenderPosition'
 import {
   GARRISON_ARCHER_FEET_Y,
   MERLON_OVERLAY,
@@ -62,10 +62,12 @@ export class TowerSprite {
     applyTowerDisplaySize(this.image, scene, tower.isKing, key)
     this.merlonOverlay = scene.add.image(tower.position.x, ry, key).setDepth(MERLON_DEPTH)
     this.layoutMerlonOverlay(key)
+    const barX = towerHealthBarX(tower.position.x, tower.owner, tower.isKing)
+    const barY = towerHealthBarY(tower.position.y, tower.owner, tower.isKing, size.height, tower.position.x)
     this.healthBar = HealthBar.forTower(
       scene,
-      tower.position.x,
-      towerHealthBarY(tower.position.y, tower.owner, tower.isKing, size.height),
+      barX,
+      barY,
       size.width,
       tower.isKing,
     )
@@ -93,8 +95,9 @@ export class TowerSprite {
     this.towerCx = x
     this.towerRy = ry
     this.towerSize = displaySizeForTower(this.scene, this.isKing, this.image.texture.key)
-    const barY = towerHealthBarY(logicY, this.owner, this.isKing, this.towerSize.height)
-    this.healthBar?.update(x, barY, hpFraction, showHealthBar)
+    const barX = towerHealthBarX(x, this.owner, this.isKing)
+    const barY = towerHealthBarY(logicY, this.owner, this.isKing, this.towerSize.height, x)
+    this.healthBar?.update(barX, barY, hpFraction, showHealthBar)
     this.layoutGarrison()
 
     if (attackSync?.aimPoint && attackSync.windupMs > 0 && !this.garrisonShooting) {

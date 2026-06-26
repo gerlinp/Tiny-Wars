@@ -22,11 +22,44 @@ export const TERRAIN_WATER = {
 export const TERRAIN_BRIDGE = {
   key: 'terrain_bridge',
   path: 'assets/Terrain/Bridge/Bridge_All.png',
-  frameWidth: TERRAIN_TILE_PX,
-  frameHeight: TERRAIN_TILE_PX,
-  sheetCols: 3,
-  sheetRows: 4,
 } as const
+
+export interface BridgeTextureRegion {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/**
+ * Vertical bridge deck — tight opaque crops on Bridge_All.png (col 0, rows 1–3).
+ * Registered as named sub-frames in PreloadScene (same pattern as health bars).
+ */
+export const BRIDGE_DECK = {
+  artWidth: 64,
+  regions: {
+    topCap:    { x: 0, y: 81,  w: 64, h: 47 },
+    mid:       { x: 3, y: 128, w: 58, h: 64 },
+    bottomCap: { x: 0, y: 192, w: 64, h: 47 },
+  },
+} as const satisfies { artWidth: number; regions: Record<'topCap' | 'mid' | 'bottomCap', BridgeTextureRegion> }
+
+/** Rows of grass bank included above/below the river so the bridge meets the shores. */
+export const BRIDGE_BANK_PADDING_ROWS = 1
+
+/** Cap/mid display heights for a vertical bridge span (mirrors HealthBar texToDisplay scaling). */
+export function bridgeSliceHeights(totalH: number, bridgeW: number): {
+  topH: number
+  midH: number
+  bottomH: number
+} {
+  const toDisplayH = (texH: number) =>
+    Math.max(1, Math.round(bridgeW * (texH / BRIDGE_DECK.artWidth)))
+  const topH = toDisplayH(BRIDGE_DECK.regions.topCap.h)
+  const bottomH = toDisplayH(BRIDGE_DECK.regions.bottomCap.h)
+  const midH = Math.max(0, totalH - topH - bottomH)
+  return { topH, midH, bottomH }
+}
 
 /** Row-major sheet frame index from pixel origin (x, y) on Tilemap_color1. */
 export function sheetFrame(col: number, row: number): number {
@@ -95,14 +128,7 @@ export const CLIFF_WATER_FRAMES = {
 /** Center fill tile — flat-ground piece 5. */
 export const GRASS_CENTER_FRAME = FLAT_GROUND_FRAMES[5]
 
-/** Vertical bridge deck — 2 cols × 3 river rows within Bridge_All (3×4 sheet). */
-export const BRIDGE_FRAME_MAP: readonly number[] = [
-  0, 1,
-  3, 4,
-  6, 7,
-]
-
-export const TERRAIN_SHEETS = [TERRAIN_COLOR1, TERRAIN_BRIDGE] as const
+export const TERRAIN_SHEETS = [TERRAIN_COLOR1] as const
 
 /** Flat top-row grass edges — player-side river bank (pieces 1–3, sheet row 0). */
 export const FLAT_TOP_EDGE_FRAMES = {

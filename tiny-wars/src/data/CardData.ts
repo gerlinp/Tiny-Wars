@@ -87,6 +87,17 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'pawn_blue_idle', 'pawn_red_idle'),
 
+  /** Clash Royale {@link https://liquipedia.net/clashroyale/Prince Prince} L14 — base melee (charge omitted). */
+  lancer: troop('lancer', 'Lancer', 5, {
+    maxHp: 2542,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 518,
+    attackRate: 1 / 1.4,
+    attackRange: 1.6,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+  }, 'lancer_blue_idle', 'lancer_red_idle'),
+
   wizard: troop('wizard', 'Wizard', 5, {
     maxHp: 997,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
@@ -130,7 +141,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'bomb_idle', 'bomb_idle'),
 }
 
-export const DEFAULT_DECK: string[] = [
-  'warrior', 'archer', 'pawn', 'wizard', 'torch_goblin', 'arrows', 'wood_tower',
-  'tnt',
+/** Disabled from match decks — card/building code kept for when bugs are fixed. */
+export const DECK_EXCLUDED_CARD_IDS = ['wood_tower'] as const
+
+const ALL_DECK_CARD_IDS: string[] = [
+  'warrior', 'archer', 'pawn', 'lancer', 'wizard', 'torch_goblin', 'arrows', 'wood_tower', 'tnt',
 ]
+
+export const DEFAULT_DECK: string[] = ALL_DECK_CARD_IDS.filter(
+  id => !(DECK_EXCLUDED_CARD_IDS as readonly string[]).includes(id),
+)

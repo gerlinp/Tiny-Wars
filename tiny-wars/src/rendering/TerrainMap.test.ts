@@ -12,6 +12,8 @@ import {
   CLIFF_LIP_FRAMES,
   CLIFF_WATER_FRAMES,
   FLAT_TOP_EDGE_FRAMES,
+  BRIDGE_DECK,
+  BRIDGE_BANK_PADDING_ROWS,
   TERRAIN_COLOR1,
   TERRAIN_WATER,
   TERRAIN_BRIDGE,
@@ -20,7 +22,6 @@ import {
   terrainCellAt,
   grassTilePlacement,
   cliffOverlayAt,
-  bridgeFrameIndex,
 } from '@rendering/TerrainMap'
 
 const PUBLIC = resolve(import.meta.dirname, '../../public')
@@ -84,11 +85,11 @@ describe('cliffOverlayAt', () => {
   })
 })
 
-describe('bridgeFrameIndex', () => {
-  it('maps each bridge column and river row to a deck frame', () => {
-    expect(bridgeFrameIndex(LEFT_BRIDGE_COLS[0], RIVER_ROW_START)).toBe(0)
-    expect(bridgeFrameIndex(LEFT_BRIDGE_COLS[1], RIVER_ROW_START)).toBe(1)
-    expect(bridgeFrameIndex(RIGHT_BRIDGE_COLS[0], RIVER_ROW_END)).toBe(6)
-    expect(bridgeFrameIndex(RIGHT_BRIDGE_COLS[1], RIVER_ROW_END)).toBe(7)
+describe('bridge deck regions', () => {
+  it('defines tight opaque crops for 3-slice vertical layout', () => {
+    expect(BRIDGE_DECK.regions.topCap.y).toBe(81)
+    expect(BRIDGE_DECK.regions.mid.y).toBe(128)
+    expect(BRIDGE_DECK.regions.bottomCap.y).toBe(192)
+    expect(BRIDGE_BANK_PADDING_ROWS).toBe(1)
   })
 })

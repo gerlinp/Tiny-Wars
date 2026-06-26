@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { Owner } from '@core/types'
-import { CELL_SIZE, BOT_KING_ROW, BOT_TOWER_ROW, PRINCESS_TOWER_RENDER_NUDGE_Y } from '@data/GameConstants'
+import { CELL_SIZE, BOT_KING_ROW, BOT_TOWER_ROW, PRINCESS_TOWER_RENDER_NUDGE_Y, TOWER_HEALTH_BAR_Y } from '@data/GameConstants'
 import {
   towerFootprintRiverEdge,
   towerHealthBarY,
@@ -34,22 +34,23 @@ describe('towerRenderPosition', () => {
     expect(ry).toBeCloseTo(river - half, 0)
   })
 
-  it('places bot king health bar below the castle toward the arena', () => {
+  it('places bot king health bar above the castle toward the bot side', () => {
     const botKingLogicY = BOT_KING_ROW * CELL_SIZE + CELL_SIZE / 2
     const bounds = towerVisualBounds(botKingLogicY, Owner.BOT, true)
     const barY = towerHealthBarY(botKingLogicY, Owner.BOT, true, bounds.height)
 
-    expect(barY).toBeGreaterThan(bounds.bottom)
+    expect(barY).toBeLessThan(bounds.top)
     expect(barY).toBeGreaterThan(0)
-    expect(barY).toBeLessThan(bounds.bottom + 24)
+    expect(barY).toBeCloseTo(bounds.top - TOWER_HEALTH_BAR_Y.botGapAboveTop, 0)
   })
 
-  it('places player king health bar above the castle toward the arena', () => {
+  it('places player king health bar inside the castle toward the arena', () => {
     const playerKingLogicY = 37 * CELL_SIZE + CELL_SIZE / 2
     const bounds = towerVisualBounds(playerKingLogicY, Owner.PLAYER, true)
     const barY = towerHealthBarY(playerKingLogicY, Owner.PLAYER, true, bounds.height)
 
-    expect(barY).toBeLessThan(bounds.top)
-    expect(barY).toBeLessThan(860)
+    expect(barY).toBeGreaterThan(bounds.top)
+    expect(barY).toBeLessThan(bounds.bottom)
+    expect(barY).toBeCloseTo(bounds.renderY + TOWER_HEALTH_BAR_Y.playerOffsetFromCenter, 0)
   })
 })

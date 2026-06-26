@@ -13,7 +13,6 @@ import {
   FLAT_GROUND_FRAMES,
   CLIFF_LIP_FRAMES,
   CLIFF_WATER_FRAMES,
-  BRIDGE_FRAME_MAP,
   CLIFF_LIP_PIECE_IDS,
 } from '@data/TerrainManifest'
 import { getActiveMapConfig } from '@data/ActiveMapConfig'
@@ -142,14 +141,4 @@ export function cliffOverlayAt(col: number, row: number): CliffOverlayPlacement 
     return { frame: waterCliffVariant(col, row - 1), flipY: false }
   }
   return null
-}
-
-export function bridgeFrameIndex(col: number, row: number): number {
-  const bridgePair = (LEFT_BRIDGE_COLS as readonly number[]).includes(col)
-    ? LEFT_BRIDGE_COLS
-    : RIGHT_BRIDGE_COLS
-  const localCol = col === bridgePair[0] ? 0 : 1
-  const localRow = row - RIVER_ROW_START
-  const idx = localRow * 2 + localCol
-  return BRIDGE_FRAME_MAP[idx] ?? BRIDGE_FRAME_MAP[0]
 }

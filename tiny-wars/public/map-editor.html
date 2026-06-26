@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tiny Wars – Map Editor</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  display: flex;
+  height: 100vh;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+/* ── Sidebar ── */
+#sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: #12121e;
+  border-right: 1px solid #2a2a4a;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#sidebar h1 {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 14px 14px 10px;
+  color: #a0b8ff;
+  border-bottom: 1px solid #2a2a4a;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+.section {
+  padding: 10px 14px;
+  border-bottom: 1px solid #1e1e38;
+  flex-shrink: 0;
+}
+.section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6070a0;
+  margin-bottom: 8px;
+}
+
+/* Tool buttons */
+.tool-btn {
+  display: block;
+  width: 100%;
+  margin-bottom: 5px;
+  padding: 6px 10px;
+  background: #1e2040;
+  border: 1px solid #2a2a5a;
+  border-radius: 4px;
+  color: #c0c8e0;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+  transition: background 0.1s;
+}
+.tool-btn:hover { background: #252850; }
+.tool-btn.active { background: #2a3a7a; border-color: #4060cc; color: #fff; }
+
+/* Info rows */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  color: #a0aac0;
+  font-size: 12px;
+}
+.info-val { color: #e0e8ff; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Tower table */
+table.tower-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+table.tower-table th {
+  text-align: left; color: #6070a0; font-weight: 600;
+  padding: 2px 4px; border-bottom: 1px solid #2a2a4a;
+}
+table.tower-table td { padding: 3px 4px; color: #c0c8e0; font-variant-numeric: tabular-nums; }
+table.tower-table tr:nth-child(even) td { background: #16182a; }
+
+/* Decoration palette */
+#deco-palette {
+  max-height: 268px;
+  overflow-y: auto;
+  padding-right: 2px;
+  margin-top: 2px;
+}
+.deco-cat {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #4a5880;
+  padding: 5px 0 2px;
+}
+.deco-grid { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
+.deco-item {
+  width: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  border: 1.5px solid #242440;
+  border-radius: 4px;
+  padding: 3px 2px;
+  background: #0e0e20;
+  transition: border-color 0.1s, background 0.1s;
+}
+.deco-item:hover { border-color: #4466aa; background: #1a1a38; }
+.deco-item.selected { border-color: #4080ff; background: #1c2266; }
+.deco-item canvas { width: 44px; height: 40px; image-rendering: pixelated; }
+.deco-item span {
+  font-size: 8px; color: #6070a0; text-align: center; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
+}
+
+/* Toggles */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px; color: #a0aac0; font-size: 12px;
+}
+.toggle-row input[type=checkbox] { accent-color: #4060cc; }
+
+/* Action / export buttons */
+.action-btn {
+  display: block; width: 100%; padding: 7px 10px;
+  background: #2a1e3a; border: 1px solid #4a2a6a; border-radius: 4px;
+  color: #c0a0e0; cursor: pointer; font-size: 12px; transition: background 0.1s;
+}
+.action-btn:hover { background: #361e50; }
+.export-btn {
+  display: block; width: 100%; margin-bottom: 5px; padding: 7px 10px;
+  background: #1e3a2a; border: 1px solid #2a6a4a; border-radius: 4px;
+  color: #a0e0c0; cursor: pointer; font-size: 12px; transition: background 0.1s;
+}
+.export-btn:hover { background: #224530; }
+.export-copy-row { display: flex; gap: 6px; margin-bottom: 6px; }
+.export-copy-row button { flex: 1; padding: 5px 8px; font-size: 11px; }
+#export-out {
+  max-height: 160px; overflow-y: auto; background: #0e0e1a;
+  border: 1px solid #2a2a4a; border-radius: 4px; padding: 6px;
+  font-size: 10px; color: #80c0a0; white-space: pre;
+  font-family: monospace; display: none;
+}
+
+/* ── Canvas area ── */
+#canvas-wrap {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  background: #0a0a14;
+  padding: 16px;
+}
+#canvas-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin: 0 auto;
+}
+canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; cursor: default; flex-shrink: 0; }
+#status { color: #6070a0; font-size: 11px; font-variant-numeric: tabular-nums; min-height: 16px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Tiny Wars Map Editor</h1>
+
+  <div class="section">
+    <div class="section-title">Tools</div>
+    <button class="tool-btn active" id="btn-select" title="S">▶ Select / Move</button>
+    <button class="tool-btn"       id="btn-water"  title="W">💧 Paint Water</button>
+    <button class="tool-btn"       id="btn-grass"  title="G">🌿 Paint Grass</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Decorations — select, then click map to place (outside map ok)</div>
+    <div id="deco-palette"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">River</div>
+    <div class="info-row"><span>Start row</span><span class="info-val" id="lbl-river-start">20</span></div>
+    <div class="info-row"><span>End row</span><span class="info-val" id="lbl-river-end">22</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Bridges</div>
+    <div class="info-row"><span>Left cols</span><span class="info-val" id="lbl-left-bridge">[3, 4]</span></div>
+    <div class="info-row"><span>Right cols</span><span class="info-val" id="lbl-right-bridge">[19, 20]</span></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Towers</div>
+    <table class="tower-table">
+      <thead><tr><th>Tower</th><th>Col</th><th>Row</th></tr></thead>
+      <tbody>
+        <tr><td>Bot King</td>    <td id="td-bk-col">11</td><td id="td-bk-row">6</td></tr>
+        <tr><td>Bot Left ♟</td> <td id="td-bl-col">4</td> <td id="td-bl-row">15</td></tr>
+        <tr><td>Bot Right ♟</td><td id="td-br-col">19</td><td id="td-br-row">15</td></tr>
+        <tr><td>Ply King</td>   <td id="td-pk-col">11</td><td id="td-pk-row">37</td></tr>
+        <tr><td>Ply Left ♟</td><td id="td-pl-col">4</td> <td id="td-pl-row">27</td></tr>
+        <tr><td>Ply Right ♟</td><td id="td-pr-col">19</td><td id="td-pr-row">27</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Health bars — drag on map (offsets in game px)</div>
+    <div class="toggle-row"><label>Show health bars</label><input type="checkbox" id="tog-healthbars" checked /></div>
+    <table class="tower-table">
+      <thead><tr><th>Bar</th><th>ΔX</th><th>ΔY</th></tr></thead>
+      <tbody>
+        <tr><td>Bot King</td>    <td id="hb-bk-x">0</td><td id="hb-bk-y">0</td></tr>
+        <tr><td>Bot Left</td>    <td id="hb-bl-x">0</td><td id="hb-bl-y">0</td></tr>
+        <tr><td>Bot Right</td>   <td id="hb-br-x">0</td><td id="hb-br-y">0</td></tr>
+        <tr><td>Ply King</td>    <td id="hb-pk-x">0</td><td id="hb-pk-y">0</td></tr>
+        <tr><td>Ply Left</td>    <td id="hb-pl-x">0</td><td id="hb-pl-y">0</td></tr>
+        <tr><td>Ply Right</td>   <td id="hb-pr-x">0</td><td id="hb-pr-y">0</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Display</div>
+    <div class="toggle-row"><label>Grid lines</label><input type="checkbox" id="tog-grid" checked /></div>
+    <div class="toggle-row"><label>Deploy zones</label><input type="checkbox" id="tog-deploy" checked /></div>
+    <div class="toggle-row"><label>Live map ghost (map.json)</label><input type="checkbox" id="tog-livemap" checked /></div>
+    <div class="info-row" style="margin-top:6px"><span id="map-source-label" style="font-size:10px;color:#6070a0">Loading map.json…</span></div>
+  </div>
+
+  <div class="section">
+    <button class="action-btn" id="btn-reset">↺ Reset to defaults</button>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Export</div>
+    <button class="export-btn" id="btn-export">⬇ Export map.json</button>
+    <div class="export-copy-row" id="export-copy-row" style="display:none">
+      <button class="action-btn" id="btn-copy">Copy</button>
+      <a id="btn-download" download="map.json"><button class="action-btn" style="width:100%">Download</button></a>
+    </div>
+    <pre id="export-out"></pre>
+  </div>
+</div>
+
+<div id="canvas-wrap">
+  <div id="canvas-stage">
+    <canvas id="c"></canvas>
+    <div id="status">Hover over the map — gray margin area is outside the playfield</div>
+  </div>
+</div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────
+const COLS   = 24
+const ROWS   = 43
+const CELL   = 16
+const GAME_CELL = 20   // in-game CELL_SIZE — health bar offsets export in these px
+const MARGIN = 3             // extra cells around the grid (out-of-map zone)
+const CW     = COLS + 2 * MARGIN   // 30 canvas-cells wide
+const CH     = ROWS + 2 * MARGIN   // 49 canvas-cells tall
+const W      = CW * CELL           // 480px
+const H      = CH * CELL           // 784px
+const EDITOR_TO_GAME = GAME_CELL / CELL
+const GAME_TO_EDITOR = CELL / GAME_CELL
+
+const HEALTH_BAR_PATHS = {
+  base: 'assets/UI Elements/UI Elements/Bars/BigBar_Base.png',
+  fill: 'assets/UI Elements/UI Elements/Bars/BigBar_Fill.png',
+}
+const HB = {
+  displayH: 20,
+  baseFrame: { y: 9, h: 51 },
+  fillFrame: { y: 20, h: 24 },
+  leftCap: { x: 40, w: 24 },
+  mid:     { x: 128, w: 64 },
+  rightCap:{ x: 256, w: 24 },
+  fillInsetX: 0.22,
+  fillHeightRatio: 0.72,
+  width: { king: 96, princess: 110 },
+}
+
+const HEALTH_BAR_KEYS = ['botKing', 'botLeft', 'botRight', 'plyKing', 'plyLeft', 'plyRight']
+const HB_SIDEBAR_IDS = {
+  botKing: ['hb-bk-x', 'hb-bk-y'], botLeft: ['hb-bl-x', 'hb-bl-y'],
+  botRight: ['hb-br-x', 'hb-br-y'], plyKing: ['hb-pk-x', 'hb-pk-y'],
+  plyLeft: ['hb-pl-x', 'hb-pl-y'], plyRight: ['hb-pr-x', 'hb-pr-y'],
+}
+
+// ── Decoration catalog ────────────────────────────────────────
+// fw/fh = dimensions of ONE frame (for spritesheets, frame 0 is shown)
+const DECO_CATALOG = [
+  // Trees: 1536×256, 8 frames at 192×256
+  { id: 'tree1',     path: 'assets/Terrain/Resources/Wood/Trees/Tree1.png',                         label: 'Tree 1',  large: true,  fw: 192, fh: 256 },
+  { id: 'tree2',     path: 'assets/Terrain/Resources/Wood/Trees/Tree2.png',                         label: 'Tree 2',  large: true,  fw: 192, fh: 256 },
+  { id: 'tree3',     path: 'assets/Terrain/Resources/Wood/Trees/Tree3.png',                         label: 'Tree 3',  large: true,  fw: 192, fh: 256 },
+  { id: 'tree4',     path: 'assets/Terrain/Resources/Wood/Trees/Tree4.png',                         label: 'Tree 4',  large: true,  fw: 192, fh: 256 },
+  // Stumps: 192×256, single frame
+  { id: 'stump1',    path: 'assets/Terrain/Resources/Wood/Trees/Stump 1.png',                       label: 'Stump 1', large: false, fw: 192, fh: 256 },
+  { id: 'stump2',    path: 'assets/Terrain/Resources/Wood/Trees/Stump 2.png',                       label: 'Stump 2', large: false, fw: 192, fh: 256 },
+  { id: 'stump3',    path: 'assets/Terrain/Resources/Wood/Trees/Stump 3.png',                       label: 'Stump 3', large: false, fw: 192, fh: 256 },
+  { id: 'stump4',    path: 'assets/Terrain/Resources/Wood/Trees/Stump 4.png',                       label: 'Stump 4', large: false, fw: 192, fh: 256 },
+  // Bushes: 1024×128, 8 frames at 128×128
+  { id: 'bush1',     path: 'assets/Terrain/Decorations/Bushes/Bushe1.png',                         label: 'Bush 1',  large: false, fw: 128, fh: 128 },
+  { id: 'bush2',     path: 'assets/Terrain/Decorations/Bushes/Bushe2.png',                         label: 'Bush 2',  large: false, fw: 128, fh: 128 },
+  { id: 'bush3',     path: 'assets/Terrain/Decorations/Bushes/Bushe3.png',                         label: 'Bush 3',  large: false, fw: 128, fh: 128 },
+  { id: 'bush4',     path: 'assets/Terrain/Decorations/Bushes/Bushe4.png',                         label: 'Bush 4',  large: false, fw: 128, fh: 128 },
+  // Rocks: 64×64, single frame
+  { id: 'rock1',     path: 'assets/Terrain/Decorations/Rocks/Rock1.png',                           label: 'Rock 1',  large: false, fw: 64,  fh: 64  },
+  { id: 'rock2',     path: 'assets/Terrain/Decorations/Rocks/Rock2.png',                           label: 'Rock 2',  large: false, fw: 64,  fh: 64  },
+  { id: 'rock3',     path: 'assets/Terrain/Decorations/Rocks/Rock3.png',                           label: 'Rock 3',  large: false, fw: 64,  fh: 64  },
+  { id: 'rock4',     path: 'assets/Terrain/Decorations/Rocks/Rock4.png',                           label: 'Rock 4',  large: false, fw: 64,  fh: 64  },
+  // Water rocks: 1024×128, 8 frames at 128×128
+  { id: 'wrock1',    path: 'assets/Terrain/Water/Rocks/Rocks_01.png',                              label: 'WRock 1', large: false, fw: 128, fh: 128 },
+  { id: 'wrock2',    path: 'assets/Terrain/Water/Rocks/Rocks_02.png',                              label: 'WRock 2', large: false, fw: 128, fh: 128 },
+  { id: 'wrock3',    path: 'assets/Terrain/Water/Rocks/Rocks_03.png',                              label: 'WRock 3', large: false, fw: 128, fh: 128 },
+  { id: 'wrock4',    path: 'assets/Terrain/Water/Rocks/Rocks_04.png',                              label: 'WRock 4', large: false, fw: 128, fh: 128 },
+  // Rocks in water: 1024×64, 8 frames at 128×64
+  { id: 'wrock_in1', path: 'assets/Terrain/Decorations/Rocks in the Water/Water Rocks_01.png',    label: 'WR-In 1', large: false, fw: 128, fh: 64  },
+  { id: 'wrock_in2', path: 'assets/Terrain/Decorations/Rocks in the Water/Water Rocks_02.png',    label: 'WR-In 2', large: false, fw: 128, fh: 64  },
+  { id: 'wrock_in3', path: 'assets/Terrain/Decorations/Rocks in the Water/Water Rocks_03.png',    label: 'WR-In 3', large: false, fw: 128, fh: 64  },
+  { id: 'wrock_in4', path: 'assets/Terrain/Decorations/Rocks in the Water/Water Rocks_04.png',    label: 'WR-In 4', large: false, fw: 128, fh: 64  },
+  // Resources: single frames
+  { id: 'gold',      path: 'assets/Terrain/Resources/Gold/Gold Resource/Gold_Resource.png',        label: 'Gold',    large: false, fw: 128, fh: 128 },
+  { id: 'wood',      path: 'assets/Terrain/Resources/Wood/Wood Resource/Wood Resource.png',        label: 'Wood',    large: false, fw: 64,  fh: 64  },
+  // Duck: 96×32, 3 frames at 32×32
+  { id: 'duck',      path: 'assets/Terrain/Decorations/Rubber Duck/Rubber duck.png',               label: 'Duck',    large: false, fw: 32,  fh: 32  },
+]
+
+const decoImages = {}
+for (const d of DECO_CATALOG) {
+  const img = new Image()
+  img.src = d.path
+  img.onload = () => redraw()
+  decoImages[d.id] = img
+}
+
+const hbImages = { base: new Image(), fill: new Image() }
+for (const [k, path] of Object.entries(HEALTH_BAR_PATHS)) {
+  hbImages[k].src = path
+  hbImages[k].onload = () => redraw()
+}
+
+// ── Tower sprites + layout (mirrors towerRenderPosition.ts) ───
+const TOWER_ASSET_PATHS = {
+  castle_blue: 'assets/Factions/Knights/Buildings/Castle/Castle_Blue.png',
+  castle_red:  'assets/Factions/Knights/Buildings/Castle/Castle_Red.png',
+  tower_blue:  'assets/Factions/Knights/Buildings/Tower/Tower_Blue.png',
+  tower_red:   'assets/Factions/Knights/Buildings/Tower/Tower_Red.png',
+}
+const towerImages = {}
+for (const [k, path] of Object.entries(TOWER_ASSET_PATHS)) {
+  const img = new Image()
+  img.src = path
+  img.onload = () => redraw()
+  towerImages[k] = img
+}
+
+const MAP_UNIT_TARGET_HEIGHT = GAME_CELL * 2.5
+const TOWER_TIER = {
+  princess: { mult: 3.5, fill: 0.90, nativeW: 128, nativeH: 256 },
+  king:     { mult: 2.5, fill: 0.88, nativeW: 320, nativeH: 256 },
+}
+const PRINCESS_NUDGE_GAME = { player: -48, bot: 0 }
+const TOWER_SPRITE_ALPHA = 0.62
+
+const TOWER_INFO = {
+  botKing:  { label: '♛', fill: 'rgba(204,48,48,0.35)',  stroke: '#ff6060', isKing: true,  owner: 'bot',    imgKey: 'castle_red' },
+  botLeft:  { label: 'T',  fill: 'rgba(160,32,32,0.35)',  stroke: '#dd4444', isKing: false, owner: 'bot',    imgKey: 'tower_red'  },
+  botRight: { label: 'T',  fill: 'rgba(160,32,32,0.35)',  stroke: '#dd4444', isKing: false, owner: 'bot',    imgKey: 'tower_red'  },
+  plyKing:  { label: '♛', fill: 'rgba(32,80,204,0.35)',   stroke: '#6090ff', isKing: true,  owner: 'player', imgKey: 'castle_blue' },
+  plyLeft:  { label: 'T',  fill: 'rgba(26,58,154,0.35)',  stroke: '#4466dd', isKing: false, owner: 'player', imgKey: 'tower_blue' },
+  plyRight: { label: 'T',  fill: 'rgba(26,58,154,0.35)',  stroke: '#4466dd', isKing: false, owner: 'player', imgKey: 'tower_blue' },
+}
+
+function towerDisplayHeightGame(isKing) {
+  const tier = isKing ? TOWER_TIER.king : TOWER_TIER.princess
+  return MAP_UNIT_TARGET_HEIGHT * tier.mult / tier.fill
+}
+
+function towerRenderOffsetGame(owner, isKing) {
+  const fpHalf = ((isKing ? 4 : 3) / 2) * GAME_CELL
+  const halfDisplay = towerDisplayHeightGame(isKing) / 2
+  const nudge = isKing ? 0 : PRINCESS_NUDGE_GAME[owner]
+  return owner === 'player'
+    ? -fpHalf + halfDisplay + nudge
+    : fpHalf - halfDisplay + nudge
+}
+
+function towerSpriteLayout(towerKey, towers = state.towers) {
+  const info = TOWER_INFO[towerKey]
+  const t = towers[towerKey]
+  if (!t) return null
+  const tier = info.isKing ? TOWER_TIER.king : TOWER_TIER.princess
+  const displayH = towerDisplayHeightGame(info.isKing) * GAME_TO_EDITOR
+  const displayW = displayH * (tier.nativeW / tier.nativeH)
+  const cx = canvasX(t.col) + CELL / 2
+  const cy = canvasY(t.row) + CELL / 2
+  const renderY = cy + towerRenderOffsetGame(info.owner, info.isKing) * GAME_TO_EDITOR
+  return { cx, cy, renderY, displayW, displayH, imgKey: info.imgKey }
+}
+
+// Mirrors towerRenderPosition.ts + TOWER_HEALTH_BAR_Y defaults (game px)
+function defaultHealthBarOffset(towerKey) {
+  const info = TOWER_INFO[towerKey]
+  const renderOff = towerRenderOffsetGame(info.owner, info.isKing)
+  const spriteH = towerDisplayHeightGame(info.isKing)
+  const topOff = renderOff - spriteH / 2
+  const barOff = info.owner === 'player' ? renderOff + 8 : topOff - 4
+  return { offsetX: 0, offsetY: Math.round(barOff) }
+}
+
+function defaultHealthBars() {
+  const bars = {}
+  for (const k of HEALTH_BAR_KEYS) bars[k] = defaultHealthBarOffset(k)
+  return bars
+}
+
+// ── State ─────────────────────────────────────────────────────
+const DEFAULTS = () => ({
+  river: { start: 20, end: 22 },
+  leftBridge:  3,
+  rightBridge: 19,
+  towers: {
+    botKing:  { row: 6,  col: 12 },
+    botLeft:  { row: 12, col: 4  },
+    botRight: { row: 12, col: 19 },
+    plyKing:  { row: 37, col: 12 },
+    plyLeft:  { row: 31, col: 4  },
+    plyRight: { row: 31, col: 19 },
+  },
+  playerDeployMin: 23,
+  botDeployMax: 19,
+  overrides: {},
+  decorations: [],  // { id, col, row } — col/row may be outside grid bounds
+  healthBars: defaultHealthBars(),
+})
+
+let state = DEFAULTS()
+
+// undo entries:
+//   { key, prev }                      — terrain override
+//   { type:'deco-add', idx }           — decoration placed
+//   { type:'deco-remove', deco, idx }  — decoration removed
+//   { type:'deco-move', idx, orig }    — decoration dragged
+let undoStack = []
+
+let activeTool   = 'select'
+let selectedDeco = null
+
+let showGrid   = true
+let showDeploy = true
+let showHealthBars = true
+let showLiveMap = true
+let liveMap = null       // snapshot of map.json — ghost reference while editing
+let editorReady = false
+
+const canvas = document.getElementById('c')
+canvas.width  = W
+canvas.height = H
+const ctx = canvas.getContext('2d')
+
+let drag       = null
+let isPainting = false
+
+// ── Coordinate helpers ────────────────────────────────────────
+// canvas pixel (top-left of cell) for a grid col/row
+function canvasX(col) { return (col + MARGIN) * CELL }
+function canvasY(row) { return (row + MARGIN) * CELL }
+
+// grid col/row from canvas pixel (may be outside [0,COLS)×[0,ROWS))
+function mouseToCell(mx, my) {
+  return { col: Math.floor(mx / CELL) - MARGIN, row: Math.floor(my / CELL) - MARGIN }
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)) }
+
+function bridgeCols(side) {
+  const s = side === 'left' ? state.leftBridge : state.rightBridge
+  return [s, s + 1]
+}
+
+function isRiverRow(row) { return row >= state.river.start && row <= state.river.end }
+function isBridgeCol(col) {
+  const [la, lb] = bridgeCols('left'), [ra, rb] = bridgeCols('right')
+  return col === la || col === lb || col === ra || col === rb
+}
+function isInGrid(col, row) { return col >= 0 && col < COLS && row >= 0 && row < ROWS }
+
+// ── Drawing ───────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, W, H)
+
+  // Out-of-map background
+  ctx.fillStyle = '#07070f'
+  ctx.fillRect(0, 0, W, H)
+
+  // All cells including margin
+  for (let row = -MARGIN; row < ROWS + MARGIN; row++) {
+    for (let col = -MARGIN; col < COLS + MARGIN; col++) {
+      drawCell(col, row)
+    }
+  }
+
+  // Deploy zone tints (in-bounds only)
+  if (showDeploy) {
+    ctx.fillStyle = 'rgba(60,120,255,0.10)'
+    for (let row = state.playerDeployMin; row < ROWS; row++) {
+      ctx.fillRect(canvasX(0), canvasY(row), COLS * CELL, CELL)
+    }
+    ctx.fillStyle = 'rgba(255,60,60,0.10)'
+    for (let row = 0; row <= state.botDeployMax; row++) {
+      ctx.fillRect(canvasX(0), canvasY(row), COLS * CELL, CELL)
+    }
+  }
+
+  // Grid lines
+  if (showGrid) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)'
+    ctx.lineWidth = 0.5
+    for (let col = -MARGIN; col <= COLS + MARGIN; col++) {
+      ctx.beginPath(); ctx.moveTo(canvasX(col), 0); ctx.lineTo(canvasX(col), H); ctx.stroke()
+    }
+    for (let row = -MARGIN; row <= ROWS + MARGIN; row++) {
+      ctx.beginPath(); ctx.moveTo(0, canvasY(row)); ctx.lineTo(W, canvasY(row)); ctx.stroke()
+    }
+  }
+
+  // Playfield border
+  ctx.strokeStyle = 'rgba(80,100,220,0.5)'
+  ctx.lineWidth = 1.5
+  ctx.strokeRect(canvasX(0), canvasY(0), COLS * CELL, ROWS * CELL)
+
+  if (showLiveMap) drawLiveMapReference()
+  drawDecorations()
+  drawRiverHandles()
+  drawBridgeHandles()
+  drawTowers()
+  if (showHealthBars) drawHealthBars()
+}
+
+function cellBaseColor(col, row) {
+  if (!isInGrid(col, row)) return '#0d0d1c'
+  const ov = state.overrides[`${col},${row}`]
+  if (ov === 'water') return '#2060aa'
+  if (ov === 'grass') return '#3a6a1a'
+  if (isRiverRow(row)) return isBridgeCol(col) ? '#8b7020' : '#1a4a7a'
+  return row < state.river.start ? '#4a7c3a' : '#3a6a2a'
+}
+
+function drawCell(col, row) {
+  ctx.fillStyle = cellBaseColor(col, row)
+  ctx.fillRect(canvasX(col), canvasY(row), CELL, CELL)
+}
+
+// Returns frame-0 crop info + scaled display size for drawing on canvas
+function decoDrawSize(d) {
+  const img = decoImages[d.id]
+  if (!img || !img.complete || img.naturalWidth === 0) return null
+  const cat = DECO_CATALOG.find(c => c.id === d.id)
+  const fw = cat ? cat.fw : img.naturalWidth   // frame width
+  const fh = cat ? cat.fh : img.naturalHeight  // frame height
+  const maxW = cat?.large ? CELL * 3   : CELL * 2.5
+  const maxH = cat?.large ? CELL * 5   : CELL * 3
+  const scale = Math.min(maxW / fw, maxH / fh, 1)
+  return { img, fw, fh, dw: fw * scale, dh: fh * scale }
+}
+
+function drawDecorations(decorations = state.decorations, alpha = 1) {
+  for (let i = 0; i < decorations.length; i++) {
+    const d = decorations[i]
+    const s = decoDrawSize(d)
+    if (!s) continue
+    const bx = canvasX(d.col) + CELL / 2
+    const by = canvasY(d.row) + CELL
+    ctx.save()
+    if (alpha < 1) ctx.globalAlpha = alpha
+    ctx.drawImage(s.img, 0, 0, s.fw, s.fh, bx - s.dw / 2, by - s.dh, s.dw, s.dh)
+    ctx.restore()
+    if (alpha >= 1 && drag?.type === 'decoration' && drag.decoIdx === i) {
+      ctx.strokeStyle = '#80c0ff'
+      ctx.lineWidth = 1.5
+      ctx.strokeRect(bx - s.dw / 2, by - s.dh, s.dw, s.dh)
+    }
+  }
+}
+
+const LIVE_GHOST_ALPHA = 0.28
+const LIVE_GHOST_STROKE = '#6fd4b0'
+
+function towersFromMapConfig(data) {
+  return {
+    botKing:  { row: data.botKingRow ?? 6,  col: data.botKingCol ?? 12 },
+    botLeft:  { row: data.botTowerRow ?? 12, col: data.botTowerCols?.[0] ?? 4 },
+    botRight: { row: data.botTowerRow ?? 12, col: data.botTowerCols?.[1] ?? 19 },
+    plyKing:  { row: data.playerKingRow ?? 37, col: data.playerKingCol ?? 12 },
+    plyLeft:  { row: data.playerTowerRow ?? 31, col: data.playerTowerCols?.[0] ?? 4 },
+    plyRight: { row: data.playerTowerRow ?? 31, col: data.playerTowerCols?.[1] ?? 19 },
+  }
+}
+
+function healthBarsFromMapConfig(data) {
+  const bars = {}
+  for (const k of HEALTH_BAR_KEYS) {
+    if (data.towerHealthBars?.[k]) {
+      bars[k] = {
+        offsetX: data.towerHealthBars[k].offsetX ?? 0,
+        offsetY: data.towerHealthBars[k].offsetY ?? 0,
+      }
+    } else {
+      bars[k] = defaultHealthBarOffset(k)
+    }
+  }
+  return bars
+}
+
+function mapConfigFromState(s = state) {
+  const [la, lb] = [s.leftBridge, s.leftBridge + 1]
+  const [ra, rb] = [s.rightBridge, s.rightBridge + 1]
+  return {
+    riverRowStart: s.river.start,
+    riverRowEnd: s.river.end,
+    leftBridgeCols: [la, lb],
+    rightBridgeCols: [ra, rb],
+    playerKingRow: s.towers.plyKing.row,
+    playerKingCol: s.towers.plyKing.col,
+    playerTowerRow: s.towers.plyLeft.row,
+    playerTowerCols: [s.towers.plyLeft.col, s.towers.plyRight.col],
+    botKingRow: s.towers.botKing.row,
+    botKingCol: s.towers.botKing.col,
+    botTowerRow: s.towers.botLeft.row,
+    botTowerCols: [s.towers.botLeft.col, s.towers.botRight.col],
+    playerDeployRowMin: s.playerDeployMin,
+    botDeployRowMax: s.botDeployMax,
+    terrainOverrides: { ...s.overrides },
+    decorations: s.decorations.map(d => ({ ...d })),
+    towerHealthBars: Object.fromEntries(
+      HEALTH_BAR_KEYS.map(k => [k, { ...s.healthBars[k] }]),
+    ),
+  }
+}
+
+function drawLiveMapReference() {
+  if (!liveMap) return
+
+  const liveTowers = towersFromMapConfig(liveMap)
+  const liveHB = healthBarsFromMapConfig(liveMap)
+  const liveDecos = liveMap.decorations ?? []
+
+  drawDecorations(liveDecos, LIVE_GHOST_ALPHA)
+
+  const r = CELL * 1.1
+  for (const [key, info] of Object.entries(TOWER_INFO)) {
+    const layout = towerSpriteLayout(key, liveTowers)
+    if (!layout) continue
+    const { cx, cy, renderY, displayW, displayH, imgKey } = layout
+    const img = towerImages[imgKey]
+    const cur = state.towers[key]
+    const saved = liveTowers[key]
+    const moved = cur.col !== saved.col || cur.row !== saved.row
+
+    ctx.save()
+    ctx.setLineDash([4, 4])
+    ctx.beginPath()
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.strokeStyle = moved ? LIVE_GHOST_STROKE : 'rgba(111,212,176,0.45)'
+    ctx.lineWidth = moved ? 2 : 1
+    ctx.stroke()
+    ctx.setLineDash([])
+
+    if (img?.complete && img.naturalWidth > 0) {
+      ctx.globalAlpha = moved ? LIVE_GHOST_ALPHA : LIVE_GHOST_ALPHA * 0.55
+      ctx.drawImage(img, cx - displayW / 2, renderY - displayH / 2, displayW, displayH)
+    }
+    ctx.restore()
+  }
+
+  if (showHealthBars) {
+    for (const key of HEALTH_BAR_KEYS) {
+      const pos = healthBarCanvasPos(key, liveHB, liveTowers)
+      const curPos = healthBarCanvasPos(key)
+      const moved = Math.round(pos.x) !== Math.round(curPos.x) ||
+        Math.round(pos.y) !== Math.round(curPos.y)
+      ctx.save()
+      ctx.globalAlpha = moved ? 0.45 : 0.22
+      drawHealthBarAt(pos.x, pos.y, healthBarWidth(key), 0.85, false)
+      ctx.restore()
+    }
+  }
+}
+
+function drawRiverHandles() {
+  const gx = canvasX(0)
+  ctx.fillStyle = '#00ffff'
+  ctx.fillRect(gx, canvasY(state.river.start), COLS * CELL, 4)
+  ctx.fillStyle = '#00e0e0'
+  ctx.fillRect(gx, canvasY(state.river.end + 1) - 4, COLS * CELL, 4)
+}
+
+function drawBridgeHandles() {
+  const ry = canvasY(state.river.start)
+  const rh = (state.river.end - state.river.start + 1) * CELL
+  for (const side of ['left', 'right']) {
+    const [ca] = bridgeCols(side)
+    const x = canvasX(ca), w = 2 * CELL
+    ctx.fillStyle   = side === 'left' ? 'rgba(255,200,40,0.55)' : 'rgba(255,140,20,0.55)'
+    ctx.fillRect(x, ry, w, rh)
+    ctx.strokeStyle = side === 'left' ? '#ffd020' : '#ffa020'
+    ctx.lineWidth   = 1.5
+    ctx.strokeRect(x, ry, w, rh)
+  }
+}
+
+function drawTowers() {
+  const r = CELL * 1.2
+  for (const [key, info] of Object.entries(TOWER_INFO)) {
+    const layout = towerSpriteLayout(key)
+    const { cx, cy, renderY, displayW, displayH, imgKey } = layout
+    const img = towerImages[imgKey]
+    const selected = drag?.type === 'tower' && drag.towerKey === key
+
+    // Drag handle — grid-centre placeholder (hitbox unchanged)
+    ctx.beginPath()
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.fillStyle = info.fill
+    ctx.fill()
+    ctx.strokeStyle = selected ? '#ffffff' : info.stroke
+    ctx.lineWidth = selected ? 2.5 : 1.5
+    ctx.stroke()
+    ctx.fillStyle = '#fff'
+    ctx.font = `bold ${Math.round(r * 0.9)}px sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(info.label, cx, cy)
+
+    // Semi-transparent sprite preview over the placeholder at in-game render position
+    if (img?.complete && img.naturalWidth > 0) {
+      ctx.save()
+      ctx.globalAlpha = selected ? 0.88 : TOWER_SPRITE_ALPHA
+      ctx.drawImage(img, cx - displayW / 2, renderY - displayH / 2, displayW, displayH)
+      ctx.restore()
+    }
+  }
+}
+
+function towerCanvasCenter(towerKey, towers = state.towers) {
+  const t = towers[towerKey]
+  return { cx: canvasX(t.col) + CELL / 2, cy: canvasY(t.row) + CELL / 2 }
+}
+
+function healthBarCanvasPos(towerKey, healthBars = state.healthBars, towers = state.towers) {
+  const { cx, cy } = towerCanvasCenter(towerKey, towers)
+  const hb = healthBars[towerKey] ?? { offsetX: 0, offsetY: 0 }
+  return {
+    x: cx + hb.offsetX * GAME_TO_EDITOR,
+    y: cy + hb.offsetY * GAME_TO_EDITOR,
+  }
+}
+
+function texToDisplayW(texW, barH) {
+  return Math.max(1, Math.round(barH * (texW / HB.baseFrame.h)))
+}
+
+function drawHealthBarAt(cx, cy, barW, fillPct, selected) {
+  const base = hbImages.base, fill = hbImages.fill
+  if (!base.complete || !fill.complete) {
+    ctx.fillStyle = selected ? '#80c0ff' : '#553322'
+    ctx.fillRect(cx - barW / 2, cy - 6, barW, 12)
+    return
+  }
+
+  const barH = Math.round(HB.displayH * GAME_TO_EDITOR)
+  const capLW = texToDisplayW(HB.leftCap.w, barH)
+  const capRW = texToDisplayW(HB.rightCap.w, barH)
+  const leftX = cx - barW / 2
+  const cy0 = cy
+
+  function blit(img, sx, sy, sw, sh, dx, dy, dw, dh) {
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
+  }
+
+  blit(base, HB.leftCap.x, HB.baseFrame.y, HB.leftCap.w, HB.baseFrame.h,
+    leftX, cy0 - barH / 2, capLW, barH)
+  const centerW = Math.max(0, barW - capLW - capRW)
+  blit(base, HB.mid.x, HB.baseFrame.y, HB.mid.w, HB.baseFrame.h,
+    leftX + capLW, cy0 - barH / 2, centerW, barH)
+  blit(base, HB.rightCap.x, HB.baseFrame.y, HB.rightCap.w, HB.baseFrame.h,
+    leftX + barW - capRW, cy0 - barH / 2, capRW, barH)
+
+  const inset = Math.max(1, Math.round(capLW * HB.fillInsetX))
+  const innerW = Math.max(0, barW - inset * 2)
+  const fillW = Math.max(4, innerW * fillPct)
+  const fillH = barH * HB.fillHeightRatio
+  const cropW = Math.min(64, Math.max(12, Math.round(64 * fillPct)))
+  blit(fill, 0, HB.fillFrame.y, cropW, HB.fillFrame.h,
+    leftX + inset, cy0 - fillH / 2, fillW, fillH)
+
+  if (selected) {
+    ctx.strokeStyle = '#80c0ff'
+    ctx.lineWidth = 1.5
+    ctx.strokeRect(leftX, cy0 - barH / 2, barW, barH)
+  }
+}
+
+function healthBarWidth(towerKey) {
+  return (towerKey.includes('King') ? HB.width.king : HB.width.princess) * GAME_TO_EDITOR
+}
+
+function drawHealthBars() {
+  for (const key of HEALTH_BAR_KEYS) {
+    const pos = healthBarCanvasPos(key)
+    const selected = drag?.type === 'healthBar' && drag.towerKey === key
+    drawHealthBarAt(pos.x, pos.y, healthBarWidth(key), 0.85, selected)
+  }
+}
+
+// ── Sidebar live update ───────────────────────────────────────
+function updateSidebar() {
+  document.getElementById('lbl-river-start').textContent = state.river.start
+  document.getElementById('lbl-river-end').textContent   = state.river.end
+  const [la, lb] = bridgeCols('left'), [ra, rb] = bridgeCols('right')
+  document.getElementById('lbl-left-bridge').textContent  = `[${la}, ${lb}]`
+  document.getElementById('lbl-right-bridge').textContent = `[${ra}, ${rb}]`
+  const tMap = {
+    botKing: ['td-bk-col','td-bk-row'], botLeft: ['td-bl-col','td-bl-row'],
+    botRight: ['td-br-col','td-br-row'], plyKing: ['td-pk-col','td-pk-row'],
+    plyLeft: ['td-pl-col','td-pl-row'], plyRight: ['td-pr-col','td-pr-row'],
+  }
+  for (const [k, [cid, rid]] of Object.entries(tMap)) {
+    document.getElementById(cid).textContent = state.towers[k].col
+    document.getElementById(rid).textContent = state.towers[k].row
+  }
+  for (const [k, [xid, yid]] of Object.entries(HB_SIDEBAR_IDS)) {
+    const hb = state.healthBars[k] ?? { offsetX: 0, offsetY: 0 }
+    document.getElementById(xid).textContent = Math.round(hb.offsetX)
+    document.getElementById(yid).textContent = Math.round(hb.offsetY)
+  }
+}
+
+function redraw() {
+  if (!editorReady) return
+  draw()
+  updateSidebar()
+}
+
+// ── Hit-testing ───────────────────────────────────────────────
+function hitTestDecoration(mx, my) {
+  for (let i = state.decorations.length - 1; i >= 0; i--) {
+    const d = state.decorations[i]
+    const s = decoDrawSize(d)
+    if (!s) continue
+    const bx = canvasX(d.col) + CELL / 2
+    const by = canvasY(d.row) + CELL
+    if (mx >= bx - s.dw / 2 && mx <= bx + s.dw / 2 && my >= by - s.dh && my <= by) return i
+  }
+  return -1
+}
+
+function hitTestHealthBar(mx, my) {
+  if (!showHealthBars) return null
+  for (let i = HEALTH_BAR_KEYS.length - 1; i >= 0; i--) {
+    const key = HEALTH_BAR_KEYS[i]
+    const pos = healthBarCanvasPos(key)
+    const barW = healthBarWidth(key)
+    const barH = Math.round(HB.displayH * GAME_TO_EDITOR) + 4
+    if (mx >= pos.x - barW / 2 && mx <= pos.x + barW / 2 &&
+        my >= pos.y - barH / 2 && my <= pos.y + barH / 2) return key
+  }
+  return null
+}
+
+function hitTestTower(mx, my) {
+  const r = CELL * 1.2
+  for (const [key, t] of Object.entries(state.towers)) {
+    const cx = canvasX(t.col) + CELL / 2, cy = canvasY(t.row) + CELL / 2
+    const dx = mx - cx, dy = my - cy
+    if (dx * dx + dy * dy <= r * r) return key
+  }
+  return null
+}
+
+const EDGE_TOL = 5
+
+function hitTest(mx, my) {
+  const hbKey = hitTestHealthBar(mx, my)
+  if (hbKey) return { type: 'healthBar', towerKey: hbKey }
+
+  const tower = hitTestTower(mx, my)
+  if (tower) return { type: 'tower', tower }
+
+  const decoIdx = hitTestDecoration(mx, my)
+  if (decoIdx !== -1) return { type: 'decoration', decoIdx }
+
+  const topY = canvasY(state.river.start), botY = canvasY(state.river.end + 1)
+  if (Math.abs(my - topY) <= EDGE_TOL) return { type: 'riverTop' }
+  if (Math.abs(my - botY) <= EDGE_TOL) return { type: 'riverBottom' }
+
+  const { col, row } = mouseToCell(mx, my)
+  if (isRiverRow(row) && isInGrid(col, row)) {
+    const [la, lb] = bridgeCols('left'), [ra, rb] = bridgeCols('right')
+    if (mx >= canvasX(la) && mx < canvasX(lb) + CELL) return { type: 'bridgeLeft' }
+    if (mx >= canvasX(ra) && mx < canvasX(rb) + CELL) return { type: 'bridgeRight' }
+    return { type: 'river' }
+  }
+  return { type: 'cell' }
+}
+
+function getCursorFor(mx, my) {
+  if (activeTool === 'water' || activeTool === 'grass') return 'crosshair'
+  if (activeTool === 'deco' && selectedDeco) return 'copy'
+  const hit = hitTest(mx, my)
+  if (['tower','decoration','river','bridgeLeft','bridgeRight','healthBar'].includes(hit.type)) return 'grab'
+  if (hit.type === 'riverTop' || hit.type === 'riverBottom') return 'ns-resize'
+  return 'default'
+}
+
+function deepClone(obj) { return JSON.parse(JSON.stringify(obj)) }
+
+function getCanvasMouse(e) {
+  const rect = canvas.getBoundingClientRect()
+  return {
+    mx: (e.clientX - rect.left) * (canvas.width  / rect.width),
+    my: (e.clientY - rect.top)  * (canvas.height / rect.height),
+  }
+}
+
+// ── Mouse events ──────────────────────────────────────────────
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault()
+  const { mx, my } = getCanvasMouse(e)
+  const { col, row } = mouseToCell(mx, my)
+
+  const decoIdx = hitTestDecoration(mx, my)
+  if (decoIdx !== -1) {
+    const removed = state.decorations.splice(decoIdx, 1)[0]
+    undoStack.push({ type: 'deco-remove', deco: removed, idx: decoIdx })
+    redraw(); return
+  }
+
+  const key = `${col},${row}`
+  if (state.overrides[key] !== undefined) {
+    const prev = state.overrides[key]
+    delete state.overrides[key]
+    undoStack.push({ key, prev })
+    redraw()
+  }
+})
+
+canvas.addEventListener('mousedown', e => {
+  if (e.button === 2) return
+  const { mx, my } = getCanvasMouse(e)
+  const { col, row } = mouseToCell(mx, my)
+
+  if (activeTool === 'deco' && selectedDeco) {
+    const idx = state.decorations.length
+    state.decorations.push({ id: selectedDeco, col, row })
+    undoStack.push({ type: 'deco-add', idx })
+    redraw(); return
+  }
+
+  if (activeTool === 'water' || activeTool === 'grass') {
+    isPainting = true; paintCell(col, row); return
+  }
+
+  const hit = hitTest(mx, my)
+  if (!hit || hit.type === 'cell') return
+
+  if (hit.type === 'decoration') {
+    drag = {
+      type: 'decoration', decoIdx: hit.decoIdx,
+      startX: mx, startY: my,
+      origDeco: { ...state.decorations[hit.decoIdx] },
+    }; return
+  }
+
+  if (hit.type === 'healthBar') {
+    drag = {
+      type: 'healthBar', towerKey: hit.towerKey,
+      startX: mx, startY: my,
+      origHealthBar: { ...state.healthBars[hit.towerKey] },
+    }; return
+  }
+
+  drag = {
+    type: hit.type === 'tower' ? 'tower' : hit.type,
+    towerKey: hit.tower,
+    startX: mx, startY: my,
+    origState: deepClone(state),
+  }
+})
+
+canvas.addEventListener('mousemove', e => {
+  const { mx, my } = getCanvasMouse(e)
+  const { col, row } = mouseToCell(mx, my)
+  const outside = !isInGrid(col, row)
+  const ov = state.overrides[`${col},${row}`]
+  document.getElementById('status').textContent =
+    `Col ${col}, Row ${row}` +
+    (outside ? ' (outside playfield)' : '') +
+    (ov ? ` [${ov}]` : '')
+  canvas.style.cursor = getCursorFor(mx, my)
+
+  if (isPainting) { paintCell(col, row); return }
+  if (!drag) return
+
+  const dCol = Math.round((mx - drag.startX) / CELL)
+  const dRow = Math.round((my - drag.startY) / CELL)
+  const o    = drag.origState
+
+  if (drag.type === 'tower') {
+    const orig = o.towers[drag.towerKey]
+    state.towers[drag.towerKey] = {
+      col: clamp(orig.col + dCol, 0, COLS - 1),
+      row: clamp(orig.row + dRow, 0, ROWS - 1),
+    }
+  } else if (drag.type === 'healthBar') {
+    const { cx, cy } = towerCanvasCenter(drag.towerKey)
+    const dxGame = (mx - drag.startX) * EDITOR_TO_GAME
+    const dyGame = (my - drag.startY) * EDITOR_TO_GAME
+    state.healthBars[drag.towerKey] = {
+      offsetX: Math.round(drag.origHealthBar.offsetX + dxGame),
+      offsetY: Math.round(drag.origHealthBar.offsetY + dyGame),
+    }
+  } else if (drag.type === 'decoration') {
+    state.decorations[drag.decoIdx] = {
+      ...drag.origDeco,
+      col: drag.origDeco.col + dCol,
+      row: drag.origDeco.row + dRow,
+    }
+  } else if (drag.type === 'riverTop') {
+    state.river.start = clamp(o.river.start + dRow, 0, o.river.end - 1)
+  } else if (drag.type === 'riverBottom') {
+    state.river.end   = clamp(o.river.end + dRow, o.river.start + 1, ROWS - 1)
+  } else if (drag.type === 'river') {
+    const h = o.river.end - o.river.start
+    const ns = clamp(o.river.start + dRow, 0, ROWS - 1 - h)
+    state.river.start = ns; state.river.end = ns + h
+  } else if (drag.type === 'bridgeLeft') {
+    state.leftBridge  = clamp(o.leftBridge  + dCol, 0, COLS - 3)
+  } else if (drag.type === 'bridgeRight') {
+    state.rightBridge = clamp(o.rightBridge + dCol, 0, COLS - 3)
+  }
+  redraw()
+})
+
+canvas.addEventListener('mouseup', () => {
+  if (drag?.type === 'decoration') {
+    const orig = drag.origDeco, curr = state.decorations[drag.decoIdx]
+    if (curr && (orig.col !== curr.col || orig.row !== curr.row)) {
+      undoStack.push({ type: 'deco-move', idx: drag.decoIdx, orig })
+    }
+  }
+  if (drag?.type === 'healthBar') {
+    const orig = drag.origHealthBar, curr = state.healthBars[drag.towerKey]
+    if (curr && (orig.offsetX !== curr.offsetX || orig.offsetY !== curr.offsetY)) {
+      undoStack.push({ type: 'hb-move', towerKey: drag.towerKey, orig })
+    }
+  }
+  drag = null; isPainting = false
+})
+
+canvas.addEventListener('mouseleave', () => {
+  if (drag?.type === 'decoration') {
+    const orig = drag.origDeco, curr = state.decorations[drag.decoIdx]
+    if (curr && (orig.col !== curr.col || orig.row !== curr.row)) {
+      undoStack.push({ type: 'deco-move', idx: drag.decoIdx, orig })
+    }
+  }
+  if (drag?.type === 'healthBar') {
+    const orig = drag.origHealthBar, curr = state.healthBars[drag.towerKey]
+    if (curr && (orig.offsetX !== curr.offsetX || orig.offsetY !== curr.offsetY)) {
+      undoStack.push({ type: 'hb-move', towerKey: drag.towerKey, orig })
+    }
+  }
+  drag = null; isPainting = false
+  document.getElementById('status').textContent = 'Hover over the map — gray margin area is outside the playfield'
+})
+
+// ── Paint terrain ─────────────────────────────────────────────
+function paintCell(col, row) {
+  if (!isInGrid(col, row)) return
+  const key  = `${col},${row}`
+  const prev = state.overrides[key]
+  const next = activeTool === 'water' ? 'water' : 'grass'
+  if (prev === next) return
+  undoStack.push({ key, prev })
+  state.overrides[key] = next
+  redraw()
+}
+
+// ── Tool selection ────────────────────────────────────────────
+function clearDecoSelection() {
+  selectedDeco = null
+  document.querySelectorAll('.deco-item').forEach(el => el.classList.remove('selected'))
+}
+
+function setTool(t) {
+  activeTool = t
+  if (t !== 'deco') clearDecoSelection()
+  document.getElementById('btn-select').classList.toggle('active', t === 'select')
+  document.getElementById('btn-water').classList.toggle('active',  t === 'water')
+  document.getElementById('btn-grass').classList.toggle('active',  t === 'grass')
+}
+
+document.getElementById('btn-select').addEventListener('click', () => setTool('select'))
+document.getElementById('btn-water').addEventListener('click',  () => setTool('water'))
+document.getElementById('btn-grass').addEventListener('click',  () => setTool('grass'))
+
+document.getElementById('tog-grid').addEventListener('change',   e => { showGrid   = e.target.checked; redraw() })
+document.getElementById('tog-deploy').addEventListener('change', e => { showDeploy = e.target.checked; redraw() })
+document.getElementById('tog-healthbars').addEventListener('change', e => { showHealthBars = e.target.checked; redraw() })
+document.getElementById('tog-livemap').addEventListener('change', e => { showLiveMap = e.target.checked; redraw() })
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  state = DEFAULTS(); undoStack = []; clearDecoSelection(); setTool('select'); redraw()
+})
+
+// ── Export ────────────────────────────────────────────────────
+function buildExport() {
+  const [la, lb] = bridgeCols('left'), [ra, rb] = bridgeCols('right')
+  return {
+    version: 1,
+    riverRowStart:      state.river.start,
+    riverRowEnd:        state.river.end,
+    leftBridgeCols:     [la, lb],
+    rightBridgeCols:    [ra, rb],
+    playerKingRow:      state.towers.plyKing.row,
+    playerKingCol:      state.towers.plyKing.col,
+    playerTowerRow:     state.towers.plyLeft.row,
+    playerTowerCols:    [state.towers.plyLeft.col, state.towers.plyRight.col],
+    botKingRow:         state.towers.botKing.row,
+    botKingCol:         state.towers.botKing.col,
+    botTowerRow:        state.towers.botLeft.row,
+    botTowerCols:       [state.towers.botLeft.col, state.towers.botRight.col],
+    playerDeployRowMin: state.playerDeployMin,
+    botDeployRowMax:    state.botDeployMax,
+    terrainOverrides:   state.overrides,
+    decorations:        state.decorations.map(d => ({ id: d.id, col: d.col, row: d.row })),
+    towerHealthBars:    Object.fromEntries(
+      HEALTH_BAR_KEYS.map(k => [k, { ...state.healthBars[k] }]),
+    ),
+  }
+}
+
+document.getElementById('btn-export').addEventListener('click', () => {
+  const json = JSON.stringify(buildExport(), null, 2)
+  document.getElementById('export-out').textContent = json
+  document.getElementById('export-out').style.display = 'block'
+  document.getElementById('export-copy-row').style.display = 'flex'
+  const blob = new Blob([json], { type: 'application/json' })
+  document.getElementById('btn-download').href = URL.createObjectURL(blob)
+})
+
+document.getElementById('btn-copy').addEventListener('click', () => {
+  const json = document.getElementById('export-out').textContent
+  navigator.clipboard.writeText(json).catch(() => {
+    const ta = document.createElement('textarea')
+    ta.value = json; document.body.appendChild(ta); ta.select()
+    document.execCommand('copy'); document.body.removeChild(ta)
+  })
+})
+
+// ── Decoration palette ────────────────────────────────────────
+// Draw frame 0 of a decoration into a thumbnail canvas
+function drawThumb(thumbCanvas, cat, img) {
+  const tc  = thumbCanvas.getContext('2d')
+  const tw  = thumbCanvas.width, th = thumbCanvas.height
+  tc.clearRect(0, 0, tw, th)
+  if (!img.complete || img.naturalWidth === 0) return
+  const fw = cat.fw, fh = cat.fh
+  const scale = Math.min(tw / fw, th / fh)
+  const dw = fw * scale, dh = fh * scale
+  const ox = (tw - dw) / 2, oy = (th - dh) / 2
+  tc.drawImage(img, 0, 0, fw, fh, ox, oy, dw, dh)
+}
+
+function buildPalette() {
+  const palette = document.getElementById('deco-palette')
+  const groups = [
+    { title: 'Trees & Stumps', ids: ['tree1','tree2','tree3','tree4','stump1','stump2','stump3','stump4'] },
+    { title: 'Bushes & Rocks', ids: ['bush1','bush2','bush3','bush4','rock1','rock2','rock3','rock4'] },
+    { title: 'Water',          ids: ['wrock1','wrock2','wrock3','wrock4','wrock_in1','wrock_in2','wrock_in3','wrock_in4'] },
+    { title: 'Resources',      ids: ['gold','wood','duck'] },
+  ]
+  for (const group of groups) {
+    const hdr = document.createElement('div')
+    hdr.className = 'deco-cat'; hdr.textContent = group.title
+    palette.appendChild(hdr)
+
+    const grid = document.createElement('div')
+    grid.className = 'deco-grid'
+
+    for (const id of group.ids) {
+      const cat = DECO_CATALOG.find(c => c.id === id); if (!cat) continue
+      const item = document.createElement('div')
+      item.className = 'deco-item'; item.dataset.id = id; item.title = cat.label
+
+      // Use canvas so we can crop to frame 0
+      const thumb = document.createElement('canvas')
+      thumb.width = 44; thumb.height = 40
+      const img = decoImages[id]
+      if (img.complete && img.naturalWidth > 0) {
+        drawThumb(thumb, cat, img)
+      } else {
+        img.addEventListener('load', () => drawThumb(thumb, cat, img), { once: true })
+      }
+
+      const span = document.createElement('span'); span.textContent = cat.label
+      item.appendChild(thumb); item.appendChild(span)
+      item.addEventListener('click', () => {
+        selectedDeco = id; activeTool = 'deco'
+        document.getElementById('btn-select').classList.remove('active')
+        document.getElementById('btn-water').classList.remove('active')
+        document.getElementById('btn-grass').classList.remove('active')
+        document.querySelectorAll('.deco-item').forEach(el =>
+          el.classList.toggle('selected', el.dataset.id === id))
+      })
+      grid.appendChild(item)
+    }
+    palette.appendChild(grid)
+  }
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+  if (e.key === 's' || e.key === 'S') { setTool('select'); return }
+  if (e.key === 'w' || e.key === 'W') { setTool('water');  return }
+  if (e.key === 'g' || e.key === 'G') { setTool('grass');  return }
+  if (e.key === 'Escape') { setTool('select'); return }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault()
+    if (!undoStack.length) return
+    const entry = undoStack.pop()
+    if (entry.key !== undefined) {
+      if (entry.prev === undefined) delete state.overrides[entry.key]
+      else state.overrides[entry.key] = entry.prev
+    } else if (entry.type === 'deco-add') {
+      state.decorations.splice(entry.idx, 1)
+    } else if (entry.type === 'deco-remove') {
+      state.decorations.splice(entry.idx, 0, entry.deco)
+    } else if (entry.type === 'deco-move') {
+      state.decorations[entry.idx] = entry.orig
+    } else if (entry.type === 'hb-move') {
+      state.healthBars[entry.towerKey] = entry.orig
+    }
+    redraw()
+  }
+})
+
+function applyMapConfig(data) {
+  if (data.riverRowStart != null) state.river.start = data.riverRowStart
+  if (data.riverRowEnd != null) state.river.end = data.riverRowEnd
+  if (data.leftBridgeCols?.[0] != null) state.leftBridge = data.leftBridgeCols[0]
+  if (data.rightBridgeCols?.[0] != null) state.rightBridge = data.rightBridgeCols[0]
+  state.towers = towersFromMapConfig(data)
+  if (data.playerDeployRowMin != null) state.playerDeployMin = data.playerDeployRowMin
+  if (data.botDeployRowMax != null) state.botDeployMax = data.botDeployRowMax
+  if (data.terrainOverrides) state.overrides = { ...data.terrainOverrides }
+  if (data.decorations) state.decorations = data.decorations.map(d => ({ ...d }))
+  state.healthBars = healthBarsFromMapConfig(data)
+}
+
+async function loadMapJson() {
+  try {
+    const res = await fetch('./map.json', { cache: 'no-store' })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    liveMap = deepClone(data)
+    applyMapConfig(data)
+    setMapSourceLabel('Live map loaded from map.json (green ghost = saved placement)')
+  } catch {
+    liveMap = deepClone(mapConfigFromState())
+    setMapSourceLabel('map.json not found — ghost matches built-in defaults')
+  }
+}
+
+function setMapSourceLabel(text) {
+  const el = document.getElementById('map-source-label')
+  if (el) el.textContent = text
+}
+
+async function initEditor() {
+  buildPalette()
+  await loadMapJson()
+  editorReady = true
+  redraw()
+}
+
+// ── Init ──────────────────────────────────────────────────────
+initEditor()
+</script>
+</body>
+</html>

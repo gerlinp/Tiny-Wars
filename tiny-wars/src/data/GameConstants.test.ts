@@ -7,7 +7,32 @@ import {
   LEFT_LANE_COL,
   RIGHT_LANE_COL,
   PLAYER_TOWER_COLS,
+  BALANCE_REFERENCE_LEVEL,
 } from '@data/GameConstants'
+import { CARD_DEFINITIONS } from '@data/CardData'
+import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
+
+describe('Arena 26 balance (level 14)', () => {
+  it('uses level 14 as the stat reference', () => {
+    expect(BALANCE_REFERENCE_LEVEL).toBe(14)
+  })
+
+  it('scales crown towers from L11 × ~1.321', () => {
+    expect(KING_TOWER.maxHp).toBe(6373)
+    expect(KING_TOWER.damage).toBe(144)
+    expect(PRINCESS_TOWER.maxHp).toBe(4032)
+    expect(PRINCESS_TOWER.damage).toBe(144)
+  })
+
+  it('scales key cards to level 14', () => {
+    expect(CARD_DEFINITIONS.warrior!.stats.maxHp).toBe(2332)
+    expect(CARD_DEFINITIONS.warrior!.stats.damage).toBe(267)
+    expect(CARD_DEFINITIONS.lancer!.stats.maxHp).toBe(2542)
+    expect(CARD_DEFINITIONS.lancer!.stats.damage).toBe(518)
+    expect(CARD_DEFINITIONS.archer!.stats.maxHp).toBe(201)
+    expect(CARD_DEFINITIONS.tnt!.spellStats!.damage).toBe(1960)
+  })
+})
 
 describe('bridge placement', () => {
   it('aligns each bridge with its princess tower lane', () => {

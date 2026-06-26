@@ -1,3 +1,23 @@
+export interface DecorationItem {
+  id: string
+  col: number
+  row: number
+}
+
+/** Per-tower health bar offset from grid centre (game pixels, CELL_SIZE=20). */
+export interface TowerHealthBarOffset {
+  offsetX?: number
+  offsetY?: number
+}
+
+export type TowerHealthBarKey =
+  | 'botKing'
+  | 'botLeft'
+  | 'botRight'
+  | 'plyKing'
+  | 'plyLeft'
+  | 'plyRight'
+
 export interface MapConfig {
   version: number
   riverRowStart: number
@@ -15,4 +35,7 @@ export interface MapConfig {
   playerDeployRowMin: number
   botDeployRowMax: number
   terrainOverrides: Record<string, 'water' | 'grass'>
+  decorations?: DecorationItem[]
+  /** Optional overrides from map-editor — offsets from tower logic centre (px). */
+  towerHealthBars?: Partial<Record<TowerHealthBarKey, TowerHealthBarOffset>>
 }

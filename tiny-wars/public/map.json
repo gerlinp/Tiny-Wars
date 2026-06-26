@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "riverRowStart": 20,
+  "riverRowEnd": 22,
+  "leftBridgeCols": [3, 4],
+  "rightBridgeCols": [19, 20],
+  "playerKingRow": 37,
+  "playerKingCol": 12,
+  "playerTowerRow": 31,
+  "playerTowerCols": [4, 19],
+  "botKingRow": 6,
+  "botKingCol": 12,
+  "botTowerRow": 12,
+  "botTowerCols": [4, 19],
+  "playerDeployRowMin": 23,
+  "botDeployRowMax": 19,
+  "terrainOverrides": {},
+  "decorations": []
+}

@@ -1,7 +1,45 @@
-import { PRINCESS_TOWER_RENDER_NUDGE_Y, towerFootprintHalfExtents } from '@data/GameConstants'
+import { getActiveMapConfig } from '@data/ActiveMapConfig'
+import {
+  CELL_SIZE,
+  PRINCESS_TOWER_RENDER_NUDGE_Y,
+  TOWER_HEALTH_BAR_Y,
+  towerFootprintHalfExtents,
+} from '@data/GameConstants'
+import type { TowerHealthBarKey } from '@data/MapConfig'
 import { Owner } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { targetHeightForTower } from '@rendering/assetDisplaySize'
+
+export type { TowerHealthBarKey }
+
+function logicColFromX(logicX: number): number {
+  return Math.round((logicX - CELL_SIZE / 2) / CELL_SIZE)
+}
+
+/** Map-editor key for a tower health bar slot. */
+export function towerHealthBarKey(owner: Owner, isKing: boolean, logicCol: number): TowerHealthBarKey {
+  if (isKing) return owner === Owner.PLAYER ? 'plyKing' : 'botKing'
+  const cfg = getActiveMapConfig()
+  const cols = owner === Owner.PLAYER
+    ? (cfg?.playerTowerCols ?? [4, 19])
+    : (cfg?.botTowerCols ?? [4, 19])
+  const isLeft = Math.abs(logicCol - cols[0]) <= Math.abs(logicCol - cols[1])
+  if (owner === Owner.PLAYER) return isLeft ? 'plyLeft' : 'plyRight'
+  return isLeft ? 'botLeft' : 'botRight'
+}
+
+function towerHealthBarOffset(
+  owner: Owner,
+  isKing: boolean,
+  logicX: number,
+): { offsetX: number; offsetY: number } | null {
+  const cfg = getActiveMapConfig()?.towerHealthBars
+  if (!cfg) return null
+  const key = towerHealthBarKey(owner, isKing, logicColFromX(logicX))
+  const hb = cfg[key]
+  if (!hb || (hb.offsetX === undefined && hb.offsetY === undefined)) return null
+  return { offsetX: hb.offsetX ?? 0, offsetY: hb.offsetY ?? 0 }
+}
 
 /** River-facing edge of the tower's grid footprint (world Y). */
 export function towerFootprintRiverEdge(logicY: number, owner: Owner, isKing: boolean): number {
@@ -54,22 +92,33 @@ export function towerVisualBounds(logicY: number, owner: Owner, isKing: boolean)
   }
 }
 
+/** Health bar X — map.json override or tower logic centre. */
+export function towerHealthBarX(logicX: number, owner: Owner, isKing: boolean): number {
+  const off = towerHealthBarOffset(owner, isKing, logicX)
+  return off ? logicX + off.offsetX : logicX
+}
+
 /**
- * Health bar anchor — outside the sprite on the arena-facing side.
- * Player towers: above the north edge; bot towers: below the south edge (toward the player).
+ * Health bar anchor — Clash Royale style, or map-editor override from map.json.
+ * Player: overlaid on the upper-middle of the tower sprite (toward the arena).
+ * Bot: floating above the tower toward the bot deploy zone.
  */
 export function towerHealthBarY(
   logicY: number,
   owner: Owner,
   isKing: boolean,
-  spriteHeight: number,
+  _spriteHeight: number,
+  logicX?: number,
 ): number {
-  const { renderY } = towerVisualBounds(logicY, owner, isKing)
-  const halfH = spriteHeight / 2
-  const margin = 6
-  return owner === Owner.PLAYER
-    ? renderY - halfH - margin   // player towers at screen-bottom — bar goes north (toward arena)
-    : renderY + halfH + margin   // bot towers at screen-top — bar goes south (toward arena)
+  if (logicX !== undefined) {
+    const off = towerHealthBarOffset(owner, isKing, logicX)
+    if (off) return logicY + off.offsetY
+  }
+  const { renderY, top } = towerVisualBounds(logicY, owner, isKing)
+  if (owner === Owner.PLAYER) {
+    return renderY + TOWER_HEALTH_BAR_Y.playerOffsetFromCenter
+  }
+  return top - TOWER_HEALTH_BAR_Y.botGapAboveTop
 }
 
 /** @deprecated Use towerFootprintRiverEdge */

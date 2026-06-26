@@ -4,7 +4,7 @@ export const GRID_ROWS = 43
 /** Minimum world-space distance treated as effectively zero in movement and collision checks. */
 export const EPSILON_DISTANCE = 0.01
 
-/** Water border at each edge of the arena — non-walkable moat matching the river aesthetic. */
+/** Arena border — visual moat in terrain; also trims deploy zones (pathfinding grid stays fully open). */
 export const ARENA_FENCE_ROWS = 1
 export const ARENA_FENCE_COLS = 1
 
@@ -35,13 +35,13 @@ export const CANVAS_HEIGHT = GAME_HEIGHT + HUD_HEIGHT  // 1000 — must match Ga
 
 // Tower layout — princess towers at river bank, king castle well behind (CR style)
 export const PLAYER_KING_ROW    = 37
-export const PLAYER_KING_COL    = 11
-export const PLAYER_TOWER_ROW   = 27
+export const PLAYER_KING_COL    = 12
+export const PLAYER_TOWER_ROW   = 31
 export const PLAYER_TOWER_COLS  = [4, 19] as const
 
 export const BOT_KING_ROW   = 6
-export const BOT_KING_COL   = 11
-export const BOT_TOWER_ROW  = 15
+export const BOT_KING_COL   = 12
+export const BOT_TOWER_ROW  = 12
 export const BOT_TOWER_COLS = [4, 19] as const
 
 /** Left lane bridge — tower column is the king-side (right) cell of the pair. */
@@ -99,6 +99,14 @@ export function towerFootprintHalfExtents(isKing: boolean): { halfW: number; hal
 export const PRINCESS_TOWER_RENDER_NUDGE_Y = {
   player: -48,
   bot: 0,
+} as const
+
+/** Tower health bar placement — Clash Royale style (see layout-editor.html). */
+export const TOWER_HEALTH_BAR_Y = {
+  /** Bot bar centre: px above sprite top (smaller = closer to tower) */
+  botGapAboveTop: 4,
+  /** Player bar centre: px below sprite centre (+ = lower on tower toward HUD) */
+  playerOffsetFromCenter: 8,
 } as const
 
 // Deployment zones — exclude fence border rows from valid placement

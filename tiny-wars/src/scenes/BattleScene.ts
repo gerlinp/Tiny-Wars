@@ -5,6 +5,7 @@ import { CardSystem } from '@core/CardSystem'
 import { BotAI } from '@core/BotAI'
 import { TileMapRenderer } from '@rendering/TileMapRenderer'
 import { ForestBorder } from '@rendering/ForestBorder'
+import { DecorationLayer } from '@rendering/DecorationLayer'
 import { EntitySprite } from '@rendering/EntitySprite'
 import { TowerSprite } from '@rendering/TowerSprite'
 import { EffectsPool } from '@rendering/EffectsPool'
@@ -77,6 +78,7 @@ export class BattleScene extends Phaser.Scene {
     // Tile map
     new TileMapRenderer(this).draw()
     new ForestBorder(this).draw()
+    new DecorationLayer(this).draw()
 
     // Place tower sprites
     for (const tower of this.simulator.state.towers.values()) {

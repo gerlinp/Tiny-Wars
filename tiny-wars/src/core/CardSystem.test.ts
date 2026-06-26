@@ -9,9 +9,11 @@ describe('CardSystem', () => {
     expect(cs.nextCard).toBeDefined()
   })
 
-  it('DEFAULT_DECK has 8 unique cards', () => {
+  it('DEFAULT_DECK has 8 unique cards (wood_tower excluded)', () => {
     expect(DEFAULT_DECK).toHaveLength(8)
     expect(new Set(DEFAULT_DECK).size).toBe(8)
+    expect(DEFAULT_DECK).not.toContain('wood_tower')
+    expect(DEFAULT_DECK).toContain('lancer')
   })
 
   it('DEFAULT_DECK has no duplicate card ids', () => {

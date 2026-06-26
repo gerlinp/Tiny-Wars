@@ -2,9 +2,10 @@ import Phaser from 'phaser'
 import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, getHealthBarImageKeys, HEALTH_BAR_ASSETS } from '@data/AssetManifest'
 import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims } from '@rendering/AnimationRegistry'
 import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET } from '@data/AssetManifest'
-import { TERRAIN_COLOR1, TERRAIN_WATER, TERRAIN_BRIDGE } from '@data/TerrainManifest'
+import { TERRAIN_COLOR1, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_DECK } from '@data/TerrainManifest'
 import { DEFAULT_DECK } from '@data/CardData'
-import { setActiveMapConfig } from '@data/ActiveMapConfig'
+import { setActiveMapConfig, getActiveMapConfig } from '@data/ActiveMapConfig'
+import { DEFAULT_MAP_CONFIG } from '@data/DefaultMapConfig'
 import type { MapConfig } from '@data/MapConfig'
 
 export class PreloadScene extends Phaser.Scene {
@@ -16,6 +17,11 @@ export class PreloadScene extends Phaser.Scene {
     this.load.json('map-config', 'map.json')
     this.load.on('filecomplete-json-map-config', (_key: string, _type: string, data: unknown) => {
       setActiveMapConfig(data as MapConfig)
+    })
+    this.load.on('loaderror', (file: { key?: string }) => {
+      if (file.key === 'map-config') {
+        setActiveMapConfig(DEFAULT_MAP_CONFIG)
+      }
     })
 
     const { width, height } = this.scale
@@ -68,11 +74,48 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('tower_red',        'assets/Factions/Knights/Buildings/Tower/Tower_Red.png')
     this.load.image('tower_destroyed',  'assets/Factions/Knights/Buildings/Tower/Tower_Destroyed.png')
 
-    // --- Forest border trees ---
-    this.load.image('tree1', 'assets/Terrain/Resources/Wood/Trees/Tree1.png')
-    this.load.image('tree2', 'assets/Terrain/Resources/Wood/Trees/Tree2.png')
-    this.load.image('tree3', 'assets/Terrain/Resources/Wood/Trees/Tree3.png')
-    this.load.image('tree4', 'assets/Terrain/Resources/Wood/Trees/Tree4.png')
+    // Tree1/2: 1536×256 (8 frames at 192×256); Tree3/4: 1536×192 (8 frames at 192×192)
+    for (const i of [1, 2]) {
+      this.load.spritesheet(`tree${i}`, `assets/Terrain/Resources/Wood/Trees/Tree${i}.png`,
+        { frameWidth: 192, frameHeight: 256 })
+    }
+    for (const i of [3, 4]) {
+      this.load.spritesheet(`tree${i}`, `assets/Terrain/Resources/Wood/Trees/Tree${i}.png`,
+        { frameWidth: 192, frameHeight: 192 })
+    }
+
+    // --- Placeable decorations ---
+    // Stumps: 192×256, single frame
+    for (let i = 1; i <= 4; i++) {
+      this.load.image(`stump${i}`, `assets/Terrain/Resources/Wood/Trees/Stump ${i}.png`)
+    }
+    // Bushes: 1024×128, frame 128×128
+    for (let i = 1; i <= 4; i++) {
+      this.load.spritesheet(`bush${i}`, `assets/Terrain/Decorations/Bushes/Bushe${i}.png`,
+        { frameWidth: 128, frameHeight: 128 })
+    }
+    // Rocks (land): 64×64, single frame
+    for (let i = 1; i <= 4; i++) {
+      this.load.image(`rock${i}`, `assets/Terrain/Decorations/Rocks/Rock${i}.png`)
+    }
+    // Water rocks: 1024×128, frame 128×128
+    const wrockPad = (n: number) => String(n).padStart(2, '0')
+    for (let i = 1; i <= 4; i++) {
+      this.load.spritesheet(`wrock${i}`, `assets/Terrain/Water/Rocks/Rocks_${wrockPad(i)}.png`,
+        { frameWidth: 128, frameHeight: 128 })
+    }
+    // Rocks in water: 1024×64, frame 128×64
+    for (let i = 1; i <= 4; i++) {
+      this.load.spritesheet(`wrock_in${i}`,
+        `assets/Terrain/Decorations/Rocks in the Water/Water Rocks_${wrockPad(i)}.png`,
+        { frameWidth: 128, frameHeight: 64 })
+    }
+    // Resources (single frames)
+    this.load.image('gold', 'assets/Terrain/Resources/Gold/Gold Resource/Gold_Resource.png')
+    this.load.image('wood', 'assets/Terrain/Resources/Wood/Wood Resource/Wood Resource.png')
+    // Duck: 96×32, frame 32×32
+    this.load.spritesheet('duck', 'assets/Terrain/Decorations/Rubber Duck/Rubber duck.png',
+      { frameWidth: 32, frameHeight: 32 })
 
     // --- Terrain (code-driven tilemap — see TerrainMap.ts) ---
     this.load.spritesheet(TERRAIN_COLOR1.key, TERRAIN_COLOR1.path, {
@@ -80,10 +123,7 @@ export class PreloadScene extends Phaser.Scene {
       frameHeight: TERRAIN_COLOR1.frameHeight,
     })
     this.load.image(TERRAIN_WATER.key, TERRAIN_WATER.path)
-    this.load.spritesheet(TERRAIN_BRIDGE.key, TERRAIN_BRIDGE.path, {
-      frameWidth: TERRAIN_BRIDGE.frameWidth,
-      frameHeight: TERRAIN_BRIDGE.frameHeight,
-    })
+    this.load.image(TERRAIN_BRIDGE.key, TERRAIN_BRIDGE.path)
 
     // --- Projectiles (companion Arrow.png — same sprite as Archer_Shoot frames) ---
     this.load.image('arrow_blue', 'assets/Units/Blue Units/Archer/Arrow.png')
@@ -128,6 +168,10 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
+    if (!getActiveMapConfig()) {
+      setActiveMapConfig(DEFAULT_MAP_CONFIG)
+    }
+
     for (const cardId of DEFAULT_DECK) {
       const def = getCardAvatarDef(cardId)
       if (!this.textures.exists(def.key)) {
@@ -151,6 +195,12 @@ export class PreloadScene extends Phaser.Scene {
       const ff = variant.fillFrame
       fillTex.add('fill', 0, 0, ff.y, 64, ff.h)
     }
+
+    const bridgeTex = this.textures.get(TERRAIN_BRIDGE.key)
+    const br = BRIDGE_DECK.regions
+    bridgeTex.add('topCap',    0, br.topCap.x,    br.topCap.y,    br.topCap.w,    br.topCap.h)
+    bridgeTex.add('mid',       0, br.mid.x,       br.mid.y,       br.mid.w,       br.mid.h)
+    bridgeTex.add('bottomCap', 0, br.bottomCap.x, br.bottomCap.y, br.bottomCap.w, br.bottomCap.h)
 
     registerCardAnimations(this)
     registerTroopDeathAnim(this)

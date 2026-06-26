@@ -1,7 +1,6 @@
 import {
   GRID_COLS, GRID_ROWS, CELL_SIZE,
   RIVER_ROW_START, RIVER_ROW_END, BRIDGE_COLS,
-  ARENA_FENCE_ROWS, ARENA_FENCE_COLS,
 } from '@data/GameConstants'
 import { getActiveMapConfig } from '@data/ActiveMapConfig'
 import type { Vec2 } from './types'
@@ -15,19 +14,6 @@ export class Grid {
   constructor() {
     this.walkable = new Uint8Array(GRID_COLS * GRID_ROWS).fill(1)
     this.buildRiver()
-    this.buildForestBorder()
-  }
-
-  private buildForestBorder(): void {
-    for (let row = 0; row < GRID_ROWS; row++) {
-      for (let col = 0; col < GRID_COLS; col++) {
-        const isBorderRow = row < ARENA_FENCE_ROWS || row >= GRID_ROWS - ARENA_FENCE_ROWS
-        const isBorderCol = col < ARENA_FENCE_COLS || col >= GRID_COLS - ARENA_FENCE_COLS
-        if (isBorderRow || isBorderCol) {
-          this.walkable[row * GRID_COLS + col] = 0
-        }
-      }
-    }
   }
 
   private buildRiver(): void {

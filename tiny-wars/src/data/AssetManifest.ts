@@ -226,6 +226,32 @@ function knightSide(unit: string, side: 'Blue' | 'Red'): SideAssets {
   }
 }
 
+const LANCER_FRAME_W = 192
+const LANCER_FRAME_H = 320
+
+function lancerSheet(side: 'Blue' | 'Red', clip: 'idle' | 'run' | 'attack'): SheetDef {
+  const folder = side === 'Blue' ? 'Blue Units' : 'Red Units'
+  const prefix = side === 'Blue' ? 'blue' : 'red'
+  const fileClip = clip === 'attack' ? 'Right_Attack' : clip === 'run' ? 'Run' : 'Idle'
+  return {
+    key: `lancer_${prefix}_${clip}`,
+    path: `assets/Units/${folder}/Lancer/Lancer_${fileClip}.png`,
+    frameWidth: LANCER_FRAME_W,
+    frameHeight: LANCER_FRAME_H,
+  }
+}
+
+function lancerSide(side: 'Blue' | 'Red'): SideAssets {
+  const idle   = lancerSheet(side, 'idle')
+  const run    = lancerSheet(side, 'run')
+  const attack = lancerSheet(side, 'attack')
+  return {
+    idle:   clip(idle,   0, 9, 10, -1),
+    run:    clip(run,    0, 9, 14, -1),
+    attack: clip(attack, 0, 4, 14,  0),
+  }
+}
+
 function clip(sheet: SheetDef, start: number, end: number, frameRate = 8, repeat = -1): ClipDef {
   return { sheet, start, end, frameRate, repeat }
 }
@@ -395,6 +421,14 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     attackHitFrame: 2,
     player: knightSide('Pawn', 'Blue'),
     bot:    knightSide('Pawn', 'Red'),
+  },
+  {
+    cardId: 'lancer',
+    avatar: humanAvatar('Avatars_07.png'),
+    contentFill: 0.55,
+    attackHitFrame: 3,
+    player: lancerSide('Blue'),
+    bot:    lancerSide('Red'),
   },
   {
     cardId: 'torch_goblin',
