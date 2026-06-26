@@ -68,8 +68,8 @@ export function towerHealthBarY(
   const halfH = spriteHeight / 2
   const margin = 6
   return owner === Owner.PLAYER
-    ? renderY + halfH + margin   // player towers sit at screen-bottom — bar goes below
-    : renderY - halfH - margin   // bot towers sit at screen-top — bar goes above
+    ? renderY - halfH - margin   // player towers at screen-bottom — bar goes north (toward arena)
+    : renderY + halfH + margin   // bot towers at screen-top — bar goes south (toward arena)
 }
 
 /** @deprecated Use towerFootprintRiverEdge */

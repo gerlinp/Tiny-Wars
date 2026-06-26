@@ -1,16 +1,25 @@
 import Phaser from 'phaser'
 import { GAME_DURATION_MS } from '@data/GameConstants'
+import { CINZEL_FONT } from './cardHandLayout'
+
+const TIMER_COLOR_SAFE     = '#ffffff'
+const TIMER_COLOR_WARN     = '#ffcc44'
+const TIMER_COLOR_CRITICAL = '#ff4444'
+const TIMER_WARN_MS        = 60_000
+const TIMER_CRIT_MS        = 30_000
 
 export class TimerDisplay {
   private text: Phaser.GameObjects.Text
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.text = scene.add.text(x, y, '3:00', {
-      fontSize: '22px',
+      fontSize: '26px',
+      fontFamily: CINZEL_FONT,
       fontStyle: 'bold',
       color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3,
+      stroke: '#000022',
+      strokeThickness: 5,
+      shadow: { offsetX: 0, offsetY: 3, color: '#000000', blur: 10, stroke: true, fill: true },
     }).setOrigin(0.5).setDepth(50)
   }
 
@@ -22,8 +31,8 @@ export class TimerDisplay {
 
     this.text.setText(`${minutes}:${seconds.toString().padStart(2, '0')}`)
 
-    if (remainingMs > 60_000)      this.text.setColor('#ffffff')
-    else if (remainingMs > 30_000) this.text.setColor('#ffcc44')
-    else                           this.text.setColor('#ff4444')
+    if (remainingMs > TIMER_WARN_MS)      this.text.setColor(TIMER_COLOR_SAFE)
+    else if (remainingMs > TIMER_CRIT_MS) this.text.setColor(TIMER_COLOR_WARN)
+    else                                  this.text.setColor(TIMER_COLOR_CRITICAL)
   }
 }

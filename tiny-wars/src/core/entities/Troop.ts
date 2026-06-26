@@ -20,7 +20,7 @@ import {
   reachedWorldPoint,
 } from '../Movement'
 import { isBridgeCenter, getLaneMarchGoal } from '../LaneMovement'
-import { CELL_SIZE, TROOP_AGGRO_RANGE_CELLS } from '@data/GameConstants'
+import { CELL_SIZE, TROOP_AGGRO_RANGE_CELLS, EPSILON_DISTANCE } from '@data/GameConstants'
 
 const PATH_REPLAN_DIST_SQ = CELL_SIZE * CELL_SIZE * 4
 
@@ -149,7 +149,7 @@ export class Troop extends Entity {
     const dx = goal.x - this.position.x
     const dy = goal.y - this.position.y
     const dirLen = Math.hypot(dx, dy)
-    if (dirLen > 0.01) {
+    if (dirLen > EPSILON_DISTANCE) {
       this.lastMarchDir = { x: dx / dirLen, y: dy / dirLen }
     }
 

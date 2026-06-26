@@ -41,8 +41,8 @@ export class UIScene extends Phaser.Scene {
 
     const cx = width / 2
 
-    this.timer  = new TimerDisplay(this, cx, GAME_HEIGHT - 20)
-    this.crowns = new CrownCounter(this, cx, GAME_HEIGHT - 42)
+    this.timer  = new TimerDisplay(this, cx, 20)
+    this.crowns = new CrownCounter(this, cx, 10)
 
     this.elixirBar = new ElixirBar(this, cx, elixirBarY(GAME_HEIGHT))
     this.cardHand  = new CardHand(this, cx, deckCenterY(GAME_HEIGHT))
@@ -68,6 +68,7 @@ export class UIScene extends Phaser.Scene {
 
     this.pauseBtn = this.add.text(width - 12, 12, '⏸', {
       fontSize: '22px',
+      shadow: { offsetX: 1, offsetY: 2, color: '#000000', blur: 6, fill: true },
     }).setOrigin(1, 0).setDepth(60).setInteractive({ useHandCursor: true })
 
     this.pauseBtn.on('pointerdown', () => {

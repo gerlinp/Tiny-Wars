@@ -1,4 +1,6 @@
 import Phaser from 'phaser'
+import { CINZEL_FONT } from '../ui/cardHandLayout'
+import { createMenuButton } from '../ui/SceneButton'
 
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -11,34 +13,23 @@ export class MainMenuScene extends Phaser.Scene {
     this.add.rectangle(0, 0, width, height, 0x1a1a2e).setOrigin(0)
 
     this.add.text(width / 2, height * 0.28, 'TINY WARS', {
-      fontSize: '48px',
+      fontSize: '52px',
+      fontFamily: CINZEL_FONT,
       fontStyle: 'bold',
       color: '#ffdd88',
       stroke: '#332200',
-      strokeThickness: 6,
+      strokeThickness: 8,
     }).setOrigin(0.5)
 
-    this.add.text(width / 2, height * 0.38, 'Clash Royale Clone', {
-      fontSize: '16px',
-      color: '#aaaacc',
-    }).setOrigin(0.5)
-
-    const btn = this.add.image(width / 2, height * 0.56, 'button_blue')
-      .setInteractive({ useHandCursor: true })
-      .setScale(2)
-      .setDepth(1)
-
-    this.add.text(width / 2, height * 0.56, 'PLAY', {
-      fontSize: '20px',
+    this.add.text(width / 2, height * 0.38, 'A Clash Royale Clone', {
+      fontSize: '14px',
+      fontFamily: CINZEL_FONT,
       fontStyle: 'bold',
-      color: '#ffffff',
-    }).setOrigin(0.5).setDepth(2)
+      color: '#8888aa',
+      stroke: '#000022',
+      strokeThickness: 2,
+    }).setOrigin(0.5)
 
-    btn.on('pointerdown', () => {
-      this.scene.start('BattleScene')
-    })
-
-    btn.on('pointerover', () => btn.setTint(0xdddddd))
-    btn.on('pointerout',  () => btn.clearTint())
+    createMenuButton(this, width / 2, height * 0.56, 'PLAY', '22px', 1, () => this.scene.start('BattleScene'))
   }
 }

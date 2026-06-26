@@ -461,7 +461,7 @@
     const ROWS = 43
     const RIVER_START = 20
     const RIVER_END = 22
-    const BRIDGE_COLS = [6, 7, 16, 17]
+    const BRIDGE_COLS = [3, 4, 19, 20]
 
     // Map tiles (not exported — too many nodes)
     const mapLayer = document.getElementById('tw-layer-map')
@@ -476,7 +476,7 @@
         if (inRiver && !isBridge) tile.style.background = '#1a3a6a'
         else if (inRiver && isBridge) tile.style.background = '#8b6914'
         else {
-          tile.style.backgroundImage = "url('assets/Terrain/Tileset/Tilemap_Flat.png')"
+          tile.style.backgroundImage = "url('assets/Terrain/Tileset/Tilemap_color1.png')"
           tile.style.backgroundSize = 'cover'
           tile.style.filter = row > RIVER_END ? 'hue-rotate(10deg) brightness(1.1)' : 'hue-rotate(-5deg)'
         }

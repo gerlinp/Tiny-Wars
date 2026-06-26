@@ -1,13 +1,12 @@
 import Phaser from 'phaser'
 import { CardSlot } from './CardSlot'
 import type { HandState } from '@core/CardSystem'
-import { cardAvatarKey, getCardAvatarBackdrop, getCardAvatarBuildingFit, getCardAvatarHandScale } from '@data/AssetManifest'
+import { cardAvatarKey, getCardAvatarBackdrop } from '@data/AssetManifest'
 import { applyCardAvatarTexture } from '@rendering/cardAvatarTexture'
 import {
-  applyIconDisplaySize, applyBackdropDisplaySize, applyLayeredPortraitDisplaySize,
-  applyBuildingAvatarDisplaySize,
+  applyIconDisplaySize, applyBackdropDisplaySize, applyCardAvatarIconSize,
   handSlotCenterX, nextCardCenterX, nextIconDisplaySize,
-  NEXT_SLOT_W, NEXT_SLOT_H,
+  NEXT_SLOT_W, NEXT_SLOT_H, CINZEL_FONT,
 } from './cardHandLayout'
 
 export class CardHand {
@@ -33,7 +32,8 @@ export class CardHand {
       .setVisible(false)
 
     this.nextLabel = scene.add.text(nextX, y + NEXT_SLOT_H / 2 + 4, 'NEXT', {
-      fontSize: '8px', color: '#8899cc', fontStyle: 'bold',
+      fontSize: '9px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#aabbdd', stroke: '#000022', strokeThickness: 2,
     }).setOrigin(0.5, 0).setDepth(50).setVisible(false)
 
     this.nextBackdrop = scene.add.image(nextX, y, cardAvatarKey('warrior'))
@@ -80,17 +80,7 @@ export class CardHand {
 
     const hasBackdrop = this.nextBackdrop.visible
     if (hasBackdrop) applyBackdropDisplaySize(this.nextBackdrop, nextSize.w, nextSize.h)
-    if (getCardAvatarBuildingFit(next.id)) {
-      applyBuildingAvatarDisplaySize(this.nextIcon, nextSize.w, nextSize.h)
-    } else if (hasBackdrop) applyLayeredPortraitDisplaySize(this.nextIcon, nextSize.w, nextSize.h)
-    else applyIconDisplaySize(this.nextIcon, nextSize.w, nextSize.h)
-
-    if (next.id !== 'arrows') {
-      const handScale = getCardAvatarHandScale(next.id)
-      if (handScale !== 1) {
-        this.nextIcon.setScale(this.nextIcon.scaleX * handScale, this.nextIcon.scaleY * handScale)
-      }
-    }
+    applyCardAvatarIconSize(this.nextIcon, next.id, nextSize.w, nextSize.h, hasBackdrop)
 
     this.nextBorder.setVisible(true)
     this.nextIcon.setVisible(true)

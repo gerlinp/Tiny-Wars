@@ -26,19 +26,19 @@ describe('LaneMovement', () => {
     expect(next).toEqual({ x: RIGHT_LANE_COL, y: 11 })
   })
 
-  it('off-path troop steers toward nearest lane (left of lane 7)', () => {
+  it('off-path troop steers toward nearest lane (right of left lane)', () => {
     const next = getLaneStep(10, 30, Owner.PLAYER)
     expect(next).toEqual({ x: 9, y: 30 })
   })
 
-  it('off-path troop east of left lane moves right toward it, not left', () => {
+  it('off-path troop east of left lane moves left toward it', () => {
     const next = getLaneStep(5, 30, Owner.PLAYER)
-    expect(next).toEqual({ x: 6, y: 30 })
+    expect(next).toEqual({ x: 4, y: 30 })
   })
 
-  it('off-path troop west of right lane moves left toward it', () => {
-    const next = getLaneStep(18, 30, Owner.PLAYER)
-    expect(next).toEqual({ x: 17, y: 30 })
+  it('off-path troop east of right lane moves left toward it', () => {
+    const next = getLaneStep(21, 30, Owner.PLAYER)
+    expect(next).toEqual({ x: 20, y: 30 })
   })
 
   it('bridge column crosses river vertically instead of sidestepping into water', () => {
@@ -49,10 +49,10 @@ describe('LaneMovement', () => {
   })
 
   it('bridge row between lanes still converges toward centre on land', () => {
-    expect(getLaneStep(8, RIVER_BRIDGE_ROW, Owner.PLAYER))
-      .toEqual({ x: 9, y: RIVER_BRIDGE_ROW })
-    expect(getLaneStep(14, RIVER_BRIDGE_ROW, Owner.PLAYER))
-      .toEqual({ x: 13, y: RIVER_BRIDGE_ROW })
+    expect(getLaneStep(6, RIVER_BRIDGE_ROW, Owner.PLAYER))
+      .toEqual({ x: 7, y: RIVER_BRIDGE_ROW })
+    expect(getLaneStep(15, RIVER_BRIDGE_ROW, Owner.PLAYER))
+      .toEqual({ x: 14, y: RIVER_BRIDGE_ROW })
   })
 
   it('outer bridge column crosses vertically like inner lane', () => {

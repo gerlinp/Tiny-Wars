@@ -2,7 +2,7 @@ import type { GameState } from './GameState'
 import { Troop } from './entities/Troop'
 import { boxesOverlap, entityHalfExtents, separateBoxPair } from './EntityGeometry'
 import { EntityKind, UnitType } from './types'
-import { CELL_SIZE } from '@data/GameConstants'
+import { CELL_SIZE, EPSILON_DISTANCE } from '@data/GameConstants'
 
 const RESOLVE_PASSES = 6
 
@@ -22,7 +22,7 @@ function tryAllyPushFromBehind(pusher: Troop, front: Troop, deltaMs: number): vo
 
   const dir = pusher.getMarchDirection()
   const len = Math.hypot(dir.x, dir.y)
-  if (len < 0.01) return
+  if (len < EPSILON_DISTANCE) return
 
   const nx = dir.x / len
   const ny = dir.y / len

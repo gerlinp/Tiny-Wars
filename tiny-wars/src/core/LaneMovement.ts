@@ -2,7 +2,7 @@ import {
   LEFT_LANE_COL, RIGHT_LANE_COL,
   LEFT_BRIDGE_COLS, RIGHT_BRIDGE_COLS,
   RIVER_BRIDGE_ROW, BRIDGE_CENTER_COL,
-  RIVER_ROW_START, RIVER_ROW_END, BRIDGE_COLS, CELL_SIZE,
+  RIVER_ROW_START, RIVER_ROW_END, BRIDGE_COLS, CELL_SIZE, EPSILON_DISTANCE,
 } from '@data/GameConstants'
 import { Owner } from './types'
 import type { Vec2 } from './types'
@@ -90,7 +90,7 @@ export function getLaneMarchGoal(
   let dx = to.x - from.x
   let dy = to.y - from.y
   const len = Math.hypot(dx, dy)
-  if (len < 0.01) {
+  if (len < EPSILON_DISTANCE) {
     dy = (owner === Owner.PLAYER ? -1 : 1) * CELL_SIZE
     dx = 0
   } else {

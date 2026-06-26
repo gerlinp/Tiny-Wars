@@ -8,6 +8,8 @@ import {
 type HealthBarVariant = keyof typeof HEALTH_BAR_ASSETS
 
 const HEALTH_BAR_FILL_SHEET_W = 64
+const HEALTH_WARN_THRESHOLD = 0.3
+const HEALTH_CRIT_THRESHOLD = 0.15
 
 export interface HealthBarOptions {
   /** Pixels above entity centre; zero = y is already the bar centre */
@@ -102,7 +104,7 @@ export class HealthBar {
     return new HealthBar(scene, x, barY, {
       barWidth: Math.max(isKing ? 96 : 84, Math.round(spriteWidth * widthMult)),
       offsetY: 0,
-      depth: 25,
+      depth: 48,
       variant: 'big',
     })
   }
@@ -184,11 +186,11 @@ export class HealthBar {
   }
 
   private applyFillTint(fraction: number): void {
-    if (fraction > 0.3) {
+    if (fraction > HEALTH_WARN_THRESHOLD) {
       this.fill.clearTint()
       return
     }
-    if (fraction > 0.15) {
+    if (fraction > HEALTH_CRIT_THRESHOLD) {
       this.fill.setTint(0xffcc66)
       return
     }

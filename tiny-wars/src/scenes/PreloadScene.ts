@@ -2,7 +2,10 @@ import Phaser from 'phaser'
 import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, getHealthBarImageKeys, HEALTH_BAR_ASSETS } from '@data/AssetManifest'
 import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims } from '@rendering/AnimationRegistry'
 import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET } from '@data/AssetManifest'
+import { TERRAIN_COLOR1, TERRAIN_WATER, TERRAIN_BRIDGE } from '@data/TerrainManifest'
 import { DEFAULT_DECK } from '@data/CardData'
+import { setActiveMapConfig } from '@data/ActiveMapConfig'
+import type { MapConfig } from '@data/MapConfig'
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -10,6 +13,11 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   preload(): void {
+    this.load.json('map-config', 'map.json')
+    this.load.on('filecomplete-json-map-config', (_key: string, _type: string, data: unknown) => {
+      setActiveMapConfig(data as MapConfig)
+    })
+
     const { width, height } = this.scale
 
     const barBg = this.add.rectangle(width / 2, height / 2, 300, 20, 0x333366)
@@ -60,8 +68,22 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('tower_red',        'assets/Factions/Knights/Buildings/Tower/Tower_Red.png')
     this.load.image('tower_destroyed',  'assets/Factions/Knights/Buildings/Tower/Tower_Destroyed.png')
 
-    // --- Terrain ---
-    this.load.image('terrain_flat', 'assets/Terrain/Tileset/Tilemap_Flat.png')
+    // --- Forest border trees ---
+    this.load.image('tree1', 'assets/Terrain/Resources/Wood/Trees/Tree1.png')
+    this.load.image('tree2', 'assets/Terrain/Resources/Wood/Trees/Tree2.png')
+    this.load.image('tree3', 'assets/Terrain/Resources/Wood/Trees/Tree3.png')
+    this.load.image('tree4', 'assets/Terrain/Resources/Wood/Trees/Tree4.png')
+
+    // --- Terrain (code-driven tilemap — see TerrainMap.ts) ---
+    this.load.spritesheet(TERRAIN_COLOR1.key, TERRAIN_COLOR1.path, {
+      frameWidth: TERRAIN_COLOR1.frameWidth,
+      frameHeight: TERRAIN_COLOR1.frameHeight,
+    })
+    this.load.image(TERRAIN_WATER.key, TERRAIN_WATER.path)
+    this.load.spritesheet(TERRAIN_BRIDGE.key, TERRAIN_BRIDGE.path, {
+      frameWidth: TERRAIN_BRIDGE.frameWidth,
+      frameHeight: TERRAIN_BRIDGE.frameHeight,
+    })
 
     // --- Projectiles (companion Arrow.png — same sprite as Archer_Shoot frames) ---
     this.load.image('arrow_blue', 'assets/Units/Blue Units/Archer/Arrow.png')

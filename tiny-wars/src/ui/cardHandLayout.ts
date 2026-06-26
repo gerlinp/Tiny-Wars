@@ -1,5 +1,8 @@
 import Phaser from 'phaser'
 import { GAME_WIDTH, HUD_HEIGHT } from '@data/GameConstants'
+import { getCardAvatarBuildingFit, getCardAvatarHandScale } from '@data/AssetManifest'
+
+export const CINZEL_FONT = "'Cinzel', serif"
 
 /** Maximize avatars within the HUD — row spans the screen, slots fill deck height. */
 
@@ -126,4 +129,25 @@ export function handSlotCenterX(_cx: number, index: number): number {
 export function nextCardCenterX(_cx: number): number {
   const handEnd = DECK_ROW_LEFT + HAND_SLOTS * (CARD_SLOT_W + CARD_SLOT_GAP) - CARD_SLOT_GAP
   return handEnd + NEXT_HAND_GAP + NEXT_SLOT_W / 2
+}
+
+/** Apply the correct display sizing for a non-arrows card avatar icon. */
+export function applyCardAvatarIconSize(
+  icon: Phaser.GameObjects.Image,
+  cardId: string,
+  w: number,
+  h: number,
+  hasBackdrop: boolean,
+): void {
+  if (getCardAvatarBuildingFit(cardId)) {
+    applyBuildingAvatarDisplaySize(icon, w, h)
+  } else if (hasBackdrop) {
+    applyLayeredPortraitDisplaySize(icon, w, h)
+  } else {
+    applyIconDisplaySize(icon, w, h)
+  }
+  const handScale = getCardAvatarHandScale(cardId)
+  if (handScale !== 1) {
+    icon.setScale(icon.scaleX * handScale, icon.scaleY * handScale)
+  }
 }

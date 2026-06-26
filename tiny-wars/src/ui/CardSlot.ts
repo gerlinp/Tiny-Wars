@@ -1,12 +1,11 @@
 import Phaser from 'phaser'
 import type { CardDefinition } from '@core/types'
-import { cardAvatarKey, getCardAvatarBackdrop, getCardAvatarBuildingFit, getCardAvatarHandScale } from '@data/AssetManifest'
+import { cardAvatarKey, getCardAvatarBackdrop } from '@data/AssetManifest'
 import { applyCardAvatarTexture } from '@rendering/cardAvatarTexture'
 import { applyArrowSprite, ARROW_DISPLAY_W } from '@rendering/arrowTexture'
 import {
-  CARD_SLOT_W, CARD_SLOT_H, CARD_SELECTED_LIFT,
-  applyIconDisplaySize, applyBackdropDisplaySize, applyLayeredPortraitDisplaySize,
-  applyBuildingAvatarDisplaySize,
+  CARD_SLOT_W, CARD_SLOT_H, CARD_SELECTED_LIFT, CINZEL_FONT,
+  applyBackdropDisplaySize, applyCardAvatarIconSize,
   cardIconDisplaySize,
 } from './cardHandLayout'
 
@@ -49,10 +48,16 @@ export class CardSlot {
       .setDepth(52)
       .setVisible(false)
 
-    this.costText = scene.add.text(x - CARD_SLOT_W / 2 + 4, y + CARD_SLOT_H / 2 - 3, '', {
-      fontSize: `${COST_FONT}px`, color: '#f0d8ff', fontStyle: 'bold',
-      stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0, 1).setDepth(53)
+    this.costText = scene.add.text(x - CARD_SLOT_W / 2 + 3, y + CARD_SLOT_H / 2 - 3, '', {
+      fontSize: `${COST_FONT}px`,
+      fontFamily: CINZEL_FONT,
+      fontStyle: 'bold',
+      color: '#ffffff',
+      stroke: '#1a004a',
+      strokeThickness: 2,
+      backgroundColor: '#5500cc',
+      padding: { x: 5, y: 3 },
+    }).setOrigin(0, 1).setDepth(53).setVisible(false)
 
     this.layoutIcon(false)
   }
@@ -72,16 +77,8 @@ export class CardSlot {
       const scale = (w / ARROW_DISPLAY_W) * 1.35
       this.icon.setScale(scale)
       this.icon.setRotation(-2.35)
-    } else if (this.shownCardId && getCardAvatarBuildingFit(this.shownCardId)) {
-      applyBuildingAvatarDisplaySize(this.icon, w, h)
-    } else if (hasBackdrop) applyLayeredPortraitDisplaySize(this.icon, w, h)
-    else applyIconDisplaySize(this.icon, w, h)
-
-    if (this.shownCardId && this.shownCardId !== 'arrows') {
-      const handScale = getCardAvatarHandScale(this.shownCardId)
-      if (handScale !== 1) {
-        this.icon.setScale(this.icon.scaleX * handScale, this.icon.scaleY * handScale)
-      }
+    } else if (this.shownCardId) {
+      applyCardAvatarIconSize(this.icon, this.shownCardId, w, h, hasBackdrop)
     }
     this.costText.setY(this.cy + CARD_SLOT_H / 2 - 3 + yOff)
   }
@@ -104,14 +101,15 @@ export class CardSlot {
     }
     this.icon.setVisible(true)
     this.layoutIcon(this._selected)
-    this.costText.setText(`${card.elixirCost}`)
+    this.costText.setText(`${card.elixirCost}`).setVisible(true)
 
     const canPlay = card.elixirCost <= playerElixir
     this.canPlay = canPlay
     const alpha = canPlay ? 1 : 0.4
     this.icon.setAlpha(alpha)
     this.iconBackdrop.setAlpha(alpha)
-    this.costText.setColor(canPlay ? '#f0d8ff' : '#886688')
+    this.costText.setColor(canPlay ? '#ffffff' : '#cc99ff')
+    this.costText.setBackgroundColor(canPlay ? '#5500cc' : '#280055')
 
     if (canPlay) {
       this.hitArea.setInteractive({ useHandCursor: true })
@@ -126,7 +124,7 @@ export class CardSlot {
     this.hitArea.disableInteractive()
     this.iconBackdrop.setVisible(false)
     this.icon.setVisible(false)
-    this.costText.setText('')
+    this.costText.setVisible(false).setText('')
   }
 
   setSelected(selected: boolean): void {

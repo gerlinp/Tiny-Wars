@@ -4,7 +4,7 @@ import { Tower } from './entities/Tower'
 import { EntityKind } from './types'
 import type { Vec2 } from './types'
 import { dist } from './Vector2'
-import { CELL_SIZE, GRID_COLS, GRID_ROWS } from '@data/GameConstants'
+import { CELL_SIZE, GRID_COLS, GRID_ROWS, EPSILON_DISTANCE } from '@data/GameConstants'
 import { collisionHalfExtentsForCard, collisionHalfExtentsForTower } from '@rendering/assetDisplaySize'
 import { towerCollisionCenter } from '@rendering/towerRenderPosition'
 
@@ -50,7 +50,7 @@ export function entityHalfExtents(entity: Entity): HalfExtents {
 export function surfaceDistToEntity(from: Vec2, target: Entity): number {
   const center = entityCollisionCenter(target)
   const d = dist(from, center)
-  if (d < 0.01) return 0
+  if (d < EPSILON_DISTANCE) return 0
 
   const half = entityHalfExtents(target)
   const nx = (from.x - center.x) / d
@@ -63,7 +63,7 @@ export function surfaceDistToEntity(from: Vec2, target: Entity): number {
 export function approachPointOnSurface(from: Vec2, target: Entity, margin = 2): Vec2 {
   const center = entityCollisionCenter(target)
   const d = dist(from, center)
-  if (d < 0.01) return { x: center.x, y: center.y }
+  if (d < EPSILON_DISTANCE) return { x: center.x, y: center.y }
 
   const half = entityHalfExtents(target)
   const nx = (from.x - center.x) / d

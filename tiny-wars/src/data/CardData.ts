@@ -53,12 +53,14 @@ function spell(
   }
 }
 
-/** Stats tuned to Clash Royale equivalents at {@link BALANCE_REFERENCE_LEVEL}. */
+/** Stats tuned to Clash Royale equivalents at {@link BALANCE_REFERENCE_LEVEL} (level 14).
+ *  HP and damage scaled from L11 baseline × 1.321 (~9.7%/level over 3 levels).
+ *  Attack speed, range, and movement speed do not change with CR card level. */
 export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   warrior: troop('warrior', 'Warrior', 3, {
-    maxHp: 1766,
+    maxHp: 2332,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
-    damage: 202,
+    damage: 267,
     attackRate: 1 / 1.2,
     attackRange: 1.2,
     unitType: UnitType.GROUND,
@@ -66,9 +68,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'warrior_blue_idle', 'warrior_red_idle'),
 
   archer: troop('archer', 'Archers', 3, {
-    maxHp: 152,
+    maxHp: 201,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
-    damage: 112,
+    damage: 148,
     attackRate: 1 / 0.9,
     attackRange: 5.0,
     unitType: UnitType.GROUND,
@@ -76,9 +78,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'archer_blue_idle', 'archer_red_idle', 2),
 
   pawn: troop('pawn', 'Pawn', 3, {
-    maxHp: 1064,
+    maxHp: 1406,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
-    damage: 160,
+    damage: 211,
     attackRate: 1 / 1.2,
     attackRange: 1.2,
     unitType: UnitType.GROUND,
@@ -86,9 +88,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'pawn_blue_idle', 'pawn_red_idle'),
 
   wizard: troop('wizard', 'Wizard', 5, {
-    maxHp: 755,
+    maxHp: 997,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
-    damage: 281,
+    damage: 371,
     attackRate: 1 / 1.4,
     attackRange: 5.0,
     unitType: UnitType.GROUND,
@@ -97,9 +99,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'wizard_blue_idle', 'wizard_red_idle'),
 
   torch_goblin: troop('torch_goblin', 'Torch Goblin', 3, {
-    maxHp: 261,
+    maxHp: 345,
     speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
-    damage: 151,
+    damage: 199,
     attackRate: 1 / 0.8,
     attackRange: 6.5,
     unitType: UnitType.GROUND,
@@ -107,13 +109,13 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'torch_goblin_blue_idle', 'torch_goblin_red_idle'),
 
   arrows: spell('arrows', 'Arrows', 3, {
-    damage: 306, radius: 4, duration: 0, delivery: 'arrows',
+    damage: 404, radius: 4, duration: 0, delivery: 'arrows',
   }, 'arrow_blue', 'arrow_red'),
 
   wood_tower: building('wood_tower', 'Bomb Tower', 4, {
-    maxHp: 1356,
+    maxHp: 1791,
     speed: 0,
-    damage: 222,
+    damage: 293,
     attackRate: 1 / 1.8,
     attackRange: 6.0,
     unitType: UnitType.GROUND,
@@ -124,7 +126,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'wood_tower_blue_sheet', 'wood_tower_red_sheet'),
 
   tnt: spell('tnt', 'Rocket', 6, {
-    damage: 1484, radius: 2, duration: 0, groundOnly: true, delivery: 'rocket',
+    damage: 1960, radius: 2, duration: 0, groundOnly: true, delivery: 'rocket',
   }, 'bomb_idle', 'bomb_idle'),
 }
 

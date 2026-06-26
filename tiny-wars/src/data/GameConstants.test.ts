@@ -1,5 +1,22 @@
 import { describe, it, expect } from 'vitest'
-import { CR_SPEED, crSpeedToCellsPerSec } from '@data/GameConstants'
+import {
+  CR_SPEED,
+  crSpeedToCellsPerSec,
+  LEFT_BRIDGE_COLS,
+  RIGHT_BRIDGE_COLS,
+  LEFT_LANE_COL,
+  RIGHT_LANE_COL,
+  PLAYER_TOWER_COLS,
+} from '@data/GameConstants'
+
+describe('bridge placement', () => {
+  it('aligns each bridge with its princess tower lane', () => {
+    expect(LEFT_BRIDGE_COLS).toEqual([3, 4])
+    expect(RIGHT_BRIDGE_COLS).toEqual([19, 20])
+    expect(LEFT_LANE_COL).toBe(PLAYER_TOWER_COLS[0])
+    expect(RIGHT_LANE_COL).toBe(PLAYER_TOWER_COLS[1])
+  })
+})
 
 describe('crSpeedToCellsPerSec', () => {
   it('maps Medium (60) to 1.5 cells/sec', () => {

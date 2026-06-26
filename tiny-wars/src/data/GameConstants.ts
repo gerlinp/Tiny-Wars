@@ -1,6 +1,13 @@
 export const GRID_COLS = 24
 export const GRID_ROWS = 43
 
+/** Minimum world-space distance treated as effectively zero in movement and collision checks. */
+export const EPSILON_DISTANCE = 0.01
+
+/** Water border at each edge of the arena — non-walkable moat matching the river aesthetic. */
+export const ARENA_FENCE_ROWS = 1
+export const ARENA_FENCE_COLS = 1
+
 // Each grid cell in pixels
 export const CELL_SIZE = 20
 
@@ -26,19 +33,40 @@ export const GAME_HEIGHT = GRID_ROWS * CELL_SIZE  // 860 — arena only
 export const HUD_HEIGHT  = 140
 export const CANVAS_HEIGHT = GAME_HEIGHT + HUD_HEIGHT  // 1000 — must match GameConfig height
 
+// Tower layout — princess towers at river bank, king castle well behind (CR style)
+export const PLAYER_KING_ROW    = 37
+export const PLAYER_KING_COL    = 11
+export const PLAYER_TOWER_ROW   = 27
+export const PLAYER_TOWER_COLS  = [4, 19] as const
+
+export const BOT_KING_ROW   = 6
+export const BOT_KING_COL   = 11
+export const BOT_TOWER_ROW  = 15
+export const BOT_TOWER_COLS = [4, 19] as const
+
+/** Left lane bridge — tower column is the king-side (right) cell of the pair. */
+function bridgeColsOnLeftTowerLane(towerCol: number): readonly [number, number] {
+  return [towerCol - 1, towerCol] as const
+}
+
+/** Right lane bridge — tower column is the king-side (left) cell of the pair (mirror of left). */
+function bridgeColsOnRightTowerLane(towerCol: number): readonly [number, number] {
+  return [towerCol, towerCol + 1] as const
+}
+
 // River runs across rows 20–22 (0-indexed); bridge columns are walkable through it
 export const RIVER_ROW_START = 20
 export const RIVER_ROW_END   = 22
-/** Two tiles wide per bridge — matches Clash Royale standard arenas (2/18 width). */
-export const LEFT_BRIDGE_COLS  = [6, 7] as const
-export const RIGHT_BRIDGE_COLS = [16, 17] as const
+/** Each bridge sits on its princess tower lane — CPU marches straight to player tower. */
+export const LEFT_BRIDGE_COLS  = bridgeColsOnLeftTowerLane(PLAYER_TOWER_COLS[0])
+export const RIGHT_BRIDGE_COLS = bridgeColsOnRightTowerLane(PLAYER_TOWER_COLS[1])
 export const BRIDGE_COLS = [...LEFT_BRIDGE_COLS, ...RIGHT_BRIDGE_COLS] as const
 
-// Lane movement — primary march column is the inner edge of each bridge (toward king)
-export const LEFT_LANE_COL     = 7
-export const RIGHT_LANE_COL    = 16
+// Lane movement — one vertical lane per princess tower column
+export const LEFT_LANE_COL     = PLAYER_TOWER_COLS[0]
+export const RIGHT_LANE_COL    = PLAYER_TOWER_COLS[1]
 export const RIVER_BRIDGE_ROW  = 21   // middle river row — horizontal bridge crossing
-export const BRIDGE_CENTER_COL = 11   // king tower column — convergence point
+export const BRIDGE_CENTER_COL = PLAYER_KING_COL
 
 // Game duration
 export const GAME_DURATION_MS = 180_000  // 3 minutes
@@ -49,17 +77,6 @@ export const ELIXIR_START    = 4
 export const ELIXIR_REGEN_MS = 2800   // ms per +1 elixir
 export const ELIXIR_FAST_MS  = 1400   // ms per +1 elixir in last 60 seconds
 export const ELIXIR_FAST_AT  = 60_000 // switch to fast regen when time_remaining <= this
-
-// Tower layout — nudged 2 rows toward river vs original (37/39 player, 5/3 bot)
-export const PLAYER_KING_ROW    = 37
-export const PLAYER_KING_COL    = 11
-export const PLAYER_TOWER_ROW   = 35
-export const PLAYER_TOWER_COLS  = [4, 19] as const
-
-export const BOT_KING_ROW   = 5
-export const BOT_KING_COL   = 11
-export const BOT_TOWER_ROW  = 7
-export const BOT_TOWER_COLS = [4, 19] as const
 
 /**
  * Arena tile footprints (official CR: princess 3×3; king ~4×4 diameter per placement guides).
@@ -81,13 +98,13 @@ export function towerFootprintHalfExtents(isKing: boolean): { halfW: number; hal
 /** Princess-only sprite shift toward the river (visual only; hitboxes unchanged). */
 export const PRINCESS_TOWER_RENDER_NUDGE_Y = {
   player: -48,
-  bot: 40,
+  bot: 0,
 } as const
 
-// Deployment zones (player can only place in rows 23+; bot places in rows 0–19)
+// Deployment zones — exclude fence border rows from valid placement
 export const PLAYER_DEPLOY_ROW_MIN = 23
-export const PLAYER_DEPLOY_ROW_MAX = GRID_ROWS - 1
-export const BOT_DEPLOY_ROW_MIN    = 0
+export const PLAYER_DEPLOY_ROW_MAX = GRID_ROWS - 1 - ARENA_FENCE_ROWS  // 41
+export const BOT_DEPLOY_ROW_MIN    = ARENA_FENCE_ROWS                   // 1
 export const BOT_DEPLOY_ROW_MAX    = 19
 
 /** Princess-lane split — left tower unlocks cols [0, split); right unlocks [split, GRID_COLS). */
@@ -97,8 +114,10 @@ export const DEPLOY_LANE_SPLIT_COL = 12
 export const BOT_THINK_MIN_MS = 2000
 export const BOT_THINK_MAX_MS = 5000
 
-/** Clash Royale card level used for troop/building/spell stat references. */
-export const BALANCE_REFERENCE_LEVEL = 11
+/** Clash Royale card level used for troop/building/spell stat references.
+ *  Level 14 = Arena 26 "Royal Road" (~10,500 trophies) baseline.
+ *  Towers and cards scale at ~9.7%/level; L11→L14 multiplier ≈ ×1.321. */
+export const BALANCE_REFERENCE_LEVEL = 14
 
 /** Official Clash Royale movement tiers (internal speed units). */
 export const CR_SPEED = {

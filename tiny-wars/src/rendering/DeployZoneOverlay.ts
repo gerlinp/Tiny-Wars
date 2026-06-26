@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import { GAME_WIDTH, GAME_HEIGHT } from '@data/GameConstants'
+import { CINZEL_FONT } from '../ui/cardHandLayout'
 import type { LaneUnlocks } from '@core/DeployZones'
 import { EMPTY_LANE_UNLOCKS } from '@core/DeployZones'
 import { LOCAL_OWNER, deployOverlayRects, type DeployOverlayRect } from '@core/DeployPerspective'
@@ -24,7 +25,11 @@ export class DeployZoneOverlay {
 
     this.hint = scene.add.text(GAME_WIDTH / 2, 0, 'Select a card', {
       fontSize: '13px',
+      fontFamily: CINZEL_FONT,
+      fontStyle: 'bold',
       color: '#88cc99',
+      stroke: '#003322',
+      strokeThickness: 2,
     }).setOrigin(0.5).setDepth(3).setVisible(false)
   }
 
@@ -55,7 +60,7 @@ export class DeployZoneOverlay {
         .setSize(GAME_WIDTH, GAME_HEIGHT)
         .setFillStyle(0xcc44ff, 0.08)
         .setVisible(true)
-      for (const z of this.expandedZones) z.setVisible(false)
+      this.setExpandedVisible(false)
       this.hint
         .setText('Tap anywhere to use')
         .setPosition(GAME_WIDTH / 2, GAME_HEIGHT - 36)
@@ -70,7 +75,7 @@ export class DeployZoneOverlay {
         .setSize(GAME_WIDTH, GAME_HEIGHT)
         .setFillStyle(0xff8844, 0.07)
         .setVisible(true)
-      for (const z of this.expandedZones) z.setVisible(false)
+      this.setExpandedVisible(false)
       this.hint
         .setText('Tap anywhere to cast')
         .setPosition(GAME_WIDTH / 2, GAME_HEIGHT - 36)
@@ -84,7 +89,7 @@ export class DeployZoneOverlay {
       .setSize(this.friendlyRect.w, this.friendlyRect.h)
       .setFillStyle(0x44cc66, 0.18)
       .setVisible(true)
-    for (const z of this.expandedZones) z.setVisible(true)
+    this.setExpandedVisible(true)
     this.hint
       .setText('Select a card')
       .setPosition(GAME_WIDTH / 2, this.friendlyRect.y + this.friendlyRect.h - 30)
@@ -92,9 +97,13 @@ export class DeployZoneOverlay {
       .setVisible(true)
   }
 
+  private setExpandedVisible(visible: boolean): void {
+    for (const z of this.expandedZones) z.setVisible(visible)
+  }
+
   hide(): void {
     this.baseZone.setVisible(false)
-    for (const z of this.expandedZones) z.setVisible(false)
+    this.setExpandedVisible(false)
     this.hint.setVisible(false)
   }
 

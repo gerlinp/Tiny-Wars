@@ -1,5 +1,7 @@
 import Phaser from 'phaser'
 import { Owner } from '@core/types'
+import { CINZEL_FONT } from '../ui/cardHandLayout'
+import { createMenuButton } from '../ui/SceneButton'
 
 interface ResultData { winner: Owner | null }
 
@@ -21,30 +23,20 @@ export class ResultScene extends Phaser.Scene {
                        winner === Owner.BOT    ? '#ff4444' : '#aabbff'
 
     this.add.text(width / 2, height * 0.35, titleText, {
-      fontSize: '42px',
+      fontSize: '44px',
+      fontFamily: CINZEL_FONT,
       fontStyle: 'bold',
       color: titleColor,
       stroke: '#000000',
-      strokeThickness: 6,
+      strokeThickness: 7,
     }).setOrigin(0.5).setDepth(10)
 
-    // Play Again
-    const btn = this.add.image(width / 2, height * 0.56, 'button_blue')
-      .setInteractive({ useHandCursor: true })
-      .setScale(2)
-      .setDepth(10)
-
-    this.add.text(width / 2, height * 0.56, 'PLAY AGAIN', {
-      fontSize: '18px', fontStyle: 'bold', color: '#ffffff',
-    }).setOrigin(0.5).setDepth(11)
-
-    btn.on('pointerdown', () => this.scene.start('BattleScene'))
-    btn.on('pointerover', () => btn.setTint(0xdddddd))
-    btn.on('pointerout',  () => btn.clearTint())
+    createMenuButton(this, width / 2, height * 0.56, 'PLAY AGAIN', '19px', 10, () => this.scene.start('BattleScene'))
 
     // Main Menu
     this.add.text(width / 2, height * 0.65, 'Main Menu', {
-      fontSize: '14px', color: '#aabbff',
+      fontSize: '14px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#aabbff', stroke: '#000022', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(11)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.scene.start('MainMenuScene'))

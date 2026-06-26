@@ -1,6 +1,6 @@
 import type { Grid } from './Grid'
 import type { Vec2 } from './types'
-import { CELL_SIZE, RIVER_ROW_START, RIVER_ROW_END, BRIDGE_COLS } from '@data/GameConstants'
+import { CELL_SIZE, RIVER_ROW_START, RIVER_ROW_END, BRIDGE_COLS, EPSILON_DISTANCE } from '@data/GameConstants'
 
 const WAYPOINT_EPS = 2
 
@@ -65,7 +65,7 @@ export function moveTowardDirect(pos: Vec2, target: Vec2, step: number): boolean
   const dx = target.x - pos.x
   const dy = target.y - pos.y
   const d = Math.hypot(dx, dy)
-  if (d < 0.01) return false
+  if (d < EPSILON_DISTANCE) return false
   const move = Math.min(step, d)
   pos.x += (dx / d) * move
   pos.y += (dy / d) * move
@@ -76,12 +76,12 @@ export function moveTowardDirect(pos: Vec2, target: Vec2, step: number): boolean
 export function followWaypoints(pos: Vec2, waypoints: Vec2[], finalGoal: Vec2, step: number): void {
   let budget = step
 
-  while (budget > 0.01) {
+  while (budget > EPSILON_DISTANCE) {
     const target = waypoints[0] ?? finalGoal
     const dx = target.x - pos.x
     const dy = target.y - pos.y
     const d = Math.hypot(dx, dy)
-    if (d < 0.01) {
+    if (d < EPSILON_DISTANCE) {
       if (waypoints.length > 0) waypoints.shift()
       if (waypoints.length === 0 && reachedWorldPoint(pos, finalGoal)) break
       continue
@@ -106,6 +106,3 @@ export function reachedWorldPoint(pos: Vec2, target: Vec2, eps = WAYPOINT_EPS): 
   return dx * dx + dy * dy <= eps * eps
 }
 
-export function worldCell(grid: Grid, wx: number, wy: number): Vec2 {
-  return grid.worldToCell(wx, wy)
-}

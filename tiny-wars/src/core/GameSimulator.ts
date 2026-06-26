@@ -22,6 +22,7 @@ import {
   BOT_TOWER_ROW,
   BOT_TOWER_COLS,
 } from '@data/GameConstants'
+import { getActiveMapConfig } from '@data/ActiveMapConfig'
 import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
 import { dist } from './Vector2'
 import { rocketFlightMs, arrowsRainMs } from '@data/ProjectileConstants'
@@ -37,6 +38,7 @@ export class GameSimulator {
   }
 
   private placeTowers(): void {
+    const config = getActiveMapConfig()
     const place = (owner: Owner, def: typeof KING_TOWER, col: number, row: number) => {
       const pos: Vec2 = {
         x: col * CELL_SIZE + CELL_SIZE / 2,
@@ -46,14 +48,23 @@ export class GameSimulator {
       this.state.towers.set(tower.id, tower)
     }
 
-    place(Owner.PLAYER, KING_TOWER,     PLAYER_KING_COL, PLAYER_KING_ROW)
-    for (const col of PLAYER_TOWER_COLS) {
-      place(Owner.PLAYER, PRINCESS_TOWER, col, PLAYER_TOWER_ROW)
+    const plyKingCol  = config ? config.playerKingCol          : PLAYER_KING_COL
+    const plyKingRow  = config ? config.playerKingRow          : PLAYER_KING_ROW
+    const plyTowerRow = config ? config.playerTowerRow         : PLAYER_TOWER_ROW
+    const plyTowerCols = config ? config.playerTowerCols       : PLAYER_TOWER_COLS
+    const botKingCol  = config ? config.botKingCol             : BOT_KING_COL
+    const botKingRow  = config ? config.botKingRow             : BOT_KING_ROW
+    const botTowerRow = config ? config.botTowerRow            : BOT_TOWER_ROW
+    const botTowerCols = config ? config.botTowerCols          : BOT_TOWER_COLS
+
+    place(Owner.PLAYER, KING_TOWER,     plyKingCol, plyKingRow)
+    for (const col of plyTowerCols) {
+      place(Owner.PLAYER, PRINCESS_TOWER, col, plyTowerRow)
     }
 
-    place(Owner.BOT, KING_TOWER,     BOT_KING_COL, BOT_KING_ROW)
-    for (const col of BOT_TOWER_COLS) {
-      place(Owner.BOT, PRINCESS_TOWER, col, BOT_TOWER_ROW)
+    place(Owner.BOT, KING_TOWER,     botKingCol, botKingRow)
+    for (const col of botTowerCols) {
+      place(Owner.BOT, PRINCESS_TOWER, col, botTowerRow)
     }
   }
 
