@@ -4,8 +4,8 @@ export interface DecorationItem {
   row: number
 }
 
-/** Per-tower health bar offset from grid centre (game pixels, CELL_SIZE=20). */
-export interface TowerHealthBarOffset {
+/** Per-tower layout offset from grid centre (game pixels, CELL_SIZE=20). */
+export interface TowerLayoutOffset {
   offsetX?: number
   offsetY?: number
 }
@@ -37,5 +37,7 @@ export interface MapConfig {
   terrainOverrides: Record<string, 'water' | 'grass'>
   decorations?: DecorationItem[]
   /** Optional overrides from map-editor — offsets from tower logic centre (px). */
-  towerHealthBars?: Partial<Record<TowerHealthBarKey, TowerHealthBarOffset>>
+  towerHealthBars?: Partial<Record<TowerHealthBarKey, TowerLayoutOffset>>
+  /** Sprite centre offset from tower logic centre (px). */
+  towerVisualOffsets?: Partial<Record<TowerHealthBarKey, TowerLayoutOffset>>
 }

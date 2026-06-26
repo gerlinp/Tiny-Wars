@@ -6,14 +6,16 @@ import {
   DAMAGE_FIRE_SHEETS,
   TROOP_DEATH_SHEET,
   type AnimClip,
+  type ClipDef,
   type SideAssets,
 } from '@data/AssetManifest'
 
-function registerClip(scene: Phaser.Scene, cardId: string, owner: Owner, anim: AnimClip, side: SideAssets): void {
-  const def = side[anim]
-  const key = clipAnimKey(cardId, owner, anim)
+function registerClip(
+  scene: Phaser.Scene,
+  def: ClipDef,
+  key: string,
+): void {
   if (scene.anims.exists(key)) return
-
   if (!scene.textures.exists(def.sheet.key)) return
 
   scene.anims.create({
@@ -27,13 +29,23 @@ function registerClip(scene: Phaser.Scene, cardId: string, owner: Owner, anim: A
   })
 }
 
+function registerSideClips(scene: Phaser.Scene, cardId: string, owner: Owner, side: SideAssets): void {
+  registerClip(scene, side.idle, clipAnimKey(cardId, owner, 'idle'))
+  registerClip(scene, side.run, clipAnimKey(cardId, owner, 'run'))
+  registerClip(scene, side.attack, clipAnimKey(cardId, owner, 'attack'))
+  if (side.attackUp) {
+    registerClip(scene, side.attackUp, clipAnimKey(cardId, owner, 'attack', 'up'))
+  }
+  if (side.attackDown) {
+    registerClip(scene, side.attackDown, clipAnimKey(cardId, owner, 'attack', 'down'))
+  }
+}
+
 export function registerCardAnimations(scene: Phaser.Scene): void {
   for (const bundle of CARD_ASSET_BUNDLES) {
     if (bundle.animated === false) continue
     for (const [owner, side] of [[Owner.PLAYER, bundle.player], [Owner.BOT, bundle.bot]] as const) {
-      registerClip(scene, bundle.cardId, owner, 'idle', side)
-      registerClip(scene, bundle.cardId, owner, 'run', side)
-      registerClip(scene, bundle.cardId, owner, 'attack', side)
+      registerSideClips(scene, bundle.cardId, owner, side)
     }
   }
   registerHexShamanFx(scene)

@@ -1,7 +1,13 @@
 import type { Entity } from './entities/Entity'
+import type { Tower } from './entities/Tower'
 import type { GameState } from './GameState'
 import type { Owner, Vec2 } from './types'
 import { EntityKind } from './types'
+
+/** King towers are not valid objectives until a friendly princess tower has fallen. */
+export function isAttackableTower(tower: Tower): boolean {
+  return !tower.isKing || tower.isActive()
+}
 
 export type TargetDistanceFn = (from: Vec2, to: Entity) => number
 
@@ -51,6 +57,23 @@ export function findNearestEnemy(state: GameState, opts: NearestEnemyOptions): E
   }
 
   return best
+}
+
+/** Nearest enemy building or tower — no distance cap (CR-style structure awareness). */
+export function findNearestEnemyStructure(
+  state: GameState,
+  opts: Omit<NearestEnemyOptions, 'maxDistance'>,
+): Entity | null {
+  const canAttack = opts.canAttack ?? (() => true)
+  return findNearestEnemy(state, {
+    ...opts,
+    includeTowers: opts.includeTowers ?? true,
+    canAttack: (entity) => {
+      if (entity.kind === EntityKind.TROOP) return false
+      if (entity.kind === EntityKind.TOWER && !isAttackableTower(entity as Tower)) return false
+      return canAttack(entity)
+    },
+  })
 }
 
 /**

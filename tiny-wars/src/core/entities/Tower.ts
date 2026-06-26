@@ -5,11 +5,13 @@ import type { TowerDefinition } from '@data/TowerData'
 import type { GameState } from '../GameState'
 import { distSq } from '../Vector2'
 import { refreshStickyTarget } from '../TargetSelection'
+import { entityCollisionCenter, entityHalfExtents, gridCellsForFootprint } from '../EntityGeometry'
 import { CELL_SIZE } from '@data/GameConstants'
 
 export class Tower extends Entity {
   readonly stats: TowerDefinition
   readonly isKing: boolean
+  readonly blockedCells: readonly Vec2[]
 
   private attackCooldownMs = 0
   private active = false  // King Tower activates once a Princess Tower is destroyed
@@ -21,6 +23,9 @@ export class Tower extends Entity {
     this.isKing = def.isKing
     // Princess towers start active; King Tower starts dormant
     this.active = !def.isKing
+    const center = entityCollisionCenter(this)
+    const half = entityHalfExtents(this)
+    this.blockedCells = gridCellsForFootprint(center, half.halfW, half.halfH)
   }
 
   /** Called when a friendly Princess Tower is destroyed */

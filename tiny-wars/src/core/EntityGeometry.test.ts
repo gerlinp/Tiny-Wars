@@ -1,16 +1,30 @@
 import { describe, it, expect } from 'vitest'
 import { Building } from './entities/Building'
 import { Tower } from './entities/Tower'
+import { Troop } from './entities/Troop'
+import { Grid } from './Grid'
 import { Owner, UnitType, AttackType } from './types'
 import type { EntityStats } from './types'
+import { CARD_DEFINITIONS } from '@data/CardData'
 import {
   approachPointOnSurface,
+  buildingCombatRadius,
+  edgeDistBetweenEntities,
   entityCollisionCenter,
   entityHalfExtents,
   gridCellsForFootprint,
+  meleeApproachPoint,
   surfaceDistToEntity,
+  troopCollisionRadius,
 } from './EntityGeometry'
-import { CELL_SIZE, TOWER_FOOTPRINT_CELLS, BOT_TOWER_ROW } from '@data/GameConstants'
+import {
+  BUILDING_COMBAT_RADIUS_CELLS,
+  BUILDING_FOOTPRINT_CELLS,
+  CELL_SIZE,
+  TOWER_FOOTPRINT_CELLS,
+  BOT_TOWER_ROW,
+  TROOP_COLLISION_RADIUS_CELLS,
+} from '@data/GameConstants'
 import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
 import { towerVisualBounds } from '@rendering/towerRenderPosition'
 
@@ -25,31 +39,51 @@ const WOOD_TOWER_STATS: EntityStats = {
 }
 
 describe('EntityGeometry', () => {
-  it('wood tower blocks multiple grid cells matching its image footprint', () => {
+  it('uses a small circular radius for troop collision', () => {
+    const grid = new Grid()
+    const troop = new Troop(Owner.PLAYER, {
+      maxHp: 500,
+      speed: 1.5,
+      damage: 50,
+      attackRate: 1,
+      attackRange: 1.2,
+      unitType: UnitType.GROUND,
+      attackType: AttackType.GROUND_ONLY,
+    }, { x: 100, y: 100 }, grid, 'warrior')
+
+    expect(troopCollisionRadius(troop)).toBe(TROOP_COLLISION_RADIUS_CELLS * CELL_SIZE)
+    expect(troopCollisionRadius(troop)).toBeLessThan(CELL_SIZE)
+  })
+
+  it('wood tower blocks a fixed 2x2 path footprint', () => {
     const pos = { x: 11 * CELL_SIZE + CELL_SIZE / 2, y: 25 * CELL_SIZE + CELL_SIZE / 2 }
     const building = new Building(Owner.PLAYER, WOOD_TOWER_STATS, pos, 'wood_tower')
 
-    expect(building.blockedCells.length).toBeGreaterThan(1)
-    expect(building.halfW).toBeGreaterThan(CELL_SIZE / 2)
+    expect(building.blockedCells.length).toBe(BUILDING_FOOTPRINT_CELLS.w * BUILDING_FOOTPRINT_CELLS.h)
+    expect(building.pathHalfW).toBe((BUILDING_FOOTPRINT_CELLS.w / 2) * CELL_SIZE)
+    expect(building.combatRadiusPx).toBe(BUILDING_COMBAT_RADIUS_CELLS * CELL_SIZE)
   })
 
-  it('surface distance is zero at deploy point and positive outside footprint', () => {
+  it('surface distance is zero on combat hull and positive outside', () => {
     const pos = { x: 200, y: 500 }
     const building = new Building(Owner.PLAYER, WOOD_TOWER_STATS, pos, 'wood_tower')
+    const center = entityCollisionCenter(building)
 
-    expect(surfaceDistToEntity(pos, building)).toBe(0)
-    expect(surfaceDistToEntity({ x: pos.x + building.halfW + 20, y: pos.y }, building)).toBeGreaterThan(15)
+    expect(surfaceDistToEntity(center, building)).toBeCloseTo(0, 0)
+    expect(surfaceDistToEntity({ x: center.x + buildingCombatRadius() + 20, y: center.y }, building))
+      .toBeCloseTo(20, 0)
   })
 
-  it('approach point stops outside building surface', () => {
+  it('approach point stops outside building combat circle', () => {
     const pos = { x: 200, y: 500 }
     const building = new Building(Owner.BOT, WOOD_TOWER_STATS, pos, 'wood_tower')
     const from = { x: pos.x + 200, y: pos.y }
     const approach = approachPointOnSurface(from, building)
+    const center = entityCollisionCenter(building)
 
-    const distToCenter = Math.hypot(approach.x - pos.x, approach.y - pos.y)
-    expect(distToCenter).toBeGreaterThanOrEqual(building.halfW - 1)
-    expect(distToCenter).toBeLessThan(building.halfW + 10)
+    const distToCenter = Math.hypot(approach.x - center.x, approach.y - center.y)
+    expect(distToCenter).toBeGreaterThanOrEqual(buildingCombatRadius() - 1)
+    expect(distToCenter).toBeLessThan(buildingCombatRadius() + 10)
   })
 
   it('gridCellsForFootprint covers cells intersecting the box', () => {
@@ -77,26 +111,51 @@ describe('EntityGeometry', () => {
     expect(half.halfH).toBe((fp.h / 2) * CELL_SIZE)
   })
 
-  it('bot tower melee approach stops at the footprint river edge', () => {
-    const logicY = BOT_TOWER_ROW * CELL_SIZE + CELL_SIZE / 2
-    const tower = new Tower(Owner.BOT, PRINCESS_TOWER, { x: 100, y: logicY })
-    const half = entityHalfExtents(tower)
-    const riverEdge = logicY + half.halfH
-    const approach = approachPointOnSurface({ x: 100, y: logicY + 180 }, tower)
+  it('melee edge distance shrinks as units move closer', () => {
+    const pos = { x: 200, y: 500 }
+    const building = new Building(Owner.PLAYER, WOOD_TOWER_STATS, pos, 'wood_tower')
+    const center = entityCollisionCenter(building)
+    const far = { x: center.x + buildingCombatRadius() + 32, y: center.y }
 
-    expect(approach.y).toBeGreaterThan(riverEdge - 5)
-    expect(approach.y).toBeLessThan(riverEdge + 12)
+    expect(edgeDistBetweenEntities(building, building)).toBe(0)
+    expect(surfaceDistToEntity(far, building)).toBeCloseTo(32, 0)
   })
 
-  it('player tower melee approach from the river stops at the north footprint edge', () => {
-    const logicY = 35 * CELL_SIZE + CELL_SIZE / 2
-    const tower = new Tower(Owner.PLAYER, PRINCESS_TOWER, { x: 100, y: logicY })
-    const half = entityHalfExtents(tower)
-    const riverEdge = logicY - half.halfH
-    const approach = approachPointOnSurface({ x: 100, y: logicY - 180 }, tower)
+  it('lancer melee standoff keeps 1.6 tile edge gap vs princess tower', () => {
+    const logicY = BOT_TOWER_ROW * CELL_SIZE + CELL_SIZE / 2
+    const tower = new Tower(Owner.BOT, PRINCESS_TOWER, { x: 100, y: logicY })
+    const grid = new Grid()
+    const lancer = new Troop(
+      Owner.PLAYER,
+      CARD_DEFINITIONS.lancer!.stats!,
+      { x: 100, y: logicY + 180 },
+      grid,
+      'lancer',
+    )
+    const approach = meleeApproachPoint(lancer.position, lancer, tower, 1.6)
+    lancer.position.x = approach.x
+    lancer.position.y = approach.y
 
-    expect(approach.y).toBeGreaterThan(riverEdge - 12)
-    expect(approach.y).toBeLessThan(riverEdge + 5)
+    expect(edgeDistBetweenEntities(lancer, tower)).toBeCloseTo(1.6 * CELL_SIZE, 0)
+  })
+
+  it('bot tower melee approach uses attack range standoff for melee troops', () => {
+    const logicY = BOT_TOWER_ROW * CELL_SIZE + CELL_SIZE / 2
+    const tower = new Tower(Owner.BOT, PRINCESS_TOWER, { x: 100, y: logicY })
+    const grid = new Grid()
+    const lancer = new Troop(
+      Owner.PLAYER,
+      CARD_DEFINITIONS.lancer!.stats!,
+      { x: 100, y: logicY + 180 },
+      grid,
+      'lancer',
+    )
+    const approach = meleeApproachPoint(lancer.position, lancer, tower, 1.6)
+
+    expect(approach.y).toBeLessThan(lancer.position.y)
+    lancer.position.x = approach.x
+    lancer.position.y = approach.y
+    expect(edgeDistBetweenEntities(lancer, tower)).toBeCloseTo(1.6 * CELL_SIZE, 0)
   })
 
   it('bot and player tower footprints mirror on the grid around logic centres', () => {

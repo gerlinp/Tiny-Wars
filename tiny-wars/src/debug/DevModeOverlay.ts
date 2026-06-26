@@ -8,8 +8,8 @@ import { EntityKind, Owner } from '@core/types'
 import { CELL_SIZE } from '@data/GameConstants'
 import { towerTextureKey } from '@rendering/AssetRegistry'
 import { displaySizeForCard, displaySizeForTower } from '@rendering/assetDisplaySize'
-import { towerRenderY } from '@rendering/towerRenderPosition'
-import { entityCollisionCenter, entityHalfExtents } from '@core/EntityGeometry'
+import { towerRenderX, towerRenderY } from '@rendering/towerRenderPosition'
+import { entityCollisionCenter, entityHalfExtents, troopCollisionRadius, buildingCombatCenter, buildingCombatRadius } from '@core/EntityGeometry'
 import { idleSheetKey } from '@data/AssetManifest'
 import { resolveTexture } from '@rendering/PlaceholderFactory'
 
@@ -71,17 +71,26 @@ export class DevModeOverlay {
 
       const ownerCol = this.ownerColor(entity.owner)
       const cardId = entityCardIds.get(entity.id)
-      const half = entityHalfExtents(entity)
-      const collisionCenter = entityCollisionCenter(entity)
 
-      // Collision footprint (image-sized for buildings, cell-sized for troops)
-      g.lineStyle(1.5, entity.kind === EntityKind.BUILDING ? COL.building : COL.grid, 0.9)
-      g.strokeRect(
-        collisionCenter.x - half.halfW,
-        collisionCenter.y - half.halfH,
-        half.halfW * 2,
-        half.halfH * 2,
-      )
+      // Collision footprint — small circle for troops, box for buildings
+      if (entity.kind === EntityKind.TROOP) {
+        const radius = troopCollisionRadius(entity)
+        g.lineStyle(1.5, COL.grid, 0.9)
+        g.strokeCircle(entity.position.x, entity.position.y, radius)
+      } else if (entity.kind === EntityKind.BUILDING) {
+        const building = entity as Building
+        const combatCenter = buildingCombatCenter(building)
+        const combatR = buildingCombatRadius()
+        g.lineStyle(1.5, COL.building, 0.9)
+        g.strokeCircle(combatCenter.x, combatCenter.y, combatR)
+        g.lineStyle(1, COL.building, 0.45)
+        g.strokeRect(
+          building.position.x - building.pathHalfW,
+          building.position.y - building.pathHalfH * 2,
+          building.pathHalfW * 2,
+          building.pathHalfH * 2,
+        )
+      }
 
       // Sprite display bounds
       if (cardId) {
@@ -111,7 +120,9 @@ export class DevModeOverlay {
       const attackRangePx = this.attackRangePx(entity)
       if (attackRangePx > 0) {
         g.lineStyle(1.5, COL.attack, 0.55)
-        const rangeCenter = entity.kind === EntityKind.BUILDING ? collisionCenter : entity.position
+        const rangeCenter = entity.kind === EntityKind.BUILDING
+          ? entityCollisionCenter(entity)
+          : entity.position
         g.strokeCircle(rangeCenter.x, rangeCenter.y, attackRangePx)
       }
 
@@ -149,11 +160,12 @@ export class DevModeOverlay {
 
       const key = towerTextureKey(tower.isKing, tower.owner)
       const size = displaySizeForTower(this.scene, tower.isKing, key)
-      const ry = towerRenderY(tower.position.y, tower.owner, tower.isKing)
+      const rx = towerRenderX(tower.position.x, tower.owner, tower.isKing)
+      const ry = towerRenderY(tower.position.y, tower.owner, tower.isKing, tower.position.x)
 
       g.lineStyle(1.5, COL.sprite, 0.7)
       g.strokeRect(
-        tower.position.x - size.width / 2,
+        rx - size.width / 2,
         ry - size.height / 2,
         size.width,
         size.height,

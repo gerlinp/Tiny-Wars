@@ -41,6 +41,19 @@ function towerHealthBarOffset(
   return { offsetX: hb.offsetX ?? 0, offsetY: hb.offsetY ?? 0 }
 }
 
+function towerVisualOffset(
+  owner: Owner,
+  isKing: boolean,
+  logicX: number,
+): { offsetX: number; offsetY: number } | null {
+  const cfg = getActiveMapConfig()?.towerVisualOffsets
+  if (!cfg) return null
+  const key = towerHealthBarKey(owner, isKing, logicColFromX(logicX))
+  const vis = cfg[key]
+  if (!vis || (vis.offsetX === undefined && vis.offsetY === undefined)) return null
+  return { offsetX: vis.offsetX ?? 0, offsetY: vis.offsetY ?? 0 }
+}
+
 /** River-facing edge of the tower's grid footprint (world Y). */
 export function towerFootprintRiverEdge(logicY: number, owner: Owner, isKing: boolean): number {
   const halfH = towerFootprintHalfExtents(isKing).halfH
@@ -65,22 +78,37 @@ function princessRenderNudgeY(owner: Owner, isKing: boolean): number {
  * sprite top (player) or bottom (bot). Princess towers get an extra nudge toward
  * the river so visible stone base lines up with the hitbox (PNG padding).
  */
-export function towerRenderY(logicY: number, owner: Owner, isKing: boolean): number {
+export function towerRenderY(logicY: number, owner: Owner, isKing: boolean, logicX?: number): number {
+  if (logicX !== undefined) {
+    const vis = towerVisualOffset(owner, isKing, logicX)
+    if (vis) return logicY + vis.offsetY
+  }
   const riverEdge = towerFootprintRiverEdge(logicY, owner, isKing)
   const halfDisplay = targetHeightForTower(isKing) / 2
   const base = owner === Owner.PLAYER ? riverEdge + halfDisplay : riverEdge - halfDisplay
   return base + princessRenderNudgeY(owner, isKing)
 }
 
+/** Sprite X — map.json override or tower logic centre. */
+export function towerRenderX(logicX: number, owner: Owner, isKing: boolean): number {
+  const vis = towerVisualOffset(owner, isKing, logicX)
+  return vis ? logicX + vis.offsetX : logicX
+}
+
 /** Visible sprite bounds (origin 0.5, 0.5) — matches TowerSprite layout. */
-export function towerVisualBounds(logicY: number, owner: Owner, isKing: boolean): {
+export function towerVisualBounds(
+  logicY: number,
+  owner: Owner,
+  isKing: boolean,
+  logicX?: number,
+): {
   top: number
   bottom: number
   renderY: number
   height: number
   riverEdge: number
 } {
-  const renderY = towerRenderY(logicY, owner, isKing)
+  const renderY = towerRenderY(logicY, owner, isKing, logicX)
   const height = targetHeightForTower(isKing)
   const halfH = height / 2
   return {
@@ -114,7 +142,7 @@ export function towerHealthBarY(
     const off = towerHealthBarOffset(owner, isKing, logicX)
     if (off) return logicY + off.offsetY
   }
-  const { renderY, top } = towerVisualBounds(logicY, owner, isKing)
+  const { renderY, top } = towerVisualBounds(logicY, owner, isKing, logicX)
   if (owner === Owner.PLAYER) {
     return renderY + TOWER_HEALTH_BAR_Y.playerOffsetFromCenter
   }

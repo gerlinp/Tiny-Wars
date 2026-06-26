@@ -4,7 +4,7 @@ import { Owner } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { towerTextureKey } from './AssetRegistry'
 import { applyTowerDisplaySize, displaySizeForCard, displaySizeForTower, type DisplaySize } from './assetDisplaySize'
-import { towerRenderY, towerHealthBarX, towerHealthBarY } from './towerRenderPosition'
+import { towerRenderX, towerRenderY, towerHealthBarX, towerHealthBarY } from './towerRenderPosition'
 import {
   GARRISON_ARCHER_FEET_Y,
   MERLON_OVERLAY,
@@ -56,11 +56,12 @@ export class TowerSprite {
     this.owner = tower.owner
     const key = towerTextureKey(tower.isKing, tower.owner)
     const size = displaySizeForTower(scene, tower.isKing, key)
-    const ry = towerRenderY(tower.position.y, tower.owner, tower.isKing)
+    const rx = towerRenderX(tower.position.x, tower.owner, tower.isKing)
+    const ry = towerRenderY(tower.position.y, tower.owner, tower.isKing, tower.position.x)
 
-    this.image = scene.add.image(tower.position.x, ry, key).setDepth(4)
+    this.image = scene.add.image(rx, ry, key).setDepth(4)
     applyTowerDisplaySize(this.image, scene, tower.isKing, key)
-    this.merlonOverlay = scene.add.image(tower.position.x, ry, key).setDepth(MERLON_DEPTH)
+    this.merlonOverlay = scene.add.image(rx, ry, key).setDepth(MERLON_DEPTH)
     this.layoutMerlonOverlay(key)
     const barX = towerHealthBarX(tower.position.x, tower.owner, tower.isKing)
     const barY = towerHealthBarY(tower.position.y, tower.owner, tower.isKing, size.height, tower.position.x)
@@ -89,8 +90,9 @@ export class TowerSprite {
   ): void {
     if (this.defeated) return
 
-    const ry = towerRenderY(logicY, this.owner, this.isKing)
-    this.image.setPosition(x, ry)
+    const rx = towerRenderX(x, this.owner, this.isKing)
+    const ry = towerRenderY(logicY, this.owner, this.isKing, x)
+    this.image.setPosition(rx, ry)
     this.layoutMerlonOverlay(this.image.texture.key)
     this.towerCx = x
     this.towerRy = ry
@@ -206,7 +208,7 @@ export class TowerSprite {
       .setTexture(textureKey)
       .setCrop(0, crop.y, frame.width, crop.height)
       .setDisplaySize(this.towerSize.width, overlayH)
-      .setPosition(this.towerCx, this.towerRy - offsetY)
+      .setPosition(this.image.x, this.towerRy - offsetY)
   }
 
   private garrisonPositions(): Vec2[] {

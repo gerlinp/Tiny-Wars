@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
-import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarDef } from './AssetManifest'
+import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarDef, resolveAttackAnimKey } from './AssetManifest'
 import { DEFAULT_DECK } from './CardData'
+import { Owner } from '@core/types'
 
 const PUBLIC = resolve(import.meta.dirname, '../../public')
 
@@ -80,6 +81,41 @@ describe('Card avatars', () => {
   it('arrows uses the archer arrow sprite for the card hand', () => {
     expect(cardAvatarKey('arrows')).toBe('arrow_blue')
     expect(getCardAvatarDef('arrows').path).toContain('Archer/Arrow.png')
+  })
+
+  it('lancer uses 320×320 Lancer sheets with correct frame counts', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'lancer')!
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Lancer/Lancer_Idle.png')
+      expect(side.run.sheet.path).toContain('Lancer/Lancer_Run.png')
+      expect(side.attack.sheet.path).toContain('Lancer/Lancer_Right_Attack.png')
+      expect(side.attackUp!.sheet.path).toContain('Lancer/Lancer_Up_Attack.png')
+      expect(side.attackDown!.sheet.path).toContain('Lancer/Lancer_Down_Attack.png')
+      expect(side.idle.sheet.frameWidth).toBe(320)
+      expect(side.idle.sheet.frameHeight).toBe(320)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attackUp!.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attackDown!.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(12)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(3)
+    expect(cardAvatarKey('lancer')).toBe('avatar_avatars_02')
+    expect(cardAvatarKey('lancer')).not.toBe('avatar_avatars_07')
+    expect(bundle.attackHitFrame).toBe(2)
+  })
+
+  it('lancer picks up/down/right attack clips from aim direction', () => {
+    expect(resolveAttackAnimKey('lancer', Owner.PLAYER, 100, 200, 100, 100))
+      .toEqual({ key: 'lancer_blue_attack_up', flipX: false })
+    expect(resolveAttackAnimKey('lancer', Owner.PLAYER, 100, 200, 100, 300))
+      .toEqual({ key: 'lancer_blue_attack_down', flipX: false })
+    expect(resolveAttackAnimKey('lancer', Owner.PLAYER, 100, 200, 160, 205))
+      .toEqual({ key: 'lancer_blue_attack', flipX: false })
+    expect(resolveAttackAnimKey('lancer', Owner.PLAYER, 100, 200, 40, 205))
+      .toEqual({ key: 'lancer_blue_attack', flipX: true })
   })
 
   it('warrior knight avatar is scaled down slightly in the hand', () => {

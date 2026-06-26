@@ -150,6 +150,9 @@ export interface SideAssets {
   idle: ClipDef
   run: ClipDef
   attack: ClipDef
+  /** Lancer — vertical attack clips (horizontal uses `attack`). */
+  attackUp?: ClipDef
+  attackDown?: ClipDef
 }
 
 export interface ImageDef {
@@ -226,13 +229,25 @@ function knightSide(unit: string, side: 'Blue' | 'Red'): SideAssets {
   }
 }
 
-const LANCER_FRAME_W = 192
+const LANCER_FRAME_W = 320
 const LANCER_FRAME_H = 320
 
-function lancerSheet(side: 'Blue' | 'Red', clip: 'idle' | 'run' | 'attack'): SheetDef {
+function lancerAttackSheet(side: 'Blue' | 'Red', dir: 'Right' | 'Up' | 'Down'): SheetDef {
   const folder = side === 'Blue' ? 'Blue Units' : 'Red Units'
   const prefix = side === 'Blue' ? 'blue' : 'red'
-  const fileClip = clip === 'attack' ? 'Right_Attack' : clip === 'run' ? 'Run' : 'Idle'
+  const keySuffix = dir === 'Right' ? 'attack' : `attack_${dir.toLowerCase()}`
+  return {
+    key: `lancer_${prefix}_${keySuffix}`,
+    path: `assets/Units/${folder}/Lancer/Lancer_${dir}_Attack.png`,
+    frameWidth: LANCER_FRAME_W,
+    frameHeight: LANCER_FRAME_H,
+  }
+}
+
+function lancerSheet(side: 'Blue' | 'Red', clip: 'idle' | 'run'): SheetDef {
+  const folder = side === 'Blue' ? 'Blue Units' : 'Red Units'
+  const prefix = side === 'Blue' ? 'blue' : 'red'
+  const fileClip = clip === 'run' ? 'Run' : 'Idle'
   return {
     key: `lancer_${prefix}_${clip}`,
     path: `assets/Units/${folder}/Lancer/Lancer_${fileClip}.png`,
@@ -244,11 +259,15 @@ function lancerSheet(side: 'Blue' | 'Red', clip: 'idle' | 'run' | 'attack'): She
 function lancerSide(side: 'Blue' | 'Red'): SideAssets {
   const idle   = lancerSheet(side, 'idle')
   const run    = lancerSheet(side, 'run')
-  const attack = lancerSheet(side, 'attack')
+  const attack = lancerAttackSheet(side, 'Right')
+  const attackUp = lancerAttackSheet(side, 'Up')
+  const attackDown = lancerAttackSheet(side, 'Down')
   return {
-    idle:   clip(idle,   0, 9, 10, -1),
-    run:    clip(run,    0, 9, 14, -1),
-    attack: clip(attack, 0, 4, 14,  0),
+    idle:   clip(idle,   0, 11, 10, -1),
+    run:    clip(run,    0, 5,  14, -1),
+    attack: clip(attack, 0, 2,  14,  0),
+    attackUp: clip(attackUp, 0, 2, 14, 0),
+    attackDown: clip(attackDown, 0, 2, 14, 0),
   }
 }
 
@@ -424,9 +443,10 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'lancer',
-    avatar: humanAvatar('Avatars_07.png'),
-    contentFill: 0.55,
-    attackHitFrame: 3,
+    avatar: humanAvatar('Avatars_02.png'),
+    contentFill: 0.42,
+    mapHeightScale: 1.2,
+    attackHitFrame: 2,
     player: lancerSide('Blue'),
     bot:    lancerSide('Red'),
   },
@@ -486,10 +506,43 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
 ]
 
 export type AnimClip = 'idle' | 'run' | 'attack'
+export type AttackAnimVariant = 'up' | 'down'
 
-export function clipAnimKey(cardId: string, owner: Owner, anim: AnimClip): string {
+export function clipAnimKey(
+  cardId: string,
+  owner: Owner,
+  anim: AnimClip,
+  variant?: AttackAnimVariant,
+): string {
   const side = owner === Owner.PLAYER ? 'blue' : 'red'
+  if (anim === 'attack' && variant) return `${cardId}_${side}_attack_${variant}`
   return `${cardId}_${side}_${anim}`
+}
+
+/** Pick horizontal (right+flip) vs up/down attack clip from aim vector. */
+export function resolveAttackAnimKey(
+  cardId: string,
+  owner: Owner,
+  fromX: number,
+  fromY: number,
+  aimX: number,
+  aimY: number,
+): { key: string; flipX: boolean } {
+  const side = getSideAssets(cardId, owner)
+  const dx = aimX - fromX
+  const dy = aimY - fromY
+
+  if (side?.attackUp && side?.attackDown && Math.abs(dy) > Math.abs(dx)) {
+    if (dy < 0) {
+      return { key: clipAnimKey(cardId, owner, 'attack', 'up'), flipX: false }
+    }
+    return { key: clipAnimKey(cardId, owner, 'attack', 'down'), flipX: false }
+  }
+
+  return {
+    key: clipAnimKey(cardId, owner, 'attack'),
+    flipX: dx < 0,
+  }
 }
 
 export function isAnimatedCard(cardId: string): boolean {
@@ -566,11 +619,17 @@ export function getUniqueSheets(): SheetDef[] {
   const sheets: SheetDef[] = []
   for (const bundle of CARD_ASSET_BUNDLES) {
     for (const sideAssets of [bundle.player, bundle.bot]) {
-      for (const clip of [sideAssets.idle, sideAssets.run, sideAssets.attack]) {
-        if (!seen.has(clip.sheet.key)) {
-          seen.add(clip.sheet.key)
-          sheets.push(clip.sheet)
-        }
+      const clips = [
+        sideAssets.idle,
+        sideAssets.run,
+        sideAssets.attack,
+        sideAssets.attackUp,
+        sideAssets.attackDown,
+      ]
+      for (const clip of clips) {
+        if (!clip || seen.has(clip.sheet.key)) continue
+        seen.add(clip.sheet.key)
+        sheets.push(clip.sheet)
       }
     }
   }

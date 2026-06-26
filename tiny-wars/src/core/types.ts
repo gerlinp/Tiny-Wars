@@ -32,6 +32,12 @@ export interface EntityStats {
   splashRadius?: number
   /** Bomb Tower — larger blast when the building is destroyed (grid cells). */
   deathSplashRadius?: number
+  /** Prince-style charge — tiles walked before charge activates. */
+  chargeDistanceCells?: number
+  /** Speed multiplier while charging (e.g. 2 = double speed). */
+  chargeSpeedMultiplier?: number
+  /** Damage multiplier on the first hit while charging. */
+  chargeDamageMultiplier?: number
 }
 
 export interface SpellStats {

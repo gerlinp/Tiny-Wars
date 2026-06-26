@@ -15,5 +15,21 @@
   "playerDeployRowMin": 23,
   "botDeployRowMax": 19,
   "terrainOverrides": {},
-  "decorations": []
+  "decorations": [],
+  "towerHealthBars": {
+    "botKing": { "offsetX": 0, "offsetY": -82 },
+    "botLeft": { "offsetX": 0, "offsetY": -129 },
+    "botRight": { "offsetX": 0, "offsetY": -138 },
+    "plyKing": { "offsetX": 0, "offsetY": 67 },
+    "plyLeft": { "offsetX": 1, "offsetY": 66 },
+    "plyRight": { "offsetX": 1, "offsetY": 62 }
+  },
+  "towerVisualOffsets": {
+    "botKing": { "offsetX": 0, "offsetY": -31 },
+    "botLeft": { "offsetX": 0, "offsetY": -67 },
+    "botRight": { "offsetX": 0, "offsetY": -67 },
+    "plyKing": { "offsetX": 0, "offsetY": 31 },
+    "plyLeft": { "offsetX": 0, "offsetY": 19 },
+    "plyRight": { "offsetX": 0, "offsetY": 19 }
+  }
 }

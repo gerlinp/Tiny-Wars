@@ -259,12 +259,14 @@ export class BattleScene extends Phaser.Scene {
 
         if (entity.kind === EntityKind.TROOP) {
           const troop = entity as Troop
-          moveSpeed = troop.stats.speed
+          moveSpeed = troop.getEffectiveSpeed()
           if (troop.state === TroopState.WALKING) anim = 'run'
           else if (troop.state === TroopState.ATTACKING) {
+            const aimPoint = troop.getAttackAimPoint() ?? undefined
             attackSync = {
               cooldownMs: troop.getAttackCooldownMs(),
               windupMs: getAttackWindupMs(cardId, entity.owner),
+              aimPoint,
             }
           }
         } else if (entity.kind === EntityKind.BUILDING) {

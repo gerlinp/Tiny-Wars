@@ -45,6 +45,9 @@ export class GameSimulator {
         y: row * CELL_SIZE + CELL_SIZE / 2,
       }
       const tower = new Tower(owner, def, pos)
+      for (const cell of tower.blockedCells) {
+        this.grid.blockCell(cell.x, cell.y)
+      }
       this.state.towers.set(tower.id, tower)
     }
 
@@ -87,6 +90,7 @@ export class GameSimulator {
     resolveTroopCollisions(this.state, deltaMs)
 
     this.unblockDeadBuildings()
+    this.unblockDeadTowers()
     resolveDeaths(this.state)
     checkTimeWin(this.state, this.state.elapsedMs)
 
@@ -182,6 +186,16 @@ export class GameSimulator {
       return true
     } else {
       return false
+    }
+  }
+
+  private unblockDeadTowers(): void {
+    for (const [, tower] of this.state.towers) {
+      if (!tower.isAlive) {
+        for (const cell of tower.blockedCells) {
+          this.grid.unblockCell(cell.x, cell.y)
+        }
+      }
     }
   }
 

@@ -1,8 +1,9 @@
 import Phaser from 'phaser'
 import { HealthBar } from './HealthBar'
 import { resolveTexture } from './PlaceholderFactory'
-import { clipAnimKey, idleSheetKey, getSideAssets, isAnimatedCard, usesTintedBotSide, BOT_SIDE_TINT, type AnimClip } from '@data/AssetManifest'
+import { clipAnimKey, idleSheetKey, getSideAssets, isAnimatedCard, usesTintedBotSide, BOT_SIDE_TINT, resolveAttackAnimKey, type AnimClip } from '@data/AssetManifest'
 import { Owner, CardType } from '@core/types'
+import type { Vec2 } from '@core/types'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { CELL_SIZE } from '@data/GameConstants'
 import { displaySizeForCard } from './assetDisplaySize'
@@ -14,6 +15,7 @@ type DisplayObject = Phaser.GameObjects.Sprite | Phaser.GameObjects.Image
 export interface AttackSync {
   cooldownMs: number
   windupMs: number
+  aimPoint?: Vec2
 }
 
 export class EntitySprite {
@@ -30,6 +32,7 @@ export class EntitySprite {
   private damageFire: DamageFireOverlay | null = null
   private bombCrew: BombTowerCrew | null = null
   private buildingSize = { width: 0, height: 0 }
+  private attackAimPoint: Vec2 | undefined
 
   constructor(
     private scene: Phaser.Scene,
@@ -91,9 +94,13 @@ export class EntitySprite {
     attackSync?: AttackSync,
   ): void {
     if (this.animated) {
+      this.attackAimPoint = attackSync?.aimPoint
+
       const dx = x - this.lastX
-      if (dx < -0.3) this.sprite.setFlipX(true)
-      else if (dx > 0.3) this.sprite.setFlipX(false)
+      if (!this.attackSwingPlaying) {
+        if (dx < -0.3) this.sprite.setFlipX(true)
+        else if (dx > 0.3) this.sprite.setFlipX(false)
+      }
 
       if (attackSync && attackSync.windupMs > 0 && !this.attackSwingPlaying) {
         if (attackSync.cooldownMs > 0 && attackSync.cooldownMs <= attackSync.windupMs) {
@@ -140,11 +147,16 @@ export class EntitySprite {
     if (!this.animated || !(this.sprite instanceof Phaser.GameObjects.Sprite)) return
     if (this.attackSwingPlaying) return
 
-    const key = clipAnimKey(this.cardId, this.owner, 'attack')
+    const aim = this.attackAimPoint
+    const { key, flipX } = aim
+      ? resolveAttackAnimKey(this.cardId, this.owner, this.sprite.x, this.sprite.y, aim.x, aim.y)
+      : { key: clipAnimKey(this.cardId, this.owner, 'attack'), flipX: this.sprite.flipX }
+
     if (!this.scene.anims.exists(key)) return
 
     this.attackSwingPlaying = true
     this.currentAnim = 'attack'
+    this.sprite.setFlipX(flipX)
     this.sprite.anims.timeScale = 1
     this.sprite.anims.play({ key, repeat: 0 }, true)
 

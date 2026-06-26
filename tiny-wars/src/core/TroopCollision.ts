@@ -1,6 +1,7 @@
 import type { GameState } from './GameState'
 import { Troop } from './entities/Troop'
-import { boxesOverlap, entityHalfExtents, separateBoxPair } from './EntityGeometry'
+import { circlesOverlap, separateCirclePair, troopCollisionRadius } from './EntityGeometry'
+import { tryAllyLateralSeparation, clampGroundTroopToWalkable } from './TroopAvoidance'
 import { EntityKind, UnitType } from './types'
 import { CELL_SIZE, EPSILON_DISTANCE } from '@data/GameConstants'
 
@@ -30,9 +31,9 @@ function tryAllyPushFromBehind(pusher: Troop, front: Troop, deltaMs: number): vo
   const toFrontY = front.position.y - pusher.position.y
   if (toFrontX * nx + toFrontY * ny <= 2) return
 
-  const halfPusher = entityHalfExtents(pusher)
-  const halfFront = entityHalfExtents(front)
-  if (!boxesOverlap(pusher.position, halfPusher, front.position, halfFront)) return
+  const halfPusher = troopCollisionRadius(pusher)
+  const halfFront = troopCollisionRadius(front)
+  if (!circlesOverlap(pusher.position, halfPusher, front.position, halfFront)) return
 
   const push = (pusher.stats.speed - front.stats.speed) * CELL_SIZE * deltaMs / 1000
   front.position.x += nx * push
@@ -51,20 +52,26 @@ export function resolveTroopCollisions(state: GameState, deltaMs: number): void 
       for (let j = i + 1; j < troops.length; j++) {
         const a = troops[i]!
         const b = troops[j]!
-        const halfA = entityHalfExtents(a)
-        const halfB = entityHalfExtents(b)
+        const rA = troopCollisionRadius(a)
+        const rB = troopCollisionRadius(b)
 
-        if (!boxesOverlap(a.position, halfA, b.position, halfB)) continue
+        if (!circlesOverlap(a.position, rA, b.position, rB)) continue
 
+        let allyLaterallySeparated = false
         if (a.owner === b.owner) {
+          allyLaterallySeparated = tryAllyLateralSeparation(a, b) || tryAllyLateralSeparation(b, a)
           tryAllyPushFromBehind(a, b, deltaMs)
           tryAllyPushFromBehind(b, a, deltaMs)
         }
 
-        if (boxesOverlap(a.position, halfA, b.position, halfB)) {
-          separateBoxPair(a.position, halfA, b.position, halfB, 0.5)
+        if (!allyLaterallySeparated && circlesOverlap(a.position, rA, b.position, rB)) {
+          separateCirclePair(a.position, rA, b.position, rB, 0.5)
         }
       }
     }
+  }
+
+  for (const troop of troops) {
+    clampGroundTroopToWalkable(troop)
   }
 }

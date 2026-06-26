@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { Troop } from './entities/Troop'
 import { Building } from './entities/Building'
+import { Tower } from './entities/Tower'
 import { Grid } from './Grid'
 import { createInitialGameState } from './GameState'
 import { Owner, UnitType, AttackType } from './types'
 import type { EntityStats } from './types'
-import { BOMB_TOWER_LIFETIME_MS } from '@data/GameConstants'
+import { BOMB_TOWER_LIFETIME_MS, BOT_KING_COL, BOT_KING_ROW, BOT_TOWER_COLS, BOT_TOWER_ROW, CELL_SIZE } from '@data/GameConstants'
+import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
 
 const troopStats: EntityStats = {
   maxHp: 500,
@@ -45,7 +47,8 @@ describe('Troop targeting', () => {
     warrior.tick(33, state)
 
     const targetPos = warrior.getDevInfo(state).targetPos
-    expect(targetPos?.x).toBeCloseTo(260, 0)
+    // Melee standoff toward the nearer troop (~260), not the distant building (~350)
+    expect(targetPos?.x).toBeLessThan(230)
     expect(targetPos?.y).toBeCloseTo(500, 0)
   })
 
@@ -63,7 +66,8 @@ describe('Troop targeting', () => {
     warrior.tick(33, state)
 
     const targetPos = warrior.getDevInfo(state).targetPos
-    expect(targetPos?.x).toBeCloseTo(130, 0)
+    expect(targetPos?.x).toBeGreaterThan(60)
+    expect(targetPos?.x).toBeLessThan(140)
   })
 
   it('keeps attacking the current target once in melee range', () => {
@@ -83,5 +87,85 @@ describe('Troop targeting', () => {
 
     expect(far.hp).toBeLessThan(farHpAfter)
     expect(near.hp).toBe(troopStats.maxHp)
+  })
+
+  it('marches toward active enemy king when princess towers are gone', () => {
+    const warrior = new Troop(
+      Owner.PLAYER,
+      troopStats,
+      { x: BOT_KING_COL * CELL_SIZE, y: 18 * CELL_SIZE },
+      grid,
+      'warrior',
+    )
+    const king = new Tower(
+      Owner.BOT,
+      KING_TOWER,
+      { x: BOT_KING_COL * CELL_SIZE, y: BOT_KING_ROW * CELL_SIZE },
+    )
+    king.activate()
+    const state = createInitialGameState()
+    state.entities.set(warrior.id, warrior)
+    state.towers.set(king.id, king)
+
+    warrior.tick(33, state)
+    const info = warrior.getDevInfo(state)
+    expect(info.targetPos).not.toBeNull()
+    expect(info.targetPos!.y).toBeLessThan(warrior.position.y)
+    expect(info.marchGoal).toBeNull()
+  })
+
+  it('prefers nearest princess tower over king for march objective', () => {
+    const leftCol = BOT_TOWER_COLS[0]!
+    const princess = new Tower(
+      Owner.BOT,
+      PRINCESS_TOWER,
+      { x: leftCol * CELL_SIZE, y: BOT_TOWER_ROW * CELL_SIZE },
+    )
+    const king = new Tower(
+      Owner.BOT,
+      KING_TOWER,
+      { x: BOT_KING_COL * CELL_SIZE, y: BOT_KING_ROW * CELL_SIZE },
+    )
+    king.activate()
+    const warrior = new Troop(
+      Owner.PLAYER,
+      troopStats,
+      { x: leftCol * CELL_SIZE, y: 22 * CELL_SIZE },
+      grid,
+      'warrior',
+    )
+    const state = createInitialGameState()
+    state.entities.set(warrior.id, warrior)
+    state.towers.set(princess.id, princess)
+    state.towers.set(king.id, king)
+
+    warrior.tick(33, state)
+    const info = warrior.getDevInfo(state)
+    expect(info.targetPos).not.toBeNull()
+    expect(info.targetPos!.y).toBeLessThan(warrior.position.y)
+    expect(Math.abs(info.targetPos!.x - princess.position.x)).toBeLessThan(40)
+  })
+
+  it('ignores dormant enemy king for structure march', () => {
+    const king = new Tower(
+      Owner.BOT,
+      KING_TOWER,
+      { x: BOT_KING_COL * CELL_SIZE, y: BOT_KING_ROW * CELL_SIZE },
+    )
+    const warrior = new Troop(
+      Owner.PLAYER,
+      troopStats,
+      { x: BOT_KING_COL * CELL_SIZE, y: 22 * CELL_SIZE },
+      grid,
+      'warrior',
+    )
+    const state = createInitialGameState()
+    state.entities.set(warrior.id, warrior)
+    state.towers.set(king.id, king)
+
+    warrior.tick(33, state)
+    const marchGoal = warrior.getDevInfo(state).marchGoal
+    expect(marchGoal).not.toBeNull()
+    expect(marchGoal!.y).toBeGreaterThan(king.position.y)
   })
 })

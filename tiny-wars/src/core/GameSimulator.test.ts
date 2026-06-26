@@ -3,7 +3,10 @@ import { Grid } from './Grid'
 import { GameSimulator } from './GameSimulator'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { Owner } from './types'
-import { PLAYER_DEPLOY_ROW_MIN, PLAYER_DEPLOY_ROW_MAX } from '@data/GameConstants'
+import { PLAYER_DEPLOY_ROW_MIN, PLAYER_DEPLOY_ROW_MAX, BOT_KING_COL, BOT_KING_ROW, CELL_SIZE } from '@data/GameConstants'
+import { Troop } from './entities/Troop'
+import { resolveTroopCollisions } from './TroopCollision'
+import { edgeDistBetweenEntities } from './EntityGeometry'
 
 function makeSim() {
   return new GameSimulator(new Grid())
@@ -16,6 +19,54 @@ describe('GameSimulator', () => {
     const botTowers    = [...sim.state.towers.values()].filter(t => t.owner === Owner.BOT)
     expect(playerTowers).toHaveLength(3)
     expect(botTowers).toHaveLength(3)
+  })
+
+  it('blocks tower footprint cells on the pathfinding grid', () => {
+    const grid = new Grid()
+    const sim = new GameSimulator(grid)
+    for (const tower of sim.state.towers.values()) {
+      for (const cell of tower.blockedCells) {
+        expect(grid.isWalkable(cell.x, cell.y)).toBe(false)
+      }
+    }
+  })
+
+  it('lets a lancer path around the king footprint to melee range', () => {
+    const grid = new Grid()
+    const sim = new GameSimulator(grid)
+    const state = sim.state
+    const lancerStats = CARD_DEFINITIONS.lancer!.stats!
+
+    let botKing = null as import('./entities/Tower').Tower | null
+    for (const [id, tower] of state.towers) {
+      if (tower.owner === Owner.BOT && tower.isKing) {
+        tower.activate()
+        botKing = tower
+      } else if (tower.owner === Owner.BOT) {
+        for (const cell of tower.blockedCells) grid.unblockCell(cell.x, cell.y)
+        state.towers.delete(id)
+      }
+    }
+
+    const lancer = new Troop(
+      Owner.PLAYER,
+      lancerStats,
+      { x: (BOT_KING_COL + 3) * CELL_SIZE, y: 14 * CELL_SIZE },
+      grid,
+      'lancer',
+    )
+    state.entities.set(lancer.id, lancer)
+
+    for (let i = 0; i < 500; i++) {
+      lancer.tick(50, state)
+      for (const tower of state.towers.values()) tower.tick(50, state)
+      resolveTroopCollisions(state, 50)
+    }
+
+    expect(botKing).not.toBeNull()
+    expect(edgeDistBetweenEntities(lancer, botKing!)).toBeLessThanOrEqual(
+      lancerStats.attackRange * CELL_SIZE + 1,
+    )
   })
 
   it('starts with 4 elixir each', () => {

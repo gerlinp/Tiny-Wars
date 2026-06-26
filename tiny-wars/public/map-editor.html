@@ -202,7 +202,7 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
   </div>
 
   <div class="section">
-    <div class="section-title">Towers</div>
+    <div class="section-title">Towers — solid box = hitbox, transparent art = visual</div>
     <table class="tower-table">
       <thead><tr><th>Tower</th><th>Col</th><th>Row</th></tr></thead>
       <tbody>
@@ -212,6 +212,21 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
         <tr><td>Ply King</td>   <td id="td-pk-col">11</td><td id="td-pk-row">37</td></tr>
         <tr><td>Ply Left ♟</td><td id="td-pl-col">4</td> <td id="td-pl-row">27</td></tr>
         <tr><td>Ply Right ♟</td><td id="td-pr-col">19</td><td id="td-pr-row">27</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Tower visuals — drag sprite (offsets in game px)</div>
+    <table class="tower-table">
+      <thead><tr><th>Tower</th><th>ΔX</th><th>ΔY</th></tr></thead>
+      <tbody>
+        <tr><td>Bot King</td>    <td id="vis-bk-x">0</td><td id="vis-bk-y">0</td></tr>
+        <tr><td>Bot Left</td>    <td id="vis-bl-x">0</td><td id="vis-bl-y">0</td></tr>
+        <tr><td>Bot Right</td>   <td id="vis-br-x">0</td><td id="vis-br-y">0</td></tr>
+        <tr><td>Ply King</td>    <td id="vis-pk-x">0</td><td id="vis-pk-y">0</td></tr>
+        <tr><td>Ply Left</td>    <td id="vis-pl-x">0</td><td id="vis-pl-y">0</td></tr>
+        <tr><td>Ply Right</td>   <td id="vis-pr-x">0</td><td id="vis-pr-y">0</td></tr>
       </tbody>
     </table>
   </div>
@@ -298,6 +313,11 @@ const HB_SIDEBAR_IDS = {
   botRight: ['hb-br-x', 'hb-br-y'], plyKing: ['hb-pk-x', 'hb-pk-y'],
   plyLeft: ['hb-pl-x', 'hb-pl-y'], plyRight: ['hb-pr-x', 'hb-pr-y'],
 }
+const VIS_SIDEBAR_IDS = {
+  botKing: ['vis-bk-x', 'vis-bk-y'], botLeft: ['vis-bl-x', 'vis-bl-y'],
+  botRight: ['vis-br-x', 'vis-br-y'], plyKing: ['vis-pk-x', 'vis-pk-y'],
+  plyLeft: ['vis-pl-x', 'vis-pl-y'], plyRight: ['vis-pr-x', 'vis-pr-y'],
+}
 
 // ── Decoration catalog ────────────────────────────────────────
 // fw/fh = dimensions of ONE frame (for spritesheets, frame 0 is shown)
@@ -377,13 +397,14 @@ const PRINCESS_NUDGE_GAME = { player: -48, bot: 0 }
 const TOWER_SPRITE_ALPHA = 0.62
 
 const TOWER_INFO = {
-  botKing:  { label: '♛', fill: 'rgba(204,48,48,0.35)',  stroke: '#ff6060', isKing: true,  owner: 'bot',    imgKey: 'castle_red' },
-  botLeft:  { label: 'T',  fill: 'rgba(160,32,32,0.35)',  stroke: '#dd4444', isKing: false, owner: 'bot',    imgKey: 'tower_red'  },
-  botRight: { label: 'T',  fill: 'rgba(160,32,32,0.35)',  stroke: '#dd4444', isKing: false, owner: 'bot',    imgKey: 'tower_red'  },
-  plyKing:  { label: '♛', fill: 'rgba(32,80,204,0.35)',   stroke: '#6090ff', isKing: true,  owner: 'player', imgKey: 'castle_blue' },
-  plyLeft:  { label: 'T',  fill: 'rgba(26,58,154,0.35)',  stroke: '#4466dd', isKing: false, owner: 'player', imgKey: 'tower_blue' },
-  plyRight: { label: 'T',  fill: 'rgba(26,58,154,0.35)',  stroke: '#4466dd', isKing: false, owner: 'player', imgKey: 'tower_blue' },
+  botKing:  { label: '♛', hitFill: 'rgba(180,40,40,0.78)',  stroke: '#ff6060', isKing: true,  owner: 'bot',    imgKey: 'castle_red' },
+  botLeft:  { label: 'T',  hitFill: 'rgba(140,32,32,0.78)',  stroke: '#dd4444', isKing: false, owner: 'bot',    imgKey: 'tower_red'  },
+  botRight: { label: 'T',  hitFill: 'rgba(140,32,32,0.78)',  stroke: '#dd4444', isKing: false, owner: 'bot',    imgKey: 'tower_red'  },
+  plyKing:  { label: '♛', hitFill: 'rgba(32,72,180,0.78)',   stroke: '#6090ff', isKing: true,  owner: 'player', imgKey: 'castle_blue' },
+  plyLeft:  { label: 'T',  hitFill: 'rgba(26,58,154,0.78)',  stroke: '#4466dd', isKing: false, owner: 'player', imgKey: 'tower_blue' },
+  plyRight: { label: 'T',  hitFill: 'rgba(26,58,154,0.78)',  stroke: '#4466dd', isKing: false, owner: 'player', imgKey: 'tower_blue' },
 }
+const TOWER_KEYS = Object.keys(TOWER_INFO)
 
 function towerDisplayHeightGame(isKing) {
   const tier = isKing ? TOWER_TIER.king : TOWER_TIER.princess
@@ -399,7 +420,25 @@ function towerRenderOffsetGame(owner, isKing) {
     : fpHalf - halfDisplay + nudge
 }
 
-function towerSpriteLayout(towerKey, towers = state.towers) {
+function defaultTowerVisualOffset(towerKey) {
+  const info = TOWER_INFO[towerKey]
+  return {
+    offsetX: 0,
+    offsetY: Math.round(towerRenderOffsetGame(info.owner, info.isKing)),
+  }
+}
+
+function defaultTowerVisuals() {
+  const vis = {}
+  for (const k of TOWER_KEYS) vis[k] = defaultTowerVisualOffset(k)
+  return vis
+}
+
+function towerFootprintCells(isKing) {
+  return isKing ? { w: 4, h: 4 } : { w: 3, h: 3 }
+}
+
+function towerVisualLayout(towerKey, towers = state.towers, visuals = state.towerVisuals) {
   const info = TOWER_INFO[towerKey]
   const t = towers[towerKey]
   if (!t) return null
@@ -408,8 +447,10 @@ function towerSpriteLayout(towerKey, towers = state.towers) {
   const displayW = displayH * (tier.nativeW / tier.nativeH)
   const cx = canvasX(t.col) + CELL / 2
   const cy = canvasY(t.row) + CELL / 2
-  const renderY = cy + towerRenderOffsetGame(info.owner, info.isKing) * GAME_TO_EDITOR
-  return { cx, cy, renderY, displayW, displayH, imgKey: info.imgKey }
+  const vis = visuals?.[towerKey] ?? defaultTowerVisualOffset(towerKey)
+  const visualX = cx + vis.offsetX * GAME_TO_EDITOR
+  const visualY = cy + vis.offsetY * GAME_TO_EDITOR
+  return { cx, cy, visualX, visualY, displayW, displayH, imgKey: info.imgKey }
 }
 
 // Mirrors towerRenderPosition.ts + TOWER_HEALTH_BAR_Y defaults (game px)
@@ -446,6 +487,7 @@ const DEFAULTS = () => ({
   overrides: {},
   decorations: [],  // { id, col, row } — col/row may be outside grid bounds
   healthBars: defaultHealthBars(),
+  towerVisuals: defaultTowerVisuals(),
 })
 
 let state = DEFAULTS()
@@ -547,7 +589,8 @@ function draw() {
   drawDecorations()
   drawRiverHandles()
   drawBridgeHandles()
-  drawTowers()
+  drawTowerHitboxes()
+  drawTowerVisuals()
   if (showHealthBars) drawHealthBars()
 }
 
@@ -626,6 +669,21 @@ function healthBarsFromMapConfig(data) {
   return bars
 }
 
+function towerVisualsFromMapConfig(data) {
+  const vis = {}
+  for (const k of TOWER_KEYS) {
+    if (data.towerVisualOffsets?.[k]) {
+      vis[k] = {
+        offsetX: data.towerVisualOffsets[k].offsetX ?? 0,
+        offsetY: data.towerVisualOffsets[k].offsetY ?? 0,
+      }
+    } else {
+      vis[k] = defaultTowerVisualOffset(k)
+    }
+  }
+  return vis
+}
+
 function mapConfigFromState(s = state) {
   const [la, lb] = [s.leftBridge, s.leftBridge + 1]
   const [ra, rb] = [s.rightBridge, s.rightBridge + 1]
@@ -649,6 +707,9 @@ function mapConfigFromState(s = state) {
     towerHealthBars: Object.fromEntries(
       HEALTH_BAR_KEYS.map(k => [k, { ...s.healthBars[k] }]),
     ),
+    towerVisualOffsets: Object.fromEntries(
+      TOWER_KEYS.map(k => [k, { ...s.towerVisuals[k] }]),
+    ),
   }
 }
 
@@ -656,36 +717,30 @@ function drawLiveMapReference() {
   if (!liveMap) return
 
   const liveTowers = towersFromMapConfig(liveMap)
+  const liveVis = towerVisualsFromMapConfig(liveMap)
   const liveHB = healthBarsFromMapConfig(liveMap)
   const liveDecos = liveMap.decorations ?? []
 
   drawDecorations(liveDecos, LIVE_GHOST_ALPHA)
 
-  const r = CELL * 1.1
   for (const [key, info] of Object.entries(TOWER_INFO)) {
-    const layout = towerSpriteLayout(key, liveTowers)
-    if (!layout) continue
-    const { cx, cy, renderY, displayW, displayH, imgKey } = layout
-    const img = towerImages[imgKey]
-    const cur = state.towers[key]
     const saved = liveTowers[key]
+    const cur = state.towers[key]
     const moved = cur.col !== saved.col || cur.row !== saved.row
+    const { cx, cy } = towerCanvasCenter(key, liveTowers)
+    const fp = towerFootprintCells(info.isKing)
+    const w = fp.w * CELL, h = fp.h * CELL
 
     ctx.save()
     ctx.setLineDash([4, 4])
-    ctx.beginPath()
-    ctx.arc(cx, cy, r, 0, Math.PI * 2)
     ctx.strokeStyle = moved ? LIVE_GHOST_STROKE : 'rgba(111,212,176,0.45)'
     ctx.lineWidth = moved ? 2 : 1
-    ctx.stroke()
+    ctx.strokeRect(cx - w / 2, cy - h / 2, w, h)
     ctx.setLineDash([])
-
-    if (img?.complete && img.naturalWidth > 0) {
-      ctx.globalAlpha = moved ? LIVE_GHOST_ALPHA : LIVE_GHOST_ALPHA * 0.55
-      ctx.drawImage(img, cx - displayW / 2, renderY - displayH / 2, displayW, displayH)
-    }
     ctx.restore()
   }
+
+  drawTowerVisuals(liveTowers, liveVis, { interactive: false, alpha: LIVE_GHOST_ALPHA })
 
   if (showHealthBars) {
     for (const key of HEALTH_BAR_KEYS) {
@@ -723,34 +778,59 @@ function drawBridgeHandles() {
   }
 }
 
-function drawTowers() {
-  const r = CELL * 1.2
-  for (const [key, info] of Object.entries(TOWER_INFO)) {
-    const layout = towerSpriteLayout(key)
-    const { cx, cy, renderY, displayW, displayH, imgKey } = layout
-    const img = towerImages[imgKey]
-    const selected = drag?.type === 'tower' && drag.towerKey === key
+function drawCrosshair(x, y, size = 6) {
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(x - size, y); ctx.lineTo(x + size, y)
+  ctx.moveTo(x, y - size); ctx.lineTo(x, y + size)
+  ctx.stroke()
+}
 
-    // Drag handle — grid-centre placeholder (hitbox unchanged)
-    ctx.beginPath()
-    ctx.arc(cx, cy, r, 0, Math.PI * 2)
-    ctx.fillStyle = info.fill
-    ctx.fill()
+function drawTowerHitboxes(towers = state.towers) {
+  for (const [key, info] of Object.entries(TOWER_INFO)) {
+    const t = towers[key]
+    if (!t) continue
+    const { cx, cy } = towerCanvasCenter(key, towers)
+    const fp = towerFootprintCells(info.isKing)
+    const w = fp.w * CELL, h = fp.h * CELL
+    const selected = drag?.type === 'towerHitbox' && drag.towerKey === key
+
+    ctx.fillStyle = info.hitFill
+    ctx.fillRect(cx - w / 2, cy - h / 2, w, h)
     ctx.strokeStyle = selected ? '#ffffff' : info.stroke
-    ctx.lineWidth = selected ? 2.5 : 1.5
-    ctx.stroke()
+    ctx.lineWidth = selected ? 2.5 : 2
+    ctx.strokeRect(cx - w / 2, cy - h / 2, w, h)
+
     ctx.fillStyle = '#fff'
-    ctx.font = `bold ${Math.round(r * 0.9)}px sans-serif`
+    ctx.font = 'bold 10px sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(info.label, cx, cy)
+  }
+}
 
-    // Semi-transparent sprite preview over the placeholder at in-game render position
+function drawTowerVisuals(towers = state.towers, visuals = state.towerVisuals, opts = {}) {
+  const { interactive = true, alpha = null } = opts
+  for (const [key] of Object.entries(TOWER_INFO)) {
+    const layout = towerVisualLayout(key, towers, visuals)
+    if (!layout) continue
+    const { visualX, visualY, displayW, displayH, imgKey } = layout
+    const img = towerImages[imgKey]
+    const selected = interactive && drag?.type === 'towerVisual' && drag.towerKey === key
+
     if (img?.complete && img.naturalWidth > 0) {
       ctx.save()
-      ctx.globalAlpha = selected ? 0.88 : TOWER_SPRITE_ALPHA
-      ctx.drawImage(img, cx - displayW / 2, renderY - displayH / 2, displayW, displayH)
+      ctx.globalAlpha = alpha ?? (selected ? 0.72 : TOWER_SPRITE_ALPHA)
+      ctx.drawImage(img, visualX - displayW / 2, visualY - displayH / 2, displayW, displayH)
       ctx.restore()
+    }
+
+    if (selected) {
+      ctx.strokeStyle = '#80c0ff'
+      ctx.lineWidth = 1.5
+      ctx.strokeRect(visualX - displayW / 2, visualY - displayH / 2, displayW, displayH)
+      drawCrosshair(visualX, visualY)
     }
   }
 }
@@ -847,6 +927,11 @@ function updateSidebar() {
     document.getElementById(xid).textContent = Math.round(hb.offsetX)
     document.getElementById(yid).textContent = Math.round(hb.offsetY)
   }
+  for (const [k, [xid, yid]] of Object.entries(VIS_SIDEBAR_IDS)) {
+    const vis = state.towerVisuals[k] ?? { offsetX: 0, offsetY: 0 }
+    document.getElementById(xid).textContent = Math.round(vis.offsetX)
+    document.getElementById(yid).textContent = Math.round(vis.offsetY)
+  }
 }
 
 function redraw() {
@@ -881,12 +966,27 @@ function hitTestHealthBar(mx, my) {
   return null
 }
 
-function hitTestTower(mx, my) {
-  const r = CELL * 1.2
-  for (const [key, t] of Object.entries(state.towers)) {
-    const cx = canvasX(t.col) + CELL / 2, cy = canvasY(t.row) + CELL / 2
-    const dx = mx - cx, dy = my - cy
-    if (dx * dx + dy * dy <= r * r) return key
+function hitTestTowerVisual(mx, my) {
+  for (let i = TOWER_KEYS.length - 1; i >= 0; i--) {
+    const key = TOWER_KEYS[i]
+    const layout = towerVisualLayout(key)
+    if (!layout) continue
+    const { visualX, visualY, displayW, displayH } = layout
+    if (mx >= visualX - displayW / 2 && mx <= visualX + displayW / 2 &&
+        my >= visualY - displayH / 2 && my <= visualY + displayH / 2) return key
+  }
+  return null
+}
+
+function hitTestTowerHitbox(mx, my) {
+  for (let i = TOWER_KEYS.length - 1; i >= 0; i--) {
+    const key = TOWER_KEYS[i]
+    const info = TOWER_INFO[key]
+    const { cx, cy } = towerCanvasCenter(key)
+    const fp = towerFootprintCells(info.isKing)
+    const w = fp.w * CELL, h = fp.h * CELL
+    if (mx >= cx - w / 2 && mx <= cx + w / 2 &&
+        my >= cy - h / 2 && my <= cy + h / 2) return key
   }
   return null
 }
@@ -897,8 +997,11 @@ function hitTest(mx, my) {
   const hbKey = hitTestHealthBar(mx, my)
   if (hbKey) return { type: 'healthBar', towerKey: hbKey }
 
-  const tower = hitTestTower(mx, my)
-  if (tower) return { type: 'tower', tower }
+  const visual = hitTestTowerVisual(mx, my)
+  if (visual) return { type: 'towerVisual', towerKey: visual }
+
+  const hitbox = hitTestTowerHitbox(mx, my)
+  if (hitbox) return { type: 'towerHitbox', towerKey: hitbox }
 
   const decoIdx = hitTestDecoration(mx, my)
   if (decoIdx !== -1) return { type: 'decoration', decoIdx }
@@ -921,7 +1024,7 @@ function getCursorFor(mx, my) {
   if (activeTool === 'water' || activeTool === 'grass') return 'crosshair'
   if (activeTool === 'deco' && selectedDeco) return 'copy'
   const hit = hitTest(mx, my)
-  if (['tower','decoration','river','bridgeLeft','bridgeRight','healthBar'].includes(hit.type)) return 'grab'
+  if (['towerHitbox','towerVisual','decoration','river','bridgeLeft','bridgeRight','healthBar'].includes(hit.type)) return 'grab'
   if (hit.type === 'riverTop' || hit.type === 'riverBottom') return 'ns-resize'
   return 'default'
 }
@@ -993,9 +1096,24 @@ canvas.addEventListener('mousedown', e => {
     }; return
   }
 
+  if (hit.type === 'towerHitbox') {
+    drag = {
+      type: 'towerHitbox', towerKey: hit.towerKey,
+      startX: mx, startY: my,
+      origTower: { ...state.towers[hit.towerKey] },
+    }; return
+  }
+
+  if (hit.type === 'towerVisual') {
+    drag = {
+      type: 'towerVisual', towerKey: hit.towerKey,
+      startX: mx, startY: my,
+      origVisual: { ...state.towerVisuals[hit.towerKey] },
+    }; return
+  }
+
   drag = {
-    type: hit.type === 'tower' ? 'tower' : hit.type,
-    towerKey: hit.tower,
+    type: hit.type,
     startX: mx, startY: my,
     origState: deepClone(state),
   }
@@ -1017,13 +1135,18 @@ canvas.addEventListener('mousemove', e => {
 
   const dCol = Math.round((mx - drag.startX) / CELL)
   const dRow = Math.round((my - drag.startY) / CELL)
-  const o    = drag.origState
 
-  if (drag.type === 'tower') {
-    const orig = o.towers[drag.towerKey]
+  if (drag.type === 'towerHitbox') {
     state.towers[drag.towerKey] = {
-      col: clamp(orig.col + dCol, 0, COLS - 1),
-      row: clamp(orig.row + dRow, 0, ROWS - 1),
+      col: clamp(drag.origTower.col + dCol, 0, COLS - 1),
+      row: clamp(drag.origTower.row + dRow, 0, ROWS - 1),
+    }
+  } else if (drag.type === 'towerVisual') {
+    const dxGame = (mx - drag.startX) * EDITOR_TO_GAME
+    const dyGame = (my - drag.startY) * EDITOR_TO_GAME
+    state.towerVisuals[drag.towerKey] = {
+      offsetX: Math.round(drag.origVisual.offsetX + dxGame),
+      offsetY: Math.round(drag.origVisual.offsetY + dyGame),
     }
   } else if (drag.type === 'healthBar') {
     const { cx, cy } = towerCanvasCenter(drag.towerKey)
@@ -1040,16 +1163,21 @@ canvas.addEventListener('mousemove', e => {
       row: drag.origDeco.row + dRow,
     }
   } else if (drag.type === 'riverTop') {
+    const o = drag.origState
     state.river.start = clamp(o.river.start + dRow, 0, o.river.end - 1)
   } else if (drag.type === 'riverBottom') {
+    const o = drag.origState
     state.river.end   = clamp(o.river.end + dRow, o.river.start + 1, ROWS - 1)
   } else if (drag.type === 'river') {
+    const o = drag.origState
     const h = o.river.end - o.river.start
     const ns = clamp(o.river.start + dRow, 0, ROWS - 1 - h)
     state.river.start = ns; state.river.end = ns + h
   } else if (drag.type === 'bridgeLeft') {
+    const o = drag.origState
     state.leftBridge  = clamp(o.leftBridge  + dCol, 0, COLS - 3)
   } else if (drag.type === 'bridgeRight') {
+    const o = drag.origState
     state.rightBridge = clamp(o.rightBridge + dCol, 0, COLS - 3)
   }
   redraw()
@@ -1068,6 +1196,18 @@ canvas.addEventListener('mouseup', () => {
       undoStack.push({ type: 'hb-move', towerKey: drag.towerKey, orig })
     }
   }
+  if (drag?.type === 'towerHitbox') {
+    const orig = drag.origTower, curr = state.towers[drag.towerKey]
+    if (curr && (orig.col !== curr.col || orig.row !== curr.row)) {
+      undoStack.push({ type: 'tower-move', towerKey: drag.towerKey, orig })
+    }
+  }
+  if (drag?.type === 'towerVisual') {
+    const orig = drag.origVisual, curr = state.towerVisuals[drag.towerKey]
+    if (curr && (orig.offsetX !== curr.offsetX || orig.offsetY !== curr.offsetY)) {
+      undoStack.push({ type: 'vis-move', towerKey: drag.towerKey, orig })
+    }
+  }
   drag = null; isPainting = false
 })
 
@@ -1082,6 +1222,18 @@ canvas.addEventListener('mouseleave', () => {
     const orig = drag.origHealthBar, curr = state.healthBars[drag.towerKey]
     if (curr && (orig.offsetX !== curr.offsetX || orig.offsetY !== curr.offsetY)) {
       undoStack.push({ type: 'hb-move', towerKey: drag.towerKey, orig })
+    }
+  }
+  if (drag?.type === 'towerHitbox') {
+    const orig = drag.origTower, curr = state.towers[drag.towerKey]
+    if (curr && (orig.col !== curr.col || orig.row !== curr.row)) {
+      undoStack.push({ type: 'tower-move', towerKey: drag.towerKey, orig })
+    }
+  }
+  if (drag?.type === 'towerVisual') {
+    const orig = drag.origVisual, curr = state.towerVisuals[drag.towerKey]
+    if (curr && (orig.offsetX !== curr.offsetX || orig.offsetY !== curr.offsetY)) {
+      undoStack.push({ type: 'vis-move', towerKey: drag.towerKey, orig })
     }
   }
   drag = null; isPainting = false
@@ -1150,6 +1302,9 @@ function buildExport() {
     decorations:        state.decorations.map(d => ({ id: d.id, col: d.col, row: d.row })),
     towerHealthBars:    Object.fromEntries(
       HEALTH_BAR_KEYS.map(k => [k, { ...state.healthBars[k] }]),
+    ),
+    towerVisualOffsets: Object.fromEntries(
+      TOWER_KEYS.map(k => [k, { ...state.towerVisuals[k] }]),
     ),
   }
 }
@@ -1255,6 +1410,10 @@ document.addEventListener('keydown', e => {
       state.decorations[entry.idx] = entry.orig
     } else if (entry.type === 'hb-move') {
       state.healthBars[entry.towerKey] = entry.orig
+    } else if (entry.type === 'tower-move') {
+      state.towers[entry.towerKey] = entry.orig
+    } else if (entry.type === 'vis-move') {
+      state.towerVisuals[entry.towerKey] = entry.orig
     }
     redraw()
   }
@@ -1271,6 +1430,7 @@ function applyMapConfig(data) {
   if (data.terrainOverrides) state.overrides = { ...data.terrainOverrides }
   if (data.decorations) state.decorations = data.decorations.map(d => ({ ...d }))
   state.healthBars = healthBarsFromMapConfig(data)
+  state.towerVisuals = towerVisualsFromMapConfig(data)
 }
 
 async function loadMapJson() {

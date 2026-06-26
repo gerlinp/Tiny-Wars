@@ -1,6 +1,6 @@
 import { CardType, UnitType, AttackType } from '@core/types'
 import type { CardDefinition, EntityStats, SpellStats } from '@core/types'
-import { BOMB_TOWER_LIFETIME_MS, CR_SPEED, crSpeedToCellsPerSec } from '@data/GameConstants'
+import { BOMB_TOWER_LIFETIME_MS, CR_SPEED, crSpeedToCellsPerSec, LANCER_CHARGE_DAMAGE_MULT, LANCER_CHARGE_DISTANCE_CELLS, LANCER_CHARGE_SPEED_MULT } from '@data/GameConstants'
 
 function troop(
   id: string,
@@ -87,7 +87,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'pawn_blue_idle', 'pawn_red_idle'),
 
-  /** Clash Royale {@link https://liquipedia.net/clashroyale/Prince Prince} L14 — base melee (charge omitted). */
+  /** Clash Royale {@link https://liquipedia.net/clashroyale/Prince Prince} L14 — melee with charge. */
   lancer: troop('lancer', 'Lancer', 5, {
     maxHp: 2542,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
@@ -96,6 +96,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     attackRange: 1.6,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
+    chargeDistanceCells: LANCER_CHARGE_DISTANCE_CELLS,
+    chargeSpeedMultiplier: LANCER_CHARGE_SPEED_MULT,
+    chargeDamageMultiplier: LANCER_CHARGE_DAMAGE_MULT,
   }, 'lancer_blue_idle', 'lancer_red_idle'),
 
   wizard: troop('wizard', 'Wizard', 5, {

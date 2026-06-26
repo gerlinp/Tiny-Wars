@@ -156,8 +156,22 @@ export const BOMB_TOWER_LIFETIME_MS = 30_000
 /** Melee troop detection radius (ranged troops use their attack range instead) */
 export const TROOP_AGGRO_RANGE_CELLS = 6
 
-/** Ground troop body box width vs display height (feet-level collision). */
+/** Clash Royale Prince — charge after this many tiles of walking. */
+export const LANCER_CHARGE_DISTANCE_CELLS = 3.5
+export const LANCER_CHARGE_SPEED_MULT = 2
+export const LANCER_CHARGE_DAMAGE_MULT = 2
+
+/** Ground troop feet collision — small circle (CR-style), not sprite-sized boxes. */
+export const TROOP_COLLISION_RADIUS_CELLS = 0.35
+
+/** Deployed building combat hull — CR non-spawner buildings use ~0.6 tiles. */
+export const BUILDING_COMBAT_RADIUS_CELLS = 0.6
+
+/** Grid cells blocked for pathfinding (separate from combat circle). */
+export const BUILDING_FOOTPRINT_CELLS = { w: 2, h: 2 } as const
+
+/** @deprecated Used only for building footprint sizing in assetDisplaySize. */
 export const TROOP_COLLISION_WIDTH_RATIO = 0.38
 
-/** Ground troop body box depth vs display height (feet-level collision). */
+/** @deprecated Used only for building footprint sizing in assetDisplaySize. */
 export const TROOP_COLLISION_HEIGHT_RATIO = 0.22

@@ -4,7 +4,7 @@ import { Grid } from './Grid'
 import { createInitialGameState } from './GameState'
 import { Owner, UnitType, AttackType } from './types'
 import type { EntityStats } from './types'
-import { boxesOverlap, entityHalfExtents, separateBoxPair } from './EntityGeometry'
+import { circlesOverlap, separateCirclePair, troopCollisionRadius } from './EntityGeometry'
 import { resolveTroopCollisions } from './TroopCollision'
 import { crSpeedToCellsPerSec, CR_SPEED } from '@data/GameConstants'
 
@@ -35,13 +35,13 @@ describe('TroopCollision', () => {
 
     resolveTroopCollisions(state, 33)
 
-    const half = entityHalfExtents(a)
-    expect(boxesOverlap(a.position, half, b.position, half)).toBe(false)
+    const r = troopCollisionRadius(a)
+    expect(circlesOverlap(a.position, r, b.position, r)).toBe(false)
   })
 
   it('pushes a slower ally forward when a faster unit is behind', () => {
     const slow = new Troop(Owner.PLAYER, slowStats, { x: 200, y: 500 }, grid, 'warrior')
-    const fast = new Troop(Owner.PLAYER, fastStats, { x: 200, y: 520 }, grid, 'torch_goblin')
+    const fast = new Troop(Owner.PLAYER, fastStats, { x: 200, y: 512 }, grid, 'torch_goblin')
     const state = createInitialGameState()
     state.entities.set(slow.id, slow)
     state.entities.set(fast.id, fast)
@@ -54,29 +54,31 @@ describe('TroopCollision', () => {
 
   it('still separates overlapping enemy troops', () => {
     const front = new Troop(Owner.PLAYER, slowStats, { x: 200, y: 500 }, grid, 'warrior')
-    const behind = new Troop(Owner.BOT, fastStats, { x: 230, y: 518 }, grid, 'torch_goblin')
+    const behind = new Troop(Owner.BOT, fastStats, { x: 200, y: 500 }, grid, 'torch_goblin')
     const state = createInitialGameState()
     state.entities.set(front.id, front)
     state.entities.set(behind.id, behind)
 
-    const halfFront = entityHalfExtents(front)
-    const halfBehind = entityHalfExtents(behind)
-    expect(boxesOverlap(front.position, halfFront, behind.position, halfBehind)).toBe(true)
+    const rFront = troopCollisionRadius(front)
+    const rBehind = troopCollisionRadius(behind)
+    expect(circlesOverlap(front.position, rFront, behind.position, rBehind)).toBe(true)
 
     resolveTroopCollisions(state, 200)
 
-    expect(boxesOverlap(front.position, halfFront, behind.position, halfBehind)).toBe(false)
+    expect(circlesOverlap(front.position, rFront, behind.position, rBehind)).toBe(false)
   })
 })
 
-describe('separateBoxPair', () => {
-  it('fully separates two overlapping boxes when split evenly', () => {
-    const half = { halfW: 10, halfH: 10 }
+describe('separateCirclePair', () => {
+  it('fully separates two overlapping circles when split evenly', () => {
+    const r = 7
     const a = { x: 100, y: 100 }
     const b = { x: 105, y: 100 }
 
-    separateBoxPair(a, half, b, half, 0.5)
+    separateCirclePair(a, r, b, r, 0.5)
 
-    expect(boxesOverlap(a, half, b, half)).toBe(false)
+    const dx = a.x - b.x
+    const dy = a.y - b.y
+    expect(dx * dx + dy * dy).toBeGreaterThanOrEqual((r + r) * (r + r) - 0.01)
   })
 })

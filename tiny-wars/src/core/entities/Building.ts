@@ -2,16 +2,18 @@ import { Entity, nextEntityId } from './Entity'
 import { EntityKind, BuildingState, AttackType, UnitType } from '../types'
 import type { Owner, EntityStats, Vec2 } from '../types'
 import type { GameState } from '../GameState'
-import { surfaceDistToEntity, gridCellsForFootprint } from '../EntityGeometry'
+import { surfaceDistToEntity, buildingBlockedCells } from '../EntityGeometry'
 import { refreshStickyTarget } from '../TargetSelection'
 import { dealAreaDamage } from '../AreaDamage'
-import { CELL_SIZE, BUILDING_LIFETIME_MS } from '@data/GameConstants'
-import { collisionHalfExtentsForCard } from '@rendering/assetDisplaySize'
+import { BUILDING_COMBAT_RADIUS_CELLS, BUILDING_FOOTPRINT_CELLS, BUILDING_LIFETIME_MS, CELL_SIZE } from '@data/GameConstants'
 
 export class Building extends Entity {
   readonly stats: EntityStats
-  readonly halfW: number
-  readonly halfH: number
+  /** Pathfinding footprint half-width (grid tiles, not sprite size). */
+  readonly pathHalfW: number
+  /** Pathfinding footprint half-height (grid tiles, not sprite size). */
+  readonly pathHalfH: number
+  readonly combatRadiusPx: number
   readonly blockedCells: readonly Vec2[]
   readonly totalLifetimeMs: number
   private remainingLifetimeMs: number
@@ -27,11 +29,10 @@ export class Building extends Entity {
   constructor(owner: Owner, stats: EntityStats, position: Vec2, cardId: string) {
     super(nextEntityId(), owner, EntityKind.BUILDING, position, stats.maxHp, cardId)
     this.stats = stats
-    const { halfW, halfH } = collisionHalfExtentsForCard(cardId)
-    this.halfW = halfW
-    this.halfH = halfH
-    const footprintCenter = { x: position.x, y: position.y - halfH }
-    this.blockedCells = gridCellsForFootprint(footprintCenter, halfW, halfH)
+    this.combatRadiusPx = BUILDING_COMBAT_RADIUS_CELLS * CELL_SIZE
+    this.pathHalfW = (BUILDING_FOOTPRINT_CELLS.w / 2) * CELL_SIZE
+    this.pathHalfH = (BUILDING_FOOTPRINT_CELLS.h / 2) * CELL_SIZE
+    this.blockedCells = buildingBlockedCells(position)
     this.totalLifetimeMs = stats.lifetimeMs ?? BUILDING_LIFETIME_MS
     this.remainingLifetimeMs = this.totalLifetimeMs
   }
