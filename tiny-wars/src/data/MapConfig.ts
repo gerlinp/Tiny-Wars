@@ -22,8 +22,8 @@ export interface MapConfig {
   version: number
   riverRowStart: number
   riverRowEnd: number
-  leftBridgeCols: readonly [number, number]
-  rightBridgeCols: readonly [number, number]
+  leftBridgeCols: readonly number[]
+  rightBridgeCols: readonly number[]
   playerKingRow: number
   playerKingCol: number
   playerTowerRow: number

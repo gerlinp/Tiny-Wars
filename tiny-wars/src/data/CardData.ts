@@ -130,6 +130,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     attackRange: 1.2,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
+    targetsBuildingsOnly: true,
   }, 'troll_blue_idle', 'troll_red_idle'),
 
   /** Clash Royale {@link https://liquipedia.net/clashroyale/Prince Prince} L14 — melee with charge. */

@@ -43,14 +43,51 @@ export class Pathfinder {
     return { col, row }
   }
 
+  /**
+   * BFS for the nearest walkable cell to a blocked goal (e.g. an approach point that
+   * landed inside a tower footprint). Among equidistant candidates, prefers the one
+   * closest to the start so the unit stops on its own side of the target instead of
+   * pathing around it. Without this, A* never reaches a blocked goal and falls back to
+   * a straight line across water, leaving melee units oscillating at the obstacle.
+   */
+  private nearestWalkableGoal(
+    col: number,
+    row: number,
+    startCol: number,
+    startRow: number,
+    radius = 3,
+  ): { col: number; row: number } {
+    if (this.grid.isWalkable(col, row)) return { col, row }
+    for (let r = 1; r <= radius; r++) {
+      let best: { col: number; row: number } | null = null
+      let bestDist = Infinity
+      for (let dc = -r; dc <= r; dc++) {
+        for (let dr = -r; dr <= r; dr++) {
+          if (Math.abs(dc) !== r && Math.abs(dr) !== r) continue
+          const c = col + dc
+          const rr = row + dr
+          if (!this.grid.isWalkable(c, rr)) continue
+          const d = (c - startCol) ** 2 + (rr - startRow) ** 2
+          if (d < bestDist) {
+            bestDist = d
+            best = { col: c, row: rr }
+          }
+        }
+      }
+      if (best) return best
+    }
+    return { col, row }
+  }
+
   findPath(from: Vec2, to: Vec2, unitType: UnitType): Vec2[] {
     if (unitType === UnitType.AIR) return [to]
 
     const rawCol = Math.round(from.x)
     const rawRow = Math.round(from.y)
     const { col: startCol, row: startRow } = this.nearestWalkableStart(rawCol, rawRow)
-    const goalCol  = Math.round(to.x)
-    const goalRow  = Math.round(to.y)
+    const { col: goalCol, row: goalRow } = this.nearestWalkableGoal(
+      Math.round(to.x), Math.round(to.y), startCol, startRow,
+    )
 
     if (startCol === goalCol && startRow === goalRow) return []
 

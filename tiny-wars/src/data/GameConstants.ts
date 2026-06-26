@@ -44,14 +44,14 @@ export const BOT_KING_COL   = 12
 export const BOT_TOWER_ROW  = 12
 export const BOT_TOWER_COLS = [4, 19] as const
 
-/** Left lane bridge — tower column is the king-side (right) cell of the pair. */
-function bridgeColsOnLeftTowerLane(towerCol: number): readonly [number, number] {
-  return [towerCol - 1, towerCol] as const
+/** Bridge spans 3 cells centred on the tower's lane column (wider crossing reduces clogging). */
+function bridgeColsOnLeftTowerLane(towerCol: number): readonly number[] {
+  return [towerCol - 1, towerCol, towerCol + 1]
 }
 
-/** Right lane bridge — tower column is the king-side (left) cell of the pair (mirror of left). */
-function bridgeColsOnRightTowerLane(towerCol: number): readonly [number, number] {
-  return [towerCol, towerCol + 1] as const
+/** Right lane bridge — mirror of left, also 3 cells centred on the tower column. */
+function bridgeColsOnRightTowerLane(towerCol: number): readonly number[] {
+  return [towerCol - 1, towerCol, towerCol + 1]
 }
 
 // River runs across rows 20–22 (0-indexed); bridge columns are walkable through it

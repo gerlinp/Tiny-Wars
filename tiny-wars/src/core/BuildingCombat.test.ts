@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { Building } from './entities/Building'
 import { Troop } from './entities/Troop'
 import { Grid } from './Grid'
-import { createInitialGameState } from './GameState'
 import { Owner, UnitType, AttackType } from './types'
 import type { EntityStats } from './types'
 import {
@@ -14,7 +13,6 @@ import {
 } from './EntityGeometry'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { GameSimulator } from './GameSimulator'
-import { EntityKind } from './types'
 import {
   BUILDING_COMBAT_RADIUS_CELLS,
   BUILDING_FOOTPRINT_CELLS,

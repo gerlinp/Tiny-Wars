@@ -6,7 +6,7 @@ import { BotAI } from '@core/BotAI'
 import { TileMapRenderer } from '@rendering/TileMapRenderer'
 import { ForestBorder } from '@rendering/ForestBorder'
 import { DecorationLayer } from '@rendering/DecorationLayer'
-import { EntitySprite } from '@rendering/EntitySprite'
+import { EntitySprite, type AttackSync } from '@rendering/EntitySprite'
 import { TowerSprite } from '@rendering/TowerSprite'
 import { EffectsPool } from '@rendering/EffectsPool'
 import { DeathPool } from '@rendering/DeathPool'
@@ -254,7 +254,7 @@ export class BattleScene extends Phaser.Scene {
       if (entity) {
         let anim: AnimClip = 'idle'
         let moveSpeed = 1.5
-        let attackSync: { cooldownMs: number; windupMs: number } | undefined
+        let attackSync: AttackSync | undefined
 
         const cardId = this.entityCardIds.get(id) ?? entity.cardId ?? ''
 

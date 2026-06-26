@@ -38,6 +38,8 @@ export interface EntityStats {
   chargeSpeedMultiplier?: number
   /** Damage multiplier on the first hit while charging. */
   chargeDamageMultiplier?: number
+  /** Giant-style — only acquires buildings and towers, never enemy troops. */
+  targetsBuildingsOnly?: boolean
 }
 
 export interface SpellStats {

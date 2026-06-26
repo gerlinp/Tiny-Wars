@@ -55,12 +55,12 @@ export class TileMapRenderer {
     const spanStart = RIVER_ROW_START - BRIDGE_BANK_PADDING_ROWS
     const spanEnd   = RIVER_ROW_END + BRIDGE_BANK_PADDING_ROWS
     const bridgeH   = (spanEnd - spanStart + 1) * CELL_SIZE
-    const bridgeW   = 2 * CELL_SIZE
     const topY      = spanStart * CELL_SIZE
 
     if (!hasBridge) {
       for (const pair of [LEFT_BRIDGE_COLS, RIGHT_BRIDGE_COLS]) {
-        const x = Math.min(pair[0], pair[1]) * CELL_SIZE
+        const x = Math.min(...pair) * CELL_SIZE
+        const bridgeW = pair.length * CELL_SIZE
         this.scene.add.rectangle(x, topY, bridgeW, bridgeH, FALLBACK_BRIDGE_COLOR, 1)
           .setOrigin(0)
           .setDepth(DEPTH_BRIDGE)
@@ -69,7 +69,8 @@ export class TileMapRenderer {
     }
 
     for (const pair of [LEFT_BRIDGE_COLS, RIGHT_BRIDGE_COLS]) {
-      const x = Math.min(pair[0], pair[1]) * CELL_SIZE
+      const x = Math.min(...pair) * CELL_SIZE
+      const bridgeW = pair.length * CELL_SIZE
       new BridgeStrip(this.scene, x, topY, bridgeH, bridgeW, DEPTH_BRIDGE)
     }
   }

@@ -17,15 +17,27 @@ import type { Tower } from './Tower'
 import {
   isDirectPathWalkable,
   isOppositeRiverBank,
+  isWorldWalkable,
   moveTowardDirect,
   nearestBridgeApproach,
   reachedWorldPoint,
+  worldRow,
 } from '../Movement'
 import { getLaneMarchGoal } from '../LaneMovement'
 import { moveTowardWithAllyAvoidance } from '../TroopAvoidance'
-import { CELL_SIZE, TROOP_AGGRO_RANGE_CELLS, EPSILON_DISTANCE } from '@data/GameConstants'
+import {
+  CELL_SIZE, TROOP_AGGRO_RANGE_CELLS, EPSILON_DISTANCE,
+  LEFT_LANE_COL, RIGHT_LANE_COL, RIVER_ROW_START, RIVER_ROW_END,
+} from '@data/GameConstants'
 
 const PATH_REPLAN_DIST_SQ = CELL_SIZE * CELL_SIZE * 4
+
+/** Ground troop is "stuck" after this long with almost no forward progress while walking. */
+const STUCK_RECOVER_MS = 600
+/** Fraction of the expected per-tick step that counts as real progress (resets the stuck timer). */
+const STUCK_PROGRESS_FRACTION = 0.15
+/** A new structure objective must be at least this much closer before a marching troop switches. */
+const STRUCTURE_SWITCH_MARGIN = CELL_SIZE * 2
 
 export class Troop extends Entity {
   readonly stats: EntityStats
@@ -49,7 +61,7 @@ export class Troop extends Entity {
   }
 
   private target: Entity | null = null
-  private readonly grid: Grid
+  readonly grid: Grid
   private readonly pathfinder: Pathfinder
   private pathWaypoints: Vec2[] = []
   private pathGoal: Vec2 | null = null
@@ -57,6 +69,7 @@ export class Troop extends Entity {
   private lastMarchDir: Vec2
   private walkDistanceCells = 0
   private isCharging = false
+  private stuckMs = 0
 
   constructor(owner: Owner, stats: EntityStats, position: Vec2, grid: Grid, cardId: string) {
     super(nextEntityId(), owner, EntityKind.TROOP, position, stats.maxHp, cardId)
@@ -181,6 +194,7 @@ export class Troop extends Entity {
     if (id !== this.lastObjectiveId) {
       this.lastObjectiveId = id
       this.clearPath()
+      this.stuckMs = 0
     }
   }
 
@@ -224,15 +238,65 @@ export class Troop extends Entity {
     if (mustPath) {
       if (this.needsReplan(goal)) this.replanPath(goal)
       this.moveAlongPath(speed, goal, state)
-      this.resolveCollisions(state)
-      this.finishMove(beforeX, beforeY)
+    } else {
+      this.clearPath()
+      moveTowardWithAllyAvoidance(this.position, this, goal, speed, state, this.grid)
+    }
+
+    this.resolveCollisions(state)
+    this.finishMove(beforeX, beforeY)
+    this.updateStuckRecovery(deltaMs, speed, goal, beforeX, beforeY)
+  }
+
+  /**
+   * Safety net for chokepoints (bridges, tower corners): if a walking ground troop makes
+   * almost no progress for {@link STUCK_RECOVER_MS}, dislodge it sideways onto walkable
+   * ground and force a fresh replan. Guarantees a unit can never permanently stick,
+   * whatever the cause (ally deadlock, blocked approach point, collision oscillation).
+   */
+  private updateStuckRecovery(
+    deltaMs: number,
+    expectedStep: number,
+    goal: Vec2,
+    beforeX: number,
+    beforeY: number,
+  ): void {
+    if (expectedStep <= EPSILON_DISTANCE) { this.stuckMs = 0; return }
+
+    const moved = Math.hypot(this.position.x - beforeX, this.position.y - beforeY)
+    const remaining = Math.hypot(goal.x - this.position.x, goal.y - this.position.y)
+    // Real progress — or simply arriving at the goal — is not "stuck".
+    if (moved >= expectedStep * STUCK_PROGRESS_FRACTION || remaining <= expectedStep) {
+      this.stuckMs = 0
       return
     }
 
+    this.stuckMs += deltaMs
+    if (this.stuckMs < STUCK_RECOVER_MS) return
+    this.recoverFromStuck(goal)
+    this.stuckMs = 0
+  }
+
+  /** Nudge perpendicular to the goal onto walkable ground, then drop the cached path. */
+  private recoverFromStuck(goal: Vec2): void {
+    const dx = goal.x - this.position.x
+    const dy = goal.y - this.position.y
+    const len = Math.hypot(dx, dy) || 1
+    const px = -dy / len
+    const py = dx / len
+    const nudge = CELL_SIZE * 0.5
+
+    for (const side of [1, -1] as const) {
+      const nx = this.position.x + px * side * nudge
+      const ny = this.position.y + py * side * nudge
+      if (isWorldWalkable(this.grid, nx, ny)) {
+        this.position.x = nx
+        this.position.y = ny
+        break
+      }
+    }
+
     this.clearPath()
-    moveTowardWithAllyAvoidance(this.position, this, goal, speed, state, this.grid)
-    this.resolveCollisions(state)
-    this.finishMove(beforeX, beforeY)
   }
 
   private finishMove(beforeX: number, beforeY: number): void {
@@ -304,6 +368,15 @@ export class Troop extends Entity {
 
   private replanPath(goal: Vec2): void {
     this.pathGoal = { x: goal.x, y: goal.y }
+
+    // Crossing the river: funnel to the bridge entrance on the unit's own side, cross
+    // straight on the lane-centre column, then path to the goal. Built leg-by-leg so the
+    // straight crossing is never smoothed into a diagonal that clips the river edge.
+    if (isOppositeRiverBank(this.position, goal)) {
+      this.pathWaypoints = this.buildBridgeCrossingPath(goal)
+      return
+    }
+
     this.pathWaypoints = this.pathfinder.findPathWorld(this.position, goal, this.stats.unitType)
 
     if (!this.isValidPath(goal)) {
@@ -316,6 +389,38 @@ export class Troop extends Entity {
     this.smoothPath()
   }
 
+  /**
+   * CR-style river crossing: pick the bridge on the unit's own side (left half → left
+   * bridge, right half → right bridge), route to its front entrance, cross straight on the
+   * lane-centre column, then continue to the goal. Each land leg is smoothed independently;
+   * the front→exit crossing stays a hard vertical segment so units never diagonally clip the
+   * bridge edge.
+   */
+  private buildBridgeCrossingPath(goal: Vec2): Vec2[] {
+    const unitCol = this.grid.worldToCell(this.position.x, this.position.y).x
+    const laneCol = Math.abs(unitCol - LEFT_LANE_COL) <= Math.abs(unitCol - RIGHT_LANE_COL)
+      ? LEFT_LANE_COL
+      : RIGHT_LANE_COL
+
+    const fromBelow = worldRow(this.position.y) > RIVER_ROW_END
+    const frontRow = fromBelow ? RIVER_ROW_END + 1 : RIVER_ROW_START - 1
+    const exitRow  = fromBelow ? RIVER_ROW_START - 1 : RIVER_ROW_END + 1
+    const front = this.grid.cellToWorld(laneCol, frontRow)
+    const exit  = this.grid.cellToWorld(laneCol, exitRow)
+
+    const toFront = this.smoothWaypoints(
+      this.pathfinder.findPathWorld(this.position, front, this.stats.unitType),
+      this.position,
+    )
+    const afterCross = this.smoothWaypoints(
+      this.pathfinder.findPathWorld(exit, goal, this.stats.unitType),
+      exit,
+    )
+
+    // toFront already ends at `front`; append the explicit straight crossing to `exit`.
+    return [...toFront, exit, ...afterCross]
+  }
+
   private isValidPath(goal: Vec2): boolean {
     if (this.pathWaypoints.length === 0) return false
     if (!isDirectPathWalkable(this.grid, this.position, this.pathWaypoints[0]!)) return false
@@ -325,15 +430,20 @@ export class Troop extends Entity {
 
   /** Skip redundant waypoints when a straight segment is walkable. */
   private smoothPath(): void {
-    if (this.pathWaypoints.length <= 2) return
+    this.pathWaypoints = this.smoothWaypoints(this.pathWaypoints, this.position)
+  }
+
+  /** Drop waypoints that a straight walkable segment from `from` can skip. Pure helper. */
+  private smoothWaypoints(waypoints: Vec2[], from: Vec2): Vec2[] {
+    if (waypoints.length <= 2) return waypoints
 
     const smoothed: Vec2[] = []
-    let anchor = this.position
+    let anchor = from
 
-    for (let i = 0; i < this.pathWaypoints.length; i++) {
-      const wp = this.pathWaypoints[i]!
-      const isLast = i === this.pathWaypoints.length - 1
-      const next = this.pathWaypoints[i + 1]
+    for (let i = 0; i < waypoints.length; i++) {
+      const wp = waypoints[i]!
+      const isLast = i === waypoints.length - 1
+      const next = waypoints[i + 1]
 
       if (!isLast && next && isDirectPathWalkable(this.grid, anchor, next)) {
         continue
@@ -343,7 +453,7 @@ export class Troop extends Entity {
       anchor = wp
     }
 
-    this.pathWaypoints = smoothed
+    return smoothed
   }
 
   private clearPath(): void {
@@ -367,11 +477,27 @@ export class Troop extends Entity {
 
   /**
    * Closest enemy in aggro range while marching; once in attack range, stick until it dies.
+   * Giant-style troops only consider buildings and towers.
    */
   private refreshCombatTarget(state: GameState): void {
     const attackReach = this.stats.attackRange * CELL_SIZE
-    const engaged = this.target?.isAlive && this.combatDistTo(this.target) <= attackReach
+    const engagedTarget = this.target?.isAlive ? this.target : null
+    const engagedOnTroop = engagedTarget?.kind === EntityKind.TROOP
+    const engaged =
+      engagedTarget !== null &&
+      this.combatDistTo(engagedTarget) <= attackReach &&
+      !(this.stats.targetsBuildingsOnly && engagedOnTroop)
     if (engaged) return
+
+    if (this.stats.targetsBuildingsOnly) {
+      this.target = this.stickyStructureTarget(findNearestEnemyStructure(state, {
+        owner: this.owner,
+        from: this.position,
+        canAttack: (entity) => this.canAttack(entity),
+        distance: (_from, entity) => this.engageDistTo(entity),
+      }))
+      return
+    }
 
     const troopTarget = findNearestEnemy(state, {
       owner: this.owner,
@@ -389,12 +515,29 @@ export class Troop extends Entity {
       distance: (_from, entity) => this.engageDistTo(entity),
     })
 
-    this.target = troopTarget ?? structureTarget
+    this.target = troopTarget ?? this.stickyStructureTarget(structureTarget)
   }
 
-  private isValidTowerTarget(entity: Entity): boolean {
-    if (entity.kind !== EntityKind.TOWER) return true
-    return isAttackableTower(entity as Tower)
+  /**
+   * Hysteresis for the marching objective: keep the current structure unless it died/became
+   * invalid, or a candidate is clearly closer ({@link STRUCTURE_SWITCH_MARGIN}). Without this,
+   * a troop near-equidistant between two towers flip-flops its target every tick, which clears
+   * the cached path repeatedly and stalls it at the bridge.
+   */
+  private stickyStructureTarget(candidate: Entity | null): Entity | null {
+    const current = this.target
+    if (!candidate) return current?.isAlive ? current : null
+
+    const currentIsStructure =
+      !!current?.isAlive &&
+      ((current.kind === EntityKind.TOWER && isAttackableTower(current as Tower)) ||
+        current.kind === EntityKind.BUILDING)
+    if (!currentIsStructure) return candidate
+    if (current!.id === candidate.id) return current!
+
+    const curDist = this.engageDistTo(current!)
+    const candDist = this.engageDistTo(candidate)
+    return candDist < curDist - STRUCTURE_SWITCH_MARGIN ? candidate : current!
   }
 
   /** March toward nearest enemy structure, or lane-biased fallback when none exist. */

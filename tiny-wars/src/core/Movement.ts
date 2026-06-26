@@ -40,7 +40,11 @@ export function isDirectPathWalkable(grid: Grid, from: Vec2, to: Vec2): boolean 
   return true
 }
 
-/** Nearest bridge approach tile on the unit's side of the river, biased toward the goal. */
+/**
+ * Bridge approach tile on the unit's side of the river. Picks the bridge nearest the
+ * unit's own column (CR rule: cross on your side), using goal proximity only as a
+ * tiebreaker. A right-side unit therefore never detours to the far bridge.
+ */
 export function nearestBridgeApproach(grid: Grid, from: Vec2, goal: Vec2): Vec2 {
   const fromRow = worldRow(from.y)
   const approachRow = fromRow > RIVER_ROW_END
@@ -48,12 +52,15 @@ export function nearestBridgeApproach(grid: Grid, from: Vec2, goal: Vec2): Vec2 
     : RIVER_ROW_START - 1
 
   let bestCol: number = BRIDGE_COLS[0]
-  let bestDist = Infinity
+  let bestScore = Infinity
   for (const col of BRIDGE_COLS) {
     const bridge = grid.cellToWorld(col, approachRow)
-    const d = Math.hypot(bridge.x - goal.x, bridge.y - goal.y)
-    if (d < bestDist) {
-      bestDist = d
+    const fromDist = Math.abs(bridge.x - from.x)
+    const goalDist = Math.hypot(bridge.x - goal.x, bridge.y - goal.y)
+    // Heavily weight the unit's own column so the near bridge always wins unless tied.
+    const score = fromDist * 4 + goalDist
+    if (score < bestScore) {
+      bestScore = score
       bestCol = col
     }
   }

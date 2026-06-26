@@ -32,8 +32,9 @@ describe('LaneMovement', () => {
   })
 
   it('off-path troop east of left lane moves left toward it', () => {
-    const next = getLaneStep(5, 30, Owner.PLAYER)
-    expect(next).toEqual({ x: 4, y: 30 })
+    // col 5 is now part of the 3-wide left bridge, so use a genuinely off-path column
+    const next = getLaneStep(7, 30, Owner.PLAYER)
+    expect(next).toEqual({ x: 6, y: 30 })
   })
 
   it('off-path troop east of right lane moves left toward it', () => {

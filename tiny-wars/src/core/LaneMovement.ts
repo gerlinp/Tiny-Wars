@@ -1,6 +1,5 @@
 import {
   LEFT_LANE_COL, RIGHT_LANE_COL,
-  LEFT_BRIDGE_COLS, RIGHT_BRIDGE_COLS,
   RIVER_BRIDGE_ROW, BRIDGE_CENTER_COL,
   RIVER_ROW_START, RIVER_ROW_END, BRIDGE_COLS, CELL_SIZE, EPSILON_DISTANCE,
 } from '@data/GameConstants'
@@ -14,14 +13,11 @@ function isBridgeCol(col: number): boolean {
   return (BRIDGE_COLS as readonly number[]).includes(col)
 }
 
+/** Steer off-path troops toward the nearer lane centre (tower column = bridge centre). */
 function nearestLaneCol(col: number): number {
-  const leftTarget = LEFT_BRIDGE_COLS.reduce((best, c) =>
-    Math.abs(col - c) < Math.abs(col - best) ? c : best)
-  const rightTarget = RIGHT_BRIDGE_COLS.reduce((best, c) =>
-    Math.abs(col - c) < Math.abs(col - best) ? c : best)
-  const leftDist  = Math.abs(col - leftTarget)
-  const rightDist = Math.abs(col - rightTarget)
-  return leftDist <= rightDist ? leftTarget : rightTarget
+  const leftDist  = Math.abs(col - LEFT_LANE_COL)
+  const rightDist = Math.abs(col - RIGHT_LANE_COL)
+  return leftDist <= rightDist ? LEFT_LANE_COL : RIGHT_LANE_COL
 }
 
 /** Returns the next grid cell a ground troop should step toward (Java HandleTroopsRunnable logic). */

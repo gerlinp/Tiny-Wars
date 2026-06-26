@@ -7,7 +7,7 @@ import { Owner, UnitType, AttackType } from './types'
 import type { EntityStats } from './types'
 import { findBlockingAlly, moveTowardWithAllyAvoidance, tryAllyLateralSeparation } from './TroopAvoidance'
 import { resolveTroopCollisions } from './TroopCollision'
-import { circlesOverlap, entityHalfExtents, troopCollisionRadius } from './EntityGeometry'
+import { edgeDistBetweenEntities, troopCollisionRadius } from './EntityGeometry'
 import { CELL_SIZE, BOT_TOWER_COLS, BOT_TOWER_ROW, LEFT_BRIDGE_COLS, RIVER_ROW_END } from '@data/GameConstants'
 import { PRINCESS_TOWER } from '@data/TowerData'
 import { CARD_DEFINITIONS } from '@data/CardData'
@@ -26,9 +26,9 @@ describe('TroopAvoidance', () => {
   const grid = new Grid()
 
   it('detects an ally directly ahead on the march path', () => {
+    const goal = { x: 240, y: 240 }
     const front = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 360 }, grid, 'warrior')
     const rear = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 373 }, grid, 'lancer')
-    const goal = { x: 240, y: 240 }
     const state = createInitialGameState()
     state.entities.set(front.id, front)
     state.entities.set(rear.id, rear)
@@ -40,7 +40,6 @@ describe('TroopAvoidance', () => {
   it('sidesteps a rear unit around a blocking ally toward the goal', () => {
     const front = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 360 }, grid, 'warrior')
     const rear = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 373 }, grid, 'lancer')
-    const goal = { x: 240, y: 240 }
     const state = createInitialGameState()
     state.entities.set(front.id, front)
     state.entities.set(rear.id, rear)
@@ -88,7 +87,7 @@ describe('TroopAvoidance', () => {
     }
 
     const lancerRadius = troopCollisionRadius(lancer)
-    expect(circlesOverlap(lancer.position, lancerRadius, tower.position, entityHalfExtents(tower))).toBe(false)
+    expect(edgeDistBetweenEntities(lancer, tower)).toBeLessThanOrEqual(lancer.stats.attackRange * CELL_SIZE + lancerRadius)
     expect(Math.abs(lancer.position.x - knight.position.x)).toBeGreaterThan(6)
   })
 
@@ -102,14 +101,13 @@ describe('TroopAvoidance', () => {
   })
 
   it('steers toward goal with lateral bias when blocked', () => {
+    const goal = { x: 240, y: 240 }
     const front = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 360 }, grid, 'warrior')
     const rear = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 373 }, grid, 'lancer')
-    const goal = { x: 240, y: 240 }
     const state = createInitialGameState()
     state.entities.set(front.id, front)
     state.entities.set(rear.id, rear)
 
-    const beforeX = rear.position.x
     moveTowardWithAllyAvoidance(rear.position, rear, goal, 20, state, grid)
 
     expect(rear.position.y).toBeLessThan(390)
@@ -137,7 +135,6 @@ describe('TroopAvoidance', () => {
     const bridgeY = (RIVER_ROW_END + 1) * CELL_SIZE + CELL_SIZE / 2
     const front = new Troop(Owner.PLAYER, warriorStats, { x: bridgeX, y: bridgeY - 8 }, grid, 'warrior')
     const rear = new Troop(Owner.PLAYER, warriorStats, { x: bridgeX, y: bridgeY + 10 }, grid, 'lancer')
-    const goal = { x: bridgeX, y: bridgeY - 80 }
     const state = createInitialGameState()
     state.entities.set(front.id, front)
     state.entities.set(rear.id, rear)

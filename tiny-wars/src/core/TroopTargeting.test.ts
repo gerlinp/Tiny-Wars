@@ -168,4 +168,53 @@ describe('Troop targeting', () => {
     expect(marchGoal).not.toBeNull()
     expect(marchGoal!.y).toBeGreaterThan(king.position.y)
   })
+
+  it('building-only troops ignore enemy troops and march toward structures', () => {
+    const giantStats: EntityStats = {
+      ...troopStats,
+      targetsBuildingsOnly: true,
+    }
+    const troll = new Troop(Owner.PLAYER, giantStats, { x: 200, y: 500 }, grid, 'troll')
+    const building = new Building(Owner.BOT, BOMB_TOWER_STATS, { x: 350, y: 500 }, 'wood_tower')
+    const nearerTroop = new Troop(Owner.BOT, troopStats, { x: 240, y: 500 }, grid, 'warrior')
+    const state = createInitialGameState()
+    state.entities.set(troll.id, troll)
+    state.entities.set(building.id, building)
+    state.entities.set(nearerTroop.id, nearerTroop)
+
+    troll.tick(33, state)
+
+    const targetPos = troll.getDevInfo(state).targetPos
+    expect(targetPos?.x).toBeGreaterThan(300)
+    expect(nearerTroop.hp).toBe(troopStats.maxHp)
+  })
+
+  it('building-only troops attack towers and ignore blocking troops', () => {
+    const giantStats: EntityStats = {
+      ...troopStats,
+      targetsBuildingsOnly: true,
+    }
+    const princess = new Tower(
+      Owner.BOT,
+      PRINCESS_TOWER,
+      { x: BOT_TOWER_COLS[0]! * CELL_SIZE, y: BOT_TOWER_ROW * CELL_SIZE },
+    )
+    const blocker = new Troop(Owner.BOT, troopStats, { x: princess.position.x, y: princess.position.y + 40 }, grid, 'warrior')
+    const troll = new Troop(
+      Owner.PLAYER,
+      giantStats,
+      { x: princess.position.x, y: princess.position.y + 120 },
+      grid,
+      'troll',
+    )
+    const state = createInitialGameState()
+    state.entities.set(troll.id, troll)
+    state.entities.set(blocker.id, blocker)
+    state.towers.set(princess.id, princess)
+
+    for (let i = 0; i < 80; i++) troll.tick(50, state)
+
+    expect(princess.hp).toBeLessThan(PRINCESS_TOWER.maxHp)
+    expect(blocker.hp).toBe(troopStats.maxHp)
+  })
 })
