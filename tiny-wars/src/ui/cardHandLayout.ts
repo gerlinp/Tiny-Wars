@@ -3,7 +3,8 @@ import { GAME_WIDTH, HUD_HEIGHT } from '@data/GameConstants'
 import { getCardAvatarBuildingFit, getCardAvatarCropRatio, getCardAvatarHandScale, AVATAR_CROP_RATIO_DEFAULT } from '@data/AssetManifest'
 import { centerCropFillScale, containAvatarScale } from './cardAvatarFit'
 
-export const CINZEL_FONT = "'Cinzel', serif"
+export const CINZEL_FONT  = "'Philosopher', Georgia, serif"
+export const NUMBER_FONT  = "'Philosopher', Georgia, serif"
 
 /** Maximize avatars within the HUD — row spans the screen, slots fill deck height. */
 

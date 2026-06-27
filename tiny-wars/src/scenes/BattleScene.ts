@@ -240,7 +240,7 @@ export class BattleScene extends Phaser.Scene {
           } else if (attacker && from && to && isRangedAttacker(attacker) && !event.splash) {
             const attackRate = this.getAttackRate(attacker)
             const cardId = this.entityCardIds.get(attacker.id) ?? attacker.cardId ?? ''
-            if (cardId === 'wizard' || cardId === 'baby_dragon') {
+            if (cardId === 'wizard' || cardId === 'lizard' || cardId === 'torch_goblin') {
               this.hexFireballs.spawn(from, to, attacker.owner, attackRate, flash)
             } else {
               this.arrows.spawn(from, to, attacker.owner, attackRate, flash)
@@ -443,7 +443,7 @@ export class BattleScene extends Phaser.Scene {
     const winner = this.simulator.state.winner
     const pvpNetwork = this.pvpNetwork
     this.pvpNetwork = null
-    pvpNetwork?.destroy()
-    this.scene.start('ResultScene', { winner })
+    // Pass network to ResultScene so rematch can reuse the connection
+    this.scene.start('ResultScene', { winner, pvpNetwork })
   }
 }

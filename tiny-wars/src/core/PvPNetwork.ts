@@ -4,6 +4,7 @@ import type { Vec2 } from './types'
 export type PvPMessage =
   | { type: 'READY' }
   | { type: 'DEPLOY'; cardId: string; gridPos: Vec2 }
+  | { type: 'REMATCH' }
 
 export type PvPRole = 'HOST' | 'GUEST'
 
@@ -28,6 +29,7 @@ export class PvPNetwork {
   onConnected: (() => void) | null = null
   onDeploy: ((cardId: string, gridPos: Vec2) => void) | null = null
   onDisconnected: (() => void) | null = null
+  onRematch: (() => void) | null = null
 
   constructor() {
     this.peer = new Peer()
@@ -95,6 +97,10 @@ export class PvPNetwork {
     this.send({ type: 'DEPLOY', cardId, gridPos })
   }
 
+  sendRematch(): void {
+    this.send({ type: 'REMATCH' })
+  }
+
   private send(msg: PvPMessage): void {
     this.conn?.send(msg)
   }
@@ -107,6 +113,8 @@ export class PvPNetwork {
       const msg = raw as PvPMessage
       if (msg.type === 'DEPLOY') {
         this.onDeploy?.(msg.cardId, msg.gridPos)
+      } else if (msg.type === 'REMATCH') {
+        this.onRematch?.()
       }
     })
     conn.on('close', () => {

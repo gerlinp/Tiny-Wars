@@ -483,14 +483,13 @@ function spearGoblinSide(side: 'blue' | 'red'): SideAssets {
 
 const LIZARD_PATH = 'assets/Enemy Pack/Enemies/Caveborn/Lizard'
 
-/** Enemy Pack Lizard — Baby Dragon art; leg pixels recolored to ground shadow (#161C2E). */
 function lizardSide(side: 'blue' | 'red'): SideAssets {
   const idle: SheetDef = {
-    key: `baby_dragon_${side}_idle`,
+    key: `lizard_${side}_idle`,
     path: `${LIZARD_PATH}/Lizard_Idle_Flying.png`,
   }
   const attack: SheetDef = {
-    key: `baby_dragon_${side}_attack`,
+    key: `lizard_${side}_attack`,
     path: `${LIZARD_PATH}/Lizard_Attack_Flying.png`,
   }
   return {
@@ -576,7 +575,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
       frameHeight: FRAME_H,
       frame: 0,
     },
-    avatarCropRatio: 0.88,
+    avatarCropRatio: 0.42,
     contentFill: 0.50,
     attackHitFrame: 27,
     player: knightsArcherSide('Blue'),
@@ -601,7 +600,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'lancer',
     avatar: humanAvatar('Avatars_02.png'),
-    contentFill: 0.42,
+    contentFill: 0.30,
     attackHitFrame: 2,
     player: lancerSide('Blue'),
     bot:    lancerSide('Red'),
@@ -627,7 +626,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'spear_goblin',
     avatar: enemyAvatar('Spear Goblin.png'),
-    avatarCropRatio: 0.88,
+    avatarCropRatio: 0.55,
     contentFill: 0.55,
     attackHitFrame: 4,
     tintBotSide: true,
@@ -637,7 +636,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'torch_goblin',
     avatar: enemyAvatar('Torch Goblin.png'),
-    avatarCropRatio: 0.88,
+    avatarCropRatio: 0.65,
     contentFill: 0.55,
     attackHitFrame: 3,
     tintBotSide: true,
@@ -647,7 +646,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'wizard',
     avatar: enemyAvatar('Hex Shaman.png'),
-    avatarCropRatio: 0.88,
+    avatarCropRatio: 0.72,
     contentFill: 0.55,
     attackHitFrame: 6,
     tintBotSide: true,
@@ -655,16 +654,9 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     bot:    hexShamanSide('red'),
   },
   {
-    cardId: 'baby_dragon',
-    avatar: {
-      key: 'avatar_baby_dragon',
-      path: `${LIZARD_PATH}/Lizard_Idle.png`,
-      frameWidth: FRAME_W,
-      frameHeight: FRAME_H,
-      frame: 0,
-    },
-    avatarBackdrop: AVATAR_BACKDROP_BANNER,
-    avatarCropRatio: 0.88,
+    cardId: 'lizard',
+    avatar: enemyAvatar('Enemy Avatars_13.png'),
+    avatarCropRatio: 0.65,
     contentFill: 0.55,
     attackHitFrame: 5,
     tintBotSide: true,

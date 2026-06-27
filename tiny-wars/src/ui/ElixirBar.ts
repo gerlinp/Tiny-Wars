@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { ELIXIR_MAX } from '@data/GameConstants'
-import { CINZEL_FONT } from './cardHandLayout'
+import { NUMBER_FONT } from './cardHandLayout'
 
 const PIP_W = 26
 const PIP_H = 14
@@ -24,7 +24,7 @@ export class ElixirBar {
     }
 
     this.label = scene.add.text(cx, y + 10, '0', {
-      fontSize: '13px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      fontSize: '15px', fontFamily: NUMBER_FONT, fontStyle: 'bold',
       color: '#dd99ff', stroke: '#1a0033', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(51)
   }

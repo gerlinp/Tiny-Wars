@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
 import { DeckCard } from '../ui/DeckCard'
 import { DeckSlot } from '../ui/DeckSlot'
+import { CardInfoModal } from '../ui/CardInfoModal'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { DECK_SIZE, getDeckCandidates, loadPlayerDeck, savePlayerDeck } from '@data/PlayerDeck'
 import { GAME_WIDTH, CANVAS_HEIGHT } from '@data/GameConstants'
@@ -12,10 +13,9 @@ const CELL_GAP_X = 8
 const CELL_GAP_Y = 10
 
 const DECK_TOP = 92
-const COLLECTION_TOP = 410
+const FOOTER_H = 96
 
 export class DeckBuilderScene extends Phaser.Scene {
-  /** Ordered ids in the deck (max {@link DECK_SIZE}); order is cosmetic. */
   private deck: string[] = []
   private slots: DeckSlot[] = []
   private collection: DeckCard[] = []
@@ -23,6 +23,12 @@ export class DeckBuilderScene extends Phaser.Scene {
   private elixirText!: Phaser.GameObjects.Text
   private saveBtn!: { setEnabled: (on: boolean) => void }
   private clearBtn!: { setEnabled: (on: boolean) => void }
+  private warningText!: Phaser.GameObjects.Text
+
+  private modal!: CardInfoModal
+  private expandedCard: DeckCard | null = null
+  private expandedSlot: DeckSlot | null = null
+  private collectionTop = 0
 
   constructor() {
     super({ key: 'DeckBuilderScene' })
@@ -36,47 +42,41 @@ export class DeckBuilderScene extends Phaser.Scene {
     this.add.rectangle(0, 0, GAME_WIDTH, CANVAS_HEIGHT, 0x1a1a2e).setOrigin(0)
 
     this.add.text(GAME_WIDTH / 2, 40, 'DECK BUILDER', {
-      fontSize: '32px',
-      fontFamily: CINZEL_FONT,
-      fontStyle: 'bold',
-      color: '#ffdd88',
-      stroke: '#332200',
-      strokeThickness: 6,
+      fontSize: '32px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#ffdd88', stroke: '#332200', strokeThickness: 6,
     }).setOrigin(0.5)
 
     this.add.text(SIDE_MARGIN, 72, 'YOUR DECK', {
-      fontSize: '15px',
-      fontFamily: CINZEL_FONT,
-      fontStyle: 'bold',
-      color: '#cfe0ff',
+      fontSize: '17px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
     }).setOrigin(0, 0.5)
 
     this.counterText = this.add.text(GAME_WIDTH - SIDE_MARGIN, 72, '', {
-      fontSize: '15px',
-      fontFamily: CINZEL_FONT,
-      fontStyle: 'bold',
-      color: '#ffffff',
+      fontSize: '17px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(1, 0.5)
-
-    this.add.text(SIDE_MARGIN, COLLECTION_TOP - 22, 'COLLECTION', {
-      fontSize: '15px',
-      fontFamily: CINZEL_FONT,
-      fontStyle: 'bold',
-      color: '#cfe0ff',
-    }).setOrigin(0, 0.5)
 
     const { cellW, cellH } = this.cellSize()
     const deckBottom = DECK_TOP + 2 * cellH + CELL_GAP_Y
+    this.collectionTop = deckBottom + 40
+
     this.elixirText = this.add.text(GAME_WIDTH / 2, deckBottom + 14, '', {
-      fontSize: '14px',
-      fontFamily: CINZEL_FONT,
-      fontStyle: 'bold',
-      color: '#d8a8ff',
+      fontSize: '16px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#d8a8ff',
     }).setOrigin(0.5, 0)
 
+    this.add.text(SIDE_MARGIN, this.collectionTop - 22, 'COLLECTION', {
+      fontSize: '17px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
+    }).setOrigin(0, 0.5)
+
+    this.warningText = this.add.text(GAME_WIDTH / 2, this.collectionTop - 8, 'DECK IS FULL!', {
+      fontSize: '15px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#ff6666', stroke: '#1a0000', strokeThickness: 3,
+      backgroundColor: '#330000', padding: { x: 10, y: 5 },
+    }).setOrigin(0.5, 1).setAlpha(0).setDepth(50)
+
+    this.modal = new CardInfoModal(this, () => this.modal.hide())
     this.buildSlots(cellW, cellH)
+    this.buildFooter()
     this.buildCollection(cellW, cellH)
-    this.buildButtons()
+    this.setupDismissHandlers()
     this.refresh()
   }
 
@@ -85,7 +85,6 @@ export class DeckBuilderScene extends Phaser.Scene {
     return { cellW, cellH: cellW * 1.12 }
   }
 
-  /** Two rows of 4 deck slots. */
   private buildSlots(cellW: number, cellH: number): void {
     for (let i = 0; i < DECK_SIZE; i++) {
       const col = i % COLS
@@ -93,7 +92,14 @@ export class DeckBuilderScene extends Phaser.Scene {
       const x = SIDE_MARGIN + col * (cellW + CELL_GAP_X) + cellW / 2
       const y = DECK_TOP + row * (cellH + CELL_GAP_Y) + cellH / 2
       const slot = new DeckSlot(this, x, y, cellW, cellH)
-      slot.onTap = () => this.removeAt(i)
+      slot.onExpand = () => {
+        this.expandedCard?.collapse()
+        this.expandedCard = null
+        this.expandedSlot?.collapse()
+        this.expandedSlot = slot
+      }
+      slot.onInfo   = () => { const def = CARD_DEFINITIONS[this.deck[i] ?? '']; if (def) this.modal.show(def) }
+      slot.onRemove = () => this.removeAt(i)
       this.slots.push(slot)
     }
   }
@@ -105,10 +111,31 @@ export class DeckBuilderScene extends Phaser.Scene {
       const col = i % COLS
       const row = Math.floor(i / COLS)
       const x = SIDE_MARGIN + col * (cellW + CELL_GAP_X) + cellW / 2
-      const y = COLLECTION_TOP + row * (cellH + CELL_GAP_Y) + cellH / 2
+      const y = this.collectionTop + row * (cellH + CELL_GAP_Y) + cellH / 2
       const cardUi = new DeckCard(this, def, x, y, cellW, cellH)
-      cardUi.onToggle = () => this.toggle(id)
+      cardUi.onExpand = () => {
+        this.expandedCard?.collapse()
+        this.expandedSlot?.collapse()
+        this.expandedSlot = null
+        this.expandedCard = cardUi
+      }
+      cardUi.onInfo   = () => this.modal.show(def)
+      cardUi.onAction = () => this.toggle(id)
       this.collection.push(cardUi)
+    })
+  }
+
+  private setupDismissHandlers(): void {
+    this.input.on('pointerdown', () => {
+      if (this.modal.visible) return
+      if (this.expandedCard && !this.expandedCard.justInteracted) {
+        this.expandedCard.collapse()
+        this.expandedCard = null
+      }
+      if (this.expandedSlot && !this.expandedSlot.justInteracted) {
+        this.expandedSlot.collapse()
+        this.expandedSlot = null
+      }
     })
   }
 
@@ -119,20 +146,18 @@ export class DeckBuilderScene extends Phaser.Scene {
     } else if (this.deck.length < DECK_SIZE) {
       this.deck.push(id)
     } else {
-      this.flashCounter()
+      this.flashFullWarning()
       return
     }
     this.refresh()
   }
 
-  /** Remove the card occupying deck slot `i` (no-op for an empty slot). */
   private removeAt(i: number): void {
     if (i >= this.deck.length) return
     this.deck.splice(i, 1)
     this.refresh()
   }
 
-  /** Empty the deck so the player can rebuild from scratch. */
   private clearDeck(): void {
     if (this.deck.length === 0) return
     this.deck = []
@@ -155,12 +180,12 @@ export class DeckBuilderScene extends Phaser.Scene {
     this.clearBtn.setEnabled(this.deck.length > 0)
   }
 
-  private flashCounter(): void {
+  private flashFullWarning(): void {
+    this.tweens.killTweensOf(this.warningText)
+    this.warningText.setAlpha(1)
     this.tweens.add({
-      targets: this.counterText,
-      scale: { from: 1.4, to: 1 },
-      duration: 220,
-      ease: 'Quad.easeOut',
+      targets: this.warningText,
+      alpha: 0, delay: 1200, duration: 400, ease: 'Quad.easeIn',
     })
   }
 
@@ -169,43 +194,30 @@ export class DeckBuilderScene extends Phaser.Scene {
     this.counterText.setColor('#7dff9b')
     this.tweens.add({
       targets: this.counterText,
-      scale: { from: 1.25, to: 1 },
-      duration: 220,
-      ease: 'Quad.easeOut',
+      scale: { from: 1.25, to: 1 }, duration: 220, ease: 'Quad.easeOut',
     })
-    this.time.delayedCall(900, () => {
-      if (this.counterText.active) this.refresh()
-    })
+    this.time.delayedCall(900, () => { if (this.counterText.active) this.refresh() })
   }
 
-  private buildButtons(): void {
-    const y = CANVAS_HEIGHT - 70
+  private buildFooter(): void {
+    const footerY = CANVAS_HEIGHT - FOOTER_H / 2
+    this.add.rectangle(GAME_WIDTH / 2, footerY, GAME_WIDTH, FOOTER_H, 0x0d1120)
+      .setDepth(30)
+    this.add.rectangle(GAME_WIDTH / 2, CANVAS_HEIGHT - FOOTER_H, GAME_WIDTH, 1, 0x2e4480, 0.6)
+      .setDepth(30)
+
     const btnW = 130
     const gap = 12
     const totalW = btnW * 3 + gap * 2
     const left = (GAME_WIDTH - totalW) / 2 + btnW / 2
 
-    makeButton(this, left, y, btnW, 'BACK', 0x44324f, () => {
-      this.scene.start('MainMenuScene')
+    makeButton(this, left,                   footerY, btnW, 'BACK',  0x44324f, 31, () => this.scene.start('MainMenuScene'))
+    this.clearBtn = makeButton(this, left + btnW + gap,       footerY, btnW, 'CLEAR', 0x8b3a3a, 31, () => this.clearDeck())
+    this.saveBtn  = makeButton(this, left + (btnW + gap) * 2, footerY, btnW, 'SAVE',  0x2e7d32, 31, () => {
+      if (this.deck.length !== DECK_SIZE) return
+      savePlayerDeck([...this.deck])
+      this.flashSaved()
     })
-
-    this.clearBtn = makeButton(this, left + btnW + gap, y, btnW, 'CLEAR', 0x8b3a3a, () => {
-      this.clearDeck()
-    })
-
-    this.saveBtn = makeButton(
-      this,
-      left + (btnW + gap) * 2,
-      y,
-      btnW,
-      'SAVE',
-      0x2e7d32,
-      () => {
-        if (this.deck.length !== DECK_SIZE) return
-        savePlayerDeck([...this.deck])
-        this.flashSaved()
-      },
-    )
   }
 }
 
@@ -215,7 +227,6 @@ function formatAvgElixir(deckIds: string[]): string {
   return `Avg Elixir: ${(sum / deckIds.length).toFixed(1)}`
 }
 
-/** A flat coloured button with an enable/disable handle for the Save action. */
 function makeButton(
   scene: Phaser.Scene,
   cx: number,
@@ -223,24 +234,21 @@ function makeButton(
   w: number,
   label: string,
   color: number,
+  depth: number,
   onPress: () => void,
 ): { setEnabled: (on: boolean) => void } {
   const h = 54
-  const bg = scene.add.rectangle(cx, y, w, h, color).setStrokeStyle(2, 0xffffff, 0.25)
+  const bg   = scene.add.rectangle(cx, y, w, h, color).setStrokeStyle(2, 0xffffff, 0.25).setDepth(depth)
   const text = scene.add.text(cx, y, label, {
-    fontSize: '22px',
-    fontFamily: CINZEL_FONT,
-    fontStyle: 'bold',
-    color: '#ffffff',
-    stroke: '#000022',
-    strokeThickness: 3,
-  }).setOrigin(0.5)
+    fontSize: '22px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+    color: '#ffffff', stroke: '#000022', strokeThickness: 3,
+  }).setOrigin(0.5).setDepth(depth)
 
   let enabled = true
   bg.setInteractive({ useHandCursor: true })
   bg.on('pointerdown', () => { if (enabled) onPress() })
   bg.on('pointerover', () => { if (enabled) bg.setFillStyle(color, 0.8) })
-  bg.on('pointerout', () => bg.setFillStyle(color, enabled ? 1 : 0.35))
+  bg.on('pointerout',  () => bg.setFillStyle(color, enabled ? 1 : 0.35))
 
   return {
     setEnabled(on: boolean): void {

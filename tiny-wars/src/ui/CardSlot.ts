@@ -4,7 +4,7 @@ import { cardAvatarKey, getCardAvatarBackdrop } from '@data/AssetManifest'
 import { applyCardAvatarTexture } from '@rendering/cardAvatarTexture'
 import { applyArrowSprite, ARROW_DISPLAY_W } from '@rendering/arrowTexture'
 import {
-  CARD_SLOT_W, CARD_SLOT_H, CARD_SELECTED_LIFT, CINZEL_FONT,
+  CARD_SLOT_W, CARD_SLOT_H, CARD_SELECTED_LIFT, NUMBER_FONT,
   applyBackdropDisplaySize, applyCardAvatarIconSize,
   cardIconDisplaySize,
 } from './cardHandLayout'
@@ -50,7 +50,7 @@ export class CardSlot {
 
     this.costText = scene.add.text(x - CARD_SLOT_W / 2 + 3, y + CARD_SLOT_H / 2 - 3, '', {
       fontSize: `${COST_FONT}px`,
-      fontFamily: CINZEL_FONT,
+      fontFamily: NUMBER_FONT,
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#1a004a',

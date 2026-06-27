@@ -14,10 +14,10 @@ export function arrowFlightMs(distancePx: number, attackRate: number): number {
   )
 }
 
-/** Rocket spell — straight-line flight from king tower. */
-export const ROCKET_MIN_FLIGHT_MS = 280
-export const ROCKET_MAX_FLIGHT_MS = 900
-export const ROCKET_SPEED_PX_PER_SEC = 720
+/** Bomb spell — slow arcing flight matching CR's ~4s cross-map travel time. */
+export const ROCKET_MIN_FLIGHT_MS = 1000
+export const ROCKET_MAX_FLIGHT_MS = 4000
+export const ROCKET_SPEED_PX_PER_SEC = 215
 
 export function rocketFlightMs(distancePx: number): number {
   const byDistance = (distancePx / ROCKET_SPEED_PX_PER_SEC) * 1000

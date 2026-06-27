@@ -5,6 +5,7 @@ import { BOMB_TOWER_LIFETIME_MS, CR_SPEED, crSpeedToCellsPerSec, LANCER_CHARGE_D
 function troop(
   id: string,
   displayName: string,
+  description: string,
   elixirCost: number,
   stats: EntityStats,
   textureKeyPlayer: string,
@@ -14,6 +15,7 @@ function troop(
   return {
     id,
     displayName,
+    description,
     elixirCost,
     cardType: CardType.TROOP,
     stats,
@@ -26,17 +28,19 @@ function troop(
 function building(
   id: string,
   displayName: string,
+  description: string,
   elixirCost: number,
   stats: EntityStats,
   textureKeyPlayer: string,
   textureKeyBot: string,
 ): CardDefinition {
-  return { id, displayName, elixirCost, cardType: CardType.BUILDING, stats, textureKeyPlayer, textureKeyBot }
+  return { id, displayName, description, elixirCost, cardType: CardType.BUILDING, stats, textureKeyPlayer, textureKeyBot }
 }
 
 function spell(
   id: string,
   displayName: string,
+  description: string,
   elixirCost: number,
   spellStats: SpellStats,
   textureKeyPlayer: string,
@@ -45,6 +49,7 @@ function spell(
   return {
     id,
     displayName,
+    description,
     elixirCost,
     cardType: CardType.SPELL,
     spellStats,
@@ -57,7 +62,9 @@ function spell(
  *  HP and damage scaled from L11 baseline × 1.321 (~9.7%/level over 3 levels).
  *  Attack speed, range, and movement speed do not change with CR card level. */
 export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
-  warrior: troop('warrior', 'Warrior', 3, {
+  warrior: troop('warrior', 'Warrior',
+    'A sturdy melee fighter with balanced stats. Reliable in any deck.',
+    3, {
     maxHp: 2332,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
     damage: 267,
@@ -68,28 +75,34 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'warrior_blue_idle', 'warrior_red_idle'),
 
   /** Clash Royale {@link https://liquipedia.net/clashroyale/Archers Archers} L14 — ×2 deploy, Knights faction art. */
-  archer: troop('archer', 'Archers', 3, {
+  archer: troop('archer', 'Archers',
+    'A pair of archers who attack from range. Can target both air and ground units.',
+    3, {
     maxHp: 201,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
     damage: 148,
     attackRate: 1 / 0.9,
-    attackRange: 5.0,
+    attackRange: 5.5,
     unitType: UnitType.GROUND,
     attackType: AttackType.AIR_AND_GROUND,
   }, 'knights_archer_blue_sheet', 'knights_archer_red_sheet', 2),
 
   /** Clash Royale {@link https://liquipedia.net/clashroyale/Musketeer Musketeer} L14 — single ranged troop. */
-  elite_archer: troop('elite_archer', 'Elite Archer', 4, {
+  elite_archer: troop('elite_archer', 'Elite Archer',
+    'A skilled lone archer with high damage output and exceptional range.',
+    4, {
     maxHp: 955,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
     damage: 288,
     attackRate: 1 / 1.0,
-    attackRange: 6.0,
+    attackRange: 6.5,
     unitType: UnitType.GROUND,
     attackType: AttackType.AIR_AND_GROUND,
   }, 'archer_blue_idle', 'archer_red_idle'),
 
-  pawn: troop('pawn', 'Pawn', 3, {
+  pawn: troop('pawn', 'Pawn',
+    'A basic melee soldier. Cheap and easy to deploy in large numbers.',
+    3, {
     maxHp: 1406,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
     damage: 211,
@@ -100,7 +113,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'pawn_blue_idle', 'pawn_red_idle'),
 
   /** Clash Royale {@link https://liquipedia.net/clashroyale/Skeletons Skeletons} L14 — ×3 deploy. */
-  skeleton: troop('skeleton', 'Skeletons', 1, {
+  skeleton: troop('skeleton', 'Skeletons',
+    'Three fragile but fast skeletons. Cheap distraction that overwhelms through numbers.',
+    1, {
     maxHp: 108,
     speed: crSpeedToCellsPerSec(CR_SPEED.fast),
     damage: 108,
@@ -111,7 +126,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'skeleton_blue_idle', 'skeleton_red_idle', 3),
 
   /** Clash Royale {@link https://liquipedia.net/clashroyale/Spear_Goblins Spear Goblins} L14 — ×3 deploy. */
-  spear_goblin: troop('spear_goblin', 'Spear Goblins', 2, {
+  spear_goblin: troop('spear_goblin', 'Spear Goblins',
+    'Three very fast goblins hurling spears from range. Can hit air and ground.',
+    2, {
     maxHp: 176,
     speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
     damage: 108,
@@ -122,7 +139,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'spear_goblin_blue_idle', 'spear_goblin_red_idle', 3),
 
   /** Clash Royale {@link https://liquipedia.net/clashroyale/Giant Giant} L14 stats — Troll art. */
-  troll: troop('troll', 'Troll', 5, {
+  troll: troop('troll', 'Troll',
+    'A massive brute who targets only buildings and towers. Extremely high HP.',
+    5, {
     maxHp: 5254,
     speed: crSpeedToCellsPerSec(CR_SPEED.slow),
     damage: 335,
@@ -134,7 +153,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'troll_blue_idle', 'troll_red_idle'),
 
   /** Clash Royale {@link https://liquipedia.net/clashroyale/Prince Prince} L14 — melee with charge. */
-  lancer: troop('lancer', 'Lancer', 5, {
+  lancer: troop('lancer', 'Lancer',
+    'Builds up a devastating charge over distance, doubling speed and damage on impact.',
+    5, {
     maxHp: 2542,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
     damage: 518,
@@ -147,19 +168,22 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     chargeDamageMultiplier: LANCER_CHARGE_DAMAGE_MULT,
   }, 'lancer_blue_idle', 'lancer_red_idle'),
 
-  wizard: troop('wizard', 'Wizard', 5, {
+  wizard: troop('wizard', 'Wizard',
+    'Launches splash fireballs that damage all nearby enemies. Hits air and ground.',
+    5, {
     maxHp: 997,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
     damage: 371,
     attackRate: 1 / 1.4,
-    attackRange: 5.0,
+    attackRange: 5.5,
     unitType: UnitType.GROUND,
     attackType: AttackType.AIR_AND_GROUND,
     splashRadius: 1.5,
   }, 'wizard_blue_idle', 'wizard_red_idle'),
 
-  /** Clash Royale {@link https://liquipedia.net/clashroyale/Baby_Dragon Baby Dragon} L14 — flying splash. */
-  baby_dragon: troop('baby_dragon', 'Baby Dragon', 4, {
+  lizard: troop('lizard', 'Lizard',
+    'A flying lizard that breathes fire with wide splash. Attacks air and ground.',
+    4, {
     maxHp: 1064,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
     damage: 133,
@@ -168,28 +192,34 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     unitType: UnitType.AIR,
     attackType: AttackType.AIR_AND_GROUND,
     splashRadius: 2.5,
-  }, 'baby_dragon_blue_idle', 'baby_dragon_red_idle'),
+  }, 'lizard_blue_idle', 'lizard_red_idle'),
 
-  torch_goblin: troop('torch_goblin', 'Torch Goblin', 3, {
-    maxHp: 345,
+  torch_goblin: troop('torch_goblin', 'Torch Goblin',
+    'A very fast goblin lobbing fire at rapid pace. Effective at range against air and ground.',
+    3, {
+    maxHp: 466,
     speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
     damage: 199,
-    attackRate: 1 / 0.8,
-    attackRange: 6.5,
+    attackRate: 1 / 0.7,
+    attackRange: 7.0,
     unitType: UnitType.GROUND,
     attackType: AttackType.AIR_AND_GROUND,
   }, 'torch_goblin_blue_idle', 'torch_goblin_red_idle'),
 
-  arrows: spell('arrows', 'Arrows', 3, {
+  arrows: spell('arrows', 'Arrows',
+    'A volley of arrows that rains down on an area. Cheap and effective at clearing swarms.',
+    3, {
     damage: 404, radius: 4, duration: 0, delivery: 'arrows',
   }, 'arrow_blue', 'arrow_red'),
 
-  wood_tower: building('wood_tower', 'Bomb Tower', 4, {
+  wood_tower: building('wood_tower', 'Bomb Tower',
+    'A stationary tower lobbing bombs with area damage. Explodes in a large blast on destruction.',
+    4, {
     maxHp: 1791,
     speed: 0,
     damage: 293,
     attackRate: 1 / 1.8,
-    attackRange: 6.0,
+    attackRange: 7.0,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
     splashRadius: 1.5,
@@ -197,7 +227,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     lifetimeMs: BOMB_TOWER_LIFETIME_MS,
   }, 'wood_tower_blue_sheet', 'wood_tower_red_sheet'),
 
-  tnt: spell('tnt', 'Rocket', 6, {
+  tnt: spell('tnt', 'Bomb',
+    'A high-damage bomb hurled at ground targets. Devastating against single targets and buildings.',
+    6, {
     damage: 1960, radius: 2, duration: 0, groundOnly: true, delivery: 'rocket',
   }, 'bomb_idle', 'bomb_idle'),
 }

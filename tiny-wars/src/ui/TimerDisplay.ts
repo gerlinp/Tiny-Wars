@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { GAME_DURATION_MS } from '@data/GameConstants'
-import { CINZEL_FONT } from './cardHandLayout'
+import { NUMBER_FONT } from './cardHandLayout'
 
 const TIMER_COLOR_SAFE     = '#ffffff'
 const TIMER_COLOR_WARN     = '#ffcc44'
@@ -14,7 +14,7 @@ export class TimerDisplay {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.text = scene.add.text(x, y, '3:00', {
       fontSize: '26px',
-      fontFamily: CINZEL_FONT,
+      fontFamily: NUMBER_FONT,
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000022',

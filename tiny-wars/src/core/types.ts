@@ -56,6 +56,7 @@ export interface SpellStats {
 export interface CardDefinition {
   id: string
   displayName: string
+  description: string
   elixirCost: number
   cardType: CardType
   /** Troops and buildings only */

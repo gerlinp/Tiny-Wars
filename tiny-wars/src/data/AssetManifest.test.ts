@@ -230,12 +230,11 @@ describe('Card avatars', () => {
     expect(getCardAvatarCropRatio('warrior')).toBe(AVATAR_CROP_RATIO_DEFAULT)
   })
 
-  it('baby dragon uses Lizard sheets with bot-side tint and idle portrait', () => {
-    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'baby_dragon')!
-    expect(cardAvatarKey('baby_dragon')).toBe('avatar_baby_dragon')
-    expect(getCardAvatarDef('baby_dragon').path).toContain('Lizard_Idle.png')
-    expect(getCardAvatarDef('baby_dragon').path).not.toContain('Flying')
-    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('baby_dragon').path))).toBe(true)
+  it('lizard uses Lizard sheets with bot-side tint and idle portrait', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'lizard')!
+    expect(cardAvatarKey('lizard')).toBe('avatar_enemy_avatars_13')
+    expect(getCardAvatarDef('lizard').path).toContain('Enemy Avatars_13.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('lizard').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
       expect(side.idle.sheet.path).toContain('Caveborn/Lizard/Lizard_Idle_Flying.png')
       expect(side.run.sheet.path).toBe(side.idle.sheet.path)

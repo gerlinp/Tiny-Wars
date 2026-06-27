@@ -28,13 +28,13 @@ export class CrownCounter {
     const labelShadow = { offsetX: 0, offsetY: 1, color: '#000000', blur: 5, stroke: true, fill: true }
 
     scene.add.text(leftX, y, 'YOU', {
-      fontSize: '11px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      fontSize: '13px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
       color: '#aabbff', stroke: '#000022', strokeThickness: 2,
       shadow: labelShadow,
     }).setOrigin(0.5).setDepth(50)
 
     scene.add.text(rightX, y, 'BOT', {
-      fontSize: '11px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      fontSize: '13px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
       color: '#ffaabb', stroke: '#000022', strokeThickness: 2,
       shadow: labelShadow,
     }).setOrigin(0.5).setDepth(50)

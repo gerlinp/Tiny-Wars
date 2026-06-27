@@ -32,7 +32,7 @@ export class CardHand {
       .setVisible(false)
 
     this.nextLabel = scene.add.text(nextX, y + NEXT_SLOT_H / 2 + 4, 'NEXT', {
-      fontSize: '9px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      fontSize: '12px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
       color: '#aabbdd', stroke: '#000022', strokeThickness: 2,
     }).setOrigin(0.5, 0).setDepth(50).setVisible(false)
 

@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
 import { PvPNetwork } from '@core/PvPNetwork'
 
-const BODY_FONT = "'Arial', 'Helvetica', sans-serif"
+const BODY_FONT = "'Philosopher', Georgia, serif"
 
 type LobbyState = 'MENU' | 'CREATING' | 'WAITING_FOR_GUEST' | 'JOINING' | 'CONNECTING'
 
@@ -63,7 +63,7 @@ export class PvPLobbyScene extends Phaser.Scene {
 
     // Status line — between title and active panel
     this.statusText = this.add.text(width / 2, height * 0.25, '', {
-      fontSize: '14px',
+      fontSize: '16px',
       fontFamily: BODY_FONT,
       color: '#aaaacc',
       align: 'center',
@@ -129,7 +129,7 @@ export class PvPLobbyScene extends Phaser.Scene {
     const [inputY, connectY, backY] = flexColumn([INPUT_H, BTN_H, BTN_H], 48)
 
     const label = this.add.text(0, inputY - INPUT_H / 2 - 18, 'ROOM CODE', {
-      fontSize: '12px',
+      fontSize: '16px',
       fontFamily: BODY_FONT,
       color: '#6677bb',
     }).setOrigin(0.5)
@@ -172,7 +172,7 @@ export class PvPLobbyScene extends Phaser.Scene {
     }).setOrigin(0.5)
 
     this.copyHint = this.add.text(0, codeY + 18, 'TAP TO COPY', {
-      fontSize: '11px',
+      fontSize: '13px',
       fontFamily: BODY_FONT,
       color: '#4477aa',
     }).setOrigin(0.5)
@@ -191,7 +191,7 @@ export class PvPLobbyScene extends Phaser.Scene {
     const shareBtn = this.makeBtn(0, shareY, 'SHARE', '14px', () => this.shareCode())
 
     this.waitingText = this.add.text(0, waitY, '', {
-      fontSize: '14px',
+      fontSize: '16px',
       fontFamily: BODY_FONT,
       color: '#aabbff',
       align: 'center',
