@@ -1,5 +1,6 @@
 import type { GameState } from './GameState'
 import { Building } from './entities/Building'
+import { Troop } from './entities/Troop'
 import { EntityKind } from './types'
 import { Owner } from './types'
 import { CELL_SIZE } from '@data/GameConstants'
@@ -19,6 +20,16 @@ export function resolveDeaths(state: GameState): void {
           position: { ...entity.position },
           cardId: building.cardId,
           deathSplashRadius: building.stats.deathSplashRadius,
+        })
+      } else if (entity.kind === EntityKind.TROOP) {
+        const troop = entity as Troop
+        troop.applyDeathNova(state)
+        state.events.push({
+          type: 'DEATH',
+          entityId: id,
+          position: { ...entity.position },
+          cardId: troop.cardId,
+          deathSplashRadius: troop.stats.deathSplashRadius,
         })
       } else {
         state.events.push({ type: 'DEATH', entityId: id, position: { ...entity.position } })

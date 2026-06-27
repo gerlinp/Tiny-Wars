@@ -206,6 +206,93 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     attackType: AttackType.AIR_AND_GROUND,
   }, 'torch_goblin_blue_idle', 'torch_goblin_red_idle'),
 
+  /** L14 stats — fast building-only melee. */
+  pig_rider: troop('pig_rider', 'Pig Rider',
+    'A fast rider on a pig who ignores enemy troops and charges straight for buildings.',
+    4, {
+    maxHp: 2247,
+    speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
+    damage: 420,
+    attackRate: 1 / 1.6,
+    attackRange: 0.8,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+    targetsBuildingsOnly: true,
+  }, 'pig_rider_blue_idle', 'pig_rider_red_idle'),
+
+  /** L14 stats — ranged ground splash. */
+  bomb_fish: troop('bomb_fish', 'Bomb Fish',
+    'A lightly protected fish who lobs explosives with area damage at ground targets.',
+    2, {
+    maxHp: 403,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 298,
+    attackRate: 1 / 1.8,
+    attackRange: 4.5,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+    splashRadius: 1.5,
+  }, 'bomb_fish_blue_idle', 'bomb_fish_red_idle'),
+
+  /** L14 stats — slow heavy melee. */
+  minotaur: troop('minotaur', 'Minotaur',
+    'A heavily armored brute with massive single-target damage. Slow but devastating.',
+    7, {
+    maxHp: 4979,
+    speed: crSpeedToCellsPerSec(CR_SPEED.slow),
+    damage: 1081,
+    attackRate: 1 / 1.8,
+    attackRange: 1.2,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+  }, 'minotaur_blue_idle', 'minotaur_red_idle'),
+
+  /** L14 stats — fast melee with a heavy opening strike. */
+  rogue: troop('rogue', 'Rogue',
+    'A quick knife fighter who lands an extra-powerful blow on the first hit.',
+    3, {
+    maxHp: 1200,
+    speed: crSpeedToCellsPerSec(CR_SPEED.fast),
+    damage: 257,
+    attackRate: 1 / 1.0,
+    attackRange: 0.75,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+    firstHitDamageMultiplier: 2,
+  }, 'rogue_blue_idle', 'rogue_red_idle'),
+
+  /** L14 stats — cheap building tank with a slowing death burst. */
+  turtle: troop('turtle', 'Turtle',
+    'A slow, tough fighter who targets buildings and chills nearby enemies when destroyed.',
+    2, {
+    maxHp: 1742,
+    speed: crSpeedToCellsPerSec(CR_SPEED.verySlow),
+    damage: 111,
+    attackRate: 1 / 2.5,
+    attackRange: 0.75,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+    targetsBuildingsOnly: true,
+    deathSplashRadius: 2,
+    deathSplashDamage: 111,
+    deathSlowDurationMs: 2000,
+    deathSlowSpeedMultiplier: 0.7,
+  }, 'turtle_blue_idle', 'turtle_red_idle'),
+
+  /** L14 stats — tough melee with wide spinning area damage. */
+  panda: troop('panda', 'Panda',
+    'A sturdy fighter who cleaves all nearby enemies with each sweeping strike.',
+    4, {
+    maxHp: 2525,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 352,
+    attackRate: 1 / 1.5,
+    attackRange: 1.2,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+    splashRadius: 2,
+  }, 'panda_blue_idle', 'panda_red_idle'),
+
   arrows: spell('arrows', 'Arrows',
     'A volley of arrows that rains down on an area. Cheap and effective at clearing swarms.',
     3, {

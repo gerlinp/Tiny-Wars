@@ -22,10 +22,12 @@ export class DeckSlot {
   private readonly infoBtnText: Phaser.GameObjects.Text
   private readonly remBtnBg: Phaser.GameObjects.Rectangle
   private readonly remBtnText: Phaser.GameObjects.Text
+  private readonly hitArea: Phaser.GameObjects.Rectangle
   private portrait: Phaser.GameObjects.Image[] = []
   private expanded = false
   private hasCard = false
   private btnPressed = false
+  private sf = 1
   justInteracted = false
 
   constructor(
@@ -84,7 +86,7 @@ export class DeckSlot {
       fontSize: BTN_FONT, fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5).setDepth(11).setVisible(false)
 
-    scene.add.rectangle(x, y, w, h, 0x000000, 0).setDepth(5)
+    this.hitArea = scene.add.rectangle(x, y, w, h, 0x000000, 0).setDepth(5)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => {
         if (!this.hasCard || this.btnPressed) return
@@ -97,6 +99,20 @@ export class DeckSlot {
           this.expand()
         }
       })
+  }
+
+  setScrollFactor(x: number): void {
+    this.sf = x
+    this.bg.setScrollFactor(x)
+    this.emptyText.setScrollFactor(x)
+    this.costText.setScrollFactor(x)
+    this.panelBg.setScrollFactor(x)
+    this.infoBtnBg.setScrollFactor(x)
+    this.infoBtnText.setScrollFactor(x)
+    this.remBtnBg.setScrollFactor(x)
+    this.remBtnText.setScrollFactor(x)
+    this.hitArea.setScrollFactor(x)
+    for (const img of this.portrait) img.setScrollFactor(x)
   }
 
   expand(): void {
@@ -133,7 +149,7 @@ export class DeckSlot {
     if (!card) return
 
     this.portrait = createCardPortrait(this.scene, card, this.x, this.y, this.w * ICON_FILL, this.h * ICON_FILL)
-    for (const img of this.portrait) img.setDepth(1)
+    for (const img of this.portrait) { img.setDepth(1); img.setScrollFactor(this.sf) }
     this.costText.setText(`${card.elixirCost}`)
   }
 }

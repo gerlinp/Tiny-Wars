@@ -46,6 +46,7 @@ export class CardInfoModal {
   private readonly backdrop: Phaser.GameObjects.Rectangle
   private readonly panel: Phaser.GameObjects.Container
   private portraits: Phaser.GameObjects.Image[] = []
+  private sf = 1
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -129,6 +130,7 @@ export class CardInfoModal {
     }).setOrigin(0.5))
     closeBg.on('pointerdown', (p: Phaser.Input.Pointer) => { p.event.stopPropagation(); this.hide() })
 
+    if (this.sf !== 1) this.panel.setScrollFactor(this.sf, this.sf, true)
     this.backdrop.setVisible(true)
     this.panel.setVisible(true)
   }
@@ -182,6 +184,13 @@ export class CardInfoModal {
         fontSize: '14px', fontFamily: NUMBER_FONT, fontStyle: 'bold', color: '#ffffff',
       }).setOrigin(1, 0))
     })
+  }
+
+  setScrollFactor(x: number): void {
+    this.sf = x
+    this.backdrop.setScrollFactor(x)
+    // propagate to existing container children
+    this.panel.setScrollFactor(x, x, true)
   }
 
   hide(): void {

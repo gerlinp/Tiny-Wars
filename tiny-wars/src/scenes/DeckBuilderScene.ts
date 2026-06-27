@@ -14,6 +14,12 @@ const CELL_GAP_Y = 10
 
 const DECK_TOP = 92
 const FOOTER_H = 96
+// Extra space below the last collection row so the expanded action panel of the
+// bottom row clears the fixed footer when scrolled fully down.
+// Reference: rexrainbow.github.io/phaser3-rex-notes/docs/site/ui-scrollablepanel/
+// — "space.panel.bottom" for bottom padding inside a scrollable panel.
+const EXPANDED_PANEL_H = 38 * 2 + 2 + 8 * 2  // BTN_H*2 + BTN_GAP + PANEL_PAD*2
+const SCROLL_BOTTOM_PAD = FOOTER_H + EXPANDED_PANEL_H + 20
 
 export class DeckBuilderScene extends Phaser.Scene {
   private deck: string[] = []
@@ -29,6 +35,7 @@ export class DeckBuilderScene extends Phaser.Scene {
   private expandedCard: DeckCard | null = null
   private expandedSlot: DeckSlot | null = null
   private collectionTop = 0
+  private maxCollectionScrollY = 0
 
   constructor() {
     super({ key: 'DeckBuilderScene' })
@@ -38,8 +45,9 @@ export class DeckBuilderScene extends Phaser.Scene {
     this.deck = loadPlayerDeck()
     this.slots = []
     this.collection = []
+    this.cameras.main.scrollY = 0
 
-    this.add.rectangle(0, 0, GAME_WIDTH, CANVAS_HEIGHT, 0x1a1a2e).setOrigin(0)
+    this.add.rectangle(0, 0, GAME_WIDTH, CANVAS_HEIGHT, 0x1a1a2e).setOrigin(0).setScrollFactor(0)
 
     this.add.text(GAME_WIDTH / 2, 40, 'DECK BUILDER', {
       fontSize: '32px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
@@ -56,7 +64,7 @@ export class DeckBuilderScene extends Phaser.Scene {
 
     const { cellW, cellH } = this.cellSize()
     const deckBottom = DECK_TOP + 2 * cellH + CELL_GAP_Y
-    this.collectionTop = deckBottom + 40
+    this.collectionTop = deckBottom + 120
 
     this.elixirText = this.add.text(GAME_WIDTH / 2, deckBottom + 14, '', {
       fontSize: '16px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#d8a8ff',
@@ -73,9 +81,11 @@ export class DeckBuilderScene extends Phaser.Scene {
     }).setOrigin(0.5, 1).setAlpha(0).setDepth(50)
 
     this.modal = new CardInfoModal(this, () => this.modal.hide())
+    this.modal.setScrollFactor(0)
     this.buildSlots(cellW, cellH)
     this.buildFooter()
     this.buildCollection(cellW, cellH)
+    this.setupScrolling(cellH)
     this.setupDismissHandlers()
     this.refresh()
   }
@@ -122,6 +132,51 @@ export class DeckBuilderScene extends Phaser.Scene {
       cardUi.onInfo   = () => this.modal.show(def)
       cardUi.onAction = () => this.toggle(id)
       this.collection.push(cardUi)
+    })
+  }
+
+  private setupScrolling(cellH: number): void {
+    const candidates = getDeckCandidates()
+    const rows = Math.ceil(candidates.length / COLS)
+    const totalCollH = rows * (cellH + CELL_GAP_Y) - CELL_GAP_Y
+    const worldBottom = this.collectionTop + totalCollH + SCROLL_BOTTOM_PAD
+    // Always guarantee at least FOOTER_H of scroll so the bottom row
+    // can clear the fixed footer when expanded.
+    this.maxCollectionScrollY = Math.max(FOOTER_H, worldBottom - CANVAS_HEIGHT)
+    const totalWorldHeight = CANVAS_HEIGHT + this.maxCollectionScrollY
+
+    this.cameras.main.setBounds(0, 0, GAME_WIDTH, totalWorldHeight)
+
+    const DRAG_THRESHOLD = 8
+    let dragStartY = 0
+    let dragStartCamY = 0
+    let isDragging = false
+    let dragValid = false
+
+    this.input.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
+      dragStartY = ptr.y
+      dragStartCamY = this.cameras.main.scrollY
+      isDragging = true
+      dragValid = false
+    })
+    this.input.on('pointermove', (ptr: Phaser.Input.Pointer) => {
+      if (!isDragging || !ptr.isDown) return
+      if (!dragValid && Math.abs(ptr.y - dragStartY) >= DRAG_THRESHOLD) dragValid = true
+      if (dragValid) {
+        this.cameras.main.scrollY = Phaser.Math.Clamp(
+          dragStartCamY - (ptr.y - dragStartY),
+          0,
+          this.maxCollectionScrollY,
+        )
+      }
+    })
+    this.input.on('pointerup', () => { isDragging = false })
+    this.input.on('wheel', (_ptr: unknown, _objs: unknown, _dx: number, dy: number) => {
+      this.cameras.main.scrollY = Phaser.Math.Clamp(
+        this.cameras.main.scrollY + dy,
+        0,
+        this.maxCollectionScrollY,
+      )
     })
   }
 
@@ -202,9 +257,9 @@ export class DeckBuilderScene extends Phaser.Scene {
   private buildFooter(): void {
     const footerY = CANVAS_HEIGHT - FOOTER_H / 2
     this.add.rectangle(GAME_WIDTH / 2, footerY, GAME_WIDTH, FOOTER_H, 0x0d1120)
-      .setDepth(30)
+      .setDepth(30).setScrollFactor(0)
     this.add.rectangle(GAME_WIDTH / 2, CANVAS_HEIGHT - FOOTER_H, GAME_WIDTH, 1, 0x2e4480, 0.6)
-      .setDepth(30)
+      .setDepth(30).setScrollFactor(0)
 
     const btnW = 130
     const gap = 12
@@ -238,11 +293,11 @@ function makeButton(
   onPress: () => void,
 ): { setEnabled: (on: boolean) => void } {
   const h = 54
-  const bg   = scene.add.rectangle(cx, y, w, h, color).setStrokeStyle(2, 0xffffff, 0.25).setDepth(depth)
+  const bg   = scene.add.rectangle(cx, y, w, h, color).setStrokeStyle(2, 0xffffff, 0.25).setDepth(depth).setScrollFactor(0)
   const text = scene.add.text(cx, y, label, {
     fontSize: '22px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
     color: '#ffffff', stroke: '#000022', strokeThickness: 3,
-  }).setOrigin(0.5).setDepth(depth)
+  }).setOrigin(0.5).setDepth(depth).setScrollFactor(0)
 
   let enabled = true
   bg.setInteractive({ useHandCursor: true })

@@ -1,4 +1,5 @@
 import type { Entity } from './entities/Entity'
+import type { Troop } from './entities/Troop'
 import type { GameState } from './GameState'
 import { EntityKind } from './types'
 import type { Owner, Vec2 } from './types'
@@ -46,5 +47,22 @@ export function dealAreaDamage(
       attackerId,
       splash: tower.id !== primaryId,
     })
+  }
+}
+
+export function applySlowInRadius(
+  state: GameState,
+  owner: Owner,
+  center: Vec2,
+  radiusCells: number,
+  durationMs: number,
+  speedMultiplier: number,
+): void {
+  const radiusPx = radiusCells * CELL_SIZE
+
+  for (const entity of state.entities.values()) {
+    if (entity.owner === owner || !entity.isAlive || entity.kind !== EntityKind.TROOP) continue
+    if (dist(center, entity.position) > radiusPx) continue
+    ;(entity as Troop).applySlow(durationMs, speedMultiplier)
   }
 }

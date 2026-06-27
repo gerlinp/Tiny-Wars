@@ -499,6 +499,186 @@ function lizardSide(side: 'blue' | 'red'): SideAssets {
   }
 }
 
+const PIG_RIDER_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Pig Rider Spear Goblin'
+const PIG_RIDER_FRAME = 256
+
+/** Enemy Pack Pig Rider Spear Goblin — 256×256 frames. */
+function pigRiderSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `pig_rider_${side}_idle`,
+    path: `${PIG_RIDER_PATH}/Pig Rider_Idle.png`,
+    frameWidth: PIG_RIDER_FRAME,
+    frameHeight: PIG_RIDER_FRAME,
+  }
+  const run: SheetDef = {
+    key: `pig_rider_${side}_run`,
+    path: `${PIG_RIDER_PATH}/Pig Rider_Run.png`,
+    frameWidth: PIG_RIDER_FRAME,
+    frameHeight: PIG_RIDER_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `pig_rider_${side}_attack`,
+    path: `${PIG_RIDER_PATH}/Pig Rider_Attack.png`,
+    frameWidth: PIG_RIDER_FRAME,
+    frameHeight: PIG_RIDER_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0, 7, 10, -1),
+    run:    clip(run,    0, 3, 14, -1),
+    attack: clip(attack, 0, 6, 14,  0),
+  }
+}
+
+const BOMB_FISH_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Bomb Fish'
+const BOMB_FISH_FRAME = 192
+
+/** Enemy Pack Bomb Fish — Shoot sheet used as attack. */
+function bombFishSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `bomb_fish_${side}_idle`,
+    path: `${BOMB_FISH_PATH}/Bomb Fish_Idle.png`,
+    frameWidth: BOMB_FISH_FRAME,
+    frameHeight: BOMB_FISH_FRAME,
+  }
+  const run: SheetDef = {
+    key: `bomb_fish_${side}_run`,
+    path: `${BOMB_FISH_PATH}/Bomb Fish_Run.png`,
+    frameWidth: BOMB_FISH_FRAME,
+    frameHeight: BOMB_FISH_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `bomb_fish_${side}_attack`,
+    path: `${BOMB_FISH_PATH}/Bomb Fish_Shoot.png`,
+    frameWidth: BOMB_FISH_FRAME,
+    frameHeight: BOMB_FISH_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0, 7, 10, -1),
+    run:    clip(run,    0, 5, 14, -1),
+    attack: clip(attack, 0, 6, 14,  0),
+  }
+}
+
+const MINOTAUR_PATH = 'assets/Enemy Pack/Enemies/Minotaur'
+const MINOTAUR_FRAME = 320
+
+/** Enemy Pack Minotaur — 320×320 frames; Guard sheet unused. */
+function minotaurSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `minotaur_${side}_idle`,
+    path: `${MINOTAUR_PATH}/Minotaur_Idle.png`,
+    frameWidth: MINOTAUR_FRAME,
+    frameHeight: MINOTAUR_FRAME,
+  }
+  const run: SheetDef = {
+    key: `minotaur_${side}_run`,
+    path: `${MINOTAUR_PATH}/Minotaur_Walk.png`,
+    frameWidth: MINOTAUR_FRAME,
+    frameHeight: MINOTAUR_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `minotaur_${side}_attack`,
+    path: `${MINOTAUR_PATH}/Minotaur_Attack.png`,
+    frameWidth: MINOTAUR_FRAME,
+    frameHeight: MINOTAUR_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0, 15,  8, -1),
+    run:    clip(run,    0,  7, 10, -1),
+    attack: clip(attack, 0, 11, 12,  0),
+  }
+}
+
+const THIEF_PATH = 'assets/Enemy Pack/Enemies/Thief'
+const THIEF_FRAME = 192
+
+/** Enemy Pack Thief — Rogue; 192×192 frames. */
+function rogueSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `rogue_${side}_idle`,
+    path: `${THIEF_PATH}/Thief_Idle.png`,
+    frameWidth: THIEF_FRAME,
+    frameHeight: THIEF_FRAME,
+  }
+  const run: SheetDef = {
+    key: `rogue_${side}_run`,
+    path: `${THIEF_PATH}/Thief_Run.png`,
+    frameWidth: THIEF_FRAME,
+    frameHeight: THIEF_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `rogue_${side}_attack`,
+    path: `${THIEF_PATH}/Thief_Attack.png`,
+    frameWidth: THIEF_FRAME,
+    frameHeight: THIEF_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0, 5, 10, -1),
+    run:    clip(run,    0, 5, 14, -1),
+    attack: clip(attack, 0, 5, 14,  0),
+  }
+}
+
+const PANDA_PATH = 'assets/Enemy Pack/Enemies/Panda'
+const PANDA_FRAME = 256
+
+/** Enemy Pack Panda — 256×256 frames; Guard sheet unused. */
+function pandaSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `panda_${side}_idle`,
+    path: `${PANDA_PATH}/Panda_Idle.png`,
+    frameWidth: PANDA_FRAME,
+    frameHeight: PANDA_FRAME,
+  }
+  const run: SheetDef = {
+    key: `panda_${side}_run`,
+    path: `${PANDA_PATH}/Panda_Run.png`,
+    frameWidth: PANDA_FRAME,
+    frameHeight: PANDA_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `panda_${side}_attack`,
+    path: `${PANDA_PATH}/Panda_Attack.png`,
+    frameWidth: PANDA_FRAME,
+    frameHeight: PANDA_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0,  9, 10, -1),
+    run:    clip(run,    0,  5, 14, -1),
+    attack: clip(attack, 0, 12, 14,  0),
+  }
+}
+
+const TURTLE_PATH = 'assets/Enemy Pack/Enemies/Caveborn/Turtle'
+const TURTLE_FRAME = 320
+
+/** Enemy Pack Turtle — 320×320 frames; Guard sheets unused. */
+function turtleSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `turtle_${side}_idle`,
+    path: `${TURTLE_PATH}/Turtle_Idle.png`,
+    frameWidth: TURTLE_FRAME,
+    frameHeight: TURTLE_FRAME,
+  }
+  const run: SheetDef = {
+    key: `turtle_${side}_run`,
+    path: `${TURTLE_PATH}/Turtle_Walk.png`,
+    frameWidth: TURTLE_FRAME,
+    frameHeight: TURTLE_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `turtle_${side}_attack`,
+    path: `${TURTLE_PATH}/Turtle_Attack.png`,
+    frameWidth: TURTLE_FRAME,
+    frameHeight: TURTLE_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0,  9,  8, -1),
+    run:    clip(run,    0,  6, 10, -1),
+    attack: clip(attack, 0,  9, 12,  0),
+  }
+}
+
 const TROLL_PATH = 'assets/Enemy Pack/Enemies/Troll'
 const TROLL_FRAME = 384
 
@@ -662,6 +842,66 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     tintBotSide: true,
     player: lizardSide('blue'),
     bot:    lizardSide('red'),
+  },
+  {
+    cardId: 'pig_rider',
+    avatar: enemyAvatar('Pig Rider.png'),
+    avatarCropRatio: 0.62,
+    contentFill: 0.52,
+    attackHitFrame: 4,
+    tintBotSide: true,
+    player: pigRiderSide('blue'),
+    bot:    pigRiderSide('red'),
+  },
+  {
+    cardId: 'bomb_fish',
+    avatar: enemyAvatar('Bomb Fish.png'),
+    avatarCropRatio: 0.65,
+    contentFill: 0.55,
+    attackHitFrame: 4,
+    tintBotSide: true,
+    player: bombFishSide('blue'),
+    bot:    bombFishSide('red'),
+  },
+  {
+    cardId: 'minotaur',
+    avatar: enemyAvatar('Enemy Avatars_09.png'),
+    avatarCropRatio: 0.58,
+    contentFill: 0.46,
+    attackHitFrame: 5,
+    tintBotSide: true,
+    player: minotaurSide('blue'),
+    bot:    minotaurSide('red'),
+  },
+  {
+    cardId: 'rogue',
+    avatar: enemyAvatar('Enemy Avatars_10.png'),
+    avatarCropRatio: 0.62,
+    contentFill: 0.55,
+    attackHitFrame: 3,
+    tintBotSide: true,
+    player: rogueSide('blue'),
+    bot:    rogueSide('red'),
+  },
+  {
+    cardId: 'turtle',
+    avatar: enemyAvatar('Enemy Avatars_12.png'),
+    avatarCropRatio: 0.58,
+    contentFill: 0.50,
+    attackHitFrame: 5,
+    tintBotSide: true,
+    player: turtleSide('blue'),
+    bot:    turtleSide('red'),
+  },
+  {
+    cardId: 'panda',
+    avatar: enemyAvatar('Enemy Avatars_11.png'),
+    avatarCropRatio: 0.58,
+    contentFill: 0.52,
+    attackHitFrame: 6,
+    tintBotSide: true,
+    player: pandaSide('blue'),
+    bot:    pandaSide('red'),
   },
   {
     cardId: 'arrows',

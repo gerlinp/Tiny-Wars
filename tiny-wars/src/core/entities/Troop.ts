@@ -11,6 +11,7 @@ import {
   pushTroopOutOfEntity,
   surfaceDistToEntity,
 } from '../EntityGeometry'
+import { dealAreaDamage, applySlowInRadius } from '../AreaDamage'
 import { distSq, dist } from '../Vector2'
 import { findNearestEnemy, findNearestEnemyStructure, isAttackableTower } from '../TargetSelection'
 import type { Tower } from './Tower'
@@ -49,10 +50,12 @@ export class Troop extends Entity {
     return this.attackCooldownMs
   }
 
-  /** Movement speed in grid cells/sec — includes charge boost when active. */
+  /** Movement speed in grid cells/sec — includes charge boost and slow debuffs. */
   getEffectiveSpeed(): number {
-    if (!this.isCharging) return this.stats.speed
-    return this.stats.speed * (this.stats.chargeSpeedMultiplier ?? 1)
+    let speed = this.stats.speed
+    if (this.isCharging) speed *= this.stats.chargeSpeedMultiplier ?? 1
+    speed *= this.slowSpeedMultiplier
+    return speed
   }
 
   /** True after walking {@link EntityStats.chargeDistanceCells} tiles without attacking. */
@@ -70,6 +73,9 @@ export class Troop extends Entity {
   private walkDistanceCells = 0
   private isCharging = false
   private stuckMs = 0
+  private slowSpeedMultiplier = 1
+  private slowUntilMs = 0
+  private firstHitConsumed = false
 
   constructor(owner: Owner, stats: EntityStats, position: Vec2, grid: Grid, cardId: string) {
     super(nextEntityId(), owner, EntityKind.TROOP, position, stats.maxHp, cardId)
@@ -92,6 +98,8 @@ export class Troop extends Entity {
 
   tick(deltaMs: number, state: GameState): void {
     if (!this.isAlive) { this.state = TroopState.DEAD; return }
+
+    this.tickSlow(deltaMs)
 
     if (this.attackCooldownMs > 0) this.attackCooldownMs -= deltaMs
 
@@ -129,17 +137,56 @@ export class Troop extends Entity {
     if (splash && splash > 0) {
       this.dealSplashDamage(state, primary.position, primary.id, damage)
       this.resetCharge()
+      this.firstHitConsumed = true
       return
     }
     this.dealDamageTo(state, primary, false, damage)
     this.resetCharge()
+    this.firstHitConsumed = true
+  }
+
+  /** Death nova — area damage and optional slow (e.g. Turtle). */
+  applyDeathNova(state: GameState): void {
+    const radius = this.stats.deathSplashRadius
+    if (!radius) return
+
+    const damage = this.stats.deathSplashDamage ?? this.stats.damage
+    dealAreaDamage(state, this.owner, this.position, radius, damage, () => true, this.id)
+
+    if (this.stats.deathSlowDurationMs && this.stats.deathSlowSpeedMultiplier !== undefined) {
+      applySlowInRadius(
+        state,
+        this.owner,
+        this.position,
+        radius,
+        this.stats.deathSlowDurationMs,
+        this.stats.deathSlowSpeedMultiplier,
+      )
+    }
+  }
+
+  applySlow(durationMs: number, speedMultiplier: number): void {
+    this.slowUntilMs = Math.max(this.slowUntilMs, durationMs)
+    this.slowSpeedMultiplier = Math.min(this.slowSpeedMultiplier, speedMultiplier)
+  }
+
+  private tickSlow(deltaMs: number): void {
+    if (this.slowUntilMs <= 0) return
+    this.slowUntilMs -= deltaMs
+    if (this.slowUntilMs <= 0) {
+      this.slowUntilMs = 0
+      this.slowSpeedMultiplier = 1
+    }
   }
 
   private getAttackDamage(): number {
+    let damage = this.stats.damage
     if (this.isCharging && this.stats.chargeDamageMultiplier) {
-      return Math.round(this.stats.damage * this.stats.chargeDamageMultiplier)
+      damage = Math.round(damage * this.stats.chargeDamageMultiplier)
+    } else if (!this.firstHitConsumed && this.stats.firstHitDamageMultiplier) {
+      damage = Math.round(damage * this.stats.firstHitDamageMultiplier)
     }
-    return this.stats.damage
+    return damage
   }
 
   private hasChargeAbility(): boolean {
@@ -221,8 +268,7 @@ export class Troop extends Entity {
       this.lastMarchDir = { x: dx / dirLen, y: dy / dirLen }
     }
 
-    const speedMult = this.isCharging ? (this.stats.chargeSpeedMultiplier ?? 1) : 1
-    const speed = (this.stats.speed * CELL_SIZE * deltaMs) / 1000 * speedMult
+    const speed = (this.getEffectiveSpeed() * CELL_SIZE * deltaMs) / 1000
     const beforeX = this.position.x
     const beforeY = this.position.y
 

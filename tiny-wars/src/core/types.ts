@@ -32,6 +32,14 @@ export interface EntityStats {
   splashRadius?: number
   /** Bomb Tower — larger blast when the building is destroyed (grid cells). */
   deathSplashRadius?: number
+  /** Death nova damage; defaults to {@link damage} when unset. */
+  deathSplashDamage?: number
+  /** Slow nearby enemies on death — speed multiplier (0.7 = 30% slower). */
+  deathSlowSpeedMultiplier?: number
+  /** How long the death slow lasts (ms). */
+  deathSlowDurationMs?: number
+  /** First successful strike deals multiplied damage (e.g. opening dash). */
+  firstHitDamageMultiplier?: number
   /** Prince-style charge — tiles walked before charge activates. */
   chargeDistanceCells?: number
   /** Speed multiplier while charging (e.g. 2 = double speed). */

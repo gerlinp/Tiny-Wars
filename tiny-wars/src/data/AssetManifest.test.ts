@@ -249,6 +249,127 @@ describe('Card avatars', () => {
     expect(bundle.attackHitFrame).toBe(5)
   })
 
+  it('pig rider uses Pig Rider sheets with dedicated enemy avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'pig_rider')!
+    expect(cardAvatarKey('pig_rider')).toBe('avatar_pig_rider')
+    expect(getCardAvatarDef('pig_rider').path).toContain('Pig Rider.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('pig_rider').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Pig Rider Spear Goblin/Pig Rider_Idle.png')
+      expect(side.run.sheet.path).toContain('Pig Rider_Run.png')
+      expect(side.attack.sheet.path).toContain('Pig Rider_Attack.png')
+      expect(side.idle.sheet.frameWidth).toBe(256)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(4)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(7)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.attackHitFrame).toBe(4)
+  })
+
+  it('bomb fish uses Bomb Fish sheets with dedicated enemy avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'bomb_fish')!
+    expect(cardAvatarKey('bomb_fish')).toBe('avatar_bomb_fish')
+    expect(getCardAvatarDef('bomb_fish').path).toContain('Bomb Fish.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('bomb_fish').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Bomb Fish/Bomb Fish_Idle.png')
+      expect(side.run.sheet.path).toContain('Bomb Fish_Run.png')
+      expect(side.attack.sheet.path).toContain('Bomb Fish_Shoot.png')
+      expect(side.idle.sheet.frameWidth).toBe(192)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(7)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.attackHitFrame).toBe(4)
+  })
+
+  it('minotaur uses Minotaur sheets with dedicated enemy avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'minotaur')!
+    expect(cardAvatarKey('minotaur')).toBe('avatar_enemy_avatars_09')
+    expect(getCardAvatarDef('minotaur').path).toContain('Enemy Avatars_09.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('minotaur').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Enemies/Minotaur/Minotaur_Idle.png')
+      expect(side.run.sheet.path).toContain('Minotaur_Walk.png')
+      expect(side.attack.sheet.path).toContain('Minotaur_Attack.png')
+      expect(side.idle.sheet.frameWidth).toBe(320)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(16)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(8)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(12)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.attackHitFrame).toBe(5)
+  })
+
+  it('rogue uses Thief sheets with dedicated enemy avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'rogue')!
+    expect(cardAvatarKey('rogue')).toBe('avatar_enemy_avatars_10')
+    expect(getCardAvatarDef('rogue').path).toContain('Enemy Avatars_10.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('rogue').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Enemies/Thief/Thief_Idle.png')
+      expect(side.run.sheet.path).toContain('Thief_Run.png')
+      expect(side.attack.sheet.path).toContain('Thief_Attack.png')
+      expect(side.idle.sheet.frameWidth).toBe(192)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(6)
+    expect(bundle.tintBotSide).toBe(true)
+  })
+
+  it('turtle uses Turtle sheets with dedicated enemy avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'turtle')!
+    expect(cardAvatarKey('turtle')).toBe('avatar_enemy_avatars_12')
+    expect(getCardAvatarDef('turtle').path).toContain('Enemy Avatars_12.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('turtle').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Caveborn/Turtle/Turtle_Idle.png')
+      expect(side.run.sheet.path).toContain('Turtle_Walk.png')
+      expect(side.attack.sheet.path).toContain('Turtle_Attack.png')
+      expect(side.idle.sheet.frameWidth).toBe(320)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(10)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(7)
+    expect(bundle.tintBotSide).toBe(true)
+  })
+
+  it('panda uses Panda sheets with dedicated enemy avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'panda')!
+    expect(cardAvatarKey('panda')).toBe('avatar_enemy_avatars_11')
+    expect(getCardAvatarDef('panda').path).toContain('Enemy Avatars_11.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('panda').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Enemies/Panda/Panda_Idle.png')
+      expect(side.run.sheet.path).toContain('Panda_Run.png')
+      expect(side.attack.sheet.path).toContain('Panda_Attack.png')
+      expect(side.idle.sheet.frameWidth).toBe(256)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(10)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(13)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.attackHitFrame).toBe(6)
+  })
+
   it('bomb tower uses the wood tower building sprite in the card hand', () => {
     expect(cardAvatarKey('wood_tower')).toBe('avatar_bomb_tower')
     const def = getCardAvatarDef('wood_tower')

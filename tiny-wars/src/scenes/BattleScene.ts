@@ -240,7 +240,7 @@ export class BattleScene extends Phaser.Scene {
           } else if (attacker && from && to && isRangedAttacker(attacker) && !event.splash) {
             const attackRate = this.getAttackRate(attacker)
             const cardId = this.entityCardIds.get(attacker.id) ?? attacker.cardId ?? ''
-            if (cardId === 'wizard' || cardId === 'lizard' || cardId === 'torch_goblin') {
+            if (cardId === 'wizard' || cardId === 'lizard' || cardId === 'torch_goblin' || cardId === 'bomb_fish') {
               this.hexFireballs.spawn(from, to, attacker.owner, attackRate, flash)
             } else {
               this.arrows.spawn(from, to, attacker.owner, attackRate, flash)
