@@ -76,6 +76,19 @@ export class UIScene extends Phaser.Scene {
     })
   }
 
+  /** Call immediately after launch to switch the HUD into online-match mode. */
+  setPvP(isPvP: boolean): void {
+    if (isPvP) {
+      this.pauseBtn.setVisible(false).disableInteractive()
+      this.add.text(this.scale.width - 12, 12, '🌐 ONLINE', {
+        fontSize: '13px',
+        color: '#44ddff',
+        backgroundColor: '#0a1a2a',
+        padding: { x: 6, y: 4 },
+      }).setOrigin(1, 0).setDepth(60)
+    }
+  }
+
   private updateDevButton(on: boolean): void {
     this.devBtn.setText(on ? 'DEV: ON' : 'DEV: OFF')
     this.devBtn.setColor(on ? '#44ff88' : '#888888')

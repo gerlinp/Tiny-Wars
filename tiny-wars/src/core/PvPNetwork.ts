@@ -5,6 +5,7 @@ export type PvPMessage =
   | { type: 'READY' }
   | { type: 'DEPLOY'; cardId: string; gridPos: Vec2 }
   | { type: 'REMATCH' }
+  | { type: 'HELLO'; name: string }
 
 export type PvPRole = 'HOST' | 'GUEST'
 
@@ -25,11 +26,14 @@ export class PvPNetwork {
 
   role: PvPRole = 'HOST'
   roomCode = ''
+  localName = ''
+  opponentName = ''
 
   onConnected: (() => void) | null = null
   onDeploy: ((cardId: string, gridPos: Vec2) => void) | null = null
   onDisconnected: (() => void) | null = null
   onRematch: (() => void) | null = null
+  onOpponentName: ((name: string) => void) | null = null
 
   constructor() {
     this.peer = new Peer()
@@ -107,6 +111,7 @@ export class PvPNetwork {
 
   private setupConn(conn: DataConnection): void {
     conn.on('open', () => {
+      this.send({ type: 'HELLO', name: this.localName })
       this.onConnected?.()
     })
     conn.on('data', (raw) => {
@@ -115,6 +120,9 @@ export class PvPNetwork {
         this.onDeploy?.(msg.cardId, msg.gridPos)
       } else if (msg.type === 'REMATCH') {
         this.onRematch?.()
+      } else if (msg.type === 'HELLO') {
+        this.opponentName = msg.name
+        this.onOpponentName?.(msg.name)
       }
     })
     conn.on('close', () => {

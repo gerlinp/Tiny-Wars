@@ -154,6 +154,7 @@ export class BattleScene extends Phaser.Scene {
     uiScene.onDevModeToggle = () => {
       this.devOverlay.setVisible(DevMode.enabled)
     }
+    uiScene.setPvP(!!this.pvpNetwork)
   }
 
   update(_time: number, delta: number): void {
