@@ -136,7 +136,6 @@ describe('Card avatars', () => {
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(7)
     expect(bundle.tintBotSide).toBe(true)
-    expect(bundle.mapHeightScale).toBe(0.88)
     expect(bundle.attackHitFrame).toBe(4)
   })
 
@@ -158,7 +157,6 @@ describe('Card avatars', () => {
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(7)
     expect(bundle.tintBotSide).toBe(true)
-    expect(bundle.mapHeightScale).toBe(0.88)
     expect(bundle.attackHitFrame).toBe(4)
   })
 
@@ -180,7 +178,6 @@ describe('Card avatars', () => {
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(10)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(6)
     expect(bundle.tintBotSide).toBe(true)
-    expect(bundle.mapHeightScale).toBe(1.35)
     expect(bundle.attackHitFrame).toBe(4)
   })
 
@@ -231,6 +228,26 @@ describe('Card avatars', () => {
       expect(bundle.avatarCropRatio).toBeGreaterThan(AVATAR_CROP_RATIO_DEFAULT)
     }
     expect(getCardAvatarCropRatio('warrior')).toBe(AVATAR_CROP_RATIO_DEFAULT)
+  })
+
+  it('baby dragon uses Lizard sheets with bot-side tint and idle portrait', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'baby_dragon')!
+    expect(cardAvatarKey('baby_dragon')).toBe('avatar_baby_dragon')
+    expect(getCardAvatarDef('baby_dragon').path).toContain('Lizard_Idle.png')
+    expect(getCardAvatarDef('baby_dragon').path).not.toContain('Flying')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('baby_dragon').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Caveborn/Lizard/Lizard_Idle_Flying.png')
+      expect(side.run.sheet.path).toBe(side.idle.sheet.path)
+      expect(side.attack.sheet.path).toContain('Lizard_Attack_Flying.png')
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(7)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(7)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(9)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.attackHitFrame).toBe(5)
   })
 
   it('bomb tower uses the wood tower building sprite in the card hand', () => {

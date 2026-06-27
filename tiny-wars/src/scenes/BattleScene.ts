@@ -27,14 +27,14 @@ import type { EntityStats } from '@core/types'
 import { getAttackWindupMs, type AnimClip } from '@data/AssetManifest'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { loadPlayerDeck } from '@data/PlayerDeck'
-import { GAME_HEIGHT } from '@data/GameConstants'
-import { CELL_SIZE } from '@data/GameConstants'
+import { GAME_HEIGHT, CELL_SIZE, GRID_ROWS } from '@data/GameConstants'
 import { DevMode } from '@debug/DevMode'
 import { DevModeOverlay } from '@debug/DevModeOverlay'
 import { isRangedAttacker } from '@core/CombatHelpers'
 import type { GameState } from '@core/GameState'
 import type { Entity } from '@core/entities/Entity'
 import type { Vec2 } from '@core/types'
+import type { PvPNetwork } from '@core/PvPNetwork'
 
 export class BattleScene extends Phaser.Scene {
   private grid!: Grid
@@ -42,6 +42,7 @@ export class BattleScene extends Phaser.Scene {
   private playerCardSystem!: CardSystem
   private botCardSystem!: CardSystem
   private botAI!: BotAI
+  private pvpNetwork: PvPNetwork | null = null
   private sprites: Map<string, EntitySprite> = new Map()
   private towerSprites: Map<string, TowerSprite> = new Map()
   private effects!: EffectsPool
@@ -60,6 +61,10 @@ export class BattleScene extends Phaser.Scene {
     super({ key: 'BattleScene' })
   }
 
+  init(data: { pvpNetwork?: PvPNetwork }): void {
+    this.pvpNetwork = data?.pvpNetwork ?? null
+  }
+
   create(): void {
     ensurePlaceholders(this)
 
@@ -68,6 +73,23 @@ export class BattleScene extends Phaser.Scene {
     this.playerCardSystem = new CardSystem(loadPlayerDeck())
     this.botCardSystem    = new CardSystem()
     this.botAI    = new BotAI()
+
+    if (this.pvpNetwork) {
+      this.pvpNetwork.onDeploy = (cardId, gridPos) => {
+        const card = CARD_DEFINITIONS[cardId]
+        if (card) {
+          // Mirror the opponent's Y coordinate so their bottom-half deploy
+          // lands in our top half (bot zone). GRID_ROWS - 1 - y is the reflection.
+          const mirroredPos = { x: gridPos.x, y: GRID_ROWS - 1 - gridPos.y }
+          this.simulator.deployCard(Owner.BOT, card, mirroredPos)
+        }
+      }
+      this.pvpNetwork.onDisconnected = () => {
+        this.simulator.state.phase = 'ENDED'
+        this.simulator.state.winner = Owner.PLAYER
+      }
+    }
+
     this.sprites  = new Map()
     this.effects  = new EffectsPool(this)
     this.deaths   = new DeathPool(this)
@@ -103,6 +125,12 @@ export class BattleScene extends Phaser.Scene {
       this.placementGhost,
     )
 
+    if (this.pvpNetwork) {
+      this.deployCtrl.onDeploy = (cardId, gridPos) => {
+        this.pvpNetwork!.sendDeploy(cardId, gridPos)
+      }
+    }
+
     // Tap to deploy — ignore taps in the HUD area at the bottom
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (this.isUIArea(p.y)) return
@@ -137,12 +165,14 @@ export class BattleScene extends Phaser.Scene {
     // Tick the simulation
     const state = this.simulator.tick(delta)
 
-    // Bot AI
-    const botAction = this.botAI.tick(delta, state, this.botCardSystem)
-    if (botAction) {
-      const card = this.botCardSystem.hand[botAction.handIndex]
-      if (card && this.simulator.deployCard(Owner.BOT, card, botAction.position)) {
-        this.botCardSystem.consumeCard(botAction.handIndex)
+    // Bot AI (skipped in PvP — opponent actions come via network)
+    if (!this.pvpNetwork) {
+      const botAction = this.botAI.tick(delta, state, this.botCardSystem)
+      if (botAction) {
+        const card = this.botCardSystem.hand[botAction.handIndex]
+        if (card && this.simulator.deployCard(Owner.BOT, card, botAction.position)) {
+          this.botCardSystem.consumeCard(botAction.handIndex)
+        }
       }
     }
 
@@ -210,7 +240,7 @@ export class BattleScene extends Phaser.Scene {
           } else if (attacker && from && to && isRangedAttacker(attacker) && !event.splash) {
             const attackRate = this.getAttackRate(attacker)
             const cardId = this.entityCardIds.get(attacker.id) ?? attacker.cardId ?? ''
-            if (cardId === 'wizard') {
+            if (cardId === 'wizard' || cardId === 'baby_dragon') {
               this.hexFireballs.spawn(from, to, attacker.owner, attackRate, flash)
             } else {
               this.arrows.spawn(from, to, attacker.owner, attackRate, flash)
@@ -411,6 +441,9 @@ export class BattleScene extends Phaser.Scene {
     this.deployCtrl.deselect()
     this.scene.stop('UIScene')
     const winner = this.simulator.state.winner
+    const pvpNetwork = this.pvpNetwork
+    this.pvpNetwork = null
+    pvpNetwork?.destroy()
     this.scene.start('ResultScene', { winner })
   }
 }

@@ -158,6 +158,18 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     splashRadius: 1.5,
   }, 'wizard_blue_idle', 'wizard_red_idle'),
 
+  /** Clash Royale {@link https://liquipedia.net/clashroyale/Baby_Dragon Baby Dragon} L14 — flying splash. */
+  baby_dragon: troop('baby_dragon', 'Baby Dragon', 4, {
+    maxHp: 1064,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 133,
+    attackRate: 1 / 1.8,
+    attackRange: 3.5,
+    unitType: UnitType.AIR,
+    attackType: AttackType.AIR_AND_GROUND,
+    splashRadius: 2.5,
+  }, 'baby_dragon_blue_idle', 'baby_dragon_red_idle'),
+
   torch_goblin: troop('torch_goblin', 'Torch Goblin', 3, {
     maxHp: 345,
     speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),

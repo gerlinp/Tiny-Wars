@@ -7,6 +7,7 @@ import { BattleScene }   from '@scenes/BattleScene'
 import { UIScene }       from '@scenes/UIScene'
 import { ResultScene }   from '@scenes/ResultScene'
 import { TransitionLoadingScene } from '@scenes/TransitionLoadingScene'
+import { PvPLobbyScene } from '@scenes/PvPLobbyScene'
 import { GAME_WIDTH, CANVAS_HEIGHT } from '@data/GameConstants'
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
@@ -16,7 +17,6 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   parent: 'app',
   backgroundColor: '#1a1a2e',
   pixelArt: true,
-  resolution: window.devicePixelRatio,
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -25,5 +25,5 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     target: 30,
     forceSetTimeOut: false,
   },
-  scene: [BootScene, PreloadScene, MainMenuScene, DeckBuilderScene, TransitionLoadingScene, BattleScene, UIScene, ResultScene],
+  scene: [BootScene, PreloadScene, MainMenuScene, DeckBuilderScene, TransitionLoadingScene, PvPLobbyScene, BattleScene, UIScene, ResultScene],
 }

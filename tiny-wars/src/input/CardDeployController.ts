@@ -6,6 +6,7 @@ import type { DeployZoneOverlay } from '@rendering/DeployZoneOverlay'
 import type { PlacementGhost } from '@rendering/PlacementGhost'
 import { Owner } from '@core/types'
 import { CardType } from '@core/types'
+import type { Vec2 } from '@core/types'
 import { GAME_HEIGHT } from '@data/GameConstants'
 import { LOCAL_OWNER, enemyLaneUnlocksFor } from '@core/DeployPerspective'
 import { isTroopDeployCell } from '@core/DeployZones'
@@ -15,6 +16,8 @@ type State = 'IDLE' | 'CARD_SELECTED'
 export class CardDeployController {
   private state: State = 'IDLE'
   private selectedIndex: number | null = null
+
+  onDeploy: ((cardId: string, gridPos: Vec2) => void) | null = null
 
   constructor(
     private scene: Phaser.Scene,
@@ -107,6 +110,7 @@ export class CardDeployController {
     const cell = this.grid.worldToCell(x, y)
     const success = this.simulator.deployCard(Owner.PLAYER, card, cell)
     if (success) {
+      this.onDeploy?.(card.id, cell)
       this.cardSystem.consumeCard(this.selectedIndex)
       this.deselect()
     } else {

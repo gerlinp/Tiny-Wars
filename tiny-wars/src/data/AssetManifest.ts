@@ -179,10 +179,11 @@ export interface CardAssetBundle {
   avatarBackdrop?: ImageDef
   /** When false, render first frame only — no sprite animation */
   animated?: boolean
-  /** Fraction of frame height occupied by visible art (sprite-sheet padding compensation) */
+  /**
+   * Fraction of frame height occupied by visible art (sprite-sheet padding compensation).
+   * Display size follows native frame dimensions — not Clash Royale unit tier.
+   */
   contentFill?: number
-  /** Fine-tune height within tier (1 = default) */
-  mapHeightScale?: number
   /** Collision width vs height (narrow towers — default 1) */
   footprintWidthRatio?: number
   /** Collision height vs display height — base footprint only (default 1) */
@@ -480,6 +481,25 @@ function spearGoblinSide(side: 'blue' | 'red'): SideAssets {
   }
 }
 
+const LIZARD_PATH = 'assets/Enemy Pack/Enemies/Caveborn/Lizard'
+
+/** Enemy Pack Lizard — Baby Dragon art; leg pixels recolored to ground shadow (#161C2E). */
+function lizardSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `baby_dragon_${side}_idle`,
+    path: `${LIZARD_PATH}/Lizard_Idle_Flying.png`,
+  }
+  const attack: SheetDef = {
+    key: `baby_dragon_${side}_attack`,
+    path: `${LIZARD_PATH}/Lizard_Attack_Flying.png`,
+  }
+  return {
+    idle:   clip(idle, 0, 6, 10, -1),
+    run:    clip(idle, 0, 6, 14, -1),
+    attack: clip(attack, 0, 8, 14,  0),
+  }
+}
+
 const TROLL_PATH = 'assets/Enemy Pack/Enemies/Troll'
 const TROLL_FRAME = 384
 
@@ -582,7 +602,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'lancer',
     avatar: humanAvatar('Avatars_02.png'),
     contentFill: 0.42,
-    mapHeightScale: 1.2,
     attackHitFrame: 2,
     player: lancerSide('Blue'),
     bot:    lancerSide('Red'),
@@ -591,7 +610,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'skeleton',
     avatar: enemyAvatar('Enemy Avatars_01.png'),
     contentFill: 0.55,
-    mapHeightScale: 0.88,
     attackHitFrame: 4,
     tintBotSide: true,
     player: skullSide('blue'),
@@ -601,7 +619,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'troll',
     avatar: enemyAvatar('Enemy Avatars_16.png'),
     contentFill: 0.48,
-    mapHeightScale: 1.35,
     attackHitFrame: 4,
     tintBotSide: true,
     player: trollSide('blue'),
@@ -612,7 +629,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatar: enemyAvatar('Spear Goblin.png'),
     avatarCropRatio: 0.88,
     contentFill: 0.55,
-    mapHeightScale: 0.88,
     attackHitFrame: 4,
     tintBotSide: true,
     player: spearGoblinSide('blue'),
@@ -639,6 +655,23 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     bot:    hexShamanSide('red'),
   },
   {
+    cardId: 'baby_dragon',
+    avatar: {
+      key: 'avatar_baby_dragon',
+      path: `${LIZARD_PATH}/Lizard_Idle.png`,
+      frameWidth: FRAME_W,
+      frameHeight: FRAME_H,
+      frame: 0,
+    },
+    avatarBackdrop: AVATAR_BACKDROP_BANNER,
+    avatarCropRatio: 0.88,
+    contentFill: 0.55,
+    attackHitFrame: 5,
+    tintBotSide: true,
+    player: lizardSide('blue'),
+    bot:    lizardSide('red'),
+  },
+  {
     cardId: 'arrows',
     avatar: { key: 'arrow_blue', path: 'assets/Units/Blue Units/Archer/Arrow.png' },
     animated: false,
@@ -659,7 +692,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 0.92,
     animated: false,
     contentFill: 0.72,
-    mapHeightScale: 0.78,
     footprintWidthRatio: 0.42,
     footprintHeightRatio: 0.36,
     player: goblinBuildingSide('wood_tower', 'Blue', 'Buildings/Wood_Tower', 'Wood_Tower_Blue.png', { idle: [0, 4], run: [0, 4], attack: [0, 4] }, 205, 192),

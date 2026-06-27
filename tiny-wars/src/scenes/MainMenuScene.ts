@@ -31,9 +31,10 @@ export class MainMenuScene extends Phaser.Scene {
       strokeThickness: 2,
     }).setOrigin(0.5)
 
-    const menuBtnY = height * 0.58
-    const [playX, deckX] = menuButtonRowCenters(width, 2, 12)
-    createMenuButton(this, playX, menuBtnY, 'PLAY', '20px', 1, () => startBattleLoading(this))
-    createMenuButton(this, deckX, menuBtnY, 'DECK', '20px', 1, () => this.scene.start('DeckBuilderScene'))
+    const menuBtnY = height * 0.55
+    const [playX, onlineX, deckX] = menuButtonRowCenters(width, 3, 10)
+    createMenuButton(this, playX,   menuBtnY, 'PLAY',   '18px', 1, () => startBattleLoading(this))
+    createMenuButton(this, onlineX, menuBtnY, 'ONLINE', '14px', 1, () => this.scene.start('PvPLobbyScene'))
+    createMenuButton(this, deckX,   menuBtnY, 'DECK',   '18px', 1, () => this.scene.start('DeckBuilderScene'))
   }
 }

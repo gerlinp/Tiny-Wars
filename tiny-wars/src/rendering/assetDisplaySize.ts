@@ -32,9 +32,8 @@ export function tierForCard(cardId: string): MapEntityTier {
 export function targetHeightForCard(cardId: string): number {
   const tier = tierForCard(cardId)
   const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
-  const assetScale = bundle?.mapHeightScale ?? 1
   const contentFill = bundle?.contentFill ?? DEFAULT_CONTENT_FILL
-  return (targetHeightForTier(tier) * assetScale) / contentFill
+  return targetHeightForTier(tier) / contentFill
 }
 
 export function targetHeightForTower(isKing: boolean): number {
