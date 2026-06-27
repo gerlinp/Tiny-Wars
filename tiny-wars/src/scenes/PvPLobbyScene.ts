@@ -25,7 +25,6 @@ const INPUT_H = 42
 
 export class PvPLobbyScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text
-  private inputText!: Phaser.GameObjects.Text
   private codeText!: Phaser.GameObjects.Text
   private copyHint!: Phaser.GameObjects.Text
   private waitingText!: Phaser.GameObjects.Text
@@ -34,11 +33,11 @@ export class PvPLobbyScene extends Phaser.Scene {
   private joinContainer!: Phaser.GameObjects.Container
   private waitingContainer!: Phaser.GameObjects.Container
 
-  private inputValue = ''
   private lobbyState: LobbyState = 'MENU'
   private network: PvPNetwork | null = null
   private dotTimer: Phaser.Time.TimerEvent | null = null
   private dotCount = 0
+  private domInput: HTMLInputElement | null = null
 
   constructor() {
     super({ key: 'PvPLobbyScene' })
@@ -47,7 +46,6 @@ export class PvPLobbyScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale
     this.lobbyState = 'MENU'
-    this.inputValue = ''
 
     this.add.rectangle(0, 0, width, height, 0x1a1a2e).setOrigin(0)
 
@@ -76,29 +74,60 @@ export class PvPLobbyScene extends Phaser.Scene {
     this.joinContainer.setVisible(false)
     this.waitingContainer.setVisible(false)
 
-    // Keyboard input for the JOIN flow
-    this.input.keyboard!.on('keydown', (ev: KeyboardEvent) => {
-      if (this.lobbyState !== 'JOINING') return
-      if (ev.key === 'Backspace') {
-        this.inputValue = this.inputValue.slice(0, -1)
-      } else if (ev.key === 'Enter') {
-        this.onJoinRoom()
-        return
-      } else if (ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey) {
-        this.inputValue = (this.inputValue + ev.key.toUpperCase()).slice(0, 5)
-      }
-      this.inputText.setText(this.inputValue || '_')
+    // Real DOM input overlaid on the canvas — handles mobile keyboard and all typing natively
+    const di = document.createElement('input')
+    di.type = 'text'
+    di.maxLength = 5
+    di.autocomplete = 'off'
+    di.autocapitalize = 'characters'
+    di.setAttribute('inputmode', 'text')
+    di.setAttribute('enterkeyhint', 'go')
+    di.style.cssText = [
+      'position:fixed',
+      'display:none',
+      'box-sizing:border-box',
+      'background:#112233',
+      'border:2px solid #4466aa',
+      'color:#88ffcc',
+      'font-family:monospace',
+      'font-weight:bold',
+      'text-align:center',
+      'text-transform:uppercase',
+      'letter-spacing:0.15em',
+      'outline:none',
+      'z-index:10',
+      'padding:0',
+    ].join(';')
+    document.body.appendChild(di)
+    this.domInput = di
+
+    // Position the DOM input over where the Phaser input box sits in the join container
+    const rect = this.scale.canvas.getBoundingClientRect()
+    const sx = rect.width / width
+    const sy = rect.height / height
+    const [inputY] = flexColumn([INPUT_H, BTN_H, BTN_H], 48)
+    const screenX = rect.left + (width / 2) * sx
+    const screenY = rect.top + (height * 0.38 + inputY) * sy
+    const inputW = 200 * sx
+    const inputH = INPUT_H * sy
+    di.style.left   = `${screenX - inputW / 2}px`
+    di.style.top    = `${screenY - inputH / 2}px`
+    di.style.width  = `${inputW}px`
+    di.style.height = `${inputH}px`
+    di.style.fontSize = `${22 * sy}px`
+
+    di.addEventListener('input', () => {
+      // Keep value clean: uppercase alphanumeric, max 5
+      di.value = di.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5)
+    })
+    di.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') { ev.preventDefault(); this.onJoinRoom() }
     })
 
-    // Paste support
-    const onPaste = (ev: ClipboardEvent) => {
-      if (this.lobbyState !== 'JOINING') return
-      const pasted = ev.clipboardData?.getData('text') ?? ''
-      this.inputValue = pasted.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5)
-      this.inputText.setText(this.inputValue || '_')
-    }
-    window.addEventListener('paste', onPaste)
-    this.events.once('shutdown', () => window.removeEventListener('paste', onPaste))
+    this.events.once('shutdown', () => {
+      di.remove()
+      this.domInput = null
+    })
   }
 
   // ---------------------------------------------------------------------------
@@ -125,7 +154,7 @@ export class PvPLobbyScene extends Phaser.Scene {
   }
 
   private buildJoinContainer(width: number, height: number): void {
-    // Input field → CONNECT button → BACK button, all centred
+    // Label + placeholder gap for DOM input + CONNECT button + BACK button, all centred
     const [inputY, connectY, backY] = flexColumn([INPUT_H, BTN_H, BTN_H], 48)
 
     const label = this.add.text(0, inputY - INPUT_H / 2 - 18, 'ROOM CODE', {
@@ -134,21 +163,11 @@ export class PvPLobbyScene extends Phaser.Scene {
       color: '#6677bb',
     }).setOrigin(0.5)
 
-    const inputBg = this.add.rectangle(0, inputY, 200, INPUT_H, 0x112233)
-      .setStrokeStyle(2, 0x4466aa)
-    this.inputText = this.add.text(0, inputY, '_', {
-      fontSize: '22px',
-      fontFamily: 'monospace',
-      fontStyle: 'bold',
-      color: '#88ffcc',
-      letterSpacing: 6,
-    }).setOrigin(0.5)
-
     const connectBtn = this.makeBtn(0, connectY, 'CONNECT', '14px', () => this.onJoinRoom())
     const backBtn    = this.makeBtn(0, backY,    'BACK',    '13px', () => this.goBack())
 
     this.joinContainer = this.add.container(width / 2, height * 0.38, [
-      label, inputBg, this.inputText, ...connectBtn, ...backBtn,
+      label, ...connectBtn, ...backBtn,
     ])
   }
 
@@ -237,6 +256,7 @@ export class PvPLobbyScene extends Phaser.Scene {
 
   private showJoinInput(): void {
     this.lobbyState = 'JOINING'
+    if (this.domInput) { this.domInput.value = ''; this.domInput.style.display = 'block'; this.domInput.focus() }
     this.menuContainer.setVisible(false)
     this.joinContainer.setVisible(true)
     this.statusText.setText('Enter the room code your opponent shared')
@@ -266,9 +286,10 @@ export class PvPLobbyScene extends Phaser.Scene {
   }
 
   private async onJoinRoom(): Promise<void> {
-    const code = this.inputValue
+    const code = (this.domInput?.value ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5)
     if (code.length < 5) return
     this.lobbyState = 'CONNECTING'
+    if (this.domInput) { this.domInput.blur(); this.domInput.style.display = 'none' }
     this.joinContainer.setVisible(false)
     this.statusText.setText('Connecting...')
     this.network = new PvPNetwork()
@@ -279,6 +300,7 @@ export class PvPLobbyScene extends Phaser.Scene {
       this.statusText.setText('Could not connect. Check the code and try again.')
       this.lobbyState = 'JOINING'
       this.joinContainer.setVisible(true)
+      if (this.domInput) { this.domInput.style.display = 'block'; this.domInput.focus() }
     }
   }
 
@@ -291,6 +313,7 @@ export class PvPLobbyScene extends Phaser.Scene {
 
   private goBack(): void {
     this.stopWaitingDots()
+    if (this.domInput) { this.domInput.blur(); this.domInput.style.display = 'none' }
     this.network?.destroy()
     this.network = null
     this.scene.start('MainMenuScene')

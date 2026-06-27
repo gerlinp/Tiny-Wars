@@ -312,11 +312,11 @@ describe('Card avatars', () => {
     expect(bundle.attackHitFrame).toBe(5)
   })
 
-  it('rogue uses Thief sheets with dedicated enemy avatar', () => {
-    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'rogue')!
-    expect(cardAvatarKey('rogue')).toBe('avatar_enemy_avatars_10')
-    expect(getCardAvatarDef('rogue').path).toContain('Enemy Avatars_10.png')
-    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('rogue').path))).toBe(true)
+  it('thief uses Thief sheets with Enemy Avatars_06 portrait', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'thief')!
+    expect(cardAvatarKey('thief')).toBe('avatar_enemy_avatars_06')
+    expect(getCardAvatarDef('thief').path).toContain('Enemy Avatars_06.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('thief').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
       expect(side.idle.sheet.path).toContain('Enemies/Thief/Thief_Idle.png')
       expect(side.run.sheet.path).toContain('Thief_Run.png')
@@ -332,8 +332,8 @@ describe('Card avatars', () => {
 
   it('turtle uses Turtle sheets with dedicated enemy avatar', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'turtle')!
-    expect(cardAvatarKey('turtle')).toBe('avatar_enemy_avatars_12')
-    expect(getCardAvatarDef('turtle').path).toContain('Enemy Avatars_12.png')
+    expect(cardAvatarKey('turtle')).toBe('avatar_enemy_avatars_08')
+    expect(getCardAvatarDef('turtle').path).toContain('Enemy Avatars_08.png')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('turtle').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
       expect(side.idle.sheet.path).toContain('Caveborn/Turtle/Turtle_Idle.png')
@@ -351,8 +351,8 @@ describe('Card avatars', () => {
 
   it('panda uses Panda sheets with dedicated enemy avatar', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'panda')!
-    expect(cardAvatarKey('panda')).toBe('avatar_enemy_avatars_11')
-    expect(getCardAvatarDef('panda').path).toContain('Enemy Avatars_11.png')
+    expect(cardAvatarKey('panda')).toBe('avatar_enemy_avatars_12')
+    expect(getCardAvatarDef('panda').path).toContain('Enemy Avatars_12.png')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('panda').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
       expect(side.idle.sheet.path).toContain('Enemies/Panda/Panda_Idle.png')

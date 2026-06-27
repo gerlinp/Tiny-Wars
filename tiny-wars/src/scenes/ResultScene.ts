@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { Owner } from '@core/types'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
-import { createMenuButton, menuButtonRowCenters } from '../ui/SceneButton'
+import { createMenuButton, menuButtonRowCenters, MENU_BUTTON_SCALE } from '../ui/SceneButton'
 import { startBattleLoading } from '../ui/loadingScreenUi'
 import type { PvPNetwork } from '@core/PvPNetwork'
 
@@ -64,13 +64,27 @@ export class ResultScene extends Phaser.Scene {
       align: 'center',
     }).setOrigin(0.5).setDepth(11)
 
-    // REMATCH button
+    // REMATCH button — built inline so we can update its appearance
     const [rematchX, menuX] = menuButtonRowCenters(width, 2, 10)
-    createMenuButton(this, rematchX, height * 0.62, 'REMATCH', '15px', 10, () => {
+    const rematchBtn = this.add.image(rematchX, height * 0.62, 'button_blue')
+      .setInteractive({ useHandCursor: true })
+      .setScale(MENU_BUTTON_SCALE)
+      .setDepth(10)
+    const rematchLabel = this.add.text(rematchX, height * 0.62, 'REMATCH', {
+      fontSize: '15px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#ffffff', stroke: '#000022', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(11)
+    rematchBtn.on('pointerover', () => { if (!localReady) rematchBtn.setTint(0xdddddd) })
+    rematchBtn.on('pointerout',  () => { if (!localReady) rematchBtn.clearTint() })
+    rematchBtn.on('pointerdown', () => {
       if (localReady) return
       localReady = true
       network.sendRematch()
-      statusText.setText('Waiting for opponent...')
+      // Dim the button to show we've committed
+      rematchPulse?.stop()
+      rematchBtn.setTint(0x888888).disableInteractive()
+      rematchLabel.setColor('#888888')
+      if (!remoteReady) statusText.setText('Waiting for opponent...')
       checkBothReady()
     })
 
@@ -79,8 +93,25 @@ export class ResultScene extends Phaser.Scene {
       this.scene.start('MainMenuScene')
     })
 
+    // Pulsing tween shown when opponent has clicked but we haven't yet
+    let rematchPulse: Phaser.Tweens.Tween | null = null
+    const startRematchPulse = () => {
+      rematchBtn.setTint(0xffdd44)
+      rematchLabel.setColor('#ffdd44')
+      rematchPulse = this.tweens.add({
+        targets: rematchBtn,
+        scaleX: MENU_BUTTON_SCALE * 1.08,
+        scaleY: MENU_BUTTON_SCALE * 1.08,
+        duration: 500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      })
+    }
+
     const checkBothReady = () => {
       if (localReady && remoteReady) {
+        rematchPulse?.stop()
         statusText.setText('Starting rematch!')
         network.onRematch = null
         network.onDisconnected = null
@@ -95,6 +126,7 @@ export class ResultScene extends Phaser.Scene {
       remoteReady = true
       if (!localReady) {
         statusText.setText('Opponent wants a rematch!')
+        startRematchPulse()
       }
       checkBothReady()
     }

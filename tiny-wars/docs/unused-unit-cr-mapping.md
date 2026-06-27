@@ -119,12 +119,42 @@ Given the current deck (knights + skeleton swarm + spells + enemy ranged):
 
 ---
 
-## Portrait inventory (unused)
+## Portrait inventory
 
-Before wiring any new card, pick a dedicated portrait per [card-avatars rule](../../.cursor/rules/card-avatars.mdc) — never use idle sheets as placeholders.
+Before wiring any new card, pick a dedicated portrait per [card-avatars rule](../../.cursor/rules/card-avatars.mdc) — never use idle sheets as placeholders. **Numbered enemy avatars do not match file order** — verify art before assigning.
 
-- **Human Avatars:** `Avatars_02`–`Avatars_25` except `01`, `03`, `05`, `07` (used: `01` Warrior, `02` Lancer, `03` Elite Archer, `05` Pawn)
-- **Enemy Avatars:** `Bomb Fish`, `Harpoon Shark`, `Paddle Shark`, `Enemy Avatars_02`–`_15` except Hex Shaman and Torch Goblin (used: `Enemy Avatars_01` Skeletons, `Spear Goblin`, `Enemy Avatars_16` Troll)
+### Enemy Avatars — wired
+
+| Portrait | Card | Notes |
+|---|---|---|
+| `Enemy Avatars_01.png` | `skeleton` | |
+| `Enemy Avatars_06.png` | `thief` | Hooded thief |
+| `Enemy Avatars_08.png` | `turtle` | Turtle head |
+| `Enemy Avatars_09.png` | `minotaur` | |
+| `Enemy Avatars_12.png` | `panda` | Straw hat |
+| `Enemy Avatars_13.png` | `lizard` | |
+| `Enemy Avatars_16.png` | `troll` | |
+| `Bomb Fish.png` | `bomb_fish` | |
+| `Hex Shaman.png` | `wizard` | |
+| `Pig Rider.png` | `pig_rider` | |
+| `Spear Goblin.png` | `spear_goblin` | |
+| `Torch Goblin.png` | `torch_goblin` | |
+
+### Enemy Avatars — reserved (no card yet)
+
+| Portrait | Intended unit | Suggested role |
+|---|---|---|
+| `Enemy Avatars_07.png` | Snake | Swarm / poison spell |
+| **`Enemy Avatars_10.png`** | **Gnoll** | Musketeer-style ranged (`Enemy Pack/Enemies/Gnoll/`) |
+| `Enemy Avatars_11.png` | Spider | Bats swarm |
+| `Enemy Avatars_14.png` | (hyena/gnoll alt — verify art) | — |
+| `Enemy Avatars_15.png` | Gnome | Goblins / cheap swarm |
+| `Harpoon Shark.png` | Harpoon Shark | Hunter |
+| `Paddle Shark.png` | Paddle Shark | Barbarians ×2 |
+
+### Human Avatars — wired
+
+`Avatars_01` Warrior · `Avatars_02` Lancer · `Avatars_03` Elite Archer · `Avatars_05` Pawn · Knights Archer uses faction sprite (not human avatar folder)
 
 ---
 

@@ -248,7 +248,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'minotaur_blue_idle', 'minotaur_red_idle'),
 
   /** L14 stats — fast melee with a heavy opening strike. */
-  rogue: troop('rogue', 'Rogue',
+  thief: troop('thief', 'Thief',
     'A quick knife fighter who lands an extra-powerful blow on the first hit.',
     3, {
     maxHp: 1200,
@@ -259,7 +259,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
     firstHitDamageMultiplier: 2,
-  }, 'rogue_blue_idle', 'rogue_red_idle'),
+  }, 'thief_blue_idle', 'thief_red_idle'),
 
   /** L14 stats — cheap building tank with a slowing death burst. */
   turtle: troop('turtle', 'Turtle',

@@ -358,6 +358,8 @@ function enemyAvatar(file: string): ImageDef {
   return { key: `avatar_${stem}`, path: `${ENEMY_AVATARS}/${file}` }
 }
 
+/** Reserved enemy portraits (no card wired yet): _07 snake, _10 gnoll, _11 spider, _14, _15 gnome. */
+
 const ICON_FRAME = 64
 
 function iconOnlySide(key: string, path: string): SideAssets {
@@ -592,22 +594,22 @@ function minotaurSide(side: 'blue' | 'red'): SideAssets {
 const THIEF_PATH = 'assets/Enemy Pack/Enemies/Thief'
 const THIEF_FRAME = 192
 
-/** Enemy Pack Thief — Rogue; 192×192 frames. */
-function rogueSide(side: 'blue' | 'red'): SideAssets {
+/** Enemy Pack Thief — 192×192 frames. */
+function thiefSide(side: 'blue' | 'red'): SideAssets {
   const idle: SheetDef = {
-    key: `rogue_${side}_idle`,
+    key: `thief_${side}_idle`,
     path: `${THIEF_PATH}/Thief_Idle.png`,
     frameWidth: THIEF_FRAME,
     frameHeight: THIEF_FRAME,
   }
   const run: SheetDef = {
-    key: `rogue_${side}_run`,
+    key: `thief_${side}_run`,
     path: `${THIEF_PATH}/Thief_Run.png`,
     frameWidth: THIEF_FRAME,
     frameHeight: THIEF_FRAME,
   }
   const attack: SheetDef = {
-    key: `rogue_${side}_attack`,
+    key: `thief_${side}_attack`,
     path: `${THIEF_PATH}/Thief_Attack.png`,
     frameWidth: THIEF_FRAME,
     frameHeight: THIEF_FRAME,
@@ -874,18 +876,18 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     bot:    minotaurSide('red'),
   },
   {
-    cardId: 'rogue',
-    avatar: enemyAvatar('Enemy Avatars_10.png'),
+    cardId: 'thief',
+    avatar: enemyAvatar('Enemy Avatars_06.png'),
     avatarCropRatio: 0.62,
     contentFill: 0.55,
     attackHitFrame: 3,
     tintBotSide: true,
-    player: rogueSide('blue'),
-    bot:    rogueSide('red'),
+    player: thiefSide('blue'),
+    bot:    thiefSide('red'),
   },
   {
     cardId: 'turtle',
-    avatar: enemyAvatar('Enemy Avatars_12.png'),
+    avatar: enemyAvatar('Enemy Avatars_08.png'),
     avatarCropRatio: 0.58,
     contentFill: 0.50,
     attackHitFrame: 5,
@@ -895,7 +897,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'panda',
-    avatar: enemyAvatar('Enemy Avatars_11.png'),
+    avatar: enemyAvatar('Enemy Avatars_12.png'),
     avatarCropRatio: 0.58,
     contentFill: 0.52,
     attackHitFrame: 6,
