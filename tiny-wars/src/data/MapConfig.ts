@@ -4,7 +4,7 @@ export interface DecorationItem {
   row: number
 }
 
-/** Per-tower layout offset from grid centre (game pixels, CELL_SIZE=20). */
+/** Per-tower layout offset from grid centre (game pixels, scaled to current CELL_SIZE). */
 export interface TowerLayoutOffset {
   offsetX?: number
   offsetY?: number

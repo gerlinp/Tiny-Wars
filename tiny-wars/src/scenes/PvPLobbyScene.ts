@@ -22,6 +22,7 @@ function flexColumn(heights: number[], gap: number, startY = 0): number[] {
 
 const BTN_H   = 64   // pixel height of a scale-2 button sprite
 const INPUT_H = 42
+const NAME_H  = 36
 
 export class PvPLobbyScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text
@@ -37,7 +38,8 @@ export class PvPLobbyScene extends Phaser.Scene {
   private network: PvPNetwork | null = null
   private dotTimer: Phaser.Time.TimerEvent | null = null
   private dotCount = 0
-  private domInput: HTMLInputElement | null = null
+  private domInput: HTMLInputElement | null = null   // room code input
+  private nameInput: HTMLInputElement | null = null  // player name input
 
   constructor() {
     super({ key: 'PvPLobbyScene' })
@@ -49,8 +51,8 @@ export class PvPLobbyScene extends Phaser.Scene {
 
     this.add.rectangle(0, 0, width, height, 0x1a1a2e).setOrigin(0)
 
-    // Title + subtitle — fixed at the top
-    this.add.text(width / 2, height * 0.12, 'ONLINE BATTLE', {
+    // Title — fixed at the top
+    this.add.text(width / 2, height * 0.10, 'ONLINE BATTLE', {
       fontSize: '34px',
       fontFamily: CINZEL_FONT,
       fontStyle: 'bold',
@@ -59,8 +61,15 @@ export class PvPLobbyScene extends Phaser.Scene {
       strokeThickness: 6,
     }).setOrigin(0.5)
 
-    // Status line — between title and active panel
-    this.statusText = this.add.text(width / 2, height * 0.25, '', {
+    // Name section label (always visible except during WAITING state)
+    this.add.text(width / 2, height * 0.20, 'YOUR NAME (optional)', {
+      fontSize: '13px',
+      fontFamily: BODY_FONT,
+      color: '#556688',
+    }).setOrigin(0.5)
+
+    // Status line
+    this.statusText = this.add.text(width / 2, height * 0.36, '', {
       fontSize: '16px',
       fontFamily: BODY_FONT,
       color: '#aaaacc',
@@ -74,7 +83,45 @@ export class PvPLobbyScene extends Phaser.Scene {
     this.joinContainer.setVisible(false)
     this.waitingContainer.setVisible(false)
 
-    // Real DOM input overlaid on the canvas — handles mobile keyboard and all typing natively
+    const rect = this.scale.canvas.getBoundingClientRect()
+    const sx = rect.width / width
+    const sy = rect.height / height
+
+    // ── Name DOM input ──────────────────────────────────────────────────────
+    const ni = document.createElement('input')
+    ni.type = 'text'
+    ni.maxLength = 14
+    ni.placeholder = 'e.g. DragonSlayer'
+    ni.autocomplete = 'off'
+    ni.setAttribute('enterkeyhint', 'done')
+    ni.style.cssText = [
+      'position:fixed',
+      'box-sizing:border-box',
+      'background:#0d1a2a',
+      'border:1px solid #334466',
+      'border-radius:4px',
+      'color:#aaccee',
+      'font-family:monospace',
+      'text-align:center',
+      'outline:none',
+      'z-index:10',
+      'padding:0',
+    ].join(';')
+    document.body.appendChild(ni)
+    this.nameInput = ni
+
+    const nameInputPhaserY = height * 0.26
+    const niScreenX = rect.left + (width / 2) * sx
+    const niScreenY = rect.top + nameInputPhaserY * sy
+    const niW = 180 * sx
+    const niH = NAME_H * sy
+    ni.style.left     = `${niScreenX - niW / 2}px`
+    ni.style.top      = `${niScreenY - niH / 2}px`
+    ni.style.width    = `${niW}px`
+    ni.style.height   = `${niH}px`
+    ni.style.fontSize = `${14 * sy}px`
+
+    // ── Room-code DOM input ─────────────────────────────────────────────────
     const di = document.createElement('input')
     di.type = 'text'
     di.maxLength = 5
@@ -101,23 +148,18 @@ export class PvPLobbyScene extends Phaser.Scene {
     document.body.appendChild(di)
     this.domInput = di
 
-    // Position the DOM input over where the Phaser input box sits in the join container
-    const rect = this.scale.canvas.getBoundingClientRect()
-    const sx = rect.width / width
-    const sy = rect.height / height
     const [inputY] = flexColumn([INPUT_H, BTN_H, BTN_H], 48)
-    const screenX = rect.left + (width / 2) * sx
-    const screenY = rect.top + (height * 0.38 + inputY) * sy
-    const inputW = 200 * sx
-    const inputH = INPUT_H * sy
-    di.style.left   = `${screenX - inputW / 2}px`
-    di.style.top    = `${screenY - inputH / 2}px`
-    di.style.width  = `${inputW}px`
-    di.style.height = `${inputH}px`
+    const diScreenX = rect.left + (width / 2) * sx
+    const diScreenY = rect.top + (height * 0.46 + inputY) * sy
+    const diW = 200 * sx
+    const diH = INPUT_H * sy
+    di.style.left     = `${diScreenX - diW / 2}px`
+    di.style.top      = `${diScreenY - diH / 2}px`
+    di.style.width    = `${diW}px`
+    di.style.height   = `${diH}px`
     di.style.fontSize = `${22 * sy}px`
 
     di.addEventListener('input', () => {
-      // Keep value clean: uppercase alphanumeric, max 5
       di.value = di.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5)
     })
     di.addEventListener('keydown', (ev) => {
@@ -125,7 +167,9 @@ export class PvPLobbyScene extends Phaser.Scene {
     })
 
     this.events.once('shutdown', () => {
+      ni.remove()
       di.remove()
+      this.nameInput = null
       this.domInput = null
     })
   }
@@ -135,7 +179,6 @@ export class PvPLobbyScene extends Phaser.Scene {
   // ---------------------------------------------------------------------------
 
   private buildMenuContainer(width: number, height: number): void {
-    // Two buttons side-by-side, then BACK below
     const gap    = 16
     const btnW   = 128
     const pairW  = btnW * 2 + gap
@@ -148,13 +191,12 @@ export class PvPLobbyScene extends Phaser.Scene {
     const joinBtn   = this.makeBtn(rightX, rowY,  'JOIN',   '15px', () => this.showJoinInput())
     const backBtn   = this.makeBtn(0,      backY, 'BACK',   '13px', () => this.goBack())
 
-    this.menuContainer = this.add.container(width / 2, height * 0.42, [
+    this.menuContainer = this.add.container(width / 2, height * 0.52, [
       ...createBtn, ...joinBtn, ...backBtn,
     ])
   }
 
   private buildJoinContainer(width: number, height: number): void {
-    // Label + placeholder gap for DOM input + CONNECT button + BACK button, all centred
     const [inputY, connectY, backY] = flexColumn([INPUT_H, BTN_H, BTN_H], 48)
 
     const label = this.add.text(0, inputY - INPUT_H / 2 - 18, 'ROOM CODE', {
@@ -166,7 +208,7 @@ export class PvPLobbyScene extends Phaser.Scene {
     const connectBtn = this.makeBtn(0, connectY, 'CONNECT', '14px', () => this.onJoinRoom())
     const backBtn    = this.makeBtn(0, backY,    'BACK',    '13px', () => this.goBack())
 
-    this.joinContainer = this.add.container(width / 2, height * 0.38, [
+    this.joinContainer = this.add.container(width / 2, height * 0.46, [
       label, ...connectBtn, ...backBtn,
     ])
   }
@@ -175,7 +217,6 @@ export class PvPLobbyScene extends Phaser.Scene {
     const CODE_BOX_H = 70
     const HINT_H     = 20
 
-    // code-box → hint → SHARE → waiting-dots → BACK
     const [codeY, , shareY, waitY, backY] =
       flexColumn([CODE_BOX_H, HINT_H, BTN_H, 20, BTN_H], 24)
 
@@ -218,7 +259,7 @@ export class PvPLobbyScene extends Phaser.Scene {
 
     const backBtn = this.makeBtn(0, backY, 'BACK', '13px', () => this.goBack())
 
-    this.waitingContainer = this.add.container(width / 2, height * 0.28, [
+    this.waitingContainer = this.add.container(width / 2, height * 0.30, [
       codeBox, this.codeText, this.copyHint,
       ...shareBtn, this.waitingText, ...backBtn,
     ])
@@ -254,6 +295,10 @@ export class PvPLobbyScene extends Phaser.Scene {
   // State transitions
   // ---------------------------------------------------------------------------
 
+  private getLocalName(): string {
+    return (this.nameInput?.value ?? '').trim().slice(0, 14)
+  }
+
   private showJoinInput(): void {
     this.lobbyState = 'JOINING'
     if (this.domInput) { this.domInput.value = ''; this.domInput.style.display = 'block'; this.domInput.focus() }
@@ -266,7 +311,9 @@ export class PvPLobbyScene extends Phaser.Scene {
     this.lobbyState = 'CREATING'
     this.statusText.setText('Creating room...')
     this.menuContainer.setVisible(false)
+    if (this.nameInput) this.nameInput.style.display = 'none'
     this.network = new PvPNetwork()
+    this.network.localName = this.getLocalName()
     try {
       const code = await this.network.createRoom()
       this.lobbyState = 'WAITING_FOR_GUEST'
@@ -282,6 +329,7 @@ export class PvPLobbyScene extends Phaser.Scene {
       this.statusText.setText('Failed to create room. Check your connection.')
       this.lobbyState = 'MENU'
       this.menuContainer.setVisible(true)
+      if (this.nameInput) this.nameInput.style.display = 'block'
     }
   }
 
@@ -290,9 +338,11 @@ export class PvPLobbyScene extends Phaser.Scene {
     if (code.length < 5) return
     this.lobbyState = 'CONNECTING'
     if (this.domInput) { this.domInput.blur(); this.domInput.style.display = 'none' }
+    if (this.nameInput) this.nameInput.style.display = 'none'
     this.joinContainer.setVisible(false)
     this.statusText.setText('Connecting...')
     this.network = new PvPNetwork()
+    this.network.localName = this.getLocalName()
     try {
       await this.network.joinRoom(code)
       this.startBattle()
@@ -301,6 +351,7 @@ export class PvPLobbyScene extends Phaser.Scene {
       this.lobbyState = 'JOINING'
       this.joinContainer.setVisible(true)
       if (this.domInput) { this.domInput.style.display = 'block'; this.domInput.focus() }
+      if (this.nameInput) this.nameInput.style.display = 'block'
     }
   }
 
@@ -314,6 +365,7 @@ export class PvPLobbyScene extends Phaser.Scene {
   private goBack(): void {
     this.stopWaitingDots()
     if (this.domInput) { this.domInput.blur(); this.domInput.style.display = 'none' }
+    if (this.nameInput) this.nameInput.style.display = 'block'
     this.network?.destroy()
     this.network = null
     this.scene.start('MainMenuScene')

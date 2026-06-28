@@ -76,16 +76,42 @@ export class UIScene extends Phaser.Scene {
     })
   }
 
+  private opponentNameText: Phaser.GameObjects.Text | null = null
+
   /** Call immediately after launch to switch the HUD into online-match mode. */
-  setPvP(isPvP: boolean): void {
-    if (isPvP) {
-      this.pauseBtn.setVisible(false).disableInteractive()
-      this.add.text(this.scale.width - 12, 12, '🌐 ONLINE', {
-        fontSize: '13px',
-        color: '#44ddff',
-        backgroundColor: '#0a1a2a',
-        padding: { x: 6, y: 4 },
-      }).setOrigin(1, 0).setDepth(60)
+  setPvP(isPvP: boolean, localName = '', opponentName = ''): void {
+    if (!isPvP) return
+    const { width } = this.scale
+    this.pauseBtn.setVisible(false).disableInteractive()
+
+    this.add.text(width - 12, 12, '🌐 ONLINE', {
+      fontSize: '13px',
+      color: '#44ddff',
+      backgroundColor: '#0a1a2a',
+      padding: { x: 6, y: 4 },
+    }).setOrigin(1, 0).setDepth(60)
+
+    // Player name — bottom-left of HUD panel
+    const youLabel = localName || 'YOU'
+    this.add.text(8, GAME_HEIGHT + 6, youLabel, {
+      fontSize: '11px',
+      fontFamily: "'Philosopher', Georgia, serif",
+      color: '#88aacc',
+    }).setOrigin(0, 0).setDepth(60)
+
+    // Opponent name — bottom-right of HUD panel (updated once HELLO arrives)
+    const oppLabel = opponentName || 'OPPONENT'
+    this.opponentNameText = this.add.text(width - 8, GAME_HEIGHT + 6, oppLabel, {
+      fontSize: '11px',
+      fontFamily: "'Philosopher', Georgia, serif",
+      color: '#cc8888',
+    }).setOrigin(1, 0).setDepth(60)
+  }
+
+  /** Update the opponent name label once the HELLO message arrives. */
+  setOpponentName(name: string): void {
+    if (this.opponentNameText && name) {
+      this.opponentNameText.setText(name)
     }
   }
 

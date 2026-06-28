@@ -154,7 +154,12 @@ export class BattleScene extends Phaser.Scene {
     uiScene.onDevModeToggle = () => {
       this.devOverlay.setVisible(DevMode.enabled)
     }
-    uiScene.setPvP(!!this.pvpNetwork)
+    if (this.pvpNetwork) {
+      const net = this.pvpNetwork
+      uiScene.setPvP(true, net.localName, net.opponentName)
+      // HELLO may arrive after the scene starts — update the label when it does
+      net.onOpponentName = (name) => uiScene.setOpponentName(name)
+    }
   }
 
   update(_time: number, delta: number): void {

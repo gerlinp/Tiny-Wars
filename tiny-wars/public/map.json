@@ -17,19 +17,19 @@
   "terrainOverrides": {},
   "decorations": [],
   "towerHealthBars": {
-    "botKing": { "offsetX": 0, "offsetY": -82 },
-    "botLeft": { "offsetX": 0, "offsetY": -129 },
-    "botRight": { "offsetX": 0, "offsetY": -138 },
-    "plyKing": { "offsetX": 0, "offsetY": 67 },
-    "plyLeft": { "offsetX": 1, "offsetY": 66 },
-    "plyRight": { "offsetX": 1, "offsetY": 62 }
+    "botKing": { "offsetX": 0, "offsetY": -66 },
+    "botLeft": { "offsetX": 0, "offsetY": -103 },
+    "botRight": { "offsetX": 0, "offsetY": -110 },
+    "plyKing": { "offsetX": 0, "offsetY": 54 },
+    "plyLeft": { "offsetX": 1, "offsetY": 53 },
+    "plyRight": { "offsetX": 1, "offsetY": 50 }
   },
   "towerVisualOffsets": {
-    "botKing": { "offsetX": 0, "offsetY": -31 },
-    "botLeft": { "offsetX": 0, "offsetY": -67 },
-    "botRight": { "offsetX": 0, "offsetY": -67 },
-    "plyKing": { "offsetX": 0, "offsetY": 31 },
-    "plyLeft": { "offsetX": 0, "offsetY": 19 },
-    "plyRight": { "offsetX": 0, "offsetY": 19 }
+    "botKing": { "offsetX": 0, "offsetY": -25 },
+    "botLeft": { "offsetX": 0, "offsetY": -54 },
+    "botRight": { "offsetX": 0, "offsetY": -54 },
+    "plyKing": { "offsetX": 0, "offsetY": 25 },
+    "plyLeft": { "offsetX": 0, "offsetY": 15 },
+    "plyRight": { "offsetX": 0, "offsetY": 15 }
   }
 }
