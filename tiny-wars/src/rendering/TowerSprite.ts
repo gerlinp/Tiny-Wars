@@ -25,7 +25,6 @@ import {
   GARRISON_CANNON_ROCKET_VIBRATE_PX,
   garrisonSlots,
   pickGarrisonShooterIndex,
-  resolveGarrisonCannonKey,
 } from './towerGarrison'
 import { HealthBar } from './HealthBar'
 import { DamageFireOverlay } from './DamageFireOverlay'
