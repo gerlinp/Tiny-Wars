@@ -156,8 +156,10 @@ export class BattleScene extends Phaser.Scene {
     }
     if (this.pvpNetwork) {
       const net = this.pvpNetwork
-      uiScene.setPvP(true, net.localName, net.opponentName)
-      // HELLO may arrive after the scene starts — update the label when it does
+      // UIScene.create() runs on the next frame after launch() — defer setPvP until then
+      uiScene.events.once('create', () => {
+        uiScene.setPvP(true, net.localName, net.opponentName)
+      })
       net.onOpponentName = (name) => uiScene.setOpponentName(name)
     }
   }
