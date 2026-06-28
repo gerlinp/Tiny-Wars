@@ -6,6 +6,7 @@ import {
   DAMAGE_FIRE_SHEETS,
   MONK_HEAL_EFFECT_SHEETS,
   EXPLOSION_SHEET,
+  GOBLIN_DYNAMITE_SHEET,
   GNOLL_BONE_SHEET,
   TROOP_DEATH_SHEET,
   type AnimClip,
@@ -134,6 +135,19 @@ export function registerGnollBoneFx(scene: Phaser.Scene): void {
       end: GNOLL_BONE_SHEET.frameEnd,
     }),
     frameRate: GNOLL_BONE_SHEET.frameRate,
+    repeat: -1,
+  })
+}
+
+/** Goblin Demolisher dynamite stick — spinning projectile strip. */
+export function registerGoblinDynamiteFx(scene: Phaser.Scene): void {
+  const { key, animKey, frameEnd, frameRate } = GOBLIN_DYNAMITE_SHEET
+  if (scene.anims.exists(animKey)) return
+  if (!scene.textures.exists(key)) return
+  scene.anims.create({
+    key: animKey,
+    frames: scene.anims.generateFrameNumbers(key, { start: 0, end: frameEnd }),
+    frameRate,
     repeat: -1,
   })
 }

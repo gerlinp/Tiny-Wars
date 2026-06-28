@@ -1,13 +1,30 @@
 import { describe, it, expect } from 'vitest'
 import { troopDeployPositions, troopSwarmPortraitLayout } from '@core/DeploySystem'
-import { TROOP_DEPLOY_SPREAD_CELLS } from '@data/GameConstants'
+import { CELL_SIZE, TROOP_DEPLOY_SPREAD_CELLS } from '@data/GameConstants'
+
+const RING_RADIUS = TROOP_DEPLOY_SPREAD_CELLS * CELL_SIZE * 0.38
 
 describe('DeployLayout', () => {
-  it('forms a grid cluster for large swarms', () => {
-    const positions = troopDeployPositions({ x: 100, y: 200 }, 14, TROOP_DEPLOY_SPREAD_CELLS)
+  it('forms a compact circular cluster for large swarms', () => {
+    const center = { x: 100, y: 200 }
+    const positions = troopDeployPositions(center, 14, TROOP_DEPLOY_SPREAD_CELLS)
     expect(positions).toHaveLength(14)
-    const ys = new Set(positions.map(p => p.y))
-    expect(ys.size).toBeGreaterThan(1)
+
+    const dists = positions.map(p => Math.hypot(p.x - center.x, p.y - center.y))
+    expect(dists.some(d => d < 1)).toBe(true)
+    expect(Math.max(...dists)).toBeGreaterThan(RING_RADIUS)
+    expect(new Set(positions.map(p => Math.round(p.y))).size).toBeGreaterThan(1)
+  })
+
+  it('places small groups evenly on a single ring', () => {
+    const center = { x: 50, y: 50 }
+    const positions = troopDeployPositions(center, 3, TROOP_DEPLOY_SPREAD_CELLS)
+    expect(positions).toHaveLength(3)
+
+    for (const p of positions) {
+      const d = Math.hypot(p.x - center.x, p.y - center.y)
+      expect(d).toBeCloseTo(RING_RADIUS, 4)
+    }
   })
 
   it('swarm portrait keeps units large enough to overlap like in-game deploy', () => {

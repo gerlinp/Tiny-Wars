@@ -12,6 +12,7 @@ export class DeployZoneOverlay {
   private hint: Phaser.GameObjects.Text
   private mode: 'troop' | 'elixir' | 'spell' = 'troop'
   private friendlyRect: DeployOverlayRect = { x: 0, y: 0, w: GAME_WIDTH, h: 0, kind: 'friendly' }
+  private dragToAim = false
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene
@@ -51,8 +52,9 @@ export class DeployZoneOverlay {
     }
   }
 
-  show(mode: 'troop' | 'elixir' | 'spell' = 'troop'): void {
+  show(mode: 'troop' | 'elixir' | 'spell' = 'troop', dragToAim = false): void {
     this.mode = mode
+    this.dragToAim = dragToAim
     if (mode === 'elixir') {
       this.baseZone
         .setPosition(0, 0)
@@ -61,7 +63,7 @@ export class DeployZoneOverlay {
         .setVisible(true)
       this.setExpandedVisible(false)
       this.hint
-        .setText('Tap anywhere to use')
+        .setText(dragToAim ? 'Drag to aim, release to use' : 'Tap anywhere to use')
         .setPosition(GAME_WIDTH / 2, GAME_HEIGHT - 36)
         .setColor('#ddaaff')
         .setVisible(true)
@@ -76,7 +78,7 @@ export class DeployZoneOverlay {
         .setVisible(true)
       this.setExpandedVisible(false)
       this.hint
-        .setText('Tap anywhere to cast')
+        .setText(dragToAim ? 'Drag to aim, release to cast' : 'Tap anywhere to cast')
         .setPosition(GAME_WIDTH / 2, GAME_HEIGHT - 36)
         .setColor('#ffbb88')
         .setVisible(true)
@@ -112,5 +114,10 @@ export class DeployZoneOverlay {
 
   hideHint(): void {
     if (this.mode === 'troop') this.hint.setVisible(false)
+  }
+
+  /** Shown while a card is selected — hint suppressed, zone highlight is sufficient. */
+  showSelectedAimHint(): void {
+    this.hint.setVisible(false)
   }
 }

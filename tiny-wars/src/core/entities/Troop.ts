@@ -28,10 +28,13 @@ import {
 } from '../Movement'
 import { getLaneMarchGoal } from '../LaneMovement'
 import { moveTowardWithAllyAvoidance } from '../TroopAvoidance'
+import { troopDeployPositions } from '../DeploySystem'
+import { CARD_DEFINITIONS } from '@data/CardData'
 import {
   CELL_SIZE, TROOP_AGGRO_RANGE_CELLS, COMBAT_LEASH_MULTIPLIER, EPSILON_DISTANCE,
   LEFT_LANE_COL, RIGHT_LANE_COL, RIVER_ROW_START, RIVER_ROW_END,
   HEAL_PULSE_INTERVAL_MS, THIEF_DASH_WINDUP_MS, HOOK_WINDUP_MS,
+  TROOP_DEPLOY_SPREAD_CELLS,
 } from '@data/GameConstants'
 
 interface ActiveHealBurst {
@@ -143,6 +146,7 @@ export class Troop extends Entity {
   private activeHealBurst: ActiveHealBurst | null = null
   private armorHp = 0
   private boomerangAnchorPos: Vec2 | null = null
+  private spawnMinionCooldownMs: number | null = null
 
   constructor(owner: Owner, stats: EntityStats, position: Vec2, grid: Grid, cardId: string) {
     super(nextEntityId(), owner, EntityKind.TROOP, position, stats.maxHp, cardId)
@@ -151,6 +155,9 @@ export class Troop extends Entity {
     this.grid = grid
     this.pathfinder = new Pathfinder(grid)
     this.lastMarchDir = owner === Owner.PLAYER ? { x: 0, y: -1 } : { x: 0, y: 1 }
+    if (stats.spawnMinionCardId) {
+      this.spawnMinionCooldownMs = stats.spawnMinionInitialDelayMs ?? 1000
+    }
   }
 
   /** HP fraction for UI — includes armor pool when present. */
@@ -225,6 +232,7 @@ export class Troop extends Entity {
     if (!this.isAlive) { this.state = TroopState.DEAD; return }
 
     this.tickHealPulses(deltaMs, state)
+    this.tickMinionSpawns(deltaMs, state)
     this.tickSlow(deltaMs)
 
     if (this.attackCooldownMs > 0) this.attackCooldownMs -= deltaMs
@@ -324,13 +332,14 @@ export class Troop extends Entity {
     const splash = this.stats.splashRadius
     if (splash && splash > 0) {
       this.dealSplashDamage(state, primary.position, primary.id, damage)
-      this.resetCharge()
-      this.applyActiveHeal(state)
-      return
+    } else {
+      this.dealDamageTo(state, primary, false, damage)
     }
-    this.dealDamageTo(state, primary, false, damage)
     this.resetCharge()
     this.applyActiveHeal(state)
+    if (this.stats.suicideOnAttack) {
+      this.hp = 0
+    }
   }
 
   private applyActiveHeal(state: GameState): void {
@@ -392,6 +401,32 @@ export class Troop extends Entity {
       this.activeHealBurst = null
     } else {
       burst.nextPulseMs = HEAL_PULSE_INTERVAL_MS
+    }
+  }
+
+  private tickMinionSpawns(deltaMs: number, state: GameState): void {
+    if (this.spawnMinionCooldownMs === null) return
+
+    this.spawnMinionCooldownMs -= deltaMs
+    if (this.spawnMinionCooldownMs > 0) return
+
+    this.spawnMinions(state)
+    this.spawnMinionCooldownMs = this.stats.spawnMinionIntervalMs ?? 7000
+  }
+
+  private spawnMinions(state: GameState): void {
+    const cardId = this.stats.spawnMinionCardId
+    if (!cardId) return
+
+    const spawnDef = CARD_DEFINITIONS[cardId]
+    if (!spawnDef?.stats) return
+
+    const count = this.stats.spawnMinionCount ?? spawnDef.deployCount ?? 1
+    const positions = troopDeployPositions(this.position, count, TROOP_DEPLOY_SPREAD_CELLS)
+    for (const pos of positions) {
+      const minion = new Troop(this.owner, spawnDef.stats, pos, this.grid, spawnDef.id)
+      state.entities.set(minion.id, minion)
+      state.events.push({ type: 'DEPLOY', entityId: minion.id, cardId: spawnDef.id, position: pos })
     }
   }
 
@@ -624,8 +659,8 @@ export class Troop extends Entity {
       // Straight shot — no need for any pathfinding.
       this.clearPath()
       moveTowardWithAllyAvoidance(this.position, this, goal, speed, state, this.grid)
-    } else if (this.marchTowerId && state.flowFields) {
-      // Flow field navigation: sample the precomputed BFS direction for this tower.
+    } else if (this.marchTowerId && state.flowFields && this.stats.attackRange > 2) {
+      // Flow field — ranged / lane march only; melee uses direct approach to standoff point.
       const dir = state.flowFields.directionTo(this.marchTowerId, this.position.x, this.position.y)
       if (dir) {
         this.clearPath()
@@ -753,6 +788,8 @@ export class Troop extends Entity {
     }
     for (const tower of state.towers.values()) {
       if (!tower.isAlive || tower.owner === this.owner) continue
+      // Chase movement uses meleeApproachPoint — don't fight separation while closing in.
+      if (this.target?.id === tower.id) continue
       pushTroopOutOfEntity(this.position, this, tower)
     }
   }
@@ -876,12 +913,7 @@ export class Troop extends Entity {
   private engageDistTo(entity: Entity, state?: GameState): number {
     if (entity.kind === EntityKind.TOWER && state?.flowFields) {
       const cost = state.flowFields.costTo(entity.id, this.position.x, this.position.y)
-      if (cost < Infinity) {
-        // Active king always takes march priority — appears 1 cell away so it beats
-        // every distance comparison including the stickiness margin check
-        if ((entity as Tower).isKing && (entity as Tower).isActive()) return CELL_SIZE
-        return cost * CELL_SIZE
-      }
+      if (cost < Infinity) return cost * CELL_SIZE
     }
     if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {
       return surfaceDistToEntity(this.position, entity)
@@ -902,6 +934,16 @@ export class Troop extends Entity {
       this.combatDistTo(engagedTarget) <= attackReach * COMBAT_LEASH_MULTIPLIER &&
       !(this.stats.targetsBuildingsOnly && engagedOnTroop)
     if (engaged) return
+
+    // This unit's tower target just died — redirect to the now-exposed king rather than
+    // falling back to a distance comparison that might pick the wrong remaining princess
+    if (this.target?.kind === EntityKind.TOWER && !this.target.isAlive && state.flowFields) {
+      const king = state.flowFields.nearestEnemyTower(state, this.position, this.owner)
+      if (king?.isKing) {
+        this.target = king
+        return
+      }
+    }
 
     if (this.stats.targetsBuildingsOnly) {
       this.target = this.stickyStructureTarget(findNearestEnemyStructure(state, {

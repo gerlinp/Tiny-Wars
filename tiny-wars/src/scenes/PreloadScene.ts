@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, getHealthBarImageKeys, HEALTH_BAR_ASSETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET } from '@data/AssetManifest'
-import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx } from '@rendering/AnimationRegistry'
-import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HARPOON_PROJECTILE_SHEET } from '@data/AssetManifest'
+import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx } from '@rendering/AnimationRegistry'
+import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET } from '@data/AssetManifest'
 import { TERRAIN_COLOR1, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_DECK } from '@data/TerrainManifest'
 import { DEFAULT_DECK } from '@data/CardData'
 import { setActiveMapConfig, getActiveMapConfig } from '@data/ActiveMapConfig'
@@ -162,6 +162,11 @@ export class PreloadScene extends Phaser.Scene {
       frameHeight: GNOLL_BONE_SHEET.frameHeight,
     })
 
+    this.load.spritesheet(GOBLIN_DYNAMITE_SHEET.key, GOBLIN_DYNAMITE_SHEET.path, {
+      frameWidth: GOBLIN_DYNAMITE_SHEET.frameWidth,
+      frameHeight: GOBLIN_DYNAMITE_SHEET.frameHeight,
+    })
+
     for (const sheet of Object.values(MONK_HEAL_EFFECT_SHEETS)) {
       this.load.spritesheet(sheet.key, sheet.path, {
         frameWidth: sheet.frameWidth,
@@ -280,6 +285,7 @@ export class PreloadScene extends Phaser.Scene {
     registerMonkHealFx(this)
     registerExplosionFx(this)
     registerGnollBoneFx(this)
+    registerGoblinDynamiteFx(this)
 
     this.time.delayedCall(waitMs, () => this.scene.start('MainMenuScene'))
   }

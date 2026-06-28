@@ -1,9 +1,10 @@
 import { Entity, nextEntityId } from './Entity'
 import { EntityKind, BuildingState, AttackType, UnitType } from '../types'
+import type { Tower } from './Tower'
 import type { Owner, EntityStats, Vec2 } from '../types'
 import type { GameState } from '../GameState'
 import { surfaceDistToEntity, buildingBlockedCells } from '../EntityGeometry'
-import { refreshStickyTarget } from '../TargetSelection'
+import { refreshStickyTarget, isAttackableTower } from '../TargetSelection'
 import { dealAreaDamage } from '../AreaDamage'
 import { BUILDING_COMBAT_RADIUS_CELLS, BUILDING_FOOTPRINT_CELLS, BUILDING_LIFETIME_MS, CELL_SIZE } from '@data/GameConstants'
 
@@ -124,6 +125,7 @@ export class Building extends Entity {
 
   private canAttack(entity: Entity): boolean {
     if (entity.kind === EntityKind.TOWER) {
+      if (!isAttackableTower(entity as Tower)) return false
       return this.targetsTowers()
     }
 

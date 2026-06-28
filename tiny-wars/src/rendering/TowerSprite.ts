@@ -9,7 +9,7 @@ import {
   GARRISON_ARCHER_FEET_Y,
   GARRISON_CANNON_FEET_Y,
   GARRISON_CANNON_MUZZLE_LIFT,
-  GARRISON_CANNON_SHOT_MS,
+  GARRISON_CANNON_RECOIL_HOLD_MS,
   GARRISON_CANNON_SIZE_MULT,
   MERLON_OVERLAY,
   GARRISON_ARCHER_CARD_ID,
@@ -20,11 +20,10 @@ import {
   garrisonSlotUnit,
   isKingCannonSlot,
   kingCannonDeckWorldY,
-  GARRISON_CANNON_ROCKET_BURST_SCALE,
-  GARRISON_CANNON_ROCKET_KICK_PX,
-  GARRISON_CANNON_ROCKET_VIBRATE_PX,
   garrisonSlots,
   pickGarrisonShooterIndex,
+  GARRISON_CANNON_ROCKET_BURST_SCALE,
+  GARRISON_CANNON_ROCKET_KICK_PX,
 } from './towerGarrison'
 import { HealthBar } from './HealthBar'
 import { DamageFireOverlay } from './DamageFireOverlay'
@@ -125,6 +124,8 @@ export class TowerSprite {
       if (attackSync.cooldownMs > 0 && attackSync.cooldownMs <= attackSync.windupMs) {
         this.beginGarrisonShot(attackSync.aimPoint)
       }
+    } else if (!this.garrisonShooting && !this.cannonRecoilActive) {
+      this.ensureGarrisonIdle()
     }
 
     this.damageFire.sync(
@@ -140,9 +141,14 @@ export class TowerSprite {
     )
   }
 
-  /** Fallback when windup did not start before the first tower shot. */
+  /** Princess-tower archer volley on combat impact. King uses fireCannonAt() instead. */
   onAttackImpact(aimPoint: Vec2): void {
-    if (this.defeated || this.garrisonShooting) return
+    if (this.defeated) return
+    if (this.isKing) {
+      this.fireCannonAt(aimPoint)
+      return
+    }
+    if (this.garrisonShooting) return
     this.beginGarrisonShot(aimPoint)
   }
 
@@ -173,8 +179,7 @@ export class TowerSprite {
     this.stopCannonRecoil()
     this.garrisonShooting = true
     this.lastArrowOrigin = origin
-    this.playCannonShot(cannon, index, aimPoint)
-    this.playCannonRocketRecoil(cannon, index, aimPoint)
+    this.playCannonFire(cannon, index, aimPoint)
     return origin
   }
 
@@ -344,7 +349,7 @@ export class TowerSprite {
     }
 
     if (this.garrisonUnitType(index) === 'cannon') {
-      this.playCannonShot(shooter, index, aimPoint)
+      this.playCannonFire(shooter, index, aimPoint)
       return
     }
 
@@ -363,78 +368,45 @@ export class TowerSprite {
     })
   }
 
-  private playCannonShot(cannon: Phaser.GameObjects.Sprite, index: number, _aimPoint: Vec2): void {
-    cannon.anims.stop()
-    cannon.setTexture(garrisonCannonIdleKey(this.owner), 0)
-    cannon.setFlipX(false)
-
-    this.cannonShotTimer?.remove()
-    this.cannonShotTimer = this.scene.time.delayedCall(GARRISON_CANNON_SHOT_MS, () => {
-      this.cannonShotTimer = null
-      this.garrisonShooting = false
-      this.playGarrisonUnitIdle(index)
-    })
-  }
-
-  /** Scale burst + vibration when the bomb card fires from the king cannon. */
-  private playCannonRocketRecoil(
-    cannon: Phaser.GameObjects.Sprite,
-    index: number,
-    aimPoint: Vec2,
-  ): void {
-    this.stopCannonRecoil()
-    this.cannonRecoilActive = true
-    this.cannonRecoilIndex = index
-    this.scene.tweens.killTweensOf(cannon)
-
-    const slots = garrisonSlots(this.isKing)
-    const slot = slots[this.garrisonSlotIndex(index)]
-    const home = slot ? this.garrisonDeckPosition(slot) : { x: cannon.x, y: cannon.y }
+  private playCannonFire(cannon: Phaser.GameObjects.Sprite, index: number, aimPoint: Vec2): void {
+    const home = this.cannonRecoilHome(index)
     const baseW = this.cannonSize.width
     const baseH = this.cannonSize.height
+    const burstW = baseW * GARRISON_CANNON_ROCKET_BURST_SCALE
+    const burstH = baseH * GARRISON_CANNON_ROCKET_BURST_SCALE
 
     const dx = aimPoint.x - home.x
     const dy = aimPoint.y - home.y
     const len = Math.hypot(dx, dy) || 1
     const kickX = home.x - (dx / len) * GARRISON_CANNON_ROCKET_KICK_PX
     const kickY = home.y - (dy / len) * GARRISON_CANNON_ROCKET_KICK_PX
-    const burstW = baseW * GARRISON_CANNON_ROCKET_BURST_SCALE
-    const burstH = baseH * GARRISON_CANNON_ROCKET_BURST_SCALE
-    const vib = GARRISON_CANNON_ROCKET_VIBRATE_PX
 
-    this.scene.tweens.chain({
-      targets: cannon,
-      tweens: [
-        {
-          displayWidth: burstW,
-          displayHeight: burstH,
-          x: kickX,
-          y: kickY,
-          duration: 70,
-          ease: 'Quad.easeOut',
-        },
-        {
-          x: kickX + vib,
-          y: kickY - vib * 0.6,
-          duration: 30,
-          yoyo: true,
-          repeat: 3,
-          ease: 'Sine.easeInOut',
-        },
-        {
-          displayWidth: baseW,
-          displayHeight: baseH,
-          x: home.x,
-          y: home.y,
-          duration: 110,
-          ease: 'Quad.easeInOut',
-          onComplete: () => {
-            this.cannonRecoilActive = false
-            this.cannonRecoilIndex = -1
-          },
-        },
-      ],
+    cannon.anims.stop()
+
+    this.cannonShotTimer?.remove()
+    this.stopCannonRecoil()
+    this.cannonRecoilActive = true
+    this.cannonRecoilIndex = index
+    this.scene.tweens.killTweensOf(cannon)
+
+    cannon.setDisplaySize(burstW, burstH)
+    cannon.setPosition(kickX, kickY)
+
+    this.cannonShotTimer = this.scene.time.delayedCall(GARRISON_CANNON_RECOIL_HOLD_MS, () => {
+      this.cannonShotTimer = null
+      cannon.setDisplaySize(baseW, baseH)
+      cannon.setPosition(home.x, home.y)
+      this.cannonRecoilActive = false
+      this.cannonRecoilIndex = -1
+      this.garrisonShooting = false
+      this.playGarrisonUnitIdle(index)
     })
+  }
+
+  private cannonRecoilHome(index: number): Vec2 {
+    const slots = garrisonSlots(this.isKing)
+    const slot = slots[this.garrisonSlotIndex(index)]
+    return slot ? this.garrisonDeckPosition(slot) : { x: this.garrison[index]!.x, y: this.garrison[index]!.y }
   }
 
   private stopCannonRecoil(): void {
@@ -457,6 +429,27 @@ export class TowerSprite {
   private playGarrisonIdle(): void {
     for (let i = 0; i < this.garrison.length; i++) {
       this.playGarrisonUnitIdle(i)
+    }
+  }
+
+  /** Keep archer idle loops and cannon resting frame when not firing. */
+  private ensureGarrisonIdle(): void {
+    for (let i = 0; i < this.garrison.length; i++) {
+      if (this.cannonRecoilActive && i === this.cannonRecoilIndex) continue
+      const unit = this.garrison[i]
+      if (!unit) continue
+
+      if (this.garrisonUnitType(i) === 'cannon') {
+        const idleTex = garrisonCannonIdleKey(this.owner)
+        if (unit.texture.key !== idleTex) this.playGarrisonUnitIdle(i)
+        continue
+      }
+
+      const idleKey = garrisonArcherIdleAnimKey(this.owner)
+      if (!this.scene.anims.exists(idleKey)) continue
+      if (!unit.anims.isPlaying || unit.anims.currentAnim?.key !== idleKey) {
+        this.playGarrisonUnitIdle(i)
+      }
     }
   }
 

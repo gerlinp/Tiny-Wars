@@ -3,13 +3,17 @@ import { Troop } from './Troop'
 import { EntityKind, UnitType } from '../types'
 import type { Owner, SpellStats, Vec2 } from '../types'
 import type { GameState } from '../GameState'
+import type { Grid } from '../Grid'
 import { dist } from '../Vector2'
-import { CELL_SIZE } from '@data/GameConstants'
+import { CELL_SIZE, TROOP_DEPLOY_SPREAD_CELLS } from '@data/GameConstants'
+import { CARD_DEFINITIONS } from '@data/CardData'
+import { troopDeployPositions } from '@core/DeploySystem'
 
 export class Spell extends Entity {
   readonly stats: SpellStats
   private applied = false
   private readonly impactAtMs: number
+  private readonly grid: Grid | null
 
   constructor(
     owner: Owner,
@@ -17,10 +21,12 @@ export class Spell extends Entity {
     position: Vec2,
     cardId: string,
     impactAtMs: number,
+    grid: Grid | null = null,
   ) {
     super(nextEntityId(), owner, EntityKind.SPELL, position, 1, cardId)
     this.stats = stats
     this.impactAtMs = impactAtMs
+    this.grid = grid
   }
 
   tick(_deltaMs: number, state: GameState): void {
@@ -53,6 +59,19 @@ export class Spell extends Entity {
       if (dist(this.position, tower.position) <= radiusPx) {
         tower.takeDamage(this.stats.damage)
         state.events.push({ type: 'DAMAGE', targetId: tower.id, amount: this.stats.damage })
+      }
+    }
+
+    if (this.stats.spawnCardId && this.grid) {
+      const spawnDef = CARD_DEFINITIONS[this.stats.spawnCardId]
+      if (spawnDef?.stats) {
+        const count = this.stats.spawnCount ?? spawnDef.deployCount ?? 1
+        const positions = troopDeployPositions(this.position, count, TROOP_DEPLOY_SPREAD_CELLS)
+        for (const pos of positions) {
+          const troop = new Troop(this.owner, spawnDef.stats, pos, this.grid, spawnDef.id)
+          state.entities.set(troop.id, troop)
+          state.events.push({ type: 'DEPLOY', entityId: troop.id, cardId: spawnDef.id, position: pos })
+        }
       }
     }
 

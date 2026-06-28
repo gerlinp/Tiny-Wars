@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
-import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, AVATAR_CROP_RATIO_DEFAULT, EXPLOSION_SHEET, GNOLL_BONE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarCropRatio, getCardAvatarDef, getCardAvatarSwarmSource, resolveAttackAnimKey } from '@data/AssetManifest'
+import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, AVATAR_CROP_RATIO_DEFAULT, EXPLOSION_SHEET, GNOLL_BONE_SHEET, GOBLIN_DYNAMITE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarCropRatio, getCardAvatarDef, getCardAvatarSwarmSource, resolveAttackAnimKey } from '@data/AssetManifest'
 import { DEFAULT_DECK } from '@data/CardData'
 import { Owner } from '@core/types'
 
@@ -175,11 +175,11 @@ describe('Card avatars', () => {
     expect(bundle.attackHitFrame).toBe(4)
   })
 
-  it('pawns uses hooded pawn sheets with dedicated avatar', () => {
-    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'pawns')!
-    expect(cardAvatarKey('pawns')).toBe('avatar_pawns')
-    expect(getCardAvatarDef('pawns').path).toContain('Avatars_05.png')
-    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('pawns').path))).toBe(true)
+  it('villagers uses hooded villager sheets with dedicated avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'villagers')!
+    expect(cardAvatarKey('villagers')).toBe('avatar_villagers')
+    expect(getCardAvatarDef('villagers').path).toContain('Avatars_05.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('villagers').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
       expect(side.idle.sheet.path).toContain('Pawn_Idle.png')
       expect(side.run.sheet.path).toContain('Pawn_Run.png')
@@ -466,6 +466,27 @@ describe('Card avatars', () => {
     expect(existsSync(resolve(PUBLIC, 'assets/Units/Red Units/Monk/Heal_Effect.png'))).toBe(true)
   })
 
+  it('spider uses Caveborn Spider sheets and Enemy Avatars_11 portrait', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'spider')!
+    expect(cardAvatarKey('spider')).toBe('avatar_enemy_avatars_11')
+    expect(getCardAvatarDef('spider').path).toContain('Enemy Avatars_11.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('spider').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Caveborn/Spider/Spider_Idle.png')
+      expect(side.run.sheet.path).toContain('Spider_Run.png')
+      expect(side.attack.sheet.path).toContain('Spider_Attack.png')
+      expect(side.idle.sheet.frameWidth).toBe(192)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(5)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(8)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.attackHitFrame).toBe(4)
+  })
+
   it('bomb tower uses the wood tower building sprite in the card hand', () => {
     expect(cardAvatarKey('wood_tower')).toBe('avatar_bomb_tower')
     const def = getCardAvatarDef('wood_tower')
@@ -474,6 +495,43 @@ describe('Card avatars', () => {
     expect(getCardAvatarBackdrop('wood_tower')).toBeNull()
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'wood_tower')!
     expect(bundle.avatarBuildingFit).toBe(true)
+  })
+
+  it('goblin barrel uses hop and break clips from the 4×4 barrel sheet', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'goblin_barrel')!
+    expect(cardAvatarKey('goblin_barrel')).toBe('avatar_goblin_barrel')
+    expect(cardAvatarKey('goblin_barrel')).not.toBe('barrel_blue')
+    expect(getCardAvatarDef('goblin_barrel').path).toContain('Barrel_Blue.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('goblin_barrel').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Barrel_')
+      expect(side.idle.sheet.frameWidth).toBe(192)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.start).toBe(0)
+    expect(bundle.player.idle.end).toBe(0)
+    expect(bundle.player.run.start).toBe(1)
+    expect(bundle.player.run.end).toBe(7)
+    expect(bundle.player.attack.start).toBe(12)
+    expect(bundle.player.attack.end).toBe(14)
+    expect(bundle.player.attack.repeat).toBe(0)
+  })
+
+  it('goblin demolisher uses Factions TNT sheets and dynamite projectile', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'goblin_demolisher')!
+    expect(cardAvatarKey('goblin_demolisher')).toBe('avatar_goblin_demolisher')
+    expect(getCardAvatarDef('goblin_demolisher').path).toContain('TNT_Blue.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('goblin_demolisher').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('TNT_')
+      expect(side.idle.sheet.frameWidth).toBe(192)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.run.start).toBe(0)
+    expect(bundle.player.run.end).toBe(11)
+    expect(bundle.player.attack.start).toBe(14)
+    expect(bundle.player.attack.end).toBe(20)
+    expect(existsSync(resolve(PUBLIC, GOBLIN_DYNAMITE_SHEET.path))).toBe(true)
   })
 
   it('loads generic explosion spritesheet from Effects/Explosion', () => {

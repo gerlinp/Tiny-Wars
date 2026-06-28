@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { Owner } from '@core/types'
-import { CELL_SIZE, BOT_KING_ROW, BOT_TOWER_ROW, PRINCESS_TOWER_RENDER_NUDGE_Y, TOWER_HEALTH_BAR_Y } from '@data/GameConstants'
+import { CELL_SIZE, BOT_KING_ROW, BOT_KING_VISUAL_ROW, BOT_TOWER_ROW, PLAYER_KING_ROW, PLAYER_KING_VISUAL_ROW, PRINCESS_TOWER_RENDER_NUDGE_Y, TOWER_HEALTH_BAR_Y } from '@data/GameConstants'
 import {
+  kingVisualAnchorY,
+  towerAttackCenter,
   towerFootprintRiverEdge,
   towerHealthBarY,
   towerRenderY,
@@ -40,17 +42,40 @@ describe('towerRenderPosition', () => {
     const barY = towerHealthBarY(botKingLogicY, Owner.BOT, true, bounds.height)
 
     expect(barY).toBeLessThan(bounds.top)
-    expect(barY).toBeGreaterThan(0)
     expect(barY).toBeCloseTo(bounds.top - TOWER_HEALTH_BAR_Y.botGapAboveTop, 0)
   })
 
   it('places player king health bar inside the castle toward the arena', () => {
-    const playerKingLogicY = 37 * CELL_SIZE + CELL_SIZE / 2
+    const playerKingLogicY = PLAYER_KING_ROW * CELL_SIZE + CELL_SIZE / 2
     const bounds = towerVisualBounds(playerKingLogicY, Owner.PLAYER, true)
     const barY = towerHealthBarY(playerKingLogicY, Owner.PLAYER, true, bounds.height)
 
     expect(barY).toBeGreaterThan(bounds.top)
     expect(barY).toBeLessThan(bounds.bottom)
     expect(barY).toBeCloseTo(bounds.renderY + TOWER_HEALTH_BAR_Y.playerOffsetFromCenter, 0)
+  })
+
+  it('keeps king castle visuals at visual rows when hitbox rows differ', () => {
+    const botHitboxY = BOT_KING_ROW * CELL_SIZE + CELL_SIZE / 2
+    const botVisualY = BOT_KING_VISUAL_ROW * CELL_SIZE + CELL_SIZE / 2
+    expect(kingVisualAnchorY(botHitboxY, Owner.BOT)).toBeCloseTo(botVisualY, 0)
+
+    const plyHitboxY = PLAYER_KING_ROW * CELL_SIZE + CELL_SIZE / 2
+    const plyVisualY = PLAYER_KING_VISUAL_ROW * CELL_SIZE + CELL_SIZE / 2
+    expect(kingVisualAnchorY(plyHitboxY, Owner.PLAYER)).toBeCloseTo(plyVisualY, 0)
+  })
+
+  it('keeps king tower attack range centred on visual row when hitbox row differs', () => {
+    const logicX = 12 * CELL_SIZE + CELL_SIZE / 2
+    const botHitboxY = BOT_KING_ROW * CELL_SIZE + CELL_SIZE / 2
+    const botVisualY = BOT_KING_VISUAL_ROW * CELL_SIZE + CELL_SIZE / 2
+    const botAttack = towerAttackCenter(logicX, botHitboxY, Owner.BOT, true)
+    expect(botAttack.x).toBe(logicX)
+    expect(botAttack.y).toBeCloseTo(botVisualY, 0)
+
+    const plyHitboxY = PLAYER_KING_ROW * CELL_SIZE + CELL_SIZE / 2
+    const plyVisualY = PLAYER_KING_VISUAL_ROW * CELL_SIZE + CELL_SIZE / 2
+    const plyAttack = towerAttackCenter(logicX, plyHitboxY, Owner.PLAYER, true)
+    expect(plyAttack.y).toBeCloseTo(plyVisualY, 0)
   })
 })

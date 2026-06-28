@@ -8,8 +8,8 @@ import { EntityKind, Owner } from '@core/types'
 import { CELL_SIZE } from '@data/GameConstants'
 import { towerTextureKey } from '@rendering/renderingUtils'
 import { displaySizeForCard, displaySizeForTower } from '@rendering/assetDisplaySize'
-import { towerRenderX, towerRenderY } from '@rendering/towerRenderPosition'
-import { entityCollisionCenter, entityHalfExtents, troopCollisionRadius, buildingCombatCenter, buildingCombatRadius } from '@core/EntityGeometry'
+import { towerAttackCenter, towerRenderX, towerRenderY } from '@rendering/towerRenderPosition'
+import { entityCollisionCenter, entityCombatRadius, troopCollisionRadius, buildingCombatCenter, buildingCombatRadius } from '@core/EntityGeometry'
 import { idleSheetKey } from '@data/AssetManifest'
 import { resolveTexture } from '@rendering/renderingUtils'
 
@@ -146,17 +146,11 @@ export class DevModeOverlay {
     for (const tower of state.towers.values()) {
       if (!tower.isAlive) continue
 
-      const half = entityHalfExtents(tower)
-
       const collisionCenter = entityCollisionCenter(tower)
+      const combatR = entityCombatRadius(tower)!
 
       g.lineStyle(1.5, COL.tower, 0.9)
-      g.strokeRect(
-        collisionCenter.x - half.halfW,
-        collisionCenter.y - half.halfH,
-        half.halfW * 2,
-        half.halfH * 2,
-      )
+      g.strokeCircle(collisionCenter.x, collisionCenter.y, combatR)
 
       const key = towerTextureKey(tower.isKing, tower.owner)
       const size = displaySizeForTower(this.scene, tower.isKing, key)
@@ -172,11 +166,19 @@ export class DevModeOverlay {
       )
 
       const rangePx = tower.stats.range * CELL_SIZE
-      g.lineStyle(1.5, COL.attack, 0.5)
-      g.strokeCircle(tower.position.x, tower.position.y, rangePx)
+      const attackCenter = towerAttackCenter(
+        tower.position.x,
+        tower.position.y,
+        tower.owner,
+        tower.isKing,
+      )
+      if (!tower.isKing || tower.isActive()) {
+        g.lineStyle(1.5, COL.attack, 0.5)
+        g.strokeCircle(attackCenter.x, attackCenter.y, rangePx)
+      }
 
       g.fillStyle(this.ownerColor(tower.owner), 0.8)
-      g.fillCircle(tower.position.x, tower.position.y, 3)
+      g.fillCircle(attackCenter.x, attackCenter.y, tower.isActive() ? 3 : 2)
     }
   }
 

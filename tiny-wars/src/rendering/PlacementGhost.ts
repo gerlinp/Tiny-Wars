@@ -2,7 +2,9 @@ import Phaser from 'phaser'
 import { Grid } from '@core/Grid'
 import type { CardDefinition } from '@core/types'
 import { CardType, Owner } from '@core/types'
-import { GAME_HEIGHT, CELL_SIZE } from '@data/GameConstants'
+import { troopDeployPositions } from '@core/DeploySystem'
+import { CARD_DEFINITIONS } from '@data/CardData'
+import { GAME_HEIGHT, CELL_SIZE, TROOP_DEPLOY_SPREAD_CELLS } from '@data/GameConstants'
 import { getSideAssets } from '@data/AssetManifest'
 import { playCardAnim } from './AnimationRegistry'
 import { resolveTexture } from './renderingUtils'
@@ -12,23 +14,53 @@ const VALID_TINT   = 0x88ff88
 const INVALID_TINT = 0xff6666
 
 export class PlacementGhost {
-  private sprite: Phaser.GameObjects.Sprite
-  private ring: Phaser.GameObjects.Arc
-  private grid: Grid
+  private readonly troopSprites: Phaser.GameObjects.Sprite[] = []
+  private readonly ring: Phaser.GameObjects.Arc
+  private readonly grid: Grid
   private isSpell = false
   private spellCardId: string | null = null
+  /** Troop sprites shown in the preview (deploy count or spell spawn count). */
+  private troopPreviewCount = 1
+  /** Card id used for troop texture / display size (may differ from selected card). */
+  private troopPreviewCardId: string | null = null
 
   constructor(private scene: Phaser.Scene) {
     this.grid = new Grid()
-    this.sprite = scene.add.sprite(0, 0, 'placeholder_player', 0)
-      .setAlpha(0.55)
-      .setDepth(6)
-      .setVisible(false)
-
     this.ring = scene.add.circle(0, 0, 40, 0xff6622, 0.12)
       .setStrokeStyle(2, 0xff8844, 0.55)
       .setDepth(6)
       .setVisible(false)
+  }
+
+  private ensureTroopSprite(index: number): Phaser.GameObjects.Sprite {
+    while (this.troopSprites.length <= index) {
+      this.troopSprites.push(
+        this.scene.add.sprite(0, 0, 'placeholder_player', 0)
+          .setAlpha(0.55)
+          .setDepth(6)
+          .setVisible(false),
+      )
+    }
+    return this.troopSprites[index]
+  }
+
+  private configureTroopSprites(cardId: string, textureKey: string, count: number): void {
+    this.troopPreviewCount = count
+    this.troopPreviewCardId = cardId
+
+    for (let i = 0; i < count; i++) {
+      const sprite = this.ensureTroopSprite(i)
+      sprite.anims.stop()
+      const key = resolveTexture(this.scene, textureKey, 'placeholder_player')
+      sprite.setTexture(key, 0)
+      applyCardDisplaySize(sprite, this.scene, cardId, key, 0)
+      sprite.setAlpha(0.55)
+    }
+
+    for (let i = count; i < this.troopSprites.length; i++) {
+      this.troopSprites[i].setVisible(false)
+      this.troopSprites[i].anims.stop()
+    }
   }
 
   setCard(card: CardDefinition): void {
@@ -42,38 +74,81 @@ export class PlacementGhost {
       if (card.id === 'tnt') {
         const side = getSideAssets('tnt', Owner.PLAYER)!
         const key = resolveTexture(this.scene, side.idle.sheet.key, 'placeholder_player')
-        this.sprite.setTexture(key, 0)
-        applyCardDisplaySize(this.sprite, this.scene, 'tnt', key, 0)
-        this.sprite.setScale(this.sprite.scaleX * 0.5, this.sprite.scaleY * 0.5)
-        this.sprite.setAlpha(0.75)
-        playCardAnim(this.sprite, this.scene, 'tnt', Owner.PLAYER, 'idle', -1)
+        const sprite = this.ensureTroopSprite(0)
+        sprite.setTexture(key, 0)
+        applyCardDisplaySize(sprite, this.scene, 'tnt', key, 0)
+        sprite.setScale(sprite.scaleX * 0.5, sprite.scaleY * 0.5)
+        sprite.setAlpha(0.75)
+        playCardAnim(sprite, this.scene, 'tnt', Owner.PLAYER, 'idle', -1)
+        this.troopPreviewCount = 1
+        this.troopPreviewCardId = 'tnt'
+        for (let i = 1; i < this.troopSprites.length; i++) {
+          this.troopSprites[i].setVisible(false)
+          this.troopSprites[i].anims.stop()
+        }
+      } else if (stats.spawnCardId) {
+        const spawnCardId = stats.spawnCardId
+        const spawnCard = CARD_DEFINITIONS[spawnCardId]
+        const textureKey = spawnCard?.textureKeyPlayer ?? card.textureKeyPlayer
+        const count = stats.spawnCount ?? spawnCard?.deployCount ?? 1
+        this.configureTroopSprites(spawnCardId, textureKey, count)
       } else {
-        this.sprite.setVisible(false)
-        this.sprite.anims.stop()
+        for (const sprite of this.troopSprites) {
+          sprite.setVisible(false)
+          sprite.anims.stop()
+        }
+        this.troopPreviewCount = 0
+        this.troopPreviewCardId = null
       }
       return
     }
 
-    this.sprite.anims.stop()
-    const key = resolveTexture(this.scene, card.textureKeyPlayer, 'placeholder_player')
-    this.sprite.setTexture(key, 0)
-    applyCardDisplaySize(this.sprite, this.scene, card.id, key, 0)
-    this.ring.setVisible(false)
+    const count = card.deployCount ?? 1
+    this.configureTroopSprites(card.id, card.textureKeyPlayer, count)
   }
 
   show(): void {
     if (this.isSpell) {
       this.ring.setVisible(true)
-      if (this.spellCardId === 'tnt') this.sprite.setVisible(true)
+      if (this.spellCardId === 'tnt') {
+        this.ensureTroopSprite(0).setVisible(true)
+      } else if (this.troopPreviewCount > 0) {
+        for (let i = 0; i < this.troopPreviewCount; i++) {
+          this.ensureTroopSprite(i).setVisible(true)
+        }
+      }
       return
     }
-    this.sprite.setVisible(true)
+
+    for (let i = 0; i < this.troopPreviewCount; i++) {
+      this.ensureTroopSprite(i).setVisible(true)
+    }
   }
 
   hide(): void {
-    this.sprite.setVisible(false)
-    this.sprite.anims.stop()
+    for (const sprite of this.troopSprites) {
+      sprite.setVisible(false)
+      sprite.anims.stop()
+    }
     this.ring.setVisible(false)
+  }
+
+  private positionTroopCluster(centerX: number, centerY: number, valid: boolean): void {
+    if (this.troopPreviewCount <= 0 || !this.troopPreviewCardId) return
+
+    const tint = valid ? VALID_TINT : INVALID_TINT
+    const positions = troopDeployPositions(
+      { x: centerX, y: centerY },
+      this.troopPreviewCount,
+      TROOP_DEPLOY_SPREAD_CELLS,
+    )
+
+    for (let i = 0; i < this.troopPreviewCount; i++) {
+      const sprite = this.ensureTroopSprite(i)
+      sprite.setVisible(true)
+      sprite.setPosition(positions[i].x, positions[i].y)
+      sprite.setTint(this.spellCardId === 'tnt' ? (valid ? 0xffffff : 0xffaaaa) : tint)
+    }
   }
 
   update(pointerX: number, pointerY: number, valid: boolean): void {
@@ -92,17 +167,18 @@ export class PlacementGhost {
       this.ring.setStrokeStyle(2, valid ? 0xff8844 : 0xff4444, valid ? 0.6 : 0.45)
 
       if (this.spellCardId === 'tnt') {
-        this.sprite.setVisible(true)
-        this.sprite.setPosition(world.x, world.y - 8)
-        this.sprite.setTint(valid ? 0xffffff : 0xffaaaa)
+        const sprite = this.ensureTroopSprite(0)
+        sprite.setVisible(true)
+        sprite.setPosition(world.x, world.y - 8)
+        sprite.setTint(valid ? 0xffffff : 0xffaaaa)
       } else if (this.spellCardId === 'arrows') {
-        this.sprite.setVisible(false)
+        for (const sprite of this.troopSprites) sprite.setVisible(false)
+      } else if (this.troopPreviewCount > 0) {
+        this.positionTroopCluster(world.x, world.y, valid)
       }
       return
     }
 
-    this.sprite.setVisible(true)
-    this.sprite.setPosition(world.x, world.y)
-    this.sprite.setTint(valid ? VALID_TINT : INVALID_TINT)
+    this.positionTroopCluster(world.x, world.y, valid)
   }
 }

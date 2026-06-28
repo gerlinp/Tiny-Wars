@@ -47,11 +47,11 @@ describe('rocketFlightMs', () => {
     expect(ms).toBeLessThanOrEqual(4200)
   })
 
-  it('takes ~5s for a king-to-king vertical lob in this arena', () => {
+  it('takes ~6.5s for a king-to-king vertical lob in this arena', () => {
     const kingSpanCells = PLAYER_KING_ROW - BOT_KING_ROW
     const ms = rocketFlightMs(kingSpanCells * CELL_SIZE)
-    expect(ms).toBeGreaterThanOrEqual(4800)
-    expect(ms).toBeLessThanOrEqual(5600)
+    expect(ms).toBeGreaterThanOrEqual(6200)
+    expect(ms).toBeLessThanOrEqual(6800)
   })
 
   it('enforces a minimum visible lob duration for very short throws', () => {

@@ -1,6 +1,6 @@
 import { CardType, UnitType, AttackType } from '@core/types'
 import type { CardDefinition, EntityStats, SpellStats } from '@core/types'
-import { BOMB_TOWER_LIFETIME_MS, CR_SPEED, crSpeedToCellsPerSec, HOOK_MAX_RANGE_CELLS, HOOK_MIN_RANGE_CELLS, HOOK_SLOW_DURATION_MS, HOOK_SLOW_SPEED_MULT, HOOK_WINDUP_MS, LANCER_CHARGE_DAMAGE_MULT, LANCER_CHARGE_DISTANCE_CELLS, LANCER_CHARGE_SPEED_MULT, THIEF_DASH_RANGE_CELLS, THIEF_DASH_SPEED_MULT, THIEF_DASH_WINDUP_MS } from '@data/GameConstants'
+import { BOMB_TOWER_LIFETIME_MS, CR_SPEED, crSpeedToCellsPerSec, HOOK_MAX_RANGE_CELLS, HOOK_MIN_RANGE_CELLS, HOOK_SLOW_DURATION_MS, HOOK_SLOW_SPEED_MULT, HOOK_WINDUP_MS, LANCER_CHARGE_DAMAGE_MULT, LANCER_CHARGE_DISTANCE_CELLS, LANCER_CHARGE_SPEED_MULT, THIEF_DASH_RANGE_CELLS, THIEF_DASH_SPEED_MULT, THIEF_DASH_WINDUP_MS, WITCH_MINION_SPAWN_COUNT, WITCH_MINION_SPAWN_INITIAL_DELAY_MS, WITCH_MINION_SPAWN_INTERVAL_MS } from '@data/GameConstants'
 
 function troop(
   id: string,
@@ -77,13 +77,14 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   elite_archer:  AT('2024-07-15T12:00:00.000Z'),
   pawn:          AT('2024-08-01T12:00:00.000Z'),
   skeleton_army: AT('2026-05-15T12:00:00.000Z'),
-  pawns:         AT('2026-06-24T12:00:00.000Z'),
+  villagers:     AT('2026-06-24T12:00:00.000Z'),
   spear_goblin:  AT('2026-06-24T15:00:00.000Z'),
   troll:         AT('2024-09-15T12:00:00.000Z'),
   lizard:        AT('2024-10-01T12:00:00.000Z'),
   torch_goblin:  AT('2024-10-15T12:00:00.000Z'),
   pig_rider:     AT('2024-11-01T12:00:00.000Z'),
   bomb_fish:     AT('2024-11-15T12:00:00.000Z'),
+  goblin_demolisher: AT('2026-06-29T12:00:00.000Z'),
   minotaur:      AT('2025-01-01T12:00:00.000Z'),
   thief:         AT('2025-02-01T12:00:00.000Z'),
   turtle:        AT('2025-03-01T12:00:00.000Z'),
@@ -93,6 +94,9 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   monk:          AT('2026-01-01T12:00:00.000Z'),
   harpoon_shark: AT('2026-06-24T18:00:00.000Z'),
   tnt:           AT('2026-06-01T12:00:00.000Z'),
+  goblin_barrel: AT('2026-06-28T12:00:00.000Z'),
+  spider:        AT('2026-06-28T18:00:00.000Z'),
+  spiderling:    AT('2026-06-28T18:00:00.000Z'),
 }
 
 function withAddedAtTimestamps(
@@ -198,9 +202,9 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'spear_goblin_blue_idle', 'spear_goblin_red_idle', 3),
 
-  /** ×3 deploy — hooded pawn art, knife interact attack. */
-  pawns: troop('pawns', 'Pawns',
-    'Three fast pawns that rush in with knives. Cheap swarm melee.',
+  /** ×3 deploy — hooded villager art, knife interact attack. */
+  villagers: troop('villagers', 'Villagers',
+    'Three fast villagers that rush in with knives. Cheap swarm melee.',
     2, {
     maxHp: 216,
     speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
@@ -209,7 +213,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackRange: 0.5,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
-  }, 'pawns_blue_idle', 'pawns_red_idle', 3),
+  }, 'villagers_blue_idle', 'villagers_red_idle', 3),
 
   /** Building-only tank — Troll enemy art. */
   troll: troop('troll', 'Troll',
@@ -306,6 +310,22 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
     splashRadius: 1.5,
   }, 'bomb_fish_blue_idle', 'bomb_fish_red_idle'),
+
+  /** Building-only wall-breaker pair — Factions TNT goblin art. */
+  goblin_demolisher: troop('goblin_demolisher', 'Goblin Demolisher',
+    'A pair of goblins that rush buildings and detonate on impact.',
+    4, {
+    maxHp: 634,
+    speed: crSpeedToCellsPerSec(CR_SPEED.fast),
+    damage: 378,
+    attackRate: 1 / 1.8,
+    attackRange: 1.2,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+    targetsBuildingsOnly: true,
+    splashRadius: 1.5,
+    suicideOnAttack: true,
+  }, 'goblin_demolisher_blue_sheet', 'goblin_demolisher_red_sheet', 2),
 
   /** Slow heavy melee — Minotaur enemy art. */
   minotaur: troop('minotaur', 'Minotaur',
@@ -421,6 +441,37 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     hookSlowSpeedMultiplier: HOOK_SLOW_SPEED_MULT,
   }, 'harpoon_shark_blue_idle', 'harpoon_shark_red_idle'),
 
+  /** Witch-style spawner — Caveborn Spider art, green splash bolts + tiny spiderlings. */
+  spider: troop('spider', 'Spider',
+    'Spits green fire with splash damage and periodically summons tiny spiderlings.',
+    5, {
+    maxHp: 1111,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 179,
+    attackRate: 1 / 1.1,
+    attackRange: 5.5,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.AIR_AND_GROUND,
+    splashRadius: 1.5,
+    spawnMinionCardId: 'spiderling',
+    spawnMinionCount: WITCH_MINION_SPAWN_COUNT,
+    spawnMinionIntervalMs: WITCH_MINION_SPAWN_INTERVAL_MS,
+    spawnMinionInitialDelayMs: WITCH_MINION_SPAWN_INITIAL_DELAY_MS,
+  }, 'spider_blue_idle', 'spider_red_idle'),
+
+  /** Witch minion — skeleton-equivalent stats, not offered in the deck builder. */
+  spiderling: troop('spiderling', 'Spiderling',
+    'A tiny spider spawned by the Spider. Fast and fragile.',
+    1, {
+    maxHp: 108,
+    speed: crSpeedToCellsPerSec(CR_SPEED.fast),
+    damage: 108,
+    attackRate: 1 / 1.1,
+    attackRange: 0.5,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+  }, 'spider_blue_idle', 'spider_red_idle'),
+
   arrows: spell('arrows', 'Arrows',
     'A volley of arrows that rains down on an area. Cheap and effective at clearing swarms.',
     3, {
@@ -448,6 +499,14 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     6, {
     damage: 1960, radius: 2, duration: 0, groundOnly: true, delivery: 'rocket',
   }, 'bomb_idle', 'bomb_idle'),
+
+  /** King-launched spawn spell — barrel flies in and cracks open, releasing 3 villagers. */
+  goblin_barrel: spell('goblin_barrel', 'Goblin Barrel',
+    'Flings a barrel from your king tower that cracks open on impact, releasing 3 villagers.',
+    3, {
+    damage: 0, radius: 1.5, duration: 0, delivery: 'rocket',
+    spawnCardId: 'villagers', spawnCount: 3,
+  }, 'barrel_blue', 'barrel_red'),
 }
 
 export const CARD_DEFINITIONS: Record<string, CardDefinition> =
@@ -460,8 +519,11 @@ export function getCardAddedAtMs(cardId: string): number {
 /** Disabled from match decks — card/building code kept for when bugs are fixed. */
 export const DECK_EXCLUDED_CARD_IDS = ['wood_tower'] as const
 
+/** Spawn-only or internal troops — hidden from the deck builder collection. */
+export const COLLECTION_HIDDEN_CARD_IDS = ['spiderling'] as const
+
 const ALL_DECK_CARD_IDS: string[] = [
-  'warrior', 'archer', 'skeleton', 'lancer', 'wizard', 'torch_goblin', 'arrows', 'wood_tower', 'tnt',
+  'warrior', 'archer', 'skeleton', 'lancer', 'wizard', 'torch_goblin', 'arrows', 'wood_tower', 'tnt', 'goblin_barrel',
 ]
 
 export const DEFAULT_DECK: string[] = ALL_DECK_CARD_IDS.filter(

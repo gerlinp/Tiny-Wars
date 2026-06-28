@@ -2,17 +2,23 @@ import Phaser from 'phaser'
 import { Owner } from '@core/types'
 import { EXPLOSION_SHEET, MONK_HEAL_EFFECT_SHEETS, TROOP_DEATH_SHEET } from '@data/AssetManifest'
 import { CELL_SIZE, MAP_UNIT_TARGET_HEIGHT } from '@data/GameConstants'
+import { registerExplosionFx } from './AnimationRegistry'
 
 // ─── EffectsPool ─────────────────────────────────────────────────────────────
 
 const EFFECTS_POOL_SIZE = 10
+const DEFAULT_EXPLOSION_RADIUS_PX = CELL_SIZE * 2.4
 
 export class EffectsPool {
   private pool: Phaser.GameObjects.Sprite[] = []
 
   constructor(private scene: Phaser.Scene) {
+    registerExplosionFx(scene)
+    const texKey = scene.textures.exists(EXPLOSION_SHEET.key)
+      ? EXPLOSION_SHEET.key
+      : '__MISSING'
     for (let i = 0; i < EFFECTS_POOL_SIZE; i++) {
-      const spr = scene.add.sprite(0, 0, EXPLOSION_SHEET.key, 0)
+      const spr = scene.add.sprite(0, 0, texKey, 0)
         .setDepth(20)
         .setOrigin(0.5, 0.5)
         .setVisible(false)
@@ -21,22 +27,33 @@ export class EffectsPool {
     }
   }
 
-  spawn(x: number, y: number, radiusPx = CELL_SIZE * 2.4): void {
+  spawn(x: number, y: number, radiusPx?: number, tint?: number): void {
     const spr = this.pool.find(p => !p.getData('playing'))
-    if (!spr || !this.scene.anims.exists(EXPLOSION_SHEET.animKey)) return
+    if (
+      !spr
+      || !this.scene.textures.exists(EXPLOSION_SHEET.key)
+      || !this.scene.anims.exists(EXPLOSION_SHEET.animKey)
+    ) {
+      return
+    }
 
-    const size = Math.max(CELL_SIZE * 2.4, radiusPx * 1.2)
+    const radius = radiusPx ?? DEFAULT_EXPLOSION_RADIUS_PX
+    const size = Math.max(DEFAULT_EXPLOSION_RADIUS_PX, radius * 1.2)
     spr.setData('playing', true)
+    spr.setTexture(EXPLOSION_SHEET.key, 0)
     spr.setPosition(x, y)
     spr.setDisplaySize(size, size)
     spr.setVisible(true)
     spr.setAlpha(1)
+    if (tint !== undefined) spr.setTint(tint)
+    else spr.clearTint()
     spr.anims.stop()
     spr.play(EXPLOSION_SHEET.animKey)
 
     spr.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       spr.setVisible(false)
       spr.setData('playing', false)
+      spr.clearTint()
       spr.anims.stop()
     })
   }

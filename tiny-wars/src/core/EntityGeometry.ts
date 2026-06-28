@@ -5,7 +5,7 @@ import { EntityKind } from './types'
 import type { Vec2 } from './types'
 import { dist } from './Vector2'
 import { CELL_SIZE, GRID_COLS, GRID_ROWS, EPSILON_DISTANCE, TROOP_COLLISION_RADIUS_CELLS, BUILDING_COMBAT_RADIUS_CELLS, BUILDING_FOOTPRINT_CELLS } from '@data/GameConstants'
-import { collisionHalfExtentsForTower } from '@rendering/assetDisplaySize'
+import { collisionHalfExtentsForTower, towerCombatRadius } from '@rendering/assetDisplaySize'
 import { towerCollisionCenter } from '@rendering/towerRenderPosition'
 
 export interface HalfExtents {
@@ -16,6 +16,19 @@ export interface HalfExtents {
 export function troopCollisionHalf(): HalfExtents {
   const r = TROOP_COLLISION_RADIUS_CELLS * CELL_SIZE
   return { halfW: r, halfH: r }
+}
+
+/** Combat circle radius for entities that use circular hulls (world pixels). */
+export function entityCombatRadius(entity: Entity): number | null {
+  if (entity.kind === EntityKind.TROOP) return troopCollisionRadius(entity)
+  if (entity.kind === EntityKind.BUILDING) return buildingCombatRadius()
+  if (entity.kind === EntityKind.TOWER) return towerCombatRadius((entity as Tower).isKing)
+  return null
+}
+
+function edgeDistBetweenCircleEntities(a: Entity, b: Entity, rA: number, rB: number): number {
+  const d = dist(entityCollisionCenter(a), entityCollisionCenter(b))
+  return Math.max(0, d - rA - rB)
 }
 
 /** Small circular combat radius at a troop's feet (world pixels). */
@@ -104,12 +117,8 @@ export function surfaceDistToEntity(from: Vec2, target: Entity): number {
   const d = dist(from, center)
   if (d < EPSILON_DISTANCE) return 0
 
-  if (target.kind === EntityKind.BUILDING || target.kind === EntityKind.TROOP) {
-    const r = target.kind === EntityKind.BUILDING
-      ? buildingCombatRadius()
-      : troopCollisionRadius(target)
-    return Math.max(0, d - r)
-  }
+  const combatR = entityCombatRadius(target)
+  if (combatR !== null) return Math.max(0, d - combatR)
 
   const half = entityHalfExtents(target)
   const nx = (from.x - center.x) / d
@@ -120,18 +129,10 @@ export function surfaceDistToEntity(from: Vec2, target: Entity): number {
 
 /** Distance between the nearest edges of two entities' combat shapes. */
 export function edgeDistBetweenEntities(fromEntity: Entity, toEntity: Entity): number {
-  if (fromEntity.kind === EntityKind.TROOP && toEntity.kind === EntityKind.TROOP) {
-    const d = dist(fromEntity.position, toEntity.position)
-    return Math.max(0, d - troopCollisionRadius(fromEntity) - troopCollisionRadius(toEntity))
-  }
-
-  if (fromEntity.kind === EntityKind.TROOP && toEntity.kind === EntityKind.BUILDING) {
-    const d = dist(fromEntity.position, buildingCombatCenter(toEntity as Building))
-    return Math.max(0, d - troopCollisionRadius(fromEntity) - buildingCombatRadius())
-  }
-
-  if (fromEntity.kind === EntityKind.BUILDING && toEntity.kind === EntityKind.TROOP) {
-    return edgeDistBetweenEntities(toEntity, fromEntity)
+  const rA = entityCombatRadius(fromEntity)
+  const rB = entityCombatRadius(toEntity)
+  if (rA !== null && rB !== null) {
+    return edgeDistBetweenCircleEntities(fromEntity, toEntity, rA, rB)
   }
 
   const centerA = entityCollisionCenter(fromEntity)
@@ -163,24 +164,20 @@ export function meleeApproachPoint(
   const d = dist(from, center)
   if (d < EPSILON_DISTANCE) return { x: from.x, y: from.y }
 
-  const halfT = entityHalfExtents(target)
-  const halfA = entityHalfExtents(attacker)
   const nx = (from.x - center.x) / d
   const ny = (from.y - center.y) / d
 
   const APPROACH_SLACK = CELL_SIZE * 0.5
 
-  if (target.kind === EntityKind.BUILDING || target.kind === EntityKind.TROOP) {
-    const targetR = target.kind === EntityKind.BUILDING
-      ? buildingCombatRadius()
-      : troopCollisionRadius(target)
-    const attackerR = attacker.kind === EntityKind.TROOP
-      ? troopCollisionRadius(attacker)
-      : Math.abs(nx) * halfA.halfW + Math.abs(ny) * halfA.halfH
+  const targetR = entityCombatRadius(target)
+  const attackerR = entityCombatRadius(attacker)
+  if (targetR !== null && attackerR !== null) {
     const centerDist = rangeCells * CELL_SIZE + targetR + attackerR - APPROACH_SLACK
     return { x: center.x + nx * centerDist, y: center.y + ny * centerDist }
   }
 
+  const halfT = entityHalfExtents(target)
+  const halfA = entityHalfExtents(attacker)
   const targetExtent = Math.abs(nx) * halfT.halfW + Math.abs(ny) * halfT.halfH
   const attackerExtent = Math.abs(nx) * halfA.halfW + Math.abs(ny) * halfA.halfH
   const centerDist = rangeCells * CELL_SIZE + targetExtent + attackerExtent - APPROACH_SLACK
@@ -200,11 +197,9 @@ export function approachPointOnSurface(from: Vec2, target: Entity, margin = 2): 
   const nx = (from.x - center.x) / d
   const ny = (from.y - center.y) / d
 
-  if (target.kind === EntityKind.BUILDING || target.kind === EntityKind.TROOP) {
-    const r = target.kind === EntityKind.BUILDING
-      ? buildingCombatRadius()
-      : troopCollisionRadius(target)
-    const stopDist = r + margin
+  const combatR = entityCombatRadius(target)
+  if (combatR !== null) {
+    const stopDist = combatR + margin
     return { x: center.x + nx * stopDist, y: center.y + ny * stopDist }
   }
 
@@ -274,22 +269,13 @@ export function separateBoxPair(
 
 /** Push a moving troop out of a static or peer entity. */
 export function pushTroopOutOfEntity(moverPos: Vec2, mover: Entity, blocker: Entity): void {
-  if (blocker.kind === EntityKind.TROOP) {
+  const blockerR = entityCombatRadius(blocker)
+  if (blockerR !== null) {
     separateCirclePair(
       moverPos,
       troopCollisionRadius(mover),
-      blocker.position,
-      troopCollisionRadius(blocker),
-      1,
-    )
-    return
-  }
-  if (blocker.kind === EntityKind.BUILDING) {
-    separateCirclePair(
-      moverPos,
-      troopCollisionRadius(mover),
-      buildingCombatCenter(blocker as Building),
-      buildingCombatRadius(),
+      entityCollisionCenter(blocker),
+      blockerR,
       1,
     )
     return

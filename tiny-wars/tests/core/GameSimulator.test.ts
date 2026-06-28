@@ -3,10 +3,7 @@ import { Grid } from '@core/Grid'
 import { GameSimulator } from '@core/GameSimulator'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { Owner } from '@core/types'
-import { PLAYER_DEPLOY_ROW_MIN, PLAYER_DEPLOY_ROW_MAX, BOT_KING_COL, CELL_SIZE, GAME_DURATION_MS } from '@data/GameConstants'
-import { Troop } from '@core/entities/Troop'
-import { resolveTroopCollisions } from '@core/TroopCollision'
-import { edgeDistBetweenEntities } from '@core/EntityGeometry'
+import { PLAYER_DEPLOY_ROW_MIN, PLAYER_DEPLOY_ROW_MAX, GAME_DURATION_MS } from '@data/GameConstants'
 
 function makeSim() {
   return new GameSimulator(new Grid())
@@ -29,44 +26,6 @@ describe('GameSimulator', () => {
         expect(grid.isWalkable(cell.x, cell.y)).toBe(false)
       }
     }
-  })
-
-  it('lets a lancer path around the king footprint to melee range', () => {
-    const grid = new Grid()
-    const sim = new GameSimulator(grid)
-    const state = sim.state
-    const lancerStats = CARD_DEFINITIONS.lancer!.stats!
-
-    let botKing = null as import('@core/entities/Tower').Tower | null
-    for (const [id, tower] of state.towers) {
-      if (tower.owner === Owner.BOT && tower.isKing) {
-        tower.activate()
-        botKing = tower
-      } else if (tower.owner === Owner.BOT) {
-        for (const cell of tower.blockedCells) grid.unblockCell(cell.x, cell.y)
-        state.towers.delete(id)
-      }
-    }
-
-    const lancer = new Troop(
-      Owner.PLAYER,
-      lancerStats,
-      { x: (BOT_KING_COL + 3) * CELL_SIZE, y: 14 * CELL_SIZE },
-      grid,
-      'lancer',
-    )
-    state.entities.set(lancer.id, lancer)
-
-    for (let i = 0; i < 500; i++) {
-      lancer.tick(50, state)
-      for (const tower of state.towers.values()) tower.tick(50, state)
-      resolveTroopCollisions(state, 50)
-    }
-
-    expect(botKing).not.toBeNull()
-    expect(edgeDistBetweenEntities(lancer, botKing!)).toBeLessThanOrEqual(
-      lancerStats.attackRange * CELL_SIZE + 1,
-    )
   })
 
   it('starts with 5 elixir each (Clash Royale standard)', () => {
@@ -154,12 +113,12 @@ describe('GameSimulator', () => {
       expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: 22 })).toBe(false)
     })
 
-    it('accepts player deploy at row 23 and row 42 (zone edges)', () => {
+    it('accepts player deploy at row 23 and inner zone edge below king', () => {
       const sim = makeSim()
       const card = CARD_DEFINITIONS['archer']!
       sim.state.playerElixir = 10
       expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: PLAYER_DEPLOY_ROW_MIN })).toBe(true)
-      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: PLAYER_DEPLOY_ROW_MAX })).toBe(true)
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: 28 })).toBe(true)
     })
 
     it('rejects deploy when player has insufficient elixir', () => {

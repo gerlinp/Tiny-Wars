@@ -9,7 +9,7 @@ import { DecorationLayer } from '@rendering/DecorationLayer'
 import { EntitySprite, type AttackSync, type DashSync, type HealSync } from '@rendering/EntitySprite'
 import { TowerSprite } from '@rendering/TowerSprite'
 import { EffectsPool, HealEffectPool, DeathPool } from '@rendering/VFXPools'
-import { ArrowPool, ArrowsSpellPool, TntPool, BoneBoomerangPool, HexFireballPool, HarpoonRopePool } from '@rendering/ProjectilePools'
+import { ArrowPool, ArrowsSpellPool, TntPool, BarrelPool, BoneBoomerangPool, HexFireballPool, HarpoonRopePool } from '@rendering/ProjectilePools'
 import { hookAnchorPosition, hookRopeEndPosition } from '@core/HookSystem'
 import { ensurePlaceholders } from '@rendering/renderingUtils'
 import { CardDeployController } from '@input/CardDeployController'
@@ -21,7 +21,7 @@ import { Troop } from '@core/entities/Troop'
 import type { Building } from '@core/entities/Building'
 import { Owner, EntityKind, TroopState, BuildingState, CardType } from '@core/types'
 import type { EntityStats } from '@core/types'
-import { getAttackWindupMs, getRunLeapPose, type AnimClip } from '@data/AssetManifest'
+import { getAttackWindupMs, getRunLeapPose, GOBLIN_DYNAMITE_SHEET, type AnimClip } from '@data/AssetManifest'
 import { rocketFlightMs, arrowFlightMs } from '@data/ProjectileConstants'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { loadPlayerDeck } from '@data/PlayerDeck'
@@ -52,6 +52,7 @@ export class BattleScene extends Phaser.Scene {
   private harpoonRopes!: HarpoonRopePool
   private arrowsSpell!: ArrowsSpellPool
   private tntProjectiles!: TntPool
+  private barrelProjectiles!: BarrelPool
   private deployCtrl!: CardDeployController
   private deployOverlay!: DeployZoneOverlay
   private placementGhost!: PlacementGhost
@@ -98,12 +99,13 @@ export class BattleScene extends Phaser.Scene {
     this.effects  = new EffectsPool(this)
     this.deaths   = new DeathPool(this)
     this.arrows   = new ArrowPool(this)
-    this.hexFireballs = new HexFireballPool(this)
+    this.hexFireballs = new HexFireballPool(this, this.effects)
     this.healEffects = new HealEffectPool(this)
     this.boneBoomerangs = new BoneBoomerangPool(this)
     this.harpoonRopes = new HarpoonRopePool(this)
     this.arrowsSpell = new ArrowsSpellPool(this)
     this.tntProjectiles = new TntPool(this)
+    this.barrelProjectiles = new BarrelPool(this)
 
     // Tile map
     new TileMapRenderer(this).draw()
@@ -138,18 +140,27 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    // Tap to deploy — ignore taps in the HUD area at the bottom
+    // Drag-to-aim on the arena — deploy on pointer up so touch users can aim precisely.
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (this.isUIArea(p.y)) return
-      this.deployCtrl.handleMapTap(p.x, p.y)
+      this.deployCtrl.handleMapPointerDown(p.x, p.y)
     })
 
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (this.isUIArea(p.y)) {
+        if (p.isDown) this.deployCtrl.cancelAimPointer()
         this.placementGhost.hide()
         return
       }
       this.deployCtrl.handlePointerMove(p.x, p.y)
+    })
+
+    this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
+      if (this.isUIArea(p.y)) {
+        this.deployCtrl.cancelAimPointer()
+        return
+      }
+      this.deployCtrl.handleMapPointerUp(p.x, p.y)
     })
 
     // Launch UI scene in parallel
@@ -219,6 +230,20 @@ export class BattleScene extends Phaser.Scene {
             const def = CARD_DEFINITIONS.arrows!
             const radiusPx = def.spellStats!.radius * CELL_SIZE
             this.arrowsSpell.spawn(event.to, event.owner, radiusPx, event.flightMs)
+          } else if (event.cardId === 'goblin_barrel') {
+            const kingSprite = this.getKingTowerSprite(event.owner)
+            const from = kingSprite?.fireCannonAt(event.to)
+              ?? kingSprite?.getCannonMuzzle()
+              ?? (event.owner === Owner.PLAYER
+                ? this.getPlayerKingLaunchPos()
+                : this.getBotKingLaunchPos())
+            this.barrelProjectiles.spawn(
+              from,
+              event.to,
+              event.owner,
+              event.flightMs,
+              () => this.effects.spawn(event.to.x, event.to.y),
+            )
           } else {
             const kingSprite = this.getKingTowerSprite(event.owner)
             const from = kingSprite?.fireCannonAt(event.to)
@@ -231,7 +256,9 @@ export class BattleScene extends Phaser.Scene {
           break
         }
         case 'SPELL_IMPACT': {
-          this.effects.spawn(event.position.x, event.position.y)
+          if (event.cardId !== 'goblin_barrel') {
+            this.effects.spawn(event.position.x, event.position.y, event.radius)
+          }
           break
         }
         case 'DAMAGE': {
@@ -245,10 +272,14 @@ export class BattleScene extends Phaser.Scene {
 
           if (attacker?.kind === EntityKind.TOWER && to) {
             const towerSprite = this.towerSprites.get(attacker.id)
-            towerSprite?.onAttackImpact(to)
-            from = towerSprite?.getCannonMuzzle()
-              ?? towerSprite?.getArrowOrigin()
-              ?? from
+            const tower = attacker as Tower
+            if (tower.isKing) {
+              towerSprite?.fireCannonAt(to)
+              from = towerSprite?.getCannonMuzzle() ?? from
+            } else {
+              towerSprite?.onAttackImpact(to)
+              from = towerSprite?.getArrowOrigin() ?? from
+            }
           } else if (event.attackerId) {
             const aimPoint = to ? { x: to.x, y: to.y } : undefined
             this.sprites.get(event.attackerId)?.onAttackImpact(aimPoint)
@@ -262,10 +293,13 @@ export class BattleScene extends Phaser.Scene {
             const bombFrom = crewOrigin ?? from
             if (bombFrom) {
               const flightMs = rocketFlightMs(Math.hypot(to.x - bombFrom.x, to.y - bombFrom.y))
-              this.tntProjectiles.spawn(bombFrom, to, attacker!.owner, flightMs)
+              this.tntProjectiles.spawn(bombFrom, to, attacker!.owner, flightMs, () => {
+                this.effects.spawn(to.x, to.y, splashR * CELL_SIZE)
+                flash()
+              })
+            } else {
+              flash()
             }
-            this.effects.spawn(to.x, to.y, splashR * CELL_SIZE)
-            flash()
           } else if (
             attacker?.kind === EntityKind.TOWER
             && (attacker as Tower).isKing
@@ -277,12 +311,34 @@ export class BattleScene extends Phaser.Scene {
               Math.hypot(to.x - from.x, to.y - from.y),
               this.getAttackRate(attacker),
             )
-            this.tntProjectiles.spawn(from, to, attacker.owner, flightMs, flash, 'flat')
+            this.tntProjectiles.spawn(from, to, attacker.owner, flightMs, () => {
+              flash()
+              this.effects.spawn(to.x, to.y)
+            }, 'flat')
           } else if (attacker && from && to && isRangedAttacker(attacker) && !event.splash && attackerCardId !== 'gnoll') {
             const attackRate = this.getAttackRate(attacker)
             const cardId = this.entityCardIds.get(attacker.id) ?? attacker.cardId ?? ''
-            if (cardId === 'wizard' || cardId === 'lizard' || cardId === 'torch_goblin' || cardId === 'bomb_fish') {
-              this.hexFireballs.spawn(from, to, attacker.owner, attackRate, flash)
+            if (cardId === 'goblin_demolisher') {
+              const splashR = (attacker.stats as EntityStats).splashRadius ?? 1.5
+              const flightMs = arrowFlightMs(
+                Math.hypot(to.x - from.x, to.y - from.y),
+                attackRate,
+              )
+              this.tntProjectiles.spawn(from, to, attacker.owner, flightMs, () => {
+                this.effects.spawn(to.x, to.y, splashR * CELL_SIZE)
+                flash()
+              }, 'straight', {
+                projectileKey: GOBLIN_DYNAMITE_SHEET.key,
+              })
+            } else if (cardId === 'wizard' || cardId === 'lizard' || cardId === 'torch_goblin' || cardId === 'bomb_fish' || cardId === 'spider') {
+              this.hexFireballs.spawn(
+                from,
+                to,
+                attacker.owner,
+                attackRate,
+                flash,
+                cardId === 'spider' ? { projectileTint: 0x55ee44, explosionTint: 0x44dd33 } : undefined,
+              )
             } else {
               this.arrows.spawn(from, to, attacker.owner, attackRate, flash)
             }
@@ -425,24 +481,15 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    // Sync tower health bars + garrison archer attacks
+    // Sync tower health bars — garrison combat anims fire on DAMAGE impact, not during wind-up.
     for (const [id, towerSprite] of this.towerSprites) {
       const tower = state.towers.get(id)
       if (tower) {
-        const attackSync = tower.isActive() && tower.getAimPoint()
-          ? {
-              cooldownMs: tower.getAttackCooldownMs(),
-              windupMs: getAttackWindupMs('archer', tower.owner),
-              aimPoint: tower.getAimPoint(),
-            }
-          : undefined
-
         towerSprite.update(
           tower.position.x,
           tower.position.y,
           tower.hp / tower.maxHp,
           tower.hasBeenDamaged,
-          attackSync,
         )
       }
     }

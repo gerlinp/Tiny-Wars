@@ -8,7 +8,8 @@ import {
   SPRITE_VISUAL_SCALE,
   TROOP_COLLISION_HEIGHT_RATIO,
   TROOP_COLLISION_WIDTH_RATIO,
-  towerFootprintHalfExtents,
+  TOWER_FOOTPRINT_CELLS,
+  CELL_SIZE,
 } from '@data/GameConstants'
 
 const DEFAULT_CONTENT_FILL = 0.55
@@ -43,6 +44,27 @@ export function targetHeightForTower(isKing: boolean): number {
   return targetHeightForTier(tier) / contentFill
 }
 
+/** Native tower art dimensions (matches Knights building PNGs). */
+const TOWER_NATIVE_SIZE = {
+  princess: { w: 128, h: 256 },
+  king:     { w: 320, h: 256 },
+} as const
+
+/** Display size from native art — mirrors displaySizeForTower() without Phaser. */
+export function towerDisplaySizeForNative(isKing: boolean): DisplaySize {
+  const native = isKing ? TOWER_NATIVE_SIZE.king : TOWER_NATIVE_SIZE.princess
+  const visualScale = isKing ? SPRITE_VISUAL_SCALE : 1
+  const targetH = targetHeightForTower(isKing) * visualScale
+  const scale = targetH / native.h
+  return { width: native.w * scale, height: targetH }
+}
+
+/** Circular combat hull — king castles match rendered sprite width; princess towers use footprint. */
+export function towerCombatRadius(isKing: boolean): number {
+  if (isKing) return towerDisplaySizeForNative(true).width / 2
+  return (TOWER_FOOTPRINT_CELLS.princess.w / 2) * CELL_SIZE
+}
+
 /** Collision half-extents matching on-map sprite size (logic-only, no Phaser). */
 export function collisionHalfExtentsForCard(cardId: string): { halfW: number; halfH: number } {
   const targetH = targetHeightForCard(cardId)
@@ -58,7 +80,8 @@ export function collisionHalfExtentsForCard(cardId: string): { halfW: number; ha
 }
 
 export function collisionHalfExtentsForTower(isKing: boolean): { halfW: number; halfH: number } {
-  return towerFootprintHalfExtents(isKing)
+  const r = towerCombatRadius(isKing)
+  return { halfW: r, halfH: r }
 }
 
 export function displaySizeForTexture(
@@ -85,7 +108,7 @@ export function displaySizeForTexture(
   }
 }
 
-const UNSCALED_CARD_IDS = new Set(['skeleton', 'skeleton_army', 'archer', 'pawn', 'pawns'])
+const UNSCALED_CARD_IDS = new Set(['skeleton', 'skeleton_army', 'archer', 'pawn', 'villagers', 'spiderling'])
 
 export function displaySizeForCard(
   scene: Phaser.Scene,

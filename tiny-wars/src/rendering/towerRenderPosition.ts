@@ -3,6 +3,10 @@ import {
   CELL_SIZE,
   PRINCESS_TOWER_RENDER_NUDGE_Y,
   TOWER_HEALTH_BAR_Y,
+  PLAYER_KING_ROW,
+  BOT_KING_ROW,
+  PLAYER_KING_VISUAL_ROW,
+  BOT_KING_VISUAL_ROW,
   towerFootprintHalfExtents,
 } from '@data/GameConstants'
 import type { TowerHealthBarKey } from '@data/MapConfig'
@@ -73,15 +77,35 @@ function princessRenderNudgeY(owner: Owner, isKing: boolean): number {
     : PRINCESS_TOWER_RENDER_NUDGE_Y.bot
 }
 
+/** World Y anchor for king castle art when hitbox row differs from visual row in map.json. */
+export function kingVisualAnchorY(logicY: number, owner: Owner): number {
+  const cfg = getActiveMapConfig()
+  const hitboxRow = owner === Owner.PLAYER
+    ? (cfg?.playerKingRow ?? PLAYER_KING_ROW)
+    : (cfg?.botKingRow ?? BOT_KING_ROW)
+  const visualRow = owner === Owner.PLAYER ? PLAYER_KING_VISUAL_ROW : BOT_KING_VISUAL_ROW
+  return logicY + (visualRow - hitboxRow) * CELL_SIZE
+}
+
+function renderAnchorY(logicY: number, owner: Owner, isKing: boolean): number {
+  return isKing ? kingVisualAnchorY(logicY, owner) : logicY
+}
+
+/** World centre for tower attack range — king castles use visual row when hitbox row differs. */
+export function towerAttackCenter(logicX: number, logicY: number, owner: Owner, isKing: boolean): Vec2 {
+  return { x: logicX, y: renderAnchorY(logicY, owner, isKing) }
+}
+
 /**
  * Same unflipped art on both sides; position so the footprint river edge meets the
  * sprite top (player) or bottom (bot). Princess towers get an extra nudge toward
  * the river so visible stone base lines up with the hitbox (PNG padding).
  */
 export function towerRenderY(logicY: number, owner: Owner, isKing: boolean, logicX?: number): number {
+  const anchorY = renderAnchorY(logicY, owner, isKing)
   if (logicX !== undefined) {
     const vis = towerVisualOffset(owner, isKing, logicX)
-    if (vis) return logicY + vis.offsetY
+    if (vis) return anchorY + vis.offsetY
   }
   const riverEdge = towerFootprintRiverEdge(logicY, owner, isKing)
   const halfDisplay = targetHeightForTower(isKing) / 2
@@ -140,7 +164,7 @@ export function towerHealthBarY(
 ): number {
   if (logicX !== undefined) {
     const off = towerHealthBarOffset(owner, isKing, logicX)
-    if (off) return logicY + off.offsetY
+    if (off) return renderAnchorY(logicY, owner, isKing) + off.offsetY
   }
   const { renderY, top } = towerVisualBounds(logicY, owner, isKing, logicX)
   if (owner === Owner.PLAYER) {

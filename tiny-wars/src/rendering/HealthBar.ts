@@ -4,6 +4,7 @@ import {
   HEALTH_BAR_BASE_SHEET_W,
   HEALTH_BAR_TEXTURE_H,
 } from '@data/AssetManifest'
+import { Owner } from '@core/types'
 import {
   healthBarFillDisplayHeight,
   healthBarFillHorizontalInset,
@@ -16,12 +17,18 @@ const HEALTH_BAR_FILL_SHEET_W = 64
 const HEALTH_WARN_THRESHOLD = 0.3
 const HEALTH_CRIT_THRESHOLD = 0.15
 
+const TINT_PLAYER_FULL  = 0x4488ff
+const TINT_PLAYER_LOW   = 0x2255cc
+const TINT_BOT_FULL     = 0xff4444
+const TINT_BOT_LOW      = 0xcc2222
+
 export interface HealthBarOptions {
   /** Pixels above entity centre; zero = y is already the bar centre */
   offsetY?: number
   barWidth?: number
   depth?: number
   variant?: HealthBarVariant
+  owner?: Owner
 }
 
 /**
@@ -45,6 +52,7 @@ export class HealthBar {
   private readonly leftCapTexW: number
   private readonly rightCapTexW: number
   private readonly baseArtH: number
+  private readonly owner: Owner | undefined
 
   constructor(scene: Phaser.Scene, x: number, y: number, options: HealthBarOptions = {}) {
     const variant = options.variant ?? 'small'
@@ -52,6 +60,7 @@ export class HealthBar {
     this.offsetY = options.offsetY ?? -14
     this.barH = assets.displayHeight
     this.depth = options.depth ?? 12
+    this.owner = options.owner
     this.fillInsetX = assets.fillInsetX
     this.fillHeightRatio = assets.fillHeightRatio
     this.fillMinW = 4
@@ -79,21 +88,23 @@ export class HealthBar {
   }
 
   /** Troop bar — thin bar above the unit */
-  static forTroop(scene: Phaser.Scene, x: number, y: number, spriteHeight: number): HealthBar {
+  static forTroop(scene: Phaser.Scene, x: number, y: number, spriteHeight: number, owner?: Owner): HealthBar {
     return new HealthBar(scene, x, y, {
-      barWidth: Math.max(56, Math.round(spriteHeight * 0.85)),
+      barWidth: Math.max(40, Math.round(spriteHeight * 0.6)),
       offsetY: -Math.round(spriteHeight * 0.52),
       variant: 'small',
+      owner,
     })
   }
 
   /** Building bar — above the structure */
-  static forBuilding(scene: Phaser.Scene, x: number, y: number, spriteHeight: number): HealthBar {
+  static forBuilding(scene: Phaser.Scene, x: number, y: number, spriteHeight: number, owner?: Owner): HealthBar {
     return new HealthBar(scene, x, y, {
-      barWidth: Math.max(64, Math.round(spriteHeight * 0.8)),
+      barWidth: Math.max(48, Math.round(spriteHeight * 0.6)),
       offsetY: -(Math.round(spriteHeight / 2) + 12),
       depth: 25,
       variant: 'small',
+      owner,
     })
   }
 
@@ -104,13 +115,15 @@ export class HealthBar {
     barY: number,
     spriteWidth: number,
     isKing: boolean,
+    owner?: Owner,
   ): HealthBar {
-    const widthMult = isKing ? 0.68 : 0.58
+    const widthMult = isKing ? 0.55 : 0.46
     return new HealthBar(scene, x, barY, {
-      barWidth: Math.max(isKing ? 96 : 84, Math.round(spriteWidth * widthMult)),
+      barWidth: Math.max(isKing ? 72 : 60, Math.round(spriteWidth * widthMult)),
       offsetY: 0,
       depth: 48,
       variant: 'big',
+      owner,
     })
   }
 

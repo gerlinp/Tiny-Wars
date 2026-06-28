@@ -439,6 +439,61 @@ export const HEX_SHAMAN_EXPLOSION_SHEET = {
   frameHeight: HEX_FX_FRAME,
 } as const
 
+const BARREL_PATH = 'assets/Factions/Goblins/Troops/Barrel'
+const BARREL_FRAME = 128
+
+const TNT_PATH = 'assets/Factions/Goblins/Troops/TNT'
+const TNT_FRAME = FRAME_W
+
+export const GOBLIN_DYNAMITE_SHEET = {
+  key: 'goblin_dynamite',
+  path: `${TNT_PATH}/Dynamite/Dynamite.png`,
+  frameWidth: 64,
+  frameHeight: 64,
+  frameEnd: 5,
+  frameRate: 12,
+  animKey: 'goblin_dynamite_spin',
+} as const
+
+export const AVATAR_GOBLIN_DEMOLISHER_KEY = 'avatar_goblin_demolisher'
+
+function goblinDemolisherSheet(side: 'Blue' | 'Red'): SheetDef {
+  return {
+    key: `goblin_demolisher_${side.toLowerCase()}_sheet`,
+    path: `${TNT_PATH}/${side}/TNT_${side}.png`,
+    frameWidth: TNT_FRAME,
+    frameHeight: TNT_FRAME,
+  }
+}
+
+/** Factions TNT goblin — row 0–1 walk (12f), row 2 place dynamite (7f). */
+function goblinDemolisherSide(side: 'Blue' | 'Red'): SideAssets {
+  const sheet = goblinDemolisherSheet(side)
+  return {
+    idle:   clip(sheet, 0,  0,  10, -1),
+    run:    clip(sheet, 0, 11,  14, -1),
+    attack: clip(sheet, 14, 20,  14,  0),
+  }
+}
+
+export const BARREL_BLUE_KEY = 'barrel_blue'
+export const BARREL_RED_KEY = 'barrel_red'
+export const AVATAR_GOBLIN_BARREL_KEY = 'avatar_goblin_barrel'
+
+function barrelSheet(side: 'Blue' | 'Red'): SheetDef {
+  return {
+    key: `barrel_${side.toLowerCase()}`,
+    path: `${BARREL_PATH}/${side}/Barrel_${side}.png`,
+    frameWidth: BARREL_FRAME,
+    frameHeight: BARREL_FRAME,
+  }
+}
+
+function barrelSide(side: 'Blue' | 'Red'): SideAssets {
+  const frame = clip(barrelSheet(side), 0, 0, 1, -1)
+  return { idle: frame, run: frame, attack: frame }
+}
+
 const BOMB_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Bomb'
 const BOMB_FRAME = 128
 
@@ -509,25 +564,25 @@ function skullSide(side: 'blue' | 'red'): SideAssets {
 const SPEAR_GOBLIN_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin'
 const SPEAR_GOBLIN_FRAME = 256
 
-function pawnsSheet(side: 'Blue' | 'Red', clip: 'idle' | 'run' | 'attack'): SheetDef {
+function villagersSheet(side: 'Blue' | 'Red', clip: 'idle' | 'run' | 'attack'): SheetDef {
   const folder = side === 'Blue' ? 'Blue Units' : 'Red Units'
   const prefix = side === 'Blue' ? 'blue' : 'red'
   const file = clip === 'idle' ? 'Pawn_Idle.png'
     : clip === 'run' ? 'Pawn_Run.png'
     : 'Pawn_Interact Knife.png'
   return {
-    key: `pawns_${prefix}_${clip}`,
+    key: `villagers_${prefix}_${clip}`,
     path: `assets/Units/${folder}/Pawn/${file}`,
     frameWidth: FRAME_W,
     frameHeight: FRAME_H,
   }
 }
 
-/** Hooded Pawn — Pawns card (melee ×3). Knife interact clip = stab. */
-function pawnsSide(side: 'Blue' | 'Red'): SideAssets {
-  const idle   = pawnsSheet(side, 'idle')
-  const run    = pawnsSheet(side, 'run')
-  const attack = pawnsSheet(side, 'attack')
+/** Hooded villager art — Villagers card (melee ×3). Knife interact clip = stab. */
+function villagersSide(side: 'Blue' | 'Red'): SideAssets {
+  const idle   = villagersSheet(side, 'idle')
+  const run    = villagersSheet(side, 'run')
+  const attack = villagersSheet(side, 'attack')
   return {
     idle:   clip(idle,   0, 7, 10, -1),
     run:    clip(run,    0, 5, 14, -1),
@@ -831,6 +886,36 @@ function turtleSide(side: 'blue' | 'red'): SideAssets {
   }
 }
 
+const SPIDER_PATH = 'assets/Enemy Pack/Enemies/Caveborn/Spider'
+const SPIDER_FRAME = 192
+
+/** Enemy Pack Spider — Witch-style spawner; shared art for spiderling minions. */
+function spiderSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `spider_${side}_idle`,
+    path: `${SPIDER_PATH}/Spider_Idle.png`,
+    frameWidth: SPIDER_FRAME,
+    frameHeight: SPIDER_FRAME,
+  }
+  const run: SheetDef = {
+    key: `spider_${side}_run`,
+    path: `${SPIDER_PATH}/Spider_Run.png`,
+    frameWidth: SPIDER_FRAME,
+    frameHeight: SPIDER_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `spider_${side}_attack`,
+    path: `${SPIDER_PATH}/Spider_Attack.png`,
+    frameWidth: SPIDER_FRAME,
+    frameHeight: SPIDER_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0, 7, 10, -1),
+    run:    clip(run,    0, 4, 14, -1),
+    attack: clip(attack, 0, 7, 14,  0),
+  }
+}
+
 const TROLL_PATH = 'assets/Enemy Pack/Enemies/Troll'
 const TROLL_FRAME = 384
 
@@ -983,12 +1068,12 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     bot:    spearGoblinSide('red'),
   },
   {
-    cardId: 'pawns',
-    avatar: { key: 'avatar_pawns', path: `${HUMAN_AVATARS}/Avatars_05.png` },
+    cardId: 'villagers',
+    avatar: { key: 'avatar_villagers', path: `${HUMAN_AVATARS}/Avatars_05.png` },
     contentFill: 0.52,
     attackHitFrame: 2,
-    player: pawnsSide('Blue'),
-    bot:    pawnsSide('Red'),
+    player: villagersSide('Blue'),
+    bot:    villagersSide('Red'),
   },
   {
     cardId: 'torch_goblin',
@@ -1039,6 +1124,20 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     tintBotSide: true,
     player: bombFishSide('blue'),
     bot:    bombFishSide('red'),
+  },
+  {
+    cardId: 'goblin_demolisher',
+    avatar: {
+      key: AVATAR_GOBLIN_DEMOLISHER_KEY,
+      path: `${TNT_PATH}/Blue/TNT_Blue.png`,
+      frameWidth: TNT_FRAME,
+      frameHeight: TNT_FRAME,
+      frame: 0,
+    },
+    contentFill: 0.55,
+    attackHitFrame: 17,
+    player: goblinDemolisherSide('Blue'),
+    bot:    goblinDemolisherSide('Red'),
   },
   {
     cardId: 'minotaur',
@@ -1109,6 +1208,31 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     bot:    harpoonSharkSide('red'),
   },
   {
+    cardId: 'spider',
+    avatar: enemyAvatar('Enemy Avatars_11.png'),
+    avatarCropRatio: 0.58,
+    contentFill: 0.52,
+    attackHitFrame: 4,
+    tintBotSide: true,
+    player: spiderSide('blue'),
+    bot:    spiderSide('red'),
+  },
+  {
+    cardId: 'spiderling',
+    avatar: {
+      key: 'avatar_spiderling',
+      path: `${SPIDER_PATH}/Spider_Idle.png`,
+      frameWidth: SPIDER_FRAME,
+      frameHeight: SPIDER_FRAME,
+      frame: 0,
+    },
+    contentFill: 0.82,
+    attackHitFrame: 4,
+    tintBotSide: true,
+    player: spiderSide('blue'),
+    bot:    spiderSide('red'),
+  },
+  {
     cardId: 'arrows',
     avatar: { key: 'arrow_blue', path: 'assets/Units/Blue Units/Archer/Arrow.png' },
     animated: false,
@@ -1141,6 +1265,21 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     contentFill: 0.82,
     player: bombSide(),
     bot:    bombSide(),
+  },
+  {
+    cardId: 'goblin_barrel',
+    avatar: {
+      key: AVATAR_GOBLIN_BARREL_KEY,
+      path: `${BARREL_PATH}/Blue/Barrel_Blue.png`,
+      frameWidth: BARREL_FRAME,
+      frameHeight: BARREL_FRAME,
+      frame: 0,
+    },
+    avatarBackdrop: AVATAR_BACKDROP_BANNER,
+    avatarHandScale: 0.82,
+    contentFill: 0.80,
+    player: barrelSide('Blue'),
+    bot:    barrelSide('Red'),
   },
 ]
 

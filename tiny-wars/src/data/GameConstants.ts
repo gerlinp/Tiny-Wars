@@ -36,18 +36,22 @@ export const GAME_HEIGHT = GRID_ROWS * CELL_SIZE  // 688 — arena only
 export const HUD_HEIGHT  = 140
 export const CANVAS_HEIGHT = GAME_HEIGHT + HUD_HEIGHT  // 828 — must match GameConfig height
 
-// Tower layout — princess towers at river bank, king castle well behind (CR style)
-export const PLAYER_KING_ROW    = 37
+// Tower hitbox anchors (map.json overrides — combat, pathing, targeting)
+export const PLAYER_KING_ROW    = 41
 export const PLAYER_KING_COL    = 12
 export const PLAYER_TOWER_ROW   = 31
 export const PLAYER_TOWER_COLS  = [4, 19] as const
 
-export const BOT_KING_ROW   = 6
+export const BOT_KING_ROW   = 3
 export const BOT_KING_COL   = 12
 export const BOT_TOWER_ROW  = 12
 export const BOT_TOWER_COLS = [4, 19] as const
 
-/** King-tower garrison cannon — map grid row (centre of tile). */
+/** King castle art — visual-only rows (sprites/garrison stay here when hitbox row differs). */
+export const PLAYER_KING_VISUAL_ROW = 37
+export const BOT_KING_VISUAL_ROW    = 6
+
+/** King-tower garrison cannon — map grid row on the visible castle deck. */
 export const PLAYER_KING_CANNON_ROW = 39
 export const BOT_KING_CANNON_ROW = 5
 
@@ -94,6 +98,11 @@ export const TIE_BREAK_TOWER_DPS = 60  // damage per second to each remaining to
 
 /** Monk / Battle Healer — delay between each heal pulse in a burst (CR ~0.25s). */
 export const HEAL_PULSE_INTERVAL_MS = 250
+
+/** Witch / Spider — minion spawn timing (CR L14). */
+export const WITCH_MINION_SPAWN_INTERVAL_MS = 7000
+export const WITCH_MINION_SPAWN_INITIAL_DELAY_MS = 1000
+export const WITCH_MINION_SPAWN_COUNT = 4
 
 /**
  * Arena tile footprints (official CR: princess 3×3; king ~4×4 diameter per placement guides).

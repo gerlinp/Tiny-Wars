@@ -59,17 +59,17 @@ export const GARRISON_CANNON_SIZE_MULT = 1.25
 /** Muzzle height above feet for tower projectiles spawned from the cannon. */
 export const GARRISON_CANNON_MUZZLE_LIFT = 0.42
 
-/** Cannon recoil hold before returning to idle (ms). */
-export const GARRISON_CANNON_SHOT_MS = 420
+/** Pause at full recoil scale before snapping back (ms). */
+export const GARRISON_CANNON_RECOIL_HOLD_MS = 70
+
+/** @deprecated Use GARRISON_CANNON_RECOIL_HOLD_MS — kept for tower shot timer fallback */
+export const GARRISON_CANNON_SHOT_MS = GARRISON_CANNON_RECOIL_HOLD_MS
 
 /** Bomb-card fire — brief scale burst on the garrison cannon. */
 export const GARRISON_CANNON_ROCKET_BURST_SCALE = 1.14
 
 /** Kick distance (px) opposite the shot direction. */
 export const GARRISON_CANNON_ROCKET_KICK_PX = 5
-
-/** Vibration amplitude (px) during rocket recoil. */
-export const GARRISON_CANNON_ROCKET_VIBRATE_PX = 2.5
 
 // Wood deck on Knights Tower_Blue.png — row 90 was still visually high; use ~101.
 const PRINCESS_GARRISON: GarrisonSlot[] = [

@@ -1,7 +1,16 @@
-import { CARD_DEFINITIONS, DEFAULT_DECK } from '@data/CardData'
+import { CARD_DEFINITIONS, DEFAULT_DECK, COLLECTION_HIDDEN_CARD_IDS } from '@data/CardData'
 
 const STORAGE_KEY = 'tinywars.playerDeck'
 const COLLECTION_SORT_KEY = 'tinywars.collectionSort'
+
+/** Renamed card ids — migrated when loading saved decks. */
+const CARD_ID_MIGRATIONS: Record<string, string> = {
+  pawns: 'villagers',
+}
+
+function migrateDeckIds(ids: string[]): string[] {
+  return ids.map(id => CARD_ID_MIGRATIONS[id] ?? id)
+}
 
 /** Cards a match deck must contain — matches the bot's deck size for fair play. */
 export const DECK_SIZE = 8
@@ -43,7 +52,9 @@ export function collectionSortLabel(state: CollectionSortState, active: boolean)
 
 /** Every card id offered in the deck builder collection. */
 export function getAllDeckCandidateIds(): string[] {
-  return Object.keys(CARD_DEFINITIONS)
+  return Object.keys(CARD_DEFINITIONS).filter(
+    id => !(COLLECTION_HIDDEN_CARD_IDS as readonly string[]).includes(id),
+  )
 }
 
 function compareDeckCandidates(a: string, b: string, mode: CollectionSortMode): number {
@@ -122,7 +133,10 @@ export function loadPlayerDeck(): string[] {
   if (raw) {
     try {
       const parsed: unknown = JSON.parse(raw)
-      if (isValidDeck(parsed)) return parsed
+      if (Array.isArray(parsed)) {
+        const migrated = migrateDeckIds(parsed)
+        if (isValidDeck(migrated)) return migrated
+      }
     } catch {
       /* corrupt value — fall through to default */
     }

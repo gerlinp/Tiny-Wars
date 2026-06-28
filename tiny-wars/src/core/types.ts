@@ -52,6 +52,8 @@ export interface EntityStats {
   chargeDamageMultiplier?: number
   /** Only acquires buildings and towers, never enemy troops. */
   targetsBuildingsOnly?: boolean
+  /** Dies immediately after dealing attack damage (e.g. wall-breaker dynamite). */
+  suicideOnAttack?: boolean
   /** Battle Healer-style — HP restored per pulse when attacking. */
   healPerPulse?: number
   /** Extra HP pool absorbed before body HP (per unit) — displayed as Armor. */
@@ -82,6 +84,14 @@ export interface EntityStats {
   hookSlowSpeedMultiplier?: number
   /** How long the hook slow lasts (ms). */
   hookSlowDurationMs?: number
+  /** Witch-style — card id of minions spawned periodically around the unit. */
+  spawnMinionCardId?: string
+  /** Minions per spawn wave (defaults to target card deployCount). */
+  spawnMinionCount?: number
+  /** Ms between minion spawn waves. */
+  spawnMinionIntervalMs?: number
+  /** Ms after deploy before the first minion wave. */
+  spawnMinionInitialDelayMs?: number
 }
 
 export interface SpellStats {
@@ -93,6 +103,10 @@ export interface SpellStats {
   groundOnly?: boolean
   /** How the spell is delivered visually and timed. */
   delivery?: 'rocket' | 'arrows'
+  /** Card id of the troop type to spawn at the impact point (Goblin Barrel style). */
+  spawnCardId?: string
+  /** Number of troops to spawn on impact (default 1 when spawnCardId is set). */
+  spawnCount?: number
 }
 
 export interface CardDefinition {

@@ -197,21 +197,21 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 
   <div class="section">
     <div class="section-title">Bridges</div>
-    <div class="info-row"><span>Left cols</span><span class="info-val" id="lbl-left-bridge">[3, 4]</span></div>
-    <div class="info-row"><span>Right cols</span><span class="info-val" id="lbl-right-bridge">[19, 20]</span></div>
+    <div class="info-row"><span>Left cols</span><span class="info-val" id="lbl-left-bridge">[3, 4, 5]</span></div>
+    <div class="info-row"><span>Right cols</span><span class="info-val" id="lbl-right-bridge">[18, 19, 20]</span></div>
   </div>
 
   <div class="section">
-    <div class="section-title">Towers — solid box = hitbox, transparent art = visual</div>
+    <div class="section-title">Towers — solid circle = combat hull (king: sprite width, princess: footprint), transparent art = visual</div>
     <table class="tower-table">
       <thead><tr><th>Tower</th><th>Col</th><th>Row</th></tr></thead>
       <tbody>
-        <tr><td>Bot King</td>    <td id="td-bk-col">11</td><td id="td-bk-row">6</td></tr>
-        <tr><td>Bot Left ♟</td> <td id="td-bl-col">4</td> <td id="td-bl-row">15</td></tr>
-        <tr><td>Bot Right ♟</td><td id="td-br-col">19</td><td id="td-br-row">15</td></tr>
-        <tr><td>Ply King</td>   <td id="td-pk-col">11</td><td id="td-pk-row">37</td></tr>
-        <tr><td>Ply Left ♟</td><td id="td-pl-col">4</td> <td id="td-pl-row">27</td></tr>
-        <tr><td>Ply Right ♟</td><td id="td-pr-col">19</td><td id="td-pr-row">27</td></tr>
+        <tr><td>Bot King</td>    <td id="td-bk-col">12</td><td id="td-bk-row">3</td></tr>
+        <tr><td>Bot Left ♟</td> <td id="td-bl-col">4</td> <td id="td-bl-row">12</td></tr>
+        <tr><td>Bot Right ♟</td><td id="td-br-col">19</td><td id="td-br-row">12</td></tr>
+        <tr><td>Ply King</td>   <td id="td-pk-col">12</td><td id="td-pk-row">41</td></tr>
+        <tr><td>Ply Left ♟</td><td id="td-pl-col">4</td> <td id="td-pl-row">31</td></tr>
+        <tr><td>Ply Right ♟</td><td id="td-pr-col">19</td><td id="td-pr-row">31</td></tr>
       </tbody>
     </table>
   </div>
@@ -278,11 +278,16 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 </div>
 
 <script>
-// ── Constants ─────────────────────────────────────────────────
+// ── Constants (mirror GameConstants.ts) ─────────────────────
 const COLS   = 24
 const ROWS   = 43
 const CELL   = 16
-const GAME_CELL = 20   // in-game CELL_SIZE — health bar offsets export in these px
+const GAME_CELL = 16   // CELL_SIZE — tower/health-bar offsets export in these px
+const ARENA_FENCE_ROWS = 1
+const ARENA_FENCE_COLS = 1
+const PLAYER_DEPLOY_ROW_MAX = ROWS - 1 - ARENA_FENCE_ROWS  // 41
+const BOT_DEPLOY_ROW_MIN = ARENA_FENCE_ROWS                   // 1
+const BRIDGE_SPAN = 3
 const MARGIN = 3             // extra cells around the grid (out-of-map zone)
 const CW     = COLS + 2 * MARGIN   // 30 canvas-cells wide
 const CH     = ROWS + 2 * MARGIN   // 49 canvas-cells tall
@@ -389,12 +394,21 @@ for (const [k, path] of Object.entries(TOWER_ASSET_PATHS)) {
 }
 
 const MAP_UNIT_TARGET_HEIGHT = GAME_CELL * 2.5
-const TOWER_TIER = {
-  princess: { mult: 3.5, fill: 0.90, nativeW: 128, nativeH: 256 },
-  king:     { mult: 2.5, fill: 0.88, nativeW: 320, nativeH: 256 },
+const SPRITE_VISUAL_SCALE = 1.35   // king castles only — mirrors GameConstants.ts
+const MAP_HEIGHT_MULTIPLIER = { tower_princess: 3.5, tower_king: 2.5 }
+const MAP_TOWER_CONTENT_FILL = { tower_princess: 0.90, tower_king: 0.88 }
+const TOWER_NATIVE = {
+  princess: { w: 128, h: 256 },
+  king:     { w: 320, h: 256 },
 }
-const PRINCESS_NUDGE_GAME = { player: -48, bot: 0 }
+const PRINCESS_NUDGE_GAME = { player: -38, bot: 0 }
+const TOWER_HEALTH_BAR_Y = { botGapAboveTop: 3, playerOffsetFromCenter: 6 }
 const TOWER_SPRITE_ALPHA = 0.62
+/** King castle art rows — sprites/garrison stay here when hitbox row differs (GameConstants.ts). */
+const PLAYER_KING_VISUAL_ROW = 37
+const BOT_KING_VISUAL_ROW = 6
+const KING_VISUAL_OFFSET_DEFAULT = { botKing: -25, plyKing: 25 }
+const KING_HEALTH_BAR_OFFSET_DEFAULT = { botKing: -66, plyKing: 54 }
 
 const TOWER_INFO = {
   botKing:  { label: '♛', hitFill: 'rgba(180,40,40,0.78)',  stroke: '#ff6060', isKing: true,  owner: 'bot',    imgKey: 'castle_red' },
@@ -406,22 +420,37 @@ const TOWER_INFO = {
 }
 const TOWER_KEYS = Object.keys(TOWER_INFO)
 
-function towerDisplayHeightGame(isKing) {
-  const tier = isKing ? TOWER_TIER.king : TOWER_TIER.princess
-  return MAP_UNIT_TARGET_HEIGHT * tier.mult / tier.fill
+/** Logic height for Y positioning — matches targetHeightForTower() (no visual scale). */
+function targetHeightForTowerGame(isKing) {
+  const tier = isKing ? 'tower_king' : 'tower_princess'
+  return MAP_UNIT_TARGET_HEIGHT * MAP_HEIGHT_MULTIPLIER[tier] / MAP_TOWER_CONTENT_FILL[tier]
+}
+
+/** Drawn sprite size — mirrors displaySizeForTower() in assetDisplaySize.ts. */
+function towerDisplaySizeGame(isKing, img) {
+  const visualScale = isKing ? SPRITE_VISUAL_SCALE : 1
+  const targetH = targetHeightForTowerGame(isKing) * visualScale
+  const fallback = isKing ? TOWER_NATIVE.king : TOWER_NATIVE.princess
+  const nativeH = img?.naturalHeight > 0 ? img.naturalHeight : fallback.h
+  const nativeW = img?.naturalWidth > 0 ? img.naturalWidth : fallback.w
+  const scale = targetH / nativeH
+  return { width: nativeW * scale, height: targetH }
 }
 
 function towerRenderOffsetGame(owner, isKing) {
   const fpHalf = ((isKing ? 4 : 3) / 2) * GAME_CELL
-  const halfDisplay = towerDisplayHeightGame(isKing) / 2
+  const halfLogic = targetHeightForTowerGame(isKing) / 2
   const nudge = isKing ? 0 : PRINCESS_NUDGE_GAME[owner]
   return owner === 'player'
-    ? -fpHalf + halfDisplay + nudge
-    : fpHalf - halfDisplay + nudge
+    ? -fpHalf + halfLogic + nudge
+    : fpHalf - halfLogic + nudge
 }
 
 function defaultTowerVisualOffset(towerKey) {
   const info = TOWER_INFO[towerKey]
+  if (info.isKing && towerKey in KING_VISUAL_OFFSET_DEFAULT) {
+    return { offsetX: 0, offsetY: KING_VISUAL_OFFSET_DEFAULT[towerKey] }
+  }
   return {
     offsetX: 0,
     offsetY: Math.round(towerRenderOffsetGame(info.owner, info.isKing)),
@@ -434,32 +463,67 @@ function defaultTowerVisuals() {
   return vis
 }
 
-function towerFootprintCells(isKing) {
-  return isKing ? { w: 4, h: 4 } : { w: 3, h: 3 }
+const TOWER_FOOTPRINT_W = { princess: 3, king: 4 }
+
+function towerCombatRadiusGame(isKing, img) {
+  if (isKing) return towerDisplaySizeGame(isKing, img).width / 2
+  return (TOWER_FOOTPRINT_W.princess / 2) * GAME_CELL
+}
+
+function drawTowerCombatCircle(cx, cy, radius, info, selected) {
+  ctx.beginPath()
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+  ctx.fillStyle = info.hitFill
+  ctx.fill()
+  ctx.strokeStyle = selected ? '#ffffff' : info.stroke
+  ctx.lineWidth = selected ? 2.5 : 2
+  ctx.stroke()
+  ctx.fillStyle = '#fff'
+  ctx.font = 'bold 10px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(info.label, cx, cy)
+}
+
+function kingRenderAnchorDeltaGame(towerKey, hitboxRow) {
+  const info = TOWER_INFO[towerKey]
+  if (!info?.isKing) return 0
+  const visualRow = info.owner === 'player' ? PLAYER_KING_VISUAL_ROW : BOT_KING_VISUAL_ROW
+  return (visualRow - hitboxRow) * GAME_CELL
 }
 
 function towerVisualLayout(towerKey, towers = state.towers, visuals = state.towerVisuals) {
   const info = TOWER_INFO[towerKey]
   const t = towers[towerKey]
   if (!t) return null
-  const tier = info.isKing ? TOWER_TIER.king : TOWER_TIER.princess
-  const displayH = towerDisplayHeightGame(info.isKing) * GAME_TO_EDITOR
-  const displayW = displayH * (tier.nativeW / tier.nativeH)
+  const img = towerImages[info.imgKey]
+  const { width: displayW, height: displayH } = towerDisplaySizeGame(info.isKing, img)
   const cx = canvasX(t.col) + CELL / 2
   const cy = canvasY(t.row) + CELL / 2
+  const anchorDelta = kingRenderAnchorDeltaGame(towerKey, t.row)
   const vis = visuals?.[towerKey] ?? defaultTowerVisualOffset(towerKey)
   const visualX = cx + vis.offsetX * GAME_TO_EDITOR
-  const visualY = cy + vis.offsetY * GAME_TO_EDITOR
-  return { cx, cy, visualX, visualY, displayW, displayH, imgKey: info.imgKey }
+  const visualY = cy + (anchorDelta + vis.offsetY) * GAME_TO_EDITOR
+  return {
+    cx, cy, visualX, visualY,
+    displayW: displayW * GAME_TO_EDITOR,
+    displayH: displayH * GAME_TO_EDITOR,
+    imgKey: info.imgKey,
+  }
 }
 
 // Mirrors towerRenderPosition.ts + TOWER_HEALTH_BAR_Y defaults (game px)
 function defaultHealthBarOffset(towerKey) {
+  if (towerKey in KING_HEALTH_BAR_OFFSET_DEFAULT) {
+    return { offsetX: 0, offsetY: KING_HEALTH_BAR_OFFSET_DEFAULT[towerKey] }
+  }
   const info = TOWER_INFO[towerKey]
   const renderOff = towerRenderOffsetGame(info.owner, info.isKing)
-  const spriteH = towerDisplayHeightGame(info.isKing)
+  const spriteH = targetHeightForTowerGame(info.isKing)
   const topOff = renderOff - spriteH / 2
-  const barOff = info.owner === 'player' ? renderOff + 8 : topOff - 4
+  const barOff = info.owner === 'player'
+    ? renderOff + TOWER_HEALTH_BAR_Y.playerOffsetFromCenter
+    : topOff - TOWER_HEALTH_BAR_Y.botGapAboveTop
   return { offsetX: 0, offsetY: Math.round(barOff) }
 }
 
@@ -473,12 +537,12 @@ function defaultHealthBars() {
 const DEFAULTS = () => ({
   river: { start: 20, end: 22 },
   leftBridge:  3,
-  rightBridge: 19,
+  rightBridge: 18,
   towers: {
-    botKing:  { row: 6,  col: 12 },
+    botKing:  { row: 3,  col: 12 },
     botLeft:  { row: 12, col: 4  },
     botRight: { row: 12, col: 19 },
-    plyKing:  { row: 37, col: 12 },
+    plyKing:  { row: 41, col: 12 },
     plyLeft:  { row: 31, col: 4  },
     plyRight: { row: 31, col: 19 },
   },
@@ -531,13 +595,12 @@ function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)) }
 
 function bridgeCols(side) {
   const s = side === 'left' ? state.leftBridge : state.rightBridge
-  return [s, s + 1]
+  return Array.from({ length: BRIDGE_SPAN }, (_, i) => s + i)
 }
 
 function isRiverRow(row) { return row >= state.river.start && row <= state.river.end }
 function isBridgeCol(col) {
-  const [la, lb] = bridgeCols('left'), [ra, rb] = bridgeCols('right')
-  return col === la || col === lb || col === ra || col === rb
+  return bridgeCols('left').includes(col) || bridgeCols('right').includes(col)
 }
 function isInGrid(col, row) { return col >= 0 && col < COLS && row >= 0 && row < ROWS }
 
@@ -556,15 +619,28 @@ function draw() {
     }
   }
 
-  // Deploy zone tints (in-bounds only)
+  // Deploy zone tints (in-bounds only; fence border excluded like DeploySystem)
   if (showDeploy) {
+    ctx.fillStyle = 'rgba(100,80,40,0.10)'
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) {
+        if (row < ARENA_FENCE_ROWS || row >= ROWS - ARENA_FENCE_ROWS ||
+            col < ARENA_FENCE_COLS || col >= COLS - ARENA_FENCE_COLS) {
+          ctx.fillRect(canvasX(col), canvasY(row), CELL, CELL)
+        }
+      }
+    }
     ctx.fillStyle = 'rgba(60,120,255,0.10)'
-    for (let row = state.playerDeployMin; row < ROWS; row++) {
-      ctx.fillRect(canvasX(0), canvasY(row), COLS * CELL, CELL)
+    for (let row = state.playerDeployMin; row <= PLAYER_DEPLOY_ROW_MAX; row++) {
+      for (let col = ARENA_FENCE_COLS; col < COLS - ARENA_FENCE_COLS; col++) {
+        ctx.fillRect(canvasX(col), canvasY(row), CELL, CELL)
+      }
     }
     ctx.fillStyle = 'rgba(255,60,60,0.10)'
-    for (let row = 0; row <= state.botDeployMax; row++) {
-      ctx.fillRect(canvasX(0), canvasY(row), COLS * CELL, CELL)
+    for (let row = BOT_DEPLOY_ROW_MIN; row <= state.botDeployMax; row++) {
+      for (let col = ARENA_FENCE_COLS; col < COLS - ARENA_FENCE_COLS; col++) {
+        ctx.fillRect(canvasX(col), canvasY(row), CELL, CELL)
+      }
     }
   }
 
@@ -645,10 +721,10 @@ const LIVE_GHOST_STROKE = '#6fd4b0'
 
 function towersFromMapConfig(data) {
   return {
-    botKing:  { row: data.botKingRow ?? 6,  col: data.botKingCol ?? 12 },
+    botKing:  { row: data.botKingRow ?? 3,  col: data.botKingCol ?? 12 },
     botLeft:  { row: data.botTowerRow ?? 12, col: data.botTowerCols?.[0] ?? 4 },
     botRight: { row: data.botTowerRow ?? 12, col: data.botTowerCols?.[1] ?? 19 },
-    plyKing:  { row: data.playerKingRow ?? 37, col: data.playerKingCol ?? 12 },
+    plyKing:  { row: data.playerKingRow ?? 41, col: data.playerKingCol ?? 12 },
     plyLeft:  { row: data.playerTowerRow ?? 31, col: data.playerTowerCols?.[0] ?? 4 },
     plyRight: { row: data.playerTowerRow ?? 31, col: data.playerTowerCols?.[1] ?? 19 },
   }
@@ -685,13 +761,13 @@ function towerVisualsFromMapConfig(data) {
 }
 
 function mapConfigFromState(s = state) {
-  const [la, lb] = [s.leftBridge, s.leftBridge + 1]
-  const [ra, rb] = [s.rightBridge, s.rightBridge + 1]
+  const leftCols = Array.from({ length: BRIDGE_SPAN }, (_, i) => s.leftBridge + i)
+  const rightCols = Array.from({ length: BRIDGE_SPAN }, (_, i) => s.rightBridge + i)
   return {
     riverRowStart: s.river.start,
     riverRowEnd: s.river.end,
-    leftBridgeCols: [la, lb],
-    rightBridgeCols: [ra, rb],
+    leftBridgeCols: leftCols,
+    rightBridgeCols: rightCols,
     playerKingRow: s.towers.plyKing.row,
     playerKingCol: s.towers.plyKing.col,
     playerTowerRow: s.towers.plyLeft.row,
@@ -728,14 +804,15 @@ function drawLiveMapReference() {
     const cur = state.towers[key]
     const moved = cur.col !== saved.col || cur.row !== saved.row
     const { cx, cy } = towerCanvasCenter(key, liveTowers)
-    const fp = towerFootprintCells(info.isKing)
-    const w = fp.w * CELL, h = fp.h * CELL
+    const r = towerCombatRadiusGame(info.isKing, towerImages[info.imgKey]) * GAME_TO_EDITOR
 
     ctx.save()
     ctx.setLineDash([4, 4])
     ctx.strokeStyle = moved ? LIVE_GHOST_STROKE : 'rgba(111,212,176,0.45)'
     ctx.lineWidth = moved ? 2 : 1
-    ctx.strokeRect(cx - w / 2, cy - h / 2, w, h)
+    ctx.beginPath()
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.stroke()
     ctx.setLineDash([])
     ctx.restore()
   }
@@ -768,8 +845,8 @@ function drawBridgeHandles() {
   const ry = canvasY(state.river.start)
   const rh = (state.river.end - state.river.start + 1) * CELL
   for (const side of ['left', 'right']) {
-    const [ca] = bridgeCols(side)
-    const x = canvasX(ca), w = 2 * CELL
+    const cols = bridgeCols(side)
+    const x = canvasX(cols[0]), w = BRIDGE_SPAN * CELL
     ctx.fillStyle   = side === 'left' ? 'rgba(255,200,40,0.55)' : 'rgba(255,140,20,0.55)'
     ctx.fillRect(x, ry, w, rh)
     ctx.strokeStyle = side === 'left' ? '#ffd020' : '#ffa020'
@@ -792,21 +869,9 @@ function drawTowerHitboxes(towers = state.towers) {
     const t = towers[key]
     if (!t) continue
     const { cx, cy } = towerCanvasCenter(key, towers)
-    const fp = towerFootprintCells(info.isKing)
-    const w = fp.w * CELL, h = fp.h * CELL
+    const r = towerCombatRadiusGame(info.isKing, towerImages[info.imgKey]) * GAME_TO_EDITOR
     const selected = drag?.type === 'towerHitbox' && drag.towerKey === key
-
-    ctx.fillStyle = info.hitFill
-    ctx.fillRect(cx - w / 2, cy - h / 2, w, h)
-    ctx.strokeStyle = selected ? '#ffffff' : info.stroke
-    ctx.lineWidth = selected ? 2.5 : 2
-    ctx.strokeRect(cx - w / 2, cy - h / 2, w, h)
-
-    ctx.fillStyle = '#fff'
-    ctx.font = 'bold 10px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(info.label, cx, cy)
+    drawTowerCombatCircle(cx, cy, r, info, selected)
   }
 }
 
@@ -841,11 +906,13 @@ function towerCanvasCenter(towerKey, towers = state.towers) {
 }
 
 function healthBarCanvasPos(towerKey, healthBars = state.healthBars, towers = state.towers) {
+  const t = towers[towerKey]
   const { cx, cy } = towerCanvasCenter(towerKey, towers)
+  const anchorDelta = kingRenderAnchorDeltaGame(towerKey, t.row)
   const hb = healthBars[towerKey] ?? { offsetX: 0, offsetY: 0 }
   return {
     x: cx + hb.offsetX * GAME_TO_EDITOR,
-    y: cy + hb.offsetY * GAME_TO_EDITOR,
+    y: cy + (anchorDelta + hb.offsetY) * GAME_TO_EDITOR,
   }
 }
 
@@ -895,7 +962,12 @@ function drawHealthBarAt(cx, cy, barW, fillPct, selected) {
 }
 
 function healthBarWidth(towerKey) {
-  return (towerKey.includes('King') ? HB.width.king : HB.width.princess) * GAME_TO_EDITOR
+  const info = TOWER_INFO[towerKey]
+  const img = towerImages[info.imgKey]
+  const { width: spriteW } = towerDisplaySizeGame(info.isKing, img)
+  const widthMult = info.isKing ? 0.68 : 0.58
+  const gameW = Math.max(info.isKing ? 96 : 84, Math.round(spriteW * widthMult))
+  return gameW * GAME_TO_EDITOR
 }
 
 function drawHealthBars() {
@@ -910,9 +982,8 @@ function drawHealthBars() {
 function updateSidebar() {
   document.getElementById('lbl-river-start').textContent = state.river.start
   document.getElementById('lbl-river-end').textContent   = state.river.end
-  const [la, lb] = bridgeCols('left'), [ra, rb] = bridgeCols('right')
-  document.getElementById('lbl-left-bridge').textContent  = `[${la}, ${lb}]`
-  document.getElementById('lbl-right-bridge').textContent = `[${ra}, ${rb}]`
+  document.getElementById('lbl-left-bridge').textContent  = `[${bridgeCols('left').join(', ')}]`
+  document.getElementById('lbl-right-bridge').textContent = `[${bridgeCols('right').join(', ')}]`
   const tMap = {
     botKing: ['td-bk-col','td-bk-row'], botLeft: ['td-bl-col','td-bl-row'],
     botRight: ['td-br-col','td-br-row'], plyKing: ['td-pk-col','td-pk-row'],
@@ -983,10 +1054,9 @@ function hitTestTowerHitbox(mx, my) {
     const key = TOWER_KEYS[i]
     const info = TOWER_INFO[key]
     const { cx, cy } = towerCanvasCenter(key)
-    const fp = towerFootprintCells(info.isKing)
-    const w = fp.w * CELL, h = fp.h * CELL
-    if (mx >= cx - w / 2 && mx <= cx + w / 2 &&
-        my >= cy - h / 2 && my <= cy + h / 2) return key
+    const r = towerCombatRadiusGame(info.isKing, towerImages[info.imgKey]) * GAME_TO_EDITOR
+    const dx = mx - cx, dy = my - cy
+    if (dx * dx + dy * dy <= r * r) return key
   }
   return null
 }
@@ -1012,9 +1082,10 @@ function hitTest(mx, my) {
 
   const { col, row } = mouseToCell(mx, my)
   if (isRiverRow(row) && isInGrid(col, row)) {
-    const [la, lb] = bridgeCols('left'), [ra, rb] = bridgeCols('right')
-    if (mx >= canvasX(la) && mx < canvasX(lb) + CELL) return { type: 'bridgeLeft' }
-    if (mx >= canvasX(ra) && mx < canvasX(rb) + CELL) return { type: 'bridgeRight' }
+    const leftCols = bridgeCols('left'), rightCols = bridgeCols('right')
+    const leftEnd = leftCols[leftCols.length - 1], rightEnd = rightCols[rightCols.length - 1]
+    if (mx >= canvasX(leftCols[0]) && mx < canvasX(leftEnd) + CELL) return { type: 'bridgeLeft' }
+    if (mx >= canvasX(rightCols[0]) && mx < canvasX(rightEnd) + CELL) return { type: 'bridgeRight' }
     return { type: 'river' }
   }
   return { type: 'cell' }
@@ -1281,13 +1352,12 @@ document.getElementById('btn-reset').addEventListener('click', () => {
 
 // ── Export ────────────────────────────────────────────────────
 function buildExport() {
-  const [la, lb] = bridgeCols('left'), [ra, rb] = bridgeCols('right')
   return {
     version: 1,
     riverRowStart:      state.river.start,
     riverRowEnd:        state.river.end,
-    leftBridgeCols:     [la, lb],
-    rightBridgeCols:    [ra, rb],
+    leftBridgeCols:     bridgeCols('left'),
+    rightBridgeCols:    bridgeCols('right'),
     playerKingRow:      state.towers.plyKing.row,
     playerKingCol:      state.towers.plyKing.col,
     playerTowerRow:     state.towers.plyLeft.row,

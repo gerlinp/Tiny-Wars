@@ -155,30 +155,35 @@ export function listTroopDeployCells(
 
 // ─── DeployLayout ─────────────────────────────────────────────────────────────
 
-/** World positions for multi-deploy troops — line for small groups, grid cluster for swarms. */
+/** Compact circular cluster — small groups on one ring, large swarms fill concentric rings. */
 export function troopDeployPositions(center: Vec2, count: number, spreadCells: number): Vec2[] {
-  const spreadPx = spreadCells * CELL_SIZE
-  if (count === 1) return [center]
-  if (count <= 3) {
-    return Array.from({ length: count }, (_, i) => ({
-      x: center.x + (i - (count - 1) / 2) * spreadPx,
-      y: center.y,
-    }))
+  if (count <= 1) return [center]
+
+  const ringRadius = spreadCells * CELL_SIZE * 0.38
+  const positions: Vec2[] = []
+  let remaining = count
+
+  if (count >= 7) {
+    positions.push({ x: center.x, y: center.y })
+    remaining--
   }
 
-  const cols = Math.ceil(Math.sqrt(count))
-  const rows = Math.ceil(count / cols)
-  const xStep = spreadPx * 0.65
-  const yStep = spreadPx * 0.55
-  const positions: Vec2[] = []
-  for (let r = 0; r < rows && positions.length < count; r++) {
-    for (let c = 0; c < cols && positions.length < count; c++) {
+  let ring = 1
+  while (remaining > 0) {
+    const slotsOnRing = 6 * ring
+    const place = Math.min(remaining, slotsOnRing)
+    const radius = ringRadius * ring
+    for (let i = 0; i < place; i++) {
+      const angle = (i / place) * Math.PI * 2 - Math.PI / 2
       positions.push({
-        x: center.x + (c - (cols - 1) / 2) * xStep,
-        y: center.y + (r - (rows - 1) / 2) * yStep,
+        x: center.x + radius * Math.cos(angle),
+        y: center.y + radius * Math.sin(angle),
       })
     }
+    remaining -= place
+    ring++
   }
+
   return positions
 }
 

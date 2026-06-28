@@ -4,7 +4,7 @@ import type { GameState } from './GameState'
 import type { Owner, Vec2 } from './types'
 import { EntityKind } from './types'
 
-/** King towers are not valid objectives until a friendly princess tower has fallen. */
+/** King towers are not valid objectives until awakened (damaged or a princess fell). */
 export function isAttackableTower(tower: Tower): boolean {
   return !tower.isKing || tower.isActive()
 }
@@ -45,6 +45,7 @@ export function findNearestEnemy(state: GameState, opts: NearestEnemyOptions): E
     for (const tower of state.towers.values()) {
       if (tower.owner === opts.owner) continue
       if (!tower.isAlive) continue
+      if (!isAttackableTower(tower)) continue
       if (!canAttack(tower)) continue
 
       const d = opts.distance(opts.from, tower)

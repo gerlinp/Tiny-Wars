@@ -7,6 +7,7 @@ import { HOOK_ROPE_TEXTURE_KEY, registerHookRopeTexture } from './hookRopeTextur
 import { CELL_SIZE } from '@data/GameConstants'
 import { applyBombArcDisplaySize, BOMB_PROJECTILE_DISPLAY_SCALE, BOMB_SPIN_TIME_SCALE, FLAT_LOB_PEAK_SCALE, TOWER_CANNON_PROJECTILE_DISPLAY_SCALE } from './bombProjectileVisual'
 import { applyArrowSprite, arrowTextureKey } from './renderingUtils'
+import type { EffectsPool } from './VFXPools'
 
 // ─── ArrowPool ───────────────────────────────────────────────────────────────
 
@@ -140,7 +141,12 @@ const TNT_PROJECTILE_DISPLAY = CELL_SIZE * BOMB_PROJECTILE_DISPLAY_SCALE
 const TOWER_CANNON_PROJECTILE_DISPLAY = CELL_SIZE * TOWER_CANNON_PROJECTILE_DISPLAY_SCALE
 const BOMB_SPIN_SHEET = 'bomb_spinning'
 
-export type TntLobStyle = 'rocket' | 'flat'
+export type TntLobStyle = 'rocket' | 'flat' | 'straight'
+
+export interface TntProjectileStyle {
+  projectileKey?: string
+  spinAnimKey?: string
+}
 
 export class TntPool {
   private pool: Phaser.GameObjects.Sprite[] = []
@@ -168,6 +174,7 @@ export class TntPool {
     flightMs: number,
     onHit?: () => void,
     lobStyle: TntLobStyle = 'rocket',
+    projectileStyle?: TntProjectileStyle,
   ): void {
     const bomb = this.pool.find(b => !b.getData('flying'))
     if (!bomb) {
@@ -176,21 +183,26 @@ export class TntPool {
     }
 
     const flat = lobStyle === 'flat'
+    const straight = lobStyle === 'straight'
     const baseSize = flat ? TOWER_CANNON_PROJECTILE_DISPLAY : TNT_PROJECTILE_DISPLAY
     const peakScale = flat ? FLAT_LOB_PEAK_SCALE : undefined
 
-    const spinKey = clipAnimKey('tnt', owner, 'run')
+    const projectileKey = projectileStyle?.projectileKey
+      ?? (this.scene.textures.exists(BOMB_SPIN_SHEET) ? BOMB_SPIN_SHEET : 'placeholder_player')
+    const spinKey = projectileStyle?.spinAnimKey ?? clipAnimKey('tnt', owner, 'run')
 
     bomb.setData('flying', true)
     bomb.setData('projectileDisplay', baseSize)
-    bomb.setTexture(BOMB_SPIN_SHEET, 0)
+    bomb.setTexture(projectileKey, 0)
     bomb.setDisplaySize(baseSize, baseSize)
     bomb.setPosition(from.x, from.y)
-    bomb.setRotation(0)
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    bomb.setRotation(straight ? Math.atan2(dy, dx) : 0)
     bomb.setVisible(true)
     bomb.setAlpha(1)
 
-    if (this.scene.anims.exists(spinKey)) {
+    if (!straight && this.scene.anims.exists(spinKey)) {
       bomb.anims.timeScale = BOMB_SPIN_TIME_SCALE
       bomb.anims.play(spinKey)
     } else {
@@ -208,7 +220,9 @@ export class TntPool {
           from.x + (to.x - from.x) * t,
           from.y + (to.y - from.y) * t,
         )
-        applyBombArcDisplaySize(bomb, baseSize, t, peakScale)
+        if (!straight) {
+          applyBombArcDisplaySize(bomb, baseSize, t, peakScale)
+        }
       },
       onComplete: () => {
         this.finishTnt(bomb)
@@ -225,7 +239,86 @@ export class TntPool {
     bomb.anims.timeScale = 1
     bomb.removeAllListeners()
     bomb.setDisplaySize(baseSize, baseSize)
+    bomb.setRotation(0)
     this.scene.tweens.killTweensOf(bomb)
+  }
+}
+
+// ─── BarrelPool ──────────────────────────────────────────────────────────────
+
+const BARREL_POOL_SIZE = 6
+const BARREL_PROJECTILE_DISPLAY = CELL_SIZE * BOMB_PROJECTILE_DISPLAY_SCALE
+/** Full rotations completed over a typical mid-range flight (~2 s). */
+const BARREL_SPIN_ROTATIONS = 2.5
+
+export class BarrelPool {
+  private pool: Phaser.GameObjects.Sprite[] = []
+
+  constructor(private scene: Phaser.Scene) {
+    for (let i = 0; i < BARREL_POOL_SIZE; i++) {
+      this.pool.push(this.createProjectile())
+    }
+  }
+
+  private createProjectile(): Phaser.GameObjects.Sprite {
+    const key = this.scene.textures.exists('barrel_blue') ? 'barrel_blue' : 'placeholder_player'
+    const spr = this.scene.add.sprite(0, 0, key, 0)
+      .setDepth(21)
+      .setOrigin(0.5, 0.5)
+      .setVisible(false)
+    spr.setData('flying', false)
+    return spr
+  }
+
+  spawn(
+    from: Vec2,
+    to: Vec2,
+    owner: Owner,
+    flightMs: number,
+    onHit?: () => void,
+  ): void {
+    const barrel = this.pool.find(b => !b.getData('flying'))
+    if (!barrel) {
+      onHit?.()
+      return
+    }
+
+    const textureKey = owner === Owner.PLAYER ? 'barrel_blue' : 'barrel_red'
+
+    barrel.setData('flying', true)
+    barrel.setTexture(textureKey, 0)
+    barrel.setDisplaySize(BARREL_PROJECTILE_DISPLAY, BARREL_PROJECTILE_DISPLAY)
+    barrel.setPosition(from.x, from.y)
+    barrel.setRotation(0)
+    barrel.setVisible(true)
+    barrel.setAlpha(1)
+    barrel.anims.stop()
+
+    const totalRotation = Math.PI * 2 * BARREL_SPIN_ROTATIONS
+
+    this.scene.tweens.add({
+      targets: { t: 0 },
+      t: 1,
+      duration: flightMs,
+      ease: 'Linear',
+      onUpdate: (_tween, target) => {
+        const t = (target as { t: number }).t
+        barrel.setPosition(
+          from.x + (to.x - from.x) * t,
+          from.y + (to.y - from.y) * t,
+        )
+        barrel.setRotation(t * totalRotation)
+        applyBombArcDisplaySize(barrel, BARREL_PROJECTILE_DISPLAY, t)
+      },
+      onComplete: () => {
+        barrel.setVisible(false)
+        barrel.setData('flying', false)
+        barrel.setRotation(0)
+        barrel.setDisplaySize(BARREL_PROJECTILE_DISPLAY, BARREL_PROJECTILE_DISPLAY)
+        this.scene.tweens.killTweensOf(barrel)
+        onHit?.()
+      },
+    })
   }
 }
 
@@ -301,19 +394,22 @@ export class BoneBoomerangPool {
 
 const HEX_POOL_SIZE = 16
 const HEX_PROJECTILE_KEY = 'hex_shaman_projectile'
-const HEX_EXPLOSION_SHEET = 'hex_shaman_explosion'
-const HEX_EXPLOSION_ANIM = 'hex_shaman_explosion_anim'
 const HEX_PROJECTILE_DISPLAY = 28
-const HEX_EXPLOSION_DISPLAY = 72
+
+export interface HexFireballStyle {
+  projectileTint?: number
+  explosionTint?: number
+}
 
 export class HexFireballPool {
   private projectiles: Phaser.GameObjects.Sprite[] = []
-  private explosions: Phaser.GameObjects.Sprite[] = []
 
-  constructor(private scene: Phaser.Scene) {
+  constructor(
+    private scene: Phaser.Scene,
+    private effects: EffectsPool,
+  ) {
     for (let i = 0; i < HEX_POOL_SIZE; i++) {
       this.projectiles.push(this.createProjectile())
-      this.explosions.push(this.createExplosion())
     }
   }
 
@@ -326,16 +422,14 @@ export class HexFireballPool {
     return spr
   }
 
-  private createExplosion(): Phaser.GameObjects.Sprite {
-    const spr = this.scene.add.sprite(0, 0, HEX_EXPLOSION_SHEET, 0)
-      .setDepth(23)
-      .setOrigin(0.5, 0.5)
-      .setVisible(false)
-    spr.setData('playing', false)
-    return spr
-  }
-
-  spawn(from: Vec2, to: Vec2, _owner: Owner, attackRate: number, onHit?: () => void): void {
+  spawn(
+    from: Vec2,
+    to: Vec2,
+    _owner: Owner,
+    attackRate: number,
+    onHit?: () => void,
+    style?: HexFireballStyle,
+  ): void {
     const bolt = this.projectiles.find(p => !p.getData('flying'))
     if (!bolt) {
       onHit?.()
@@ -346,7 +440,7 @@ export class HexFireballPool {
     const dy = to.y - from.y
     const dist = Math.hypot(dx, dy)
     if (dist < 1) {
-      this.playExplosion(to.x, to.y)
+      this.effects.spawn(to.x, to.y, undefined, style?.explosionTint)
       onHit?.()
       return
     }
@@ -361,6 +455,8 @@ export class HexFireballPool {
     bolt.setRotation(angle)
     bolt.setVisible(true)
     bolt.setAlpha(1)
+    if (style?.projectileTint !== undefined) bolt.setTint(style.projectileTint)
+    else bolt.clearTint()
     bolt.anims.stop()
 
     this.scene.tweens.add({
@@ -372,27 +468,10 @@ export class HexFireballPool {
       onComplete: () => {
         bolt.setVisible(false)
         bolt.setData('flying', false)
-        this.playExplosion(to.x, to.y)
+        bolt.clearTint()
+        this.effects.spawn(to.x, to.y, undefined, style?.explosionTint)
         onHit?.()
       },
-    })
-  }
-
-  private playExplosion(x: number, y: number): void {
-    const burst = this.explosions.find(e => !e.getData('playing'))
-    if (!burst || !this.scene.anims.exists(HEX_EXPLOSION_ANIM)) return
-
-    burst.setData('playing', true)
-    burst.setPosition(x, y)
-    burst.setDisplaySize(HEX_EXPLOSION_DISPLAY, HEX_EXPLOSION_DISPLAY)
-    burst.setVisible(true)
-    burst.setAlpha(1)
-    burst.play(HEX_EXPLOSION_ANIM)
-
-    burst.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
-      burst.setVisible(false)
-      burst.setData('playing', false)
-      burst.anims.stop()
     })
   }
 }

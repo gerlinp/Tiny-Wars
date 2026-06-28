@@ -194,7 +194,7 @@ export class GameSimulator {
         ? arrowsRainMs()
         : rocketFlightMs(dist(launchFrom, worldPos))
       const impactAt = this.state.elapsedMs + flightMs
-      const spell = new Spell(owner, stats, worldPos, card.id, impactAt)
+      const spell = new Spell(owner, stats, worldPos, card.id, impactAt, this.grid)
       this.state.entities.set(spell.id, spell)
       this.state.events.push({
         type: 'SPELL_CAST',

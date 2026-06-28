@@ -5,8 +5,9 @@ import type { TowerDefinition } from '@data/TowerData'
 import type { GameState } from '../GameState'
 import { distSq } from '../Vector2'
 import { refreshStickyTarget } from '../TargetSelection'
-import { entityCollisionCenter, entityHalfExtents, gridCellsForFootprint } from '../EntityGeometry'
-import { CELL_SIZE } from '@data/GameConstants'
+import { entityCollisionCenter, gridCellsForFootprint } from '../EntityGeometry'
+import { CELL_SIZE, towerFootprintHalfExtents } from '@data/GameConstants'
+import { towerAttackCenter } from '@rendering/towerRenderPosition'
 
 export class Tower extends Entity {
   readonly stats: TowerDefinition
@@ -24,12 +25,17 @@ export class Tower extends Entity {
     // Princess towers start active; King Tower starts dormant
     this.active = !def.isKing
     const center = entityCollisionCenter(this)
-    const half = entityHalfExtents(this)
-    this.blockedCells = gridCellsForFootprint(center, half.halfW, half.halfH)
+    const { halfW, halfH } = towerFootprintHalfExtents(this.isKing)
+    this.blockedCells = gridCellsForFootprint(center, halfW, halfH)
   }
 
-  /** Called when a friendly Princess Tower is destroyed */
+  /** Called when a friendly Princess Tower is destroyed or the king takes damage. */
   activate(): void { this.active = true }
+
+  override takeDamage(amount: number): void {
+    super.takeDamage(amount)
+    if (this.isKing && amount > 0) this.activate()
+  }
 
   isActive(): boolean {
     return this.active
@@ -52,12 +58,18 @@ export class Tower extends Entity {
   private aimPoint: Vec2 | null = null
 
   tick(deltaMs: number, state: GameState): void {
-    if (!this.isAlive || !this.active) return
+    if (!this.isAlive) return
+    if (!this.active) {
+      this.target = null
+      this.aimPoint = null
+      return
+    }
 
     const rangePx = this.stats.range * CELL_SIZE
+    const attackFrom = towerAttackCenter(this.position.x, this.position.y, this.owner, this.isKing)
     this.target = refreshStickyTarget(this.target, state, {
       owner: this.owner,
-      from: this.position,
+      from: attackFrom,
       maxDistance: rangePx,
       distance: (from, entity) => Math.sqrt(distSq(from, entity.position)),
     })
@@ -74,7 +86,7 @@ export class Tower extends Entity {
     }
 
     if (!this.target?.isAlive) return
-    if (Math.sqrt(distSq(this.position, this.target.position)) > rangePx) return
+    if (Math.sqrt(distSq(attackFrom, this.target.position)) > rangePx) return
 
     this.target.takeDamage(this.stats.damage)
     state.events.push({

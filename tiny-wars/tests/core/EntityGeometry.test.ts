@@ -26,7 +26,7 @@ import {
   TROOP_COLLISION_RADIUS_CELLS,
 } from '@data/GameConstants'
 import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
-import { towerVisualBounds } from '@rendering/towerRenderPosition'
+import { towerCombatRadius, towerDisplaySizeForNative } from '@rendering/assetDisplaySize'
 
 const WOOD_TOWER_STATS: EntityStats = {
   maxHp: 800,
@@ -92,23 +92,27 @@ describe('EntityGeometry', () => {
     expect(cells.length).toBeGreaterThanOrEqual(9)
   })
 
-  it('princess tower collision matches official 3×3 tile footprint', () => {
+  it('princess tower combat hull is a circle flush with footprint width', () => {
     const tower = new Tower(Owner.PLAYER, PRINCESS_TOWER, { x: 100, y: 500 })
     const half = entityHalfExtents(tower)
     const fp = TOWER_FOOTPRINT_CELLS.princess
+    const r = towerCombatRadius(false)
 
-    expect(half.halfW).toBe((fp.w / 2) * CELL_SIZE)
-    expect(half.halfH).toBe((fp.h / 2) * CELL_SIZE)
-    expect(half.halfW).toBeLessThan(CELL_SIZE * 2)
+    expect(r).toBe((fp.w / 2) * CELL_SIZE)
+    expect(half.halfW).toBe(r)
+    expect(half.halfH).toBe(half.halfW)
   })
 
-  it('king tower collision matches 4×4 tile footprint', () => {
+  it('king tower combat hull is a circle matching rendered sprite width', () => {
     const tower = new Tower(Owner.PLAYER, KING_TOWER, { x: 240, y: 760 })
     const half = entityHalfExtents(tower)
-    const fp = TOWER_FOOTPRINT_CELLS.king
+    const r = towerCombatRadius(true)
+    const spriteR = towerDisplaySizeForNative(true).width / 2
 
-    expect(half.halfW).toBe((fp.w / 2) * CELL_SIZE)
-    expect(half.halfH).toBe((fp.h / 2) * CELL_SIZE)
+    expect(r).toBe(spriteR)
+    expect(half.halfW).toBe(r)
+    expect(half.halfH).toBe(half.halfW)
+    expect(r).toBeGreaterThan(towerCombatRadius(false))
   })
 
   it('melee edge distance shrinks as units move closer', () => {
@@ -158,23 +162,18 @@ describe('EntityGeometry', () => {
     expect(edgeDistBetweenEntities(lancer, tower)).toBeCloseTo(1.6 * CELL_SIZE - CELL_SIZE * 0.5, 0)
   })
 
-  it('bot and player tower footprints mirror on the grid around logic centres', () => {
+  it('tower combat circles are centred on logic anchors for both sides', () => {
     const botLogicY = BOT_TOWER_ROW * CELL_SIZE + CELL_SIZE / 2
     const playerLogicY = 35 * CELL_SIZE + CELL_SIZE / 2
     const bot = new Tower(Owner.BOT, PRINCESS_TOWER, { x: 100, y: botLogicY })
     const player = new Tower(Owner.PLAYER, PRINCESS_TOWER, { x: 100, y: playerLogicY })
-    const half = entityHalfExtents(bot)
 
-    const botCenter = entityCollisionCenter(bot)
-    const playerCenter = entityCollisionCenter(player)
-
-    expect(botCenter.y).toBe(botLogicY)
-    expect(playerCenter.y).toBe(playerLogicY)
-    expect(botCenter.y + half.halfH).toBeCloseTo(towerVisualBounds(botLogicY, Owner.BOT, false).riverEdge, 0)
-    expect(playerCenter.y - half.halfH).toBeCloseTo(towerVisualBounds(playerLogicY, Owner.PLAYER, false).riverEdge, 0)
+    expect(entityCollisionCenter(bot).y).toBe(botLogicY)
+    expect(entityCollisionCenter(player).y).toBe(playerLogicY)
+    expect(entityHalfExtents(bot).halfW).toBe(entityHalfExtents(player).halfW)
   })
 
-  it('melee surface distance to princess tower uses grid footprint not sprite size', () => {
+  it('melee surface distance to princess tower uses circular combat hull', () => {
     const logicY = BOT_TOWER_ROW * CELL_SIZE + CELL_SIZE / 2
     const tower = new Tower(Owner.BOT, PRINCESS_TOWER, { x: 100, y: logicY })
     const half = entityHalfExtents(tower)
@@ -182,5 +181,6 @@ describe('EntityGeometry', () => {
     const outside = { x: 100, y: center.y + half.halfH + 25 }
 
     expect(surfaceDistToEntity(outside, tower)).toBeCloseTo(25, 0)
+    expect(surfaceDistToEntity({ x: center.x + half.halfW + 10, y: center.y }, tower)).toBeCloseTo(10, 0)
   })
 })

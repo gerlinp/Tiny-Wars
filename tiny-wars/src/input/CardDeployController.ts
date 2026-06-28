@@ -15,6 +15,8 @@ type State = 'IDLE' | 'CARD_SELECTED'
 export class CardDeployController {
   private state: State = 'IDLE'
   private selectedIndex: number | null = null
+  /** Pointer went down on the arena while aiming — release there to deploy. */
+  private aimPointerActive = false
 
   onDeploy: ((cardId: string, gridPos: Vec2) => void) | null = null
 
@@ -26,6 +28,16 @@ export class CardDeployController {
     private overlay: DeployZoneOverlay,
     private ghost: PlacementGhost,
   ) {}
+
+  private usesDragAimHints(): boolean {
+    return this.scene.sys.game.device.input.touch
+  }
+
+  private overlayModeFor(card: { cardType: CardType }): 'troop' | 'elixir' | 'spell' {
+    if (card.cardType === CardType.ELIXIR) return 'elixir'
+    if (card.cardType === CardType.SPELL) return 'spell'
+    return 'troop'
+  }
 
   selectCard(index: number, playerElixir: number): void {
     const card = this.cardSystem.hand[index]
@@ -47,20 +59,19 @@ export class CardDeployController {
 
     this.state = 'CARD_SELECTED'
     this.selectedIndex = index
+    this.aimPointerActive = false
     this.cardSystem.selectCard(index)
 
+    const mode = this.overlayModeFor(card)
     this.overlay.syncExpandedZones(LOCAL_OWNER, enemyLaneUnlocksFor(this.simulator.state, LOCAL_OWNER))
-    this.overlay.show(
-      card.cardType === CardType.ELIXIR ? 'elixir'
-        : card.cardType === CardType.SPELL ? 'spell'
-        : 'troop',
-    )
-    this.overlay.hideHint()
+    this.overlay.show(mode, this.usesDragAimHints())
+    this.overlay.showSelectedAimHint()
+
     if (card.cardType === CardType.ELIXIR) {
       this.ghost.hide()
     } else {
       this.ghost.setCard(card)
-      this.ghost.show()
+      this.ghost.hide()
     }
   }
 
@@ -70,13 +81,26 @@ export class CardDeployController {
     }
     this.state = 'IDLE'
     this.selectedIndex = null
+    this.aimPointerActive = false
     this.overlay.hide()
     this.ghost.hide()
   }
 
+  private updateAimPreview(x: number, y: number): void {
+    if (this.state !== 'CARD_SELECTED' || this.selectedIndex === null) return
+
+    const card = this.cardSystem.hand[this.selectedIndex]
+    if (!card || card.cardType === CardType.ELIXIR) return
+
+    const cell = this.grid.worldToCell(x, y)
+    const valid = this.simulator.canDeployAt(Owner.PLAYER, card, cell)
+    this.ghost.show()
+    this.ghost.update(x, y, valid)
+  }
+
   handlePointerMove(x: number, y: number): void {
     if (y >= GAME_HEIGHT) {
-      this.ghost.hide()
+      if (this.aimPointerActive) this.ghost.hide()
       return
     }
 
@@ -92,15 +116,34 @@ export class CardDeployController {
       return
     }
 
-    const card = this.cardSystem.hand[this.selectedIndex]
-    if (!card) return
-
-    const cell = this.grid.worldToCell(x, y)
-    const valid = this.simulator.canDeployAt(Owner.PLAYER, card, cell)
-    this.ghost.update(x, y, valid)
+    this.updateAimPreview(x, y)
   }
 
-  handleMapTap(x: number, y: number): boolean {
+  /** Arena pointer down — start drag-to-aim (preview follows finger/mouse while held). */
+  handleMapPointerDown(x: number, y: number): void {
+    if (this.state !== 'CARD_SELECTED' || this.selectedIndex === null) return
+    this.aimPointerActive = true
+    this.updateAimPreview(x, y)
+  }
+
+  /** Arena pointer up — deploy at release position when a card is selected. */
+  handleMapPointerUp(x: number, y: number): boolean {
+    if (this.state !== 'CARD_SELECTED' || this.selectedIndex === null) return false
+    if (!this.aimPointerActive) return false
+
+    this.aimPointerActive = false
+    return this.deployAt(x, y)
+  }
+
+  /** Cancel an in-progress aim when the pointer leaves the arena. */
+  cancelAimPointer(): void {
+    this.aimPointerActive = false
+    if (this.state === 'CARD_SELECTED') {
+      this.ghost.hide()
+    }
+  }
+
+  private deployAt(x: number, y: number): boolean {
     if (this.state !== 'CARD_SELECTED' || this.selectedIndex === null) return false
 
     const card = this.cardSystem.hand[this.selectedIndex]
