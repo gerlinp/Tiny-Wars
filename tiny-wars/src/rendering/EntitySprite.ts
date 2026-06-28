@@ -24,6 +24,11 @@ export interface DashSync {
   leapPose?: { sheetKey: string; frame: number }
 }
 
+/** Monk-style heal burst — loop the heal clip while pulses are active (even while walking). */
+export interface HealSync {
+  aimPoint?: Vec2
+}
+
 export class EntitySprite {
   readonly sprite: DisplayObject
   private healthBar: HealthBar
@@ -42,6 +47,7 @@ export class EntitySprite {
   private frozenPoseActive = false
   private frozenPoseKey: string | null = null
   private frozenPoseFrame = -1
+  private healLoopActive = false
 
   constructor(
     private scene: Phaser.Scene,
@@ -102,11 +108,12 @@ export class EntitySprite {
     showHealthBar = false,
     attackSync?: AttackSync,
     dashSync?: DashSync,
+    healSync?: HealSync,
   ): void {
     if (this.animated) {
-      this.attackAimPoint = attackSync?.aimPoint ?? dashSync?.aimPoint
+      this.attackAimPoint = attackSync?.aimPoint ?? healSync?.aimPoint ?? dashSync?.aimPoint
 
-      const aimForFacing = dashSync?.aimPoint ?? attackSync?.aimPoint
+      const aimForFacing = dashSync?.aimPoint ?? attackSync?.aimPoint ?? healSync?.aimPoint
       const dx = x - this.lastX
       if (!this.attackSwingPlaying) {
         if (aimForFacing) {
@@ -130,6 +137,9 @@ export class EntitySprite {
           this.playLocomotion('idle', 1)
         } else if (dashSync?.phase === 'leap' && dashSync.leapPose) {
           this.showFrozenPose(dashSync.leapPose.sheetKey, dashSync.leapPose.frame, this.sprite.flipX, 'run')
+        } else if (healSync) {
+          this.clearFrozenPose()
+          this.playHealLoop(healSync.aimPoint)
         } else {
           this.clearFrozenPose()
           this.playLocomotion(anim, moveSpeed)
@@ -180,6 +190,7 @@ export class EntitySprite {
     if (!this.animated || !(this.sprite instanceof Phaser.GameObjects.Sprite)) return
     if (this.attackSwingPlaying) return
 
+    this.healLoopActive = false
     this.clearFrozenPose()
 
     const aim = this.attackAimPoint
@@ -232,8 +243,28 @@ export class EntitySprite {
     this.currentAnim = currentAnim
   }
 
+  private playHealLoop(aim?: Vec2): void {
+    if (!this.animated || !(this.sprite instanceof Phaser.GameObjects.Sprite)) return
+
+    const { key, flipX } = aim
+      ? resolveAttackAnimKey(this.cardId, this.owner, this.sprite.x, this.sprite.y, aim.x, aim.y)
+      : { key: clipAnimKey(this.cardId, this.owner, 'attack'), flipX: this.sprite.flipX }
+
+    if (!this.scene.anims.exists(key)) return
+
+    this.sprite.setFlipX(flipX)
+    if (this.healLoopActive && this.sprite.anims.currentAnim?.key === key) return
+
+    this.healLoopActive = true
+    this.currentAnim = 'attack'
+    this.sprite.anims.timeScale = 1
+    this.sprite.anims.play({ key, repeat: -1 }, true)
+  }
+
   private playLocomotion(anim: AnimClip, moveSpeed: number): void {
     if (!this.animated || !(this.sprite instanceof Phaser.GameObjects.Sprite)) return
+
+    this.healLoopActive = false
 
     const key = clipAnimKey(this.cardId, this.owner, anim)
     if (!this.scene.anims.exists(key)) return

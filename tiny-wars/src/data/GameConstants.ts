@@ -92,8 +92,8 @@ export const OVERTIME_DURATION_MS = 120_000  // 2 minutes
 /** After overtime expires tied — all towers drain until one falls (CR tiebreaker). */
 export const TIE_BREAK_TOWER_DPS = 60  // damage per second to each remaining tower
 
-/** Monk / Battle Healer — delay between each heal pulse in a burst. */
-export const HEAL_PULSE_INTERVAL_MS = 500
+/** Monk / Battle Healer — delay between each heal pulse in a burst (CR ~0.25s). */
+export const HEAL_PULSE_INTERVAL_MS = 250
 
 /**
  * Arena tile footprints (official CR: princess 3×3; king ~4×4 diameter per placement guides).

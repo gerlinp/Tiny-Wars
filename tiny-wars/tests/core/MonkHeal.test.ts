@@ -112,4 +112,26 @@ describe('Monk heal', () => {
     expect(allyOut.hp).toBe(1500)
     expect(state.events.some(e => e.type === 'HEAL' && e.targetId === allyOut.id)).toBe(false)
   })
+
+  it('emits HEAL_AURA on each pulse and continues while walking', () => {
+    const grid = new Grid()
+    const monk = new Troop(Owner.PLAYER, monkStats, { x: 200, y: 500 }, grid, 'monk')
+    const ally = new Troop(Owner.PLAYER, warriorStats, { x: 215, y: 500 }, grid, 'warrior')
+    ally.hp = 1500
+
+    const state = createInitialGameState()
+    state.entities.set(monk.id, monk)
+    state.entities.set(ally.id, ally)
+
+    monk.applySpawnHeal(state)
+    expect(state.events.filter(e => e.type === 'HEAL_AURA' && e.healerId === monk.id)).toHaveLength(1)
+
+    monk.tick(HEAL_PULSE_INTERVAL_MS, state)
+    monk.position.x += 20
+    monk.position.y += 10
+
+    expect(state.events.filter(e => e.type === 'HEAL_AURA' && e.healerId === monk.id)).toHaveLength(2)
+    expect(monk.isHealBurstActive()).toBe(true)
+    expect(ally.hp).toBeGreaterThan(1500 + monkStats.spawnHealPerPulse!)
+  })
 })

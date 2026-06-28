@@ -6,7 +6,7 @@ import { BotAI } from '@core/BotAI'
 import { TileMapRenderer } from '@rendering/TileMapRenderer'
 import { ForestBorder } from '@rendering/ForestBorder'
 import { DecorationLayer } from '@rendering/DecorationLayer'
-import { EntitySprite, type AttackSync, type DashSync } from '@rendering/EntitySprite'
+import { EntitySprite, type AttackSync, type DashSync, type HealSync } from '@rendering/EntitySprite'
 import { TowerSprite } from '@rendering/TowerSprite'
 import { EffectsPool, HealEffectPool, DeathPool } from '@rendering/VFXPools'
 import { ArrowPool, ArrowsSpellPool, TntPool, BoneBoomerangPool, HexFireballPool, HarpoonRopePool } from '@rendering/ProjectilePools'
@@ -364,6 +364,7 @@ export class BattleScene extends Phaser.Scene {
         let moveSpeed = 1.5
         let attackSync: AttackSync | undefined
         let dashSync: DashSync | undefined
+        let healSync: HealSync | undefined
 
         const cardId = this.entityCardIds.get(id) ?? entity.cardId ?? ''
 
@@ -381,6 +382,8 @@ export class BattleScene extends Phaser.Scene {
               aimPoint,
               leapPose: dashPhase === 'leap' ? getRunLeapPose(cardId, entity.owner) ?? undefined : undefined,
             }
+          } else if (troop.isHealBurstActive() && cardId === 'monk' && troop.state === TroopState.WALKING) {
+            healSync = { aimPoint: troop.getAttackAimPoint() ?? undefined }
           } else if (troop.state === TroopState.WALKING) {
             anim = 'run'
           } else if (troop.state === TroopState.ATTACKING) {
@@ -417,6 +420,7 @@ export class BattleScene extends Phaser.Scene {
           this.shouldShowHealthBar(entity),
           attackSync,
           dashSync,
+          healSync,
         )
       }
     }

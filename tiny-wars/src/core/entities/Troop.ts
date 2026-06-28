@@ -182,6 +182,11 @@ export class Troop extends Entity {
     return this.lastMarchDir
   }
 
+  /** True while deploy or attack heal pulses are still ticking. */
+  isHealBurstActive(): boolean {
+    return this.activeHealBurst !== null
+  }
+
   /** Deploy-time heal aura (e.g. Monk spawn heal). */
   applySpawnHeal(state: GameState): void {
     const s = this.stats
@@ -373,6 +378,14 @@ export class Troop extends Entity {
       burst.healPerPulse,
       this.id,
     )
+
+    state.events.push({
+      type: 'HEAL_AURA',
+      position: { x: this.position.x, y: this.position.y },
+      radius: burst.radiusCells,
+      owner: this.owner,
+      healerId: this.id,
+    })
 
     burst.pulsesRemaining--
     if (burst.pulsesRemaining <= 0) {
