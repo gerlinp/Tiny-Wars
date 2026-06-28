@@ -28,9 +28,10 @@ import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
 import { dist } from './Vector2'
 import { rocketFlightMs, arrowsRainMs } from '@data/ProjectileConstants'
 import { kingCannonMuzzlePosition } from '@rendering/towerGarrison'
-import { resolveTroopCollisions } from './TroopCollision'
+import { resolveTroopCollisions, restoreBoomerangThrowerAnchors } from './TroopCollision'
 import { isTroopDeployCell, troopDeployPositions } from './DeploySystem'
 import { tickBoomerangs } from './BoomerangSystem'
+import { tickHooks } from './HookSystem'
 
 export { troopDeployPositions } from './DeploySystem'
 
@@ -103,8 +104,10 @@ export class GameSimulator {
     }
 
     resolveTroopCollisions(this.state, deltaMs)
+    restoreBoomerangThrowerAnchors(this.state)
 
     tickBoomerangs(this.state, deltaMs)
+    tickHooks(this.state, deltaMs)
 
     this.unblockDeadBuildings()
     this.unblockDeadTowers()

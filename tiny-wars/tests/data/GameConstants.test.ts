@@ -14,6 +14,7 @@ import {
   RIGHT_LANE_COL,
   PLAYER_TOWER_COLS,
   BALANCE_REFERENCE_LEVEL,
+  THIEF_DASH_RANGE_CELLS,
 } from '@data/GameConstants'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { AttackType } from '@core/types'
@@ -62,13 +63,21 @@ describe('Arena 26 balance (level 14)', () => {
     expect(CARD_DEFINITIONS.skeleton_army!.deployCount).toBe(14)
     expect(CARD_DEFINITIONS.skeleton_army!.stats!.maxHp).toBe(108)
     expect(CARD_DEFINITIONS.skeleton_army!.stats!.damage).toBe(108)
-    expect(CARD_DEFINITIONS.spear_goblin!.elixirCost).toBe(2)
+    expect(CARD_DEFINITIONS.spear_goblin!.elixirCost).toBe(3)
     expect(CARD_DEFINITIONS.spear_goblin!.deployCount).toBe(3)
-    expect(CARD_DEFINITIONS.spear_goblin!.stats!.maxHp).toBe(176)
-    expect(CARD_DEFINITIONS.spear_goblin!.stats!.damage).toBe(108)
-    expect(CARD_DEFINITIONS.spear_goblin!.stats!.attackRate).toBeCloseTo(1 / 1.7, 5)
-    expect(CARD_DEFINITIONS.spear_goblin!.stats!.attackRange).toBe(5.0)
-    expect(CARD_DEFINITIONS.spear_goblin!.stats!.speed).toBe(crSpeedToCellsPerSec(CR_SPEED.veryFast))
+    expect(CARD_DEFINITIONS.spear_goblin!.stats!.maxHp).toBe(108)
+    expect(CARD_DEFINITIONS.spear_goblin!.stats!.armorHp).toBe(339)
+    expect(CARD_DEFINITIONS.spear_goblin!.stats!.damage).toBe(155)
+    expect(CARD_DEFINITIONS.spear_goblin!.stats!.attackRate).toBeCloseTo(1 / 1.0, 5)
+    expect(CARD_DEFINITIONS.spear_goblin!.stats!.attackRange).toBe(1.6)
+    expect(CARD_DEFINITIONS.spear_goblin!.stats!.speed).toBe(crSpeedToCellsPerSec(CR_SPEED.fast))
+    expect(CARD_DEFINITIONS.pawns!.elixirCost).toBe(2)
+    expect(CARD_DEFINITIONS.pawns!.deployCount).toBe(3)
+    expect(CARD_DEFINITIONS.pawns!.stats!.maxHp).toBe(216)
+    expect(CARD_DEFINITIONS.pawns!.stats!.damage).toBe(203)
+    expect(CARD_DEFINITIONS.pawns!.stats!.attackRate).toBeCloseTo(1 / 1.1, 5)
+    expect(CARD_DEFINITIONS.pawns!.stats!.attackRange).toBe(0.5)
+    expect(CARD_DEFINITIONS.pawns!.stats!.speed).toBe(crSpeedToCellsPerSec(CR_SPEED.veryFast))
     expect(CARD_DEFINITIONS.troll!.elixirCost).toBe(5)
     expect(CARD_DEFINITIONS.troll!.stats!.maxHp).toBe(5254)
     expect(CARD_DEFINITIONS.troll!.stats!.damage).toBe(335)
@@ -102,7 +111,7 @@ describe('Arena 26 balance (level 14)', () => {
     expect(CARD_DEFINITIONS.thief!.stats!.attackRate).toBeCloseTo(1 / 1.0, 5)
     expect(CARD_DEFINITIONS.thief!.stats!.attackRange).toBe(0.75)
     expect(CARD_DEFINITIONS.thief!.stats!.speed).toBe(crSpeedToCellsPerSec(CR_SPEED.fast))
-    expect(CARD_DEFINITIONS.thief!.stats!.firstHitDamageMultiplier).toBe(2)
+    expect(CARD_DEFINITIONS.thief!.stats!.dashRangeCells).toBe(THIEF_DASH_RANGE_CELLS)
     expect(CARD_DEFINITIONS.turtle!.elixirCost).toBe(2)
     expect(CARD_DEFINITIONS.turtle!.stats!.maxHp).toBe(1742)
     expect(CARD_DEFINITIONS.turtle!.stats!.damage).toBe(111)

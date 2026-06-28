@@ -32,7 +32,7 @@ function enemyAtEdgeGap(thief: Troop, enemy: Troop, gapCells: number): void {
   enemy.position = { x: thief.position.x, y: thief.position.y - centerGap }
 }
 
-describe('Thief opening dash (Bandit)', () => {
+describe('Thief dash (Bandit)', () => {
   const grid = new Grid()
   const thiefStats = CARD_DEFINITIONS.thief!.stats!
 
@@ -40,7 +40,6 @@ describe('Thief opening dash (Bandit)', () => {
     expect(thiefStats.dashRangeCells).toBe(THIEF_DASH_RANGE_CELLS)
     expect(thiefStats.dashSpeedMultiplier).toBe(THIEF_DASH_SPEED_MULT)
     expect(thiefStats.dashWindupMs).toBe(THIEF_DASH_WINDUP_MS)
-    expect(thiefStats.firstHitDamageMultiplier).toBe(2)
   })
 
   it('holds idle during wind-up before leaping', () => {
@@ -79,7 +78,7 @@ describe('Thief opening dash (Bandit)', () => {
     expect(thief.getEffectiveSpeed()).toBeCloseTo(thiefStats.speed * THIEF_DASH_SPEED_MULT)
   })
 
-  it('deals double damage on the opening dash hit', () => {
+  it('deals normal damage on a dash hit', () => {
     const thief = new Troop(Owner.PLAYER, thiefStats, { x: 200, y: 500 }, grid, 'thief')
     const enemy = new Troop(Owner.BOT, tankStats, { x: 200, y: 400 }, grid, 'warrior')
     enemyAtEdgeGap(thief, enemy, 3)
@@ -91,11 +90,11 @@ describe('Thief opening dash (Bandit)', () => {
       thief.tick(50, state)
     }
 
-    expect(tankStats.maxHp - enemy.hp).toBe(thiefStats.damage * 2)
+    expect(tankStats.maxHp - enemy.hp).toBe(thiefStats.damage)
     expect(thief.isDashActive()).toBe(false)
   })
 
-  it('deals normal damage on later hits', () => {
+  it('dashes again when the target is back in the dash range band', () => {
     const thief = new Troop(Owner.PLAYER, thiefStats, { x: 200, y: 500 }, grid, 'thief')
     const enemy = new Troop(Owner.BOT, tankStats, { x: 200, y: 400 }, grid, 'warrior')
     enemyAtEdgeGap(thief, enemy, 3)
@@ -106,12 +105,12 @@ describe('Thief opening dash (Bandit)', () => {
     for (let i = 0; i < 120 && enemy.hp === tankStats.maxHp; i++) {
       thief.tick(50, state)
     }
-    expect(tankStats.maxHp - enemy.hp).toBe(thiefStats.damage * 2)
+    expect(thief.isDashActive()).toBe(false)
 
-    const hpAfterFirst = enemy.hp
-    for (let i = 0; i < 120 && enemy.hp === hpAfterFirst; i++) {
+    enemyAtEdgeGap(thief, enemy, 3)
+    for (let i = 0; i < 120 && !thief.isDashActive(); i++) {
       thief.tick(50, state)
     }
-    expect(hpAfterFirst - enemy.hp).toBe(thiefStats.damage)
+    expect(thief.isDashActive()).toBe(true)
   })
 })

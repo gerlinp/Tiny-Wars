@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, getHealthBarImageKeys, HEALTH_BAR_ASSETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET } from '@data/AssetManifest'
 import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx } from '@rendering/AnimationRegistry'
-import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET } from '@data/AssetManifest'
+import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HARPOON_PROJECTILE_SHEET } from '@data/AssetManifest'
 import { TERRAIN_COLOR1, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_DECK } from '@data/TerrainManifest'
 import { DEFAULT_DECK } from '@data/CardData'
 import { setActiveMapConfig, getActiveMapConfig } from '@data/ActiveMapConfig'
@@ -155,6 +155,8 @@ export class PreloadScene extends Phaser.Scene {
       HEX_SHAMAN_EXPLOSION_SHEET.path,
       { frameWidth: HEX_SHAMAN_EXPLOSION_SHEET.frameWidth, frameHeight: HEX_SHAMAN_EXPLOSION_SHEET.frameHeight },
     )
+    this.load.image(HARPOON_PROJECTILE_SHEET.key, HARPOON_PROJECTILE_SHEET.path)
+
     this.load.spritesheet(GNOLL_BONE_SHEET.key, GNOLL_BONE_SHEET.path, {
       frameWidth: GNOLL_BONE_SHEET.frameWidth,
       frameHeight: GNOLL_BONE_SHEET.frameHeight,

@@ -4,6 +4,7 @@ import type { Tower } from './entities/Tower'
 import type { LaneUnlocks } from './DeploySystem'
 import type { FlowFieldManager } from './FlowFieldManager'
 import type { ActiveBoomerang } from './BoomerangSystem'
+import type { ActiveHook } from './HookSystem'
 import { createEmptyEnemyLaneDeploy } from './DeploySystem'
 import { ELIXIR_START } from '@data/GameConstants'
 
@@ -27,8 +28,10 @@ export interface GameState {
   winner: Owner | null
   /** Flow fields for tower-march navigation. Undefined in tests/environments without GameSimulator. */
   flowFields?: FlowFieldManager
-  /** Active boomerang projectiles (Executioner / Gnoll). */
+  /** Active boomerang projectiles (Gnoll). */
   boomerangs?: ActiveBoomerang[]
+  /** Active fisherman hooks (Harpoon Shark). */
+  hooks?: ActiveHook[]
 }
 
 export function createInitialGameState(): GameState {

@@ -2,7 +2,8 @@ import Phaser from 'phaser'
 import { Owner } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { arrowFlightMs } from '@data/ProjectileConstants'
-import { clipAnimKey, GNOLL_BONE_SHEET } from '@data/AssetManifest'
+import { clipAnimKey, GNOLL_BONE_SHEET, HARPOON_PROJECTILE_SHEET } from '@data/AssetManifest'
+import { HOOK_ROPE_TEXTURE_KEY, registerHookRopeTexture } from './hookRopeTexture'
 import { CELL_SIZE } from '@data/GameConstants'
 import { applyBombArcDisplaySize, BOMB_PROJECTILE_DISPLAY_SCALE, BOMB_SPIN_TIME_SCALE, FLAT_LOB_PEAK_SCALE, TOWER_CANNON_PROJECTILE_DISPLAY_SCALE } from './bombProjectileVisual'
 import { applyArrowSprite, arrowTextureKey } from './renderingUtils'
@@ -393,5 +394,90 @@ export class HexFireballPool {
       burst.setData('playing', false)
       burst.anims.stop()
     })
+  }
+}
+
+// ─── HarpoonRopePool ─────────────────────────────────────────────────────────
+
+const HARPOON_ROPE_POOL_SIZE = 10
+const ROPE_DISPLAY_WIDTH = 3
+const HARPOON_TIP_DISPLAY = 22
+
+interface HarpoonRopeVisual {
+  rope: Phaser.GameObjects.Image
+  harpoon: Phaser.GameObjects.Image
+}
+
+export class HarpoonRopePool {
+  private active = new Map<string, HarpoonRopeVisual>()
+  private free: HarpoonRopeVisual[] = []
+
+  constructor(private scene: Phaser.Scene) {
+    registerHookRopeTexture(scene)
+    for (let i = 0; i < HARPOON_ROPE_POOL_SIZE; i++) {
+      this.free.push(this.createVisual())
+    }
+  }
+
+  private createVisual(): HarpoonRopeVisual {
+    const rope = this.scene.add.image(0, 0, HOOK_ROPE_TEXTURE_KEY)
+      .setDepth(21)
+      .setVisible(false)
+    const harpoon = this.scene.add.image(0, 0, HARPOON_PROJECTILE_SHEET.key)
+      .setDepth(22)
+      .setVisible(false)
+    return { rope, harpoon }
+  }
+
+  syncFromState(
+    hooks: Array<{ id: string }>,
+    anchorFor: (hookId: string) => { x: number; y: number } | null,
+    endFor: (hookId: string) => { x: number; y: number } | null,
+  ): void {
+    const live = new Set<string>()
+
+    for (const hook of hooks) {
+      const from = anchorFor(hook.id)
+      const to = endFor(hook.id)
+      if (!from || !to) continue
+
+      live.add(hook.id)
+      let visual = this.active.get(hook.id)
+      if (!visual) {
+        visual = this.free.pop()
+        if (!visual) continue
+        this.active.set(hook.id, visual)
+      }
+
+      this.layout(visual, from, to)
+      visual.rope.setVisible(true)
+      visual.harpoon.setVisible(true)
+    }
+
+    for (const [id, visual] of [...this.active]) {
+      if (live.has(id)) continue
+      visual.rope.setVisible(false)
+      visual.harpoon.setVisible(false)
+      this.active.delete(id)
+      this.free.push(visual)
+    }
+  }
+
+  private layout(visual: HarpoonRopeVisual, from: Vec2, to: Vec2): void {
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    const len = Math.max(2, Math.hypot(dx, dy))
+    const angle = Math.atan2(dy, dx)
+
+    visual.rope.setPosition(from.x, from.y)
+    visual.rope.setOrigin(0, 0.5)
+    visual.rope.setRotation(angle)
+    visual.rope.setDisplaySize(len, ROPE_DISPLAY_WIDTH)
+    visual.rope.setAlpha(0.92)
+
+    visual.harpoon.setPosition(to.x, to.y)
+    visual.harpoon.setRotation(angle)
+    visual.harpoon.setDisplaySize(HARPOON_TIP_DISPLAY, HARPOON_TIP_DISPLAY)
+    visual.harpoon.setOrigin(0.9, 0.5)
   }
 }

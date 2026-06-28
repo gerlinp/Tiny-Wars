@@ -14,6 +14,9 @@ export const CELL_SIZE = 16
 // Map display scale — relative to visible unit height (matches Tiny Swords reference art)
 export const MAP_UNIT_TARGET_HEIGHT = CELL_SIZE * 2.5
 
+// Visual-only scale applied to rendered sprites; does NOT affect collision or game logic
+export const SPRITE_VISUAL_SCALE = 1.35
+
 /** Height multipliers vs a knight's visible height (reference proportions) */
 export const MAP_HEIGHT_MULTIPLIER = {
   troop:           1.0,
@@ -175,12 +178,19 @@ export const LANCER_CHARGE_DISTANCE_CELLS = 3.5
 export const LANCER_CHARGE_SPEED_MULT = 2
 export const LANCER_CHARGE_DAMAGE_MULT = 2
 
-/** Clash Royale Bandit — max tiles away to initiate the opening dash on first hit. */
+/** Clash Royale Bandit — max tiles away to dash in before each strike (beyond melee range). */
 export const THIEF_DASH_RANGE_CELLS = 4
 /** Pause (idle) before the leap — Bandit-style wind-up. */
 export const THIEF_DASH_WINDUP_MS = 550
 /** Fast leap across the gap; total dash time stays CR-like with the wind-up above. */
 export const THIEF_DASH_SPEED_MULT = 8
+
+/** Fisherman L14 — hook band and charge (Harpoon Shark card). */
+export const HOOK_MIN_RANGE_CELLS = 3.5
+export const HOOK_MAX_RANGE_CELLS = 7
+export const HOOK_WINDUP_MS = 1300
+export const HOOK_SLOW_DURATION_MS = 1500
+export const HOOK_SLOW_SPEED_MULT = 0.65
 
 /** Ground troop feet collision — small circle (CR-style), not sprite-sized boxes. */
 export const TROOP_COLLISION_RADIUS_CELLS = 0.35

@@ -26,6 +26,10 @@ export interface ActiveBoomerang {
 
 let nextBoomerangId = 0
 
+export function isBoomerangThrowerBusy(state: GameState, throwerId: string): boolean {
+  return state.boomerangs?.some(b => b.throwerId === throwerId) ?? false
+}
+
 function boomerangCanHit(attackType: AttackType, entity: Entity): boolean {
   if (attackType === AttackType.AIR_AND_GROUND) return true
   const unitType = (entity as Troop).stats?.unitType

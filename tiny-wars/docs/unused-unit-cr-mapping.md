@@ -2,7 +2,7 @@
 
 Inventory of Tiny Swords unit art in `tiny-wars-assets` (symlinked at `public/assets`) compared against cards wired in [`AssetManifest.ts`](../src/data/AssetManifest.ts) and [`CardData.ts`](../src/data/CardData.ts).
 
-**Last reviewed:** June 2026
+**Last reviewed:** June 2026 (deck builder collection sort, Big Bomb rename, king garrison cannon)
 
 ---
 
@@ -10,37 +10,51 @@ Inventory of Tiny Swords unit art in `tiny-wars-assets` (symlinked at `public/as
 
 **Default deck (8):** `warrior`, `archer`, `skeleton`, `lancer`, `wizard`, `torch_goblin`, `arrows`, `tnt`
 
-| Tiny-Wars card | Asset folder | CR mapping (L14) | Deck |
-|---|---|---|---|
-| Warrior | `Units/*/Warrior/` | Knight | default |
-| Archers | `Factions/Knights/Troops/Archer/` | Archers ×2 | default |
-| Skeletons | `Enemy Pack/.../Skull/` | Skeletons ×3 | default |
-| Skeleton Army | `Enemy Pack/.../Skull/` | Skeleton Army ×14 | builder |
-| Lancer | `Units/*/Lancer/` | Prince (charge) | default |
-| Wizard | `Enemy Pack/.../Hex Shaman/` | Wizard (splash) | default |
-| Torch Goblin | `Enemy Pack/.../Torch Goblin/` | Fast ranged goblin | default |
-| Arrows | Archer `Arrow.png` | Arrows spell | default |
-| Bomb | `Enemy Pack/.../Bomb/` | Rocket spell | default |
-| Gnoll | `Enemy Pack/.../Gnoll/` | Executioner (boomerang bone) | builder |
-| Elite Archer | `Units/*/Archer/` | Musketeer | builder |
-| Pawn | `Units/*/Pawn/` | Tanky melee | builder |
-| Spear Goblins | `Enemy Pack/.../Spear Goblin/` | Spear Goblins ×3 | builder |
-| Troll | `Enemy Pack/.../Troll/` | Giant (building-only) | builder |
-| Lizard | `Enemy Pack/.../Caveborn/Lizard/` | Inferno Dragon (air splash) | builder |
-| Pig Rider | `Enemy Pack/.../Pig Rider Spear Goblin/` | Hog Rider (building-only) | builder |
-| Bomb Fish | `Enemy Pack/.../Bomb Fish/` | Wall Breakers (ground splash) | builder |
-| Minotaur | `Enemy Pack/.../Minotaur/` | P.E.K.K.A | builder |
-| Thief | `Enemy Pack/.../Thief/` | Bandit (first-hit ×2) | builder |
-| Turtle | `Enemy Pack/.../Caveborn/Turtle/` | Ice Golem (death nova + slow) | builder |
-| Panda | `Enemy Pack/.../Panda/` | Valkyrie (splash 2) | builder |
-| Monk | `Units/*/Monk/` | Battle Healer (heal on attack + deploy) | builder |
-| Bomb Tower | `Factions/Goblins/Buildings/Wood_Tower/` | Bomb Tower | excluded (`DECK_EXCLUDED_CARD_IDS`) |
+**Deck builder collection:** all 25 cards below. **Excluded from match decks:** `wood_tower` only (`DECK_EXCLUDED_CARD_IDS`).
 
-**Enemy Pack wired (15 animated units):** Skull (×2 cards), Spear Goblin, Troll, Torch Goblin, Hex Shaman, Bomb (spell), Lizard, Pig Rider Spear Goblin, Bomb Fish, Minotaur, Gnoll, Thief, Turtle, Panda.
+| Tiny-Wars card | Id | Asset folder | CR mapping (L14) | Deck |
+|---|---|---|---|---|
+| Warrior | `warrior` | `Units/*/Warrior/` | Knight | default |
+| Archers | `archer` | `Factions/Knights/Troops/Archer/` | Archers ×2 | default |
+| Skeletons | `skeleton` | `Enemy Pack/.../Skull/` | Skeletons ×3 | default |
+| Skeleton Army | `skeleton_army` | `Enemy Pack/.../Skull/` | Skeleton Army ×14 | builder |
+| Lancer | `lancer` | `Units/*/Lancer/` | Prince (charge) | default |
+| Wizard | `wizard` | `Enemy Pack/.../Hex Shaman/` | Wizard (splash) | default |
+| Torch Goblin | `torch_goblin` | `Enemy Pack/.../Torch Goblin/` | Fast ranged goblin | default |
+| Arrows | `arrows` | Archer `Arrow.png` | Arrows spell | default |
+| Big Bomb | `tnt` | `Enemy Pack/.../Bomb/` | Rocket spell (CR reference) | default |
+| Gnoll | `gnoll` | `Enemy Pack/.../Gnoll/` | Executioner (boomerang bone) | builder |
+| Elite Archer | `elite_archer` | `Units/*/Archer/` | Musketeer | builder |
+| Pawn | `pawn` | `Units/*/Pawn/` | Tanky melee | builder |
+| Spear Goblins | `spear_goblin` | `Enemy Pack/.../Spear Goblin/` | Guards ×3 (armored melee) | builder |
+| Pawns | `pawns` | `Units/*/Pawn/` (hooded + knife interact) | Goblins ×3 (melee) | builder |
+| Troll | `troll` | `Enemy Pack/.../Troll/` | Giant (building-only) | builder |
+| Lizard | `lizard` | `Enemy Pack/.../Caveborn/Lizard/` | Inferno Dragon (air splash) | builder |
+| Pig Rider | `pig_rider` | `Enemy Pack/.../Pig Rider Spear Goblin/` | Hog Rider (building-only) | builder |
+| Bomb Fish | `bomb_fish` | `Enemy Pack/.../Bomb Fish/` | Wall Breakers (ground splash) | builder |
+| Minotaur | `minotaur` | `Enemy Pack/.../Minotaur/` | P.E.K.K.A | builder |
+| Thief | `thief` | `Enemy Pack/.../Thief/` | Bandit (repeat dash) | builder |
+| Turtle | `turtle` | `Enemy Pack/.../Caveborn/Turtle/` | Ice Golem (death nova + slow) | builder |
+| Panda | `panda` | `Enemy Pack/.../Panda/` | Valkyrie (splash 2) | builder |
+| Monk | `monk` | `Units/*/Monk/` | Battle Healer (heal on attack + deploy) | builder |
+| Harpoon Shark | `harpoon_shark` | `Enemy Pack/.../Harpoon Shark/` | Fisherman (hook + rope pull) | builder |
+| Bomb Tower | `wood_tower` | `Factions/Goblins/Buildings/Wood_Tower/` | Bomb Tower | excluded |
 
-**Knights faction wired:** Warrior, Archer (×2 art lines), Pawn, Lancer, Monk.
+**Enemy Pack wired (15 animated unit folders):** Skull (×2 cards), Spear Goblin (`spear_goblin` / Guards), Troll, Torch Goblin, Hex Shaman, Bomb (spell VFX), Lizard, Pig Rider Spear Goblin, Bomb Fish, Minotaur, Gnoll, Thief, Turtle, Panda.
 
-**Backlog:** ~14 unused Enemy Pack animated folders + Goblin faction buildings/troops (Barrel, Dynamite, Cannon, etc.).
+**Knights faction wired:** Warrior, Archer (×2 art lines), Pawn, Hooded Pawn + knife interact (`pawns` / Goblins), Lancer, Monk.
+
+**Partially wired (not deployable cards):**
+
+| Asset | Used for |
+|---|---|
+| `Pirate Fish/Cannon/` | King castle garrison centre piece + king tower / Big Bomb muzzle (`towerGarrison.ts`) |
+| `Enemy Pack/.../Bomb/` | Big Bomb spell arc + king tower flat lob projectiles |
+| `Factions/Knights/Troops/Dead/` | Shared troop death VFX |
+
+**Backlog — animated troops not yet cards (6):** Gnome, Bear, Snake, Spider, Paddle Shark, Root Troll.
+
+**Backlog — buildings / vehicles / faction troops:** Barrel, Dynamite goblin, Cannon (deployable), Pirate Tower, Fish Hut, Goblin Hut, Boat, Seahorse Boat, Wood House, Knights Castle/House/Tower, Wooden Fence, Cave, Pig, Knights faction Pawn line.
 
 ---
 
@@ -50,11 +64,12 @@ Full Idle/Run/Attack (or equivalent) sheets, a clear deck-role gap, and a portra
 
 | Unused asset | CR reference | Elixir | Why |
 |---|---|---:|---|
-| **Harpoon Shark** | Hunter | 4 | Medium-range harpoon thrower. Portrait: `Harpoon Shark.png`; projectile: `Harpoon.png`. |
 | **Barrel** (Goblin faction) | Goblin Barrel | 3 | Rolling barrel — spell or deployable. `Factions/Goblins/Troops/Barrel/`. |
-| **Wood Tower** (already coded) | Bomb Tower | 4 | Fully wired; excluded via `DECK_EXCLUDED_CARD_IDS`. |
+| **Wood Tower** (already coded) | Bomb Tower | 4 | Fully wired as `wood_tower`; excluded via `DECK_EXCLUDED_CARD_IDS`. |
 
-~~**Gnoll**~~ — done as Executioner (`gnoll` card).
+~~**Gnoll**~~ — done as Executioner (`gnoll` card, June 2026).
+
+~~**Skeleton Army**~~ — done (`skeleton_army` card, shared Skull assets).
 
 ---
 
@@ -77,7 +92,7 @@ Strong art/behavior match; more design or tuning work.
 
 | Unused asset | CR reference | Elixir | Why |
 |---|---|---:|---|
-| **Cannon** | Cannon | 3 | Directional cannon + `Cannon_Ball.png`. |
+| **Cannon** | Cannon | 3 | Directional cannon + `Cannon_Ball.png`. *King garrison only today — not a deployable card.* |
 | **Pirate Tower** | Tesla or Inferno Tower | 4–5 | Ground/water tower variants. |
 | **Fish Hut** | Furnace or spawner | — | Hut building; could spawn fish units. |
 | **Goblin Hut** | Goblin Hut | 5 | Literal match; spawns goblins over time. |
@@ -128,10 +143,12 @@ Given current deck (knights + skeleton swarm + spells + enemy ranged):
 2. ~~**P.E.K.K.A** (Minotaur)~~ — done
 3. ~~**Battle Healer** (Monk)~~ — done
 4. ~~**Wall Breakers** (Bomb Fish)~~ — done
-5. **Re-enable Bomb Tower** (Wood Tower) — building slot
-6. ~~**Ice Golem** (Turtle)~~ — done
-7. **Hunter** (Harpoon Shark) — ranged counter
-8. **Spider** — portrait slot `_11` reserved
+5. ~~**Executioner** (Gnoll)~~ — done
+6. ~~**Skeleton Army**~~ — done
+7. **Re-enable Bomb Tower** (Wood Tower) — building slot
+8. ~~**Ice Golem** (Turtle)~~ — done
+9. ~~**Fisherman** (Harpoon Shark)~~ — done
+10. **Spider** — portrait slot `_11` reserved
 
 ---
 
@@ -164,6 +181,7 @@ Before wiring any new card, pick a dedicated portrait per [card-avatars rule](..
 | `Hex Shaman.png` | `wizard` | |
 | `Pig Rider.png` | `pig_rider` | |
 | `Spear Goblin.png` | `spear_goblin` | |
+| `Avatars_05.png` | `pawns`, `pawn` | Hooded pawn |
 | `Torch Goblin.png` | `torch_goblin` | |
 
 ### Enemy Avatars — reserved (no card yet)
@@ -174,7 +192,7 @@ Before wiring any new card, pick a dedicated portrait per [card-avatars rule](..
 | **`Enemy Avatars_11.png`** | **Spider** | Bats swarm |
 | `Enemy Avatars_14.png` | (verify art) | — |
 | `Enemy Avatars_15.png` | Gnome | Goblins / cheap swarm |
-| `Harpoon Shark.png` | Harpoon Shark | Hunter |
+| `Harpoon Shark.png` | `harpoon_shark` | Fisherman hook |
 | `Paddle Shark.png` | Paddle Shark | Barbarians ×2 |
 
 ### Human Avatars — wired
@@ -213,6 +231,18 @@ All new cards use **Clash Royale level 14** stats — the Arena 26 (“Royal Roa
 
 ## Recently wired reference cards
 
+### Big Bomb (`tnt`) — Rocket L14
+
+**Status:** Done · **Display name:** Big Bomb · **Asset:** `Enemy Pack/.../Bomb/` · **Deck:** default
+
+King-launched ground spell. Player-facing copy says **bomb**; CR Rocket is the design reference only. King tower attacks and Big Bomb spell fire from the centre garrison cannon (`towerGarrison.ts`, flat lob style for tower shots; full rocket arc for the spell).
+
+### Gnoll (`gnoll`) — Executioner L14
+
+**Status:** Done (June 2026) · **Asset:** `Enemy Pack/.../Gnoll/` · **Portrait:** `Enemy Avatars_10.png` · **Deck:** builder
+
+Boomerang bone attack (`boomerangAttack: true`, pierce out + return). Projectile: `Gnoll_Bone.png`. Test: gnoll combat / bone pool wiring.
+
 ### Pig Rider (`pig_rider`) — Hog Rider L14
 
 **Asset:** `Enemy Pack/.../Pig Rider Spear Goblin/` · **Portrait:** `Pig Rider.png` · **Deck:** builder
@@ -235,7 +265,7 @@ Slow heavy single-target melee.
 
 **Asset:** `Enemy Pack/.../Thief/` · **Portrait:** `Enemy Avatars_06.png` · **Deck:** builder
 
-Fast melee with opening dash (`dashRangeCells`, `firstHitDamageMultiplier: 2`).
+Fast melee with repeat dash when target is beyond melee but within `dashRangeCells` (CR Bandit — normal damage each hit).
 
 ### Turtle (`turtle`) — Ice Golem L14
 
@@ -261,11 +291,23 @@ Melee splash (`splashRadius: 2`).
 
 ×14 deploy, same per-skeleton stats as `skeleton`. Spawns in a compact grid cluster.
 
-### Spear Goblins (`spear_goblin`) — Spear Goblins L14
+### Spear Goblins (`spear_goblin`) — Guards L14
 
-**Status:** Done · **Asset:** `Enemy Pack/.../Spear Goblin/` · **Portrait:** `Spear Goblin.png` · **Deck:** builder
+**Status:** Done (June 2026) · **Asset:** `Enemy Pack/.../Spear Goblin/` · **Portrait:** `Spear Goblin.png` · **CR:** [Guards](https://liquipedia.net/clashroyale/Guards) L14 · **Deck:** builder · **Added:** `2026-06-24`
 
-×3 deploy, very fast ranged. `Attack Strong` not wired.
+×3 deploy, fast melee with armor (`armorHp: 339`, body `maxHp: 108`). `Attack Strong` clip.
+
+### Pawns (`pawns`) — Goblins L14
+
+**Status:** Done (June 2026) · **Asset:** hooded `Units/*/Pawn/` + `Pawn_Interact Knife` attack · **Portrait:** `Avatars_05.png` · **CR:** [Goblins](https://liquipedia.net/clashroyale/Goblins) L14 · **Deck:** builder · **Added:** `2026-06-24`
+
+×3 deploy, very fast melee. **2 elixir** (CR Goblins). Player-facing name is **Pawns** — not the CR card name.
+
+### Harpoon Shark (`harpoon_shark`) — Fisherman L14
+
+**Status:** Done (June 2026) · **Asset:** `Enemy Pack/.../Harpoon Shark/` · **Portrait:** `Harpoon Shark.png` · **CR:** [Fisherman](https://liquipedia.net/clashroyale/Fisherman) L14 · **Deck:** builder · **Added:** `2026-06-24`
+
+Melee + hook (3.5–7 tiles). Pulls ground troops in or reels toward buildings. Procedural rope VFX + `Harpoon.png` tip. Slow hooked troops 35% for 1.5s. Test: `HarpoonHook.test.ts`.
 
 ---
 
@@ -275,3 +317,4 @@ Melee splash (`splashRadius: 2`).
 - Enemy Pack units with one palette: use `tintBotSide: true` (see Torch Goblin / Wizard).
 - Knights faction units (Warrior, Pawn, Lancer, Monk): separate Blue/Red asset folders, no tint.
 - Add bundle entry in `AssetManifest.ts`, card in `CardData.ts`, and tests in `AssetManifest.test.ts` / behavior tests as needed.
+- **New cards:** add a stable first-added timestamp in `CARD_ADDED_AT` inside `CardData.ts` (ISO date keyed by card id). Never change existing entries when renaming a card — only the id matters. Deck builder **Recent** sort uses this `addedAt` field, not file order or modification time.

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
-import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, AVATAR_CROP_RATIO_DEFAULT, EXPLOSION_SHEET, GNOLL_BONE_SHEET, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarCropRatio, getCardAvatarDef, getCardAvatarSwarmSource, resolveAttackAnimKey } from '@data/AssetManifest'
+import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, AVATAR_CROP_RATIO_DEFAULT, EXPLOSION_SHEET, GNOLL_BONE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarCropRatio, getCardAvatarDef, getCardAvatarSwarmSource, resolveAttackAnimKey } from '@data/AssetManifest'
 import { DEFAULT_DECK } from '@data/CardData'
 import { Owner } from '@core/types'
 
@@ -154,23 +154,63 @@ describe('Card avatars', () => {
     expect(bundle.tintBotSide).toBe(true)
   })
 
-  it('spear goblin uses 256×256 Spear Goblin sheets with dedicated avatar', () => {
+  it('spear goblins uses enemy Spear Goblin sheets with dedicated avatar', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'spear_goblin')!
     expect(cardAvatarKey('spear_goblin')).toBe('avatar_spear_goblin')
+    expect(getCardAvatarDef('spear_goblin').path).toContain('Spear Goblin.png')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('spear_goblin').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
       expect(side.idle.sheet.path).toContain('Spear Goblin/Spear Goblin_Idle.png')
       expect(side.run.sheet.path).toContain('Spear Goblin_Run.png')
-      expect(side.attack.sheet.path).toContain('Spear Goblin_Attack Fast.png')
+      expect(side.attack.sheet.path).toContain('Spear Goblin_Attack Strong.png')
       expect(side.idle.sheet.frameWidth).toBe(256)
-      expect(side.idle.sheet.frameHeight).toBe(256)
       expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
       expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
       expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
     }
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
-    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(7)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(8)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.attackHitFrame).toBe(4)
+  })
+
+  it('pawns uses hooded pawn sheets with dedicated avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'pawns')!
+    expect(cardAvatarKey('pawns')).toBe('avatar_pawns')
+    expect(getCardAvatarDef('pawns').path).toContain('Avatars_05.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('pawns').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Pawn_Idle.png')
+      expect(side.run.sheet.path).toContain('Pawn_Run.png')
+      expect(side.attack.sheet.path).toContain('Pawn_Interact Knife.png')
+      expect(side.idle.sheet.frameWidth).toBe(192)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(4)
+    expect(bundle.tintBotSide).toBeFalsy()
+    expect(bundle.attackHitFrame).toBe(2)
+  })
+
+  it('harpoon shark uses pirate fish sheets, harpoon projectile, and dedicated avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'harpoon_shark')!
+    expect(cardAvatarKey('harpoon_shark')).toBe('avatar_harpoon_shark')
+    expect(getCardAvatarDef('harpoon_shark').path).toContain('Harpoon Shark.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('harpoon_shark').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Harpoon Shark_Idle.png')
+      expect(side.run.sheet.path).toContain('Harpoon Shark_Run.png')
+      expect(side.attack.sheet.path).toContain('Harpoon Shark_Throw.png')
+      expect(side.idle.sheet.frameWidth).toBe(192)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(existsSync(resolve(PUBLIC, HARPOON_PROJECTILE_SHEET.path))).toBe(true)
     expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(4)
   })
@@ -238,7 +278,7 @@ describe('Card avatars', () => {
   })
 
   it('unit sprites that fill the frame use a looser hand crop', () => {
-    for (const id of ['archer', 'spear_goblin', 'torch_goblin', 'wizard'] as const) {
+    for (const id of ['torch_goblin', 'wizard'] as const) {
       const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === id)!
       expect(bundle.avatarCropRatio).toBeGreaterThan(AVATAR_CROP_RATIO_DEFAULT)
     }

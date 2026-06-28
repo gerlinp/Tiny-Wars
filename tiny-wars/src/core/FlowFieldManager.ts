@@ -4,8 +4,6 @@ import type { GameState } from './GameState'
 import type { Tower } from './entities/Tower'
 import type { Owner, Vec2 } from './types'
 import { isAttackableTower } from './TargetSelection'
-import { entityCollisionCenter, entityHalfExtents } from './EntityGeometry'
-import { CELL_SIZE } from '@data/GameConstants'
 
 /**
  * Manages one flow field per living, attackable enemy tower.
@@ -30,44 +28,47 @@ export class FlowFieldManager {
     }
   }
 
-  /** Walkable cells forming the ring just outside the tower footprint — BFS goal cells. */
+  /** Walkable cells adjacent to the tower's actual grid footprint — BFS goal cells. */
   private approachCells(tower: Tower): Vec2[] {
-    const center = entityCollisionCenter(tower)
-    const half   = entityHalfExtents(tower)
+    const occupied = new Set<string>()
+    for (const { x, y } of tower.blockedCells) occupied.add(`${x},${y}`)
 
-    const minCol = Math.floor((center.x - half.halfW) / CELL_SIZE)
-    const maxCol = Math.ceil( (center.x + half.halfW) / CELL_SIZE) - 1
-    const minRow = Math.floor((center.y - half.halfH) / CELL_SIZE)
-    const maxRow = Math.ceil( (center.y + half.halfH) / CELL_SIZE) - 1
-
+    const seen = new Set<string>()
     const cells: Vec2[] = []
-    for (let col = minCol - 1; col <= maxCol + 1; col++) {
-      for (let row = minRow - 1; row <= maxRow + 1; row++) {
-        // Only the border ring around the footprint
-        if (col >= minCol && col <= maxCol && row >= minRow && row <= maxRow) continue
-        if (this.grid.isWalkable(col, row)) cells.push({ x: col, y: row })
+    const dirs = [{ dc: 0, dr: -1 }, { dc: 1, dr: 0 }, { dc: 0, dr: 1 }, { dc: -1, dr: 0 }]
+
+    for (const { x: col, y: row } of tower.blockedCells) {
+      for (const { dc, dr } of dirs) {
+        const nc = col + dc
+        const nr = row + dr
+        const key = `${nc},${nr}`
+        if (occupied.has(key) || seen.has(key)) continue
+        if (!this.grid.isWalkable(nc, nr)) continue
+        seen.add(key)
+        cells.push({ x: nc, y: nr })
       }
     }
 
-    // Fallback: tower centre cell (handles edge cases like tiny grids in tests)
-    if (cells.length === 0) {
-      cells.push({
-        x: Math.max(0, Math.min(this.grid.cols - 1, (center.x / CELL_SIZE) | 0)),
-        y: Math.max(0, Math.min(this.grid.rows - 1, (center.y / CELL_SIZE) | 0)),
-      })
+    // Fallback for edge cases (tiny grids in tests)
+    if (cells.length === 0 && tower.blockedCells.length > 0) {
+      const { x, y } = tower.blockedCells[0]!
+      cells.push({ x, y })
     }
 
     return cells
   }
 
   /**
-   * Return the enemy tower with the lowest BFS path-cost from `fromPos`.
-   * Correctly prefers same-side princess towers even when a cross-river tower
-   * appears closer by Euclidean distance.
+   * Return the enemy tower that should be the march objective from `fromPos`.
+   * An active king tower (unlocked by a fallen princess) always takes priority
+   * over remaining princess towers — matches CR behaviour where the king castle
+   * becomes the primary target once unlocked.
    */
   nearestEnemyTower(state: GameState, fromPos: Vec2, myOwner: Owner): Tower | null {
-    let best: Tower | null = null
-    let bestCost = Infinity
+    let bestKing: Tower | null = null
+    let bestKingCost = Infinity
+    let bestPrincess: Tower | null = null
+    let bestPrincessCost = Infinity
 
     for (const tower of state.towers.values()) {
       if (tower.owner === myOwner || !tower.isAlive) continue
@@ -75,13 +76,16 @@ export class FlowFieldManager {
       const field = this.fields.get(tower.id)
       if (!field) continue
       const cost = field.costAt(fromPos.x, fromPos.y)
-      if (cost < bestCost) {
-        bestCost = cost
-        best = tower
+      if (tower.isKing) {
+        if (cost < bestKingCost) { bestKingCost = cost; bestKing = tower }
+      } else {
+        if (cost < bestPrincessCost) { bestPrincessCost = cost; bestPrincess = tower }
       }
     }
 
-    return best
+    // Active king takes unconditional priority — only reachable positions qualify
+    if (bestKing && bestKingCost < Infinity) return bestKing
+    return bestPrincess
   }
 
   /**

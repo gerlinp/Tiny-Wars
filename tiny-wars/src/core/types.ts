@@ -38,13 +38,11 @@ export interface EntityStats {
   deathSlowSpeedMultiplier?: number
   /** How long the death slow lasts (ms). */
   deathSlowDurationMs?: number
-  /** First successful strike deals multiplied damage (e.g. opening dash). */
-  firstHitDamageMultiplier?: number
-  /** Bandit-style — max tiles away to dash in on the first hit (must also set firstHitDamageMultiplier). */
+  /** Max tiles away to dash in before each strike when beyond melee range. */
   dashRangeCells?: number
-  /** Speed multiplier while dashing to the target on the opening hit. */
+  /** Speed multiplier while leaping to the target during a dash. */
   dashSpeedMultiplier?: number
-  /** Ms to hold idle before the opening dash leap. */
+  /** Ms to hold idle before each dash leap. */
   dashWindupMs?: number
   /** Prince-style charge — tiles walked before charge activates. */
   chargeDistanceCells?: number
@@ -52,10 +50,12 @@ export interface EntityStats {
   chargeSpeedMultiplier?: number
   /** Damage multiplier on the first hit while charging. */
   chargeDamageMultiplier?: number
-  /** Giant-style — only acquires buildings and towers, never enemy troops. */
+  /** Only acquires buildings and towers, never enemy troops. */
   targetsBuildingsOnly?: boolean
   /** Battle Healer-style — HP restored per pulse when attacking. */
   healPerPulse?: number
+  /** Extra HP pool absorbed before body HP (per unit) — displayed as Armor. */
+  armorHp?: number
   /** Pulses per attack (default 4). */
   healPulseCount?: number
   /** Heal aura radius while attacking (grid cells). */
@@ -66,10 +66,22 @@ export interface EntityStats {
   spawnHealPulseCount?: number
   /** Spawn-heal radius on deploy (grid cells). */
   spawnHealRadius?: number
-  /** Executioner-style — bone travels out and returns, damaging twice along the path. */
+  /** Bone travels out and returns, damaging twice along the path. */
   boomerangAttack?: boolean
   /** Max travel distance for the boomerang (grid cells); defaults to ~7.5 for executioner-style. */
   boomerangTravelCells?: number
+  /** Fisherman-style — charge then throw a hook to pull ground troops or reel toward buildings. */
+  hookAttack?: boolean
+  /** Minimum distance to throw the hook (grid cells). */
+  hookMinRangeCells?: number
+  /** Maximum hook reach (grid cells). */
+  hookMaxRangeCells?: number
+  /** Ms to charge before the hook flies. */
+  hookWindupMs?: number
+  /** Slow applied to hooked ground troops — speed multiplier (0.65 = 35% slower). */
+  hookSlowSpeedMultiplier?: number
+  /** How long the hook slow lasts (ms). */
+  hookSlowDurationMs?: number
 }
 
 export interface SpellStats {
@@ -111,6 +123,7 @@ export type GameEvent =
   | { type: 'HEAL'; targetId: string; amount: number; healerId?: string }
   | { type: 'HEAL_AURA'; position: Vec2; radius: number; owner: Owner; healerId?: string }
   | { type: 'BOOMERANG'; throwerId: string; owner: Owner; from: Vec2; dir: Vec2; travelLimitPx: number }
+  | { type: 'HOOK'; hookId: string; throwerId: string; targetId: string; pullTroop: boolean }
   | { type: 'DEATH'; entityId: string; position: Vec2; cardId?: string; deathSplashRadius?: number }
   | { type: 'CROWN_LOST';   owner: Owner; towerId: string }
 

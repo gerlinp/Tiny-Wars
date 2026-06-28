@@ -9,7 +9,8 @@ import { DecorationLayer } from '@rendering/DecorationLayer'
 import { EntitySprite, type AttackSync, type DashSync } from '@rendering/EntitySprite'
 import { TowerSprite } from '@rendering/TowerSprite'
 import { EffectsPool, HealEffectPool, DeathPool } from '@rendering/VFXPools'
-import { ArrowPool, ArrowsSpellPool, TntPool, BoneBoomerangPool, HexFireballPool } from '@rendering/ProjectilePools'
+import { ArrowPool, ArrowsSpellPool, TntPool, BoneBoomerangPool, HexFireballPool, HarpoonRopePool } from '@rendering/ProjectilePools'
+import { hookAnchorPosition, hookRopeEndPosition } from '@core/HookSystem'
 import { ensurePlaceholders } from '@rendering/renderingUtils'
 import { CardDeployController } from '@input/CardDeployController'
 import { DeployZoneOverlay } from '@rendering/DeployZoneOverlay'
@@ -48,6 +49,7 @@ export class BattleScene extends Phaser.Scene {
   private hexFireballs!: HexFireballPool
   private healEffects!: HealEffectPool
   private boneBoomerangs!: BoneBoomerangPool
+  private harpoonRopes!: HarpoonRopePool
   private arrowsSpell!: ArrowsSpellPool
   private tntProjectiles!: TntPool
   private deployCtrl!: CardDeployController
@@ -99,6 +101,7 @@ export class BattleScene extends Phaser.Scene {
     this.hexFireballs = new HexFireballPool(this)
     this.healEffects = new HealEffectPool(this)
     this.boneBoomerangs = new BoneBoomerangPool(this)
+    this.harpoonRopes = new HarpoonRopePool(this)
     this.arrowsSpell = new ArrowsSpellPool(this)
     this.tntProjectiles = new TntPool(this)
 
@@ -303,6 +306,11 @@ export class BattleScene extends Phaser.Scene {
           this.sprites.get(event.throwerId)?.onAttackImpact(aim)
           break
         }
+        case 'HOOK': {
+          const aim = this.entityPosition(state, event.targetId)
+          this.sprites.get(event.throwerId)?.onAttackImpact(aim ?? undefined)
+          break
+        }
         case 'HEAL_AURA': {
           this.healEffects.spawn(event.position.x, event.position.y, event.owner, event.radius)
           break
@@ -336,6 +344,17 @@ export class BattleScene extends Phaser.Scene {
     state.events = []
 
     this.boneBoomerangs.syncFromState(state.boomerangs ?? [])
+    this.harpoonRopes.syncFromState(
+      state.hooks ?? [],
+      hookId => {
+        const hook = state.hooks?.find(h => h.id === hookId)
+        return hook ? hookAnchorPosition(state, hook) : null
+      },
+      hookId => {
+        const hook = state.hooks?.find(h => h.id === hookId)
+        return hook ? hookRopeEndPosition(state, hook) : null
+      },
+    )
 
     // Sync sprite positions each frame
     for (const [id, sprite] of this.sprites) {
@@ -350,10 +369,13 @@ export class BattleScene extends Phaser.Scene {
 
         if (entity.kind === EntityKind.TROOP) {
           const troop = entity as Troop
-          moveSpeed = troop.getEffectiveSpeed()
+          moveSpeed = troop.isBoomerangAnchored(state) ? 0 : troop.getEffectiveSpeed()
           const aimPoint = troop.getAttackAimPoint() ?? undefined
+          const hookPhase = troop.getHookPhase()
           const dashPhase = troop.getDashPhase()
-          if (dashPhase) {
+          if (hookPhase) {
+            dashSync = { phase: 'windup', aimPoint }
+          } else if (dashPhase) {
             dashSync = {
               phase: dashPhase,
               aimPoint,
@@ -362,9 +384,11 @@ export class BattleScene extends Phaser.Scene {
           } else if (troop.state === TroopState.WALKING) {
             anim = 'run'
           } else if (troop.state === TroopState.ATTACKING) {
+            const boomerangCard = CARD_DEFINITIONS[cardId]?.stats?.boomerangAttack === true
             attackSync = {
               cooldownMs: troop.getAttackCooldownMs(),
-              windupMs: getAttackWindupMs(cardId, entity.owner),
+              // Boomerang throw clip is driven by BOOMERANG event only — not cooldown windup.
+              windupMs: boomerangCard ? 0 : getAttackWindupMs(cardId, entity.owner),
               aimPoint,
             }
           }
@@ -385,7 +409,9 @@ export class BattleScene extends Phaser.Scene {
         sprite.update(
           entity.position.x,
           entity.position.y,
-          entity.hp / entity.maxHp,
+          entity.kind === EntityKind.TROOP
+            ? (entity as Troop).getHpFraction()
+            : entity.hp / entity.maxHp,
           anim,
           moveSpeed,
           this.shouldShowHealthBar(entity),

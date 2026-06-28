@@ -5,6 +5,10 @@ import { tryAllyLateralSeparation, clampGroundTroopToWalkable } from './TroopAvo
 import { EntityKind, UnitType } from './types'
 import { CELL_SIZE, EPSILON_DISTANCE } from '@data/GameConstants'
 
+function isBoomerangAnchored(troop: Troop, state: GameState): boolean {
+  return troop.isBoomerangAnchored(state)
+}
+
 const RESOLVE_PASSES = 10
 
 function groundTroops(state: GameState): Troop[] {
@@ -58,20 +62,39 @@ export function resolveTroopCollisions(state: GameState, deltaMs: number): void 
         if (!circlesOverlap(a.position, rA, b.position, rB)) continue
 
         let allyLaterallySeparated = false
+        const anchoredA = isBoomerangAnchored(a, state)
+        const anchoredB = isBoomerangAnchored(b, state)
         if (a.owner === b.owner) {
-          allyLaterallySeparated = tryAllyLateralSeparation(a, b) || tryAllyLateralSeparation(b, a)
-          tryAllyPushFromBehind(a, b, deltaMs)
-          tryAllyPushFromBehind(b, a, deltaMs)
+          if (!anchoredA) {
+            allyLaterallySeparated = tryAllyLateralSeparation(a, b) || allyLaterallySeparated
+          }
+          if (!anchoredB) {
+            allyLaterallySeparated = tryAllyLateralSeparation(b, a) || allyLaterallySeparated
+          }
+          if (!anchoredB) tryAllyPushFromBehind(a, b, deltaMs)
+          if (!anchoredA) tryAllyPushFromBehind(b, a, deltaMs)
         }
 
         if (!allyLaterallySeparated && circlesOverlap(a.position, rA, b.position, rB)) {
-          separateCirclePair(a.position, rA, b.position, rB, 0.5)
+          if (anchoredA && anchoredB) continue
+          const moveRatioA = anchoredA ? 0 : anchoredB ? 1 : 0.5
+          separateCirclePair(a.position, rA, b.position, rB, moveRatioA)
         }
       }
     }
   }
 
   for (const troop of troops) {
-    clampGroundTroopToWalkable(troop)
+    if (!isBoomerangAnchored(troop, state)) {
+      clampGroundTroopToWalkable(troop)
+    }
+  }
+}
+
+/** Re-pin boomerang throwers after collision so they never slide during a throw. */
+export function restoreBoomerangThrowerAnchors(state: GameState): void {
+  for (const entity of state.entities.values()) {
+    if (!entity.isAlive || entity.kind !== EntityKind.TROOP) continue
+    ;(entity as Troop).restoreBoomerangAnchor()
   }
 }

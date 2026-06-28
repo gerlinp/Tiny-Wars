@@ -509,7 +509,33 @@ function skullSide(side: 'blue' | 'red'): SideAssets {
 const SPEAR_GOBLIN_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin'
 const SPEAR_GOBLIN_FRAME = 256
 
-/** Enemy Pack Spear Goblin — 256×256 frames; Attack Strong sheet unused. */
+function pawnsSheet(side: 'Blue' | 'Red', clip: 'idle' | 'run' | 'attack'): SheetDef {
+  const folder = side === 'Blue' ? 'Blue Units' : 'Red Units'
+  const prefix = side === 'Blue' ? 'blue' : 'red'
+  const file = clip === 'idle' ? 'Pawn_Idle.png'
+    : clip === 'run' ? 'Pawn_Run.png'
+    : 'Pawn_Interact Knife.png'
+  return {
+    key: `pawns_${prefix}_${clip}`,
+    path: `assets/Units/${folder}/Pawn/${file}`,
+    frameWidth: FRAME_W,
+    frameHeight: FRAME_H,
+  }
+}
+
+/** Hooded Pawn — Pawns card (melee ×3). Knife interact clip = stab. */
+function pawnsSide(side: 'Blue' | 'Red'): SideAssets {
+  const idle   = pawnsSheet(side, 'idle')
+  const run    = pawnsSheet(side, 'run')
+  const attack = pawnsSheet(side, 'attack')
+  return {
+    idle:   clip(idle,   0, 7, 10, -1),
+    run:    clip(run,    0, 5, 14, -1),
+    attack: clip(attack, 0, 3, 14,  0),
+  }
+}
+
+/** Enemy Pack Spear Goblin — ×3 melee with armor. */
 function spearGoblinSide(side: 'blue' | 'red'): SideAssets {
   const idle: SheetDef = {
     key: `spear_goblin_${side}_idle`,
@@ -525,14 +551,14 @@ function spearGoblinSide(side: 'blue' | 'red'): SideAssets {
   }
   const attack: SheetDef = {
     key: `spear_goblin_${side}_attack`,
-    path: `${SPEAR_GOBLIN_PATH}/Spear Goblin_Attack Fast.png`,
+    path: `${SPEAR_GOBLIN_PATH}/Spear Goblin_Attack Strong.png`,
     frameWidth: SPEAR_GOBLIN_FRAME,
     frameHeight: SPEAR_GOBLIN_FRAME,
   }
   return {
     idle:   clip(idle,   0, 7, 10, -1),
     run:    clip(run,    0, 5, 14, -1),
-    attack: clip(attack, 0, 6, 14,  0),
+    attack: clip(attack, 0, 7, 14,  0),
   }
 }
 
@@ -660,7 +686,7 @@ export const GNOLL_BONE_SHEET = {
   frameRate: 14,
 }
 
-/** Enemy Pack Gnoll — Executioner-style boomerang bone thrower. */
+/** Enemy Pack Gnoll — boomerang bone thrower. */
 function gnollSide(side: 'blue' | 'red'): SideAssets {
   const idle: SheetDef = {
     key: `gnoll_${side}_idle`,
@@ -677,6 +703,43 @@ function gnollSide(side: 'blue' | 'red'): SideAssets {
   return {
     idle:   clip(idle,   0, 5, 10, -1),
     run:    clip(run,    0, 7, 14, -1),
+    attack: clip(attack, 0, 7, 14,  0),
+  }
+}
+
+const HARPOON_SHARK_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Harpoon Shark'
+const HARPOON_SHARK_FRAME = 192
+
+export const HARPOON_PROJECTILE_SHEET = {
+  key: 'harpoon_projectile',
+  path: `${HARPOON_SHARK_PATH}/Harpoon.png`,
+  frameWidth: 64,
+  frameHeight: 64,
+} as const
+
+/** Enemy Pack Harpoon Shark — fisherman-style hook thrower. */
+function harpoonSharkSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `harpoon_shark_${side}_idle`,
+    path: `${HARPOON_SHARK_PATH}/Harpoon Shark_Idle.png`,
+    frameWidth: HARPOON_SHARK_FRAME,
+    frameHeight: HARPOON_SHARK_FRAME,
+  }
+  const run: SheetDef = {
+    key: `harpoon_shark_${side}_run`,
+    path: `${HARPOON_SHARK_PATH}/Harpoon Shark_Run.png`,
+    frameWidth: HARPOON_SHARK_FRAME,
+    frameHeight: HARPOON_SHARK_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `harpoon_shark_${side}_attack`,
+    path: `${HARPOON_SHARK_PATH}/Harpoon Shark_Throw.png`,
+    frameWidth: HARPOON_SHARK_FRAME,
+    frameHeight: HARPOON_SHARK_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0, 7, 10, -1),
+    run:    clip(run,    0, 5, 14, -1),
     attack: clip(attack, 0, 7, 14,  0),
   }
 }
@@ -911,13 +974,21 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'spear_goblin',
-    avatar: enemyAvatar('Spear Goblin.png'),
+    avatar: { key: 'avatar_spear_goblin', path: `${ENEMY_AVATARS}/Spear Goblin.png` },
     avatarCropRatio: 0.55,
     contentFill: 0.55,
     attackHitFrame: 4,
     tintBotSide: true,
     player: spearGoblinSide('blue'),
     bot:    spearGoblinSide('red'),
+  },
+  {
+    cardId: 'pawns',
+    avatar: { key: 'avatar_pawns', path: `${HUMAN_AVATARS}/Avatars_05.png` },
+    contentFill: 0.52,
+    attackHitFrame: 2,
+    player: pawnsSide('Blue'),
+    bot:    pawnsSide('Red'),
   },
   {
     cardId: 'torch_goblin',
@@ -1026,6 +1097,16 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     attackHitFrame: 5,
     player: monkSide('Blue'),
     bot:    monkSide('Red'),
+  },
+  {
+    cardId: 'harpoon_shark',
+    avatar: { key: 'avatar_harpoon_shark', path: `${ENEMY_AVATARS}/Harpoon Shark.png` },
+    avatarCropRatio: 0.55,
+    contentFill: 0.52,
+    attackHitFrame: 4,
+    tintBotSide: true,
+    player: harpoonSharkSide('blue'),
+    bot:    harpoonSharkSide('red'),
   },
   {
     cardId: 'arrows',

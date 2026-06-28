@@ -143,6 +143,8 @@ export class CardInfoModal {
 
     if (stats) {
       rows.push(['HP',        `${stats.maxHp}`])
+      if (stats.armorHp)
+        rows.push(['Armor',  `${stats.armorHp}`])
       rows.push(['Damage',    `${stats.damage}`])
       rows.push(['Hit Speed', `${(1 / stats.attackRate).toFixed(1)}s`])
       if (stats.speed > 0)
@@ -158,7 +160,7 @@ export class CardInfoModal {
       if (stats.chargeDistanceCells)
         rows.push(['Charge',  `×${stats.chargeDamageMultiplier} dmg`])
       if (stats.dashRangeCells)
-        rows.push(['Dash',    `×${stats.firstHitDamageMultiplier ?? 2} dmg`])
+        rows.push(['Dash',    `${stats.dashRangeCells} tiles`])
     }
 
     if (spell) {

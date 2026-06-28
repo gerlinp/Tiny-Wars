@@ -1,6 +1,6 @@
 import { CardType, UnitType, AttackType } from '@core/types'
 import type { CardDefinition, EntityStats, SpellStats } from '@core/types'
-import { BOMB_TOWER_LIFETIME_MS, CR_SPEED, crSpeedToCellsPerSec, LANCER_CHARGE_DAMAGE_MULT, LANCER_CHARGE_DISTANCE_CELLS, LANCER_CHARGE_SPEED_MULT, THIEF_DASH_RANGE_CELLS, THIEF_DASH_SPEED_MULT, THIEF_DASH_WINDUP_MS } from '@data/GameConstants'
+import { BOMB_TOWER_LIFETIME_MS, CR_SPEED, crSpeedToCellsPerSec, HOOK_MAX_RANGE_CELLS, HOOK_MIN_RANGE_CELLS, HOOK_SLOW_DURATION_MS, HOOK_SLOW_SPEED_MULT, HOOK_WINDUP_MS, LANCER_CHARGE_DAMAGE_MULT, LANCER_CHARGE_DISTANCE_CELLS, LANCER_CHARGE_SPEED_MULT, THIEF_DASH_RANGE_CELLS, THIEF_DASH_SPEED_MULT, THIEF_DASH_WINDUP_MS } from '@data/GameConstants'
 
 function troop(
   id: string,
@@ -58,9 +58,7 @@ function spell(
   }
 }
 
-/** Stats tuned to Clash Royale equivalents at {@link BALANCE_REFERENCE_LEVEL} (level 14).
- *  HP and damage scaled from L11 baseline × 1.321 (~9.7%/level over 3 levels).
- *  Attack speed, range, and movement speed do not change with CR card level. */
+/** Stats tuned at {@link BALANCE_REFERENCE_LEVEL}. HP and damage scaled from L11 baseline × 1.321. */
 
 /** Parse a stable ISO timestamp for when a card id first entered the collection. */
 const AT = (iso: string): number => Date.parse(iso)
@@ -79,7 +77,8 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   elite_archer:  AT('2024-07-15T12:00:00.000Z'),
   pawn:          AT('2024-08-01T12:00:00.000Z'),
   skeleton_army: AT('2026-05-15T12:00:00.000Z'),
-  spear_goblin:  AT('2024-09-01T12:00:00.000Z'),
+  pawns:         AT('2026-06-24T12:00:00.000Z'),
+  spear_goblin:  AT('2026-06-24T15:00:00.000Z'),
   troll:         AT('2024-09-15T12:00:00.000Z'),
   lizard:        AT('2024-10-01T12:00:00.000Z'),
   torch_goblin:  AT('2024-10-15T12:00:00.000Z'),
@@ -92,6 +91,7 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   wood_tower:    AT('2025-05-01T12:00:00.000Z'),
   gnoll:         AT('2025-06-01T12:00:00.000Z'),
   monk:          AT('2026-01-01T12:00:00.000Z'),
+  harpoon_shark: AT('2026-06-24T18:00:00.000Z'),
   tnt:           AT('2026-06-01T12:00:00.000Z'),
 }
 
@@ -120,7 +120,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'warrior_blue_idle', 'warrior_red_idle'),
 
-  /** Clash Royale {@link https://liquipedia.net/clashroyale/Archers Archers} L14 — ×2 deploy, Knights faction art. */
+  /** ×2 deploy — Knights faction archer art. */
   archer: troop('archer', 'Archers',
     'A pair of archers who attack from range. Can target both air and ground units.',
     3, {
@@ -133,7 +133,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.AIR_AND_GROUND,
   }, 'knights_archer_blue_sheet', 'knights_archer_red_sheet', 2),
 
-  /** Clash Royale {@link https://liquipedia.net/clashroyale/Musketeer Musketeer} L14 — single ranged troop. */
+  /** Single ranged troop — Warrior faction archer art. */
   elite_archer: troop('elite_archer', 'Elite Archer',
     'A skilled lone archer with high damage output and exceptional range.',
     4, {
@@ -158,7 +158,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'pawn_blue_idle', 'pawn_red_idle'),
 
-  /** Clash Royale {@link https://liquipedia.net/clashroyale/Skeletons Skeletons} L14 — ×3 deploy. */
+  /** ×3 deploy — Skull enemy art. */
   skeleton: troop('skeleton', 'Skeletons',
     'Three fragile but fast skeletons. Cheap distraction that overwhelms through numbers.',
     1, {
@@ -171,7 +171,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'skeleton_blue_idle', 'skeleton_red_idle', 3),
 
-  /** Clash Royale {@link https://liquipedia.net/clashroyale/Skeleton_Army Skeleton Army} L14 — ×14 deploy. */
+  /** ×14 deploy — Skull enemy art. */
   skeleton_army: troop('skeleton_army', 'Skeleton Army',
     'A horde of fragile skeletons. Devastating against single-target troops but weak to splash.',
     3, {
@@ -184,20 +184,34 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'skeleton_blue_idle', 'skeleton_red_idle', 14),
 
-  /** Clash Royale {@link https://liquipedia.net/clashroyale/Spear_Goblins Spear Goblins} L14 — ×3 deploy. */
+  /** ×3 deploy — Spear Goblin art, armor absorbs damage first. */
   spear_goblin: troop('spear_goblin', 'Spear Goblins',
-    'Three very fast goblins hurling spears from range. Can hit air and ground.',
-    2, {
-    maxHp: 176,
-    speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
-    damage: 108,
-    attackRate: 1 / 1.7,
-    attackRange: 5.0,
+    'Three spear-wielding brutes with armor. Armor absorbs damage before their health does.',
+    3, {
+    maxHp: 108,
+    armorHp: 339,
+    speed: crSpeedToCellsPerSec(CR_SPEED.fast),
+    damage: 155,
+    attackRate: 1 / 1.0,
+    attackRange: 1.6,
     unitType: UnitType.GROUND,
-    attackType: AttackType.AIR_AND_GROUND,
+    attackType: AttackType.GROUND_ONLY,
   }, 'spear_goblin_blue_idle', 'spear_goblin_red_idle', 3),
 
-  /** Clash Royale {@link https://liquipedia.net/clashroyale/Giant Giant} L14 stats — Troll art. */
+  /** ×3 deploy — hooded pawn art, knife interact attack. */
+  pawns: troop('pawns', 'Pawns',
+    'Three fast pawns that rush in with knives. Cheap swarm melee.',
+    2, {
+    maxHp: 216,
+    speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
+    damage: 203,
+    attackRate: 1 / 1.1,
+    attackRange: 0.5,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+  }, 'pawns_blue_idle', 'pawns_red_idle', 3),
+
+  /** Building-only tank — Troll enemy art. */
   troll: troop('troll', 'Troll',
     'A massive brute who targets only buildings and towers. Extremely high HP.',
     5, {
@@ -211,7 +225,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     targetsBuildingsOnly: true,
   }, 'troll_blue_idle', 'troll_red_idle'),
 
-  /** Clash Royale {@link https://liquipedia.net/clashroyale/Prince Prince} L14 — melee with charge. */
+  /** Melee with distance charge — Lancer faction art. */
   lancer: troop('lancer', 'Lancer',
     'Builds up a devastating charge over distance, doubling speed and damage on impact.',
     5, {
@@ -265,7 +279,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.AIR_AND_GROUND,
   }, 'torch_goblin_blue_idle', 'torch_goblin_red_idle'),
 
-  /** L14 stats — fast building-only melee. */
+  /** Fast building-only melee — Pig Rider enemy art. */
   pig_rider: troop('pig_rider', 'Pig Rider',
     'A fast rider on a pig who ignores enemy troops and charges straight for buildings.',
     4, {
@@ -279,7 +293,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     targetsBuildingsOnly: true,
   }, 'pig_rider_blue_idle', 'pig_rider_red_idle'),
 
-  /** L14 stats — ranged ground splash. */
+  /** Ranged ground splash — Bomb Fish enemy art. */
   bomb_fish: troop('bomb_fish', 'Bomb Fish',
     'A lightly protected fish who lobs explosives with area damage at ground targets.',
     2, {
@@ -293,7 +307,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     splashRadius: 1.5,
   }, 'bomb_fish_blue_idle', 'bomb_fish_red_idle'),
 
-  /** L14 stats — slow heavy melee. */
+  /** Slow heavy melee — Minotaur enemy art. */
   minotaur: troop('minotaur', 'Minotaur',
     'A heavily armored brute with massive single-target damage. Slow but devastating.',
     7, {
@@ -306,10 +320,9 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'minotaur_blue_idle', 'minotaur_red_idle'),
 
-  /** L14 stats — fast melee with a heavy opening strike. */
-  /** Clash Royale {@link https://liquipedia.net/clashroyale/Bandit Bandit} L14 — opening dash with 2× first hit. */
+  /** Fast melee — dashes in before each strike when target is just out of reach. */
   thief: troop('thief', 'Thief',
-    'Stops and dashes to nearby enemies on the first hit, landing double damage.',
+    'Dashes to close the gap before each strike when an enemy is just out of melee reach.',
     3, {
     maxHp: 1200,
     speed: crSpeedToCellsPerSec(CR_SPEED.fast),
@@ -318,13 +331,12 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackRange: 0.75,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
-    firstHitDamageMultiplier: 2,
     dashRangeCells: THIEF_DASH_RANGE_CELLS,
     dashSpeedMultiplier: THIEF_DASH_SPEED_MULT,
     dashWindupMs: THIEF_DASH_WINDUP_MS,
   }, 'thief_blue_idle', 'thief_red_idle'),
 
-  /** L14 stats — cheap building tank with a slowing death burst. */
+  /** Cheap building tank — slowing death burst on destroy. */
   turtle: troop('turtle', 'Turtle',
     'A slow, tough fighter who targets buildings and chills nearby enemies when destroyed.',
     2, {
@@ -342,7 +354,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     deathSlowSpeedMultiplier: 0.7,
   }, 'turtle_blue_idle', 'turtle_red_idle'),
 
-  /** L14 stats — tough melee with wide spinning area damage. */
+  /** Wide spinning melee splash — Panda enemy art. */
   panda: troop('panda', 'Panda',
     'A sturdy fighter who cleaves all nearby enemies with each sweeping strike.',
     4, {
@@ -356,8 +368,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     splashRadius: 2,
   }, 'panda_blue_idle', 'panda_red_idle'),
 
-  /** L14 stats — melee support who heals nearby allies on each strike and on deploy. */
-  /** Clash Royale {@link https://liquipedia.net/clashroyale/Executioner Executioner} L14 — boomerang bone splash. */
+  /** Boomerang bone splash — Gnoll enemy art. */
   gnoll: troop('gnoll', 'Gnoll',
     'Hurls a bone axe in a straight line. It pierces enemies on the way out and returns for a second hit.',
     5, {
@@ -391,13 +402,32 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     spawnHealRadius: 2.5,
   }, 'monk_blue_idle', 'monk_red_idle'),
 
+  /** Melee + hook — pulls ground troops in or reels toward buildings. */
+  harpoon_shark: troop('harpoon_shark', 'Harpoon Shark',
+    'Hurls a harpoon on a rope. Pulls ground enemies close or yanks itself toward buildings.',
+    3, {
+    maxHp: 1152,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 257,
+    attackRate: 1 / 1.3,
+    attackRange: 1.2,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+    hookAttack: true,
+    hookMinRangeCells: HOOK_MIN_RANGE_CELLS,
+    hookMaxRangeCells: HOOK_MAX_RANGE_CELLS,
+    hookWindupMs: HOOK_WINDUP_MS,
+    hookSlowDurationMs: HOOK_SLOW_DURATION_MS,
+    hookSlowSpeedMultiplier: HOOK_SLOW_SPEED_MULT,
+  }, 'harpoon_shark_blue_idle', 'harpoon_shark_red_idle'),
+
   arrows: spell('arrows', 'Arrows',
     'A volley of arrows that rains down on an area. Cheap and effective at clearing swarms.',
     3, {
     damage: 404, radius: 4, duration: 0, delivery: 'arrows',
   }, 'arrow_blue', 'arrow_red'),
 
-  wood_tower: building('wood_tower', 'Bomb Tower',
+  wood_tower: building('wood_tower', 'Wood Tower',
     'A stationary tower lobbing bombs at ground troops with area damage. Explodes on destruction.',
     4, {
     maxHp: 1791,
@@ -412,7 +442,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     lifetimeMs: BOMB_TOWER_LIFETIME_MS,
   }, 'wood_tower_blue_sheet', 'wood_tower_red_sheet'),
 
-  /** Clash Royale {@link https://liquipedia.net/clashroyale/Rocket Rocket} L14 — king-launched ground spell. */
+  /** King-launched ground spell — Bomb enemy art. */
   tnt: spell('tnt', 'Big Bomb',
     'A slow arcing bomb from your king tower. Huge damage on ground targets in a small radius.',
     6, {

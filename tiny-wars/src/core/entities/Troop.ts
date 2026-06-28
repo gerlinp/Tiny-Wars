@@ -12,7 +12,8 @@ import {
   surfaceDistToEntity,
 } from '../EntityGeometry'
 import { dealAreaDamage, applySlowInRadius, applyHealInRadius } from '../AreaDamage'
-import { launchBoomerang } from '../BoomerangSystem'
+import { launchBoomerang, isBoomerangThrowerBusy } from '../BoomerangSystem'
+import { canHookTarget, isHookThrowerBusy, launchHook } from '../HookSystem'
 import { distSq, dist } from '../Vector2'
 import { findNearestEnemy, findNearestEnemyStructure, isAttackableTower } from '../TargetSelection'
 import type { Tower } from './Tower'
@@ -30,7 +31,7 @@ import { moveTowardWithAllyAvoidance } from '../TroopAvoidance'
 import {
   CELL_SIZE, TROOP_AGGRO_RANGE_CELLS, EPSILON_DISTANCE,
   LEFT_LANE_COL, RIGHT_LANE_COL, RIVER_ROW_START, RIVER_ROW_END,
-  HEAL_PULSE_INTERVAL_MS, THIEF_DASH_WINDUP_MS,
+  HEAL_PULSE_INTERVAL_MS, THIEF_DASH_WINDUP_MS, HOOK_WINDUP_MS,
 } from '@data/GameConstants'
 
 interface ActiveHealBurst {
@@ -77,9 +78,39 @@ export class Troop extends Entity {
     return this.isCharging
   }
 
-  /** True while winding up or leaping on the opening dash (Bandit-style). */
+  /** True while winding up or leaping on a Bandit-style dash. */
   isDashActive(): boolean {
     return this.isDashing
+  }
+
+  /** True while charging a fisherman-style hook throw. */
+  isHookWindupActive(): boolean {
+    return this.isHooking
+  }
+
+  /** Fisherman-style hook phase — `windup` while charging the throw. */
+  getHookPhase(): 'windup' | null {
+    if (!this.isHooking) return null
+    return 'windup'
+  }
+
+  /** True when a hook is flying or pulling for this unit. */
+  isHookBusy(state: GameState): boolean {
+    return isHookThrowerBusy(state, this.id)
+  }
+
+  /** Gnoll-style thrower — hold position while attacking or until the bone returns. */
+  isBoomerangAnchored(state: GameState): boolean {
+    if (!this.stats.boomerangAttack) return false
+    if (isBoomerangThrowerBusy(state, this.id)) return true
+    return this.state === TroopState.ATTACKING
+  }
+
+  /** Snap back after collision resolution so the thrower stays planted. */
+  restoreBoomerangAnchor(): void {
+    if (!this.boomerangAnchorPos) return
+    this.position.x = this.boomerangAnchorPos.x
+    this.position.y = this.boomerangAnchorPos.y
   }
 
   /** Current opening-dash phase — `windup` (idle hold) or `leap` (frozen run pose). */
@@ -102,19 +133,48 @@ export class Troop extends Entity {
   private stuckMs = 0
   private slowSpeedMultiplier = 1
   private slowUntilMs = 0
-  private firstHitConsumed = false
   private isDashing = false
   private dashWindupMsRemaining = 0
   private dashTarget: Vec2 | null = null
   private dashTargetEntity: Entity | null = null
+  private isHooking = false
+  private hookWindupMsRemaining = 0
+  private hookTargetEntity: Entity | null = null
   private activeHealBurst: ActiveHealBurst | null = null
+  private armorHp = 0
+  private boomerangAnchorPos: Vec2 | null = null
 
   constructor(owner: Owner, stats: EntityStats, position: Vec2, grid: Grid, cardId: string) {
     super(nextEntityId(), owner, EntityKind.TROOP, position, stats.maxHp, cardId)
     this.stats = stats
+    this.armorHp = stats.armorHp ?? 0
     this.grid = grid
     this.pathfinder = new Pathfinder(grid)
     this.lastMarchDir = owner === Owner.PLAYER ? { x: 0, y: -1 } : { x: 0, y: 1 }
+  }
+
+  /** HP fraction for UI — includes armor pool when present. */
+  getHpFraction(): number {
+    const bodyMax = this.maxHp
+    const armorMax = this.stats.armorHp ?? 0
+    if (armorMax <= 0) return this.hp / bodyMax
+    const total = this.hp + this.armorHp
+    const totalMax = bodyMax + armorMax
+    return totalMax > 0 ? total / totalMax : 0
+  }
+
+  override takeDamage(amount: number): void {
+    if (amount <= 0) return
+    this.hasBeenDamaged = true
+    let remaining = amount
+    if (this.armorHp > 0) {
+      const absorbed = Math.min(this.armorHp, remaining)
+      this.armorHp -= absorbed
+      remaining -= absorbed
+    }
+    if (remaining > 0) {
+      this.hp = Math.max(0, this.hp - remaining)
+    }
   }
 
   /** March direction for ally push-from-behind (normalized when moving). */
@@ -133,7 +193,9 @@ export class Troop extends Entity {
   getAttackAimPoint(): Vec2 | null {
     const aimTarget = this.isDashing
       ? this.dashTargetEntity
-      : (this.state === TroopState.ATTACKING ? this.target : null)
+      : this.isHooking
+        ? this.hookTargetEntity
+        : (this.state === TroopState.ATTACKING ? this.target : null)
     if (!aimTarget?.isAlive) return null
     return this.moveGoalFor(aimTarget)
   }
@@ -150,6 +212,11 @@ export class Troop extends Entity {
   }
 
   tick(deltaMs: number, state: GameState): void {
+    this.runTick(deltaMs, state)
+    this.syncBoomerangAnchor(state)
+  }
+
+  private runTick(deltaMs: number, state: GameState): void {
     if (!this.isAlive) { this.state = TroopState.DEAD; return }
 
     this.tickHealPulses(deltaMs, state)
@@ -172,6 +239,29 @@ export class Troop extends Entity {
         }
       }
 
+      if (this.isHooking) {
+        if (!this.target.isAlive || this.hookTargetEntity?.id !== this.target.id) {
+          this.cancelHook()
+        } else {
+          this.tickHookWindup(deltaMs, state, this.target)
+          return
+        }
+      }
+
+      if (isHookThrowerBusy(state, this.id)) {
+        this.state = TroopState.ATTACKING
+        this.clearPath()
+        this.trackObjective(this.target)
+        return
+      }
+
+      if (this.stats.boomerangAttack && isBoomerangThrowerBusy(state, this.id)) {
+        this.state = TroopState.ATTACKING
+        this.clearPath()
+        this.trackObjective(this.target)
+        return
+      }
+
       if (dist <= attackReach) {
         this.state = TroopState.ATTACKING
         this.clearPath()
@@ -189,6 +279,12 @@ export class Troop extends Entity {
         return
       }
 
+      if (this.canStartHook(dist) && canHookTarget(this.target)) {
+        this.startHook(this.target)
+        this.tickHookWindup(deltaMs, state, this.target)
+        return
+      }
+
       this.state = TroopState.WALKING
       this.trackObjective(this.target)
       this.marchTowerId = this.target.kind === EntityKind.TOWER ? this.target.id : null
@@ -202,26 +298,33 @@ export class Troop extends Entity {
     this.moveFree(deltaMs, marchGoal, state)
   }
 
+  private syncBoomerangAnchor(state: GameState): void {
+    if (this.isBoomerangAnchored(state)) {
+      if (!this.boomerangAnchorPos) {
+        this.boomerangAnchorPos = { x: this.position.x, y: this.position.y }
+      }
+      return
+    }
+    this.boomerangAnchorPos = null
+  }
+
   private performAttack(state: GameState, primary: Entity): void {
     const damage = this.getAttackDamage()
     if (this.stats.boomerangAttack) {
       const travelCells = this.stats.boomerangTravelCells ?? 7.5
       launchBoomerang(state, this, primary, travelCells, damage)
       this.resetCharge()
-      this.firstHitConsumed = true
       return
     }
     const splash = this.stats.splashRadius
     if (splash && splash > 0) {
       this.dealSplashDamage(state, primary.position, primary.id, damage)
       this.resetCharge()
-      this.firstHitConsumed = true
       this.applyActiveHeal(state)
       return
     }
     this.dealDamageTo(state, primary, false, damage)
     this.resetCharge()
-    this.firstHitConsumed = true
     this.applyActiveHeal(state)
   }
 
@@ -317,18 +420,16 @@ export class Troop extends Entity {
     let damage = this.stats.damage
     if (this.isCharging && this.stats.chargeDamageMultiplier) {
       damage = Math.round(damage * this.stats.chargeDamageMultiplier)
-    } else if (!this.firstHitConsumed && this.stats.firstHitDamageMultiplier) {
-      damage = Math.round(damage * this.stats.firstHitDamageMultiplier)
     }
     return damage
   }
 
   private hasOpeningDash(): boolean {
-    return (this.stats.dashRangeCells ?? 0) > 0 && (this.stats.firstHitDamageMultiplier ?? 1) > 1
+    return (this.stats.dashRangeCells ?? 0) > 0
   }
 
   private canStartOpeningDash(distPx: number): boolean {
-    if (!this.hasOpeningDash() || this.firstHitConsumed || this.attackCooldownMs > 0) return false
+    if (!this.hasOpeningDash() || this.attackCooldownMs > 0) return false
     const dashReachPx = this.stats.dashRangeCells! * CELL_SIZE
     return distPx <= dashReachPx && distPx > this.stats.attackRange * CELL_SIZE
   }
@@ -348,6 +449,50 @@ export class Troop extends Entity {
     this.dashWindupMsRemaining = 0
     this.dashTarget = null
     this.dashTargetEntity = null
+  }
+
+  private hasHookAttack(): boolean {
+    return this.stats.hookAttack === true
+  }
+
+  private canStartHook(distPx: number): boolean {
+    if (!this.hasHookAttack() || this.attackCooldownMs > 0) return false
+    const minPx = (this.stats.hookMinRangeCells ?? 3.5) * CELL_SIZE
+    const maxPx = (this.stats.hookMaxRangeCells ?? 7) * CELL_SIZE
+    return distPx >= minPx && distPx <= maxPx
+  }
+
+  private startHook(target: Entity): void {
+    this.isHooking = true
+    this.hookWindupMsRemaining = this.stats.hookWindupMs ?? HOOK_WINDUP_MS
+    this.hookTargetEntity = target
+    this.clearPath()
+    this.trackObjective(target)
+    this.state = TroopState.ATTACKING
+  }
+
+  private cancelHook(): void {
+    this.isHooking = false
+    this.hookWindupMsRemaining = 0
+    this.hookTargetEntity = null
+  }
+
+  private tickHookWindup(deltaMs: number, state: GameState, target: Entity): void {
+    this.state = TroopState.ATTACKING
+    if (this.hookWindupMsRemaining > 0) {
+      this.hookWindupMsRemaining -= deltaMs
+      return
+    }
+
+    this.cancelHook()
+    launchHook(
+      state,
+      this,
+      target,
+      this.stats.hookSlowDurationMs ?? 1500,
+      this.stats.hookSlowSpeedMultiplier ?? 0.65,
+    )
+    this.attackCooldownMs = 1000 / this.stats.attackRate
   }
 
   private tickOpeningDash(deltaMs: number, state: GameState, target: Entity): void {
@@ -718,7 +863,12 @@ export class Troop extends Entity {
   private engageDistTo(entity: Entity, state?: GameState): number {
     if (entity.kind === EntityKind.TOWER && state?.flowFields) {
       const cost = state.flowFields.costTo(entity.id, this.position.x, this.position.y)
-      if (cost < Infinity) return cost * CELL_SIZE
+      if (cost < Infinity) {
+        // Active king always takes march priority — appears 1 cell away so it beats
+        // every distance comparison including the stickiness margin check
+        if ((entity as Tower).isKing && (entity as Tower).isActive()) return CELL_SIZE
+        return cost * CELL_SIZE
+      }
     }
     if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {
       return surfaceDistToEntity(this.position, entity)

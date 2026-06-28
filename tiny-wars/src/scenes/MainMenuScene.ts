@@ -22,7 +22,7 @@ export class MainMenuScene extends Phaser.Scene {
       strokeThickness: 8,
     }).setOrigin(0.5)
 
-    this.add.text(width / 2, height * 0.38, 'A Clash Royale Clone', {
+    this.add.text(width / 2, height * 0.38, 'Real-time lane battles', {
       fontSize: '17px',
       fontFamily: CINZEL_FONT,
       fontStyle: 'bold',

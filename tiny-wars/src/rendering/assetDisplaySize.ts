@@ -5,6 +5,7 @@ import {
   MAP_HEIGHT_MULTIPLIER,
   MAP_TOWER_CONTENT_FILL,
   MAP_UNIT_TARGET_HEIGHT,
+  SPRITE_VISUAL_SCALE,
   TROOP_COLLISION_HEIGHT_RATIO,
   TROOP_COLLISION_WIDTH_RATIO,
   towerFootprintHalfExtents,
@@ -90,11 +91,11 @@ export function displaySizeForCard(
   textureKey: string,
   frame: string | number = 0,
 ): DisplaySize {
-  return displaySizeForTexture(scene, textureKey, frame, targetHeightForCard(cardId))
+  return displaySizeForTexture(scene, textureKey, frame, targetHeightForCard(cardId) * SPRITE_VISUAL_SCALE)
 }
 
 export function displaySizeForTower(scene: Phaser.Scene, isKing: boolean, textureKey: string): DisplaySize {
-  return displaySizeForTexture(scene, textureKey, 0, targetHeightForTower(isKing))
+  return displaySizeForTexture(scene, textureKey, 0, targetHeightForTower(isKing) * SPRITE_VISUAL_SCALE)
 }
 
 export function applyTextureDisplaySize(
