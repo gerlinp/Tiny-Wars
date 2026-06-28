@@ -65,10 +65,8 @@ export class FlowFieldManager {
    * becomes the primary target once unlocked.
    */
   nearestEnemyTower(state: GameState, fromPos: Vec2, myOwner: Owner): Tower | null {
-    let bestKing: Tower | null = null
-    let bestKingCost = Infinity
-    let bestPrincess: Tower | null = null
-    let bestPrincessCost = Infinity
+    let best: Tower | null = null
+    let bestCost = Infinity
 
     for (const tower of state.towers.values()) {
       if (tower.owner === myOwner || !tower.isAlive) continue
@@ -76,16 +74,10 @@ export class FlowFieldManager {
       const field = this.fields.get(tower.id)
       if (!field) continue
       const cost = field.costAt(fromPos.x, fromPos.y)
-      if (tower.isKing) {
-        if (cost < bestKingCost) { bestKingCost = cost; bestKing = tower }
-      } else {
-        if (cost < bestPrincessCost) { bestPrincessCost = cost; bestPrincess = tower }
-      }
+      if (cost < bestCost) { bestCost = cost; best = tower }
     }
 
-    // Active king takes unconditional priority — only reachable positions qualify
-    if (bestKing && bestKingCost < Infinity) return bestKing
-    return bestPrincess
+    return best
   }
 
   /**
