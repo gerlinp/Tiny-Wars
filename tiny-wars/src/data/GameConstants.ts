@@ -173,6 +173,10 @@ export const BOMB_TOWER_LIFETIME_MS = 30_000
 /** Melee troop detection radius (ranged troops use their attack range instead) */
 export const TROOP_AGGRO_RANGE_CELLS = 6
 
+/** How far beyond attack range a unit can be pushed before it drops its current target.
+ *  1.0 = drop immediately at edge of range; 2.0 = hold until twice attack range away. */
+export const COMBAT_LEASH_MULTIPLIER = 2.0
+
 /** Clash Royale Prince — charge after this many tiles of walking. */
 export const LANCER_CHARGE_DISTANCE_CELLS = 3.5
 export const LANCER_CHARGE_SPEED_MULT = 2

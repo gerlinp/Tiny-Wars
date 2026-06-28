@@ -29,7 +29,7 @@ import {
 import { getLaneMarchGoal } from '../LaneMovement'
 import { moveTowardWithAllyAvoidance } from '../TroopAvoidance'
 import {
-  CELL_SIZE, TROOP_AGGRO_RANGE_CELLS, EPSILON_DISTANCE,
+  CELL_SIZE, TROOP_AGGRO_RANGE_CELLS, COMBAT_LEASH_MULTIPLIER, EPSILON_DISTANCE,
   LEFT_LANE_COL, RIGHT_LANE_COL, RIVER_ROW_START, RIVER_ROW_END,
   HEAL_PULSE_INTERVAL_MS, THIEF_DASH_WINDUP_MS, HOOK_WINDUP_MS,
 } from '@data/GameConstants'
@@ -886,7 +886,7 @@ export class Troop extends Entity {
     const engagedOnTroop = engagedTarget?.kind === EntityKind.TROOP
     const engaged =
       engagedTarget !== null &&
-      this.combatDistTo(engagedTarget) <= attackReach &&
+      this.combatDistTo(engagedTarget) <= attackReach * COMBAT_LEASH_MULTIPLIER &&
       !(this.stats.targetsBuildingsOnly && engagedOnTroop)
     if (engaged) return
 
