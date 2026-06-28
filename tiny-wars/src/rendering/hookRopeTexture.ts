@@ -6,7 +6,8 @@ export const HOOK_ROPE_TEXTURE_KEY = 'hook_rope'
 export function registerHookRopeTexture(scene: Phaser.Scene): void {
   if (scene.textures.exists(HOOK_ROPE_TEXTURE_KEY)) return
 
-  const g = scene.make.graphics({ x: 0, y: 0, add: false })
+  const g = scene.make.graphics({ x: 0, y: 0 })
+  g.setVisible(false)
   const w = 48
   const h = 3
 
