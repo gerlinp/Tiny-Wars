@@ -364,12 +364,10 @@ export class TowerSprite {
     })
   }
 
-  private playCannonShot(cannon: Phaser.GameObjects.Sprite, index: number, aimPoint: Vec2): void {
-    const origin = this.garrisonProjectileOrigin(index)
-    const aim = resolveGarrisonCannonKey(origin.x, origin.y, aimPoint.x, aimPoint.y)
+  private playCannonShot(cannon: Phaser.GameObjects.Sprite, index: number, _aimPoint: Vec2): void {
     cannon.anims.stop()
-    cannon.setTexture(aim.key, 0)
-    cannon.setFlipX(aim.flipX)
+    cannon.setTexture(garrisonCannonIdleKey(this.owner), 0)
+    cannon.setFlipX(false)
 
     this.cannonShotTimer?.remove()
     this.cannonShotTimer = this.scene.time.delayedCall(GARRISON_CANNON_SHOT_MS, () => {

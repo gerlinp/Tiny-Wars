@@ -8,7 +8,7 @@ export const BOMB_SPIN_TIME_SCALE = 0.35
 export const BOMB_PROJECTILE_DISPLAY_SCALE = 2.75
 
 /** King castle cannon shots — smaller, no mid-flight arc scale-up. */
-export const TOWER_CANNON_PROJECTILE_DISPLAY_SCALE = 1.5
+export const TOWER_CANNON_PROJECTILE_DISPLAY_SCALE = 2.0
 
 /** No arc exaggeration — constant size for tower lobs. */
 export const FLAT_LOB_PEAK_SCALE = 1

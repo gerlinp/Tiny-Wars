@@ -85,17 +85,21 @@ export function displaySizeForTexture(
   }
 }
 
+const UNSCALED_CARD_IDS = new Set(['skeleton', 'skeleton_army', 'archer', 'pawn', 'pawns'])
+
 export function displaySizeForCard(
   scene: Phaser.Scene,
   cardId: string,
   textureKey: string,
   frame: string | number = 0,
 ): DisplaySize {
-  return displaySizeForTexture(scene, textureKey, frame, targetHeightForCard(cardId) * SPRITE_VISUAL_SCALE)
+  const scale = UNSCALED_CARD_IDS.has(cardId) ? 1 : SPRITE_VISUAL_SCALE
+  return displaySizeForTexture(scene, textureKey, frame, targetHeightForCard(cardId) * scale)
 }
 
 export function displaySizeForTower(scene: Phaser.Scene, isKing: boolean, textureKey: string): DisplaySize {
-  return displaySizeForTexture(scene, textureKey, 0, targetHeightForTower(isKing) * SPRITE_VISUAL_SCALE)
+  const scale = isKing ? SPRITE_VISUAL_SCALE : 1
+  return displaySizeForTexture(scene, textureKey, 0, targetHeightForTower(isKing) * scale)
 }
 
 export function applyTextureDisplaySize(
