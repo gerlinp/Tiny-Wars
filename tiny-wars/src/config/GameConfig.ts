@@ -26,7 +26,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   },
   fps: {
     target: 30,
-    forceSetTimeOut: false,
+    forceSetTimeOut: true,
   },
   scene: [BootScene, PreloadScene, MainMenuScene, DeckBuilderScene, TransitionLoadingScene, PvPLobbyScene, BattleScene, UIScene, ResultScene],
 }

@@ -12,6 +12,7 @@ import { EffectsPool } from '@rendering/EffectsPool'
 import { DeathPool } from '@rendering/DeathPool'
 import { ArrowPool } from '@rendering/ArrowPool'
 import { HexFireballPool } from '@rendering/HexFireballPool'
+import { HealEffectPool } from '@rendering/HealEffectPool'
 import { ArrowsSpellPool } from '@rendering/ArrowsSpellPool'
 import { TntPool } from '@rendering/TntPool'
 import { ensurePlaceholders } from '@rendering/PlaceholderFactory'
@@ -40,8 +41,8 @@ export class BattleScene extends Phaser.Scene {
   private grid!: Grid
   private simulator!: GameSimulator
   private playerCardSystem!: CardSystem
-  private botCardSystem!: CardSystem
-  private botAI!: BotAI
+  private botCardSystem: CardSystem | null = null
+  private botAI: BotAI | null = null
   private pvpNetwork: PvPNetwork | null = null
   private sprites: Map<string, EntitySprite> = new Map()
   private towerSprites: Map<string, TowerSprite> = new Map()
@@ -49,6 +50,7 @@ export class BattleScene extends Phaser.Scene {
   private deaths!: DeathPool
   private arrows!: ArrowPool
   private hexFireballs!: HexFireballPool
+  private healEffects!: HealEffectPool
   private arrowsSpell!: ArrowsSpellPool
   private tntProjectiles!: TntPool
   private deployCtrl!: CardDeployController
@@ -71,8 +73,11 @@ export class BattleScene extends Phaser.Scene {
     this.grid      = new Grid()
     this.simulator = new GameSimulator(this.grid)
     this.playerCardSystem = new CardSystem(loadPlayerDeck())
-    this.botCardSystem    = new CardSystem()
-    this.botAI    = new BotAI()
+    if (!this.pvpNetwork) {
+      // Solo only — in PvP the opponent's cards arrive via network, not a local deck
+      this.botCardSystem = new CardSystem()
+      this.botAI         = new BotAI()
+    }
 
     if (this.pvpNetwork) {
       this.pvpNetwork.onDeploy = (cardId, gridPos) => {
@@ -95,6 +100,7 @@ export class BattleScene extends Phaser.Scene {
     this.deaths   = new DeathPool(this)
     this.arrows   = new ArrowPool(this)
     this.hexFireballs = new HexFireballPool(this)
+    this.healEffects = new HealEffectPool(this)
     this.arrowsSpell = new ArrowsSpellPool(this)
     this.tntProjectiles = new TntPool(this)
 
@@ -173,8 +179,8 @@ export class BattleScene extends Phaser.Scene {
     // Tick the simulation
     const state = this.simulator.tick(delta)
 
-    // Bot AI (skipped in PvP — opponent actions come via network)
-    if (!this.pvpNetwork) {
+    // Bot AI (solo only — in PvP opponent actions come via network)
+    if (this.botAI && this.botCardSystem) {
       const botAction = this.botAI.tick(delta, state, this.botCardSystem)
       if (botAction) {
         const card = this.botCardSystem.hand[botAction.handIndex]
@@ -256,6 +262,10 @@ export class BattleScene extends Phaser.Scene {
           } else {
             flash()
           }
+          break
+        }
+        case 'HEAL_AURA': {
+          this.healEffects.spawn(event.position.x, event.position.y, event.owner, event.radius)
           break
         }
         case 'DEATH': {

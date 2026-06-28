@@ -33,5 +33,12 @@ export abstract class Entity {
     this.hp = Math.max(0, this.hp - amount)
   }
 
+  /** Restore HP up to maxHp — returns amount actually healed. */
+  heal(amount: number): number {
+    const before = this.hp
+    this.hp = Math.min(this.maxHp, this.hp + amount)
+    return this.hp - before
+  }
+
   abstract tick(deltaMs: number, state: GameState): void
 }

@@ -48,6 +48,18 @@ export interface EntityStats {
   chargeDamageMultiplier?: number
   /** Giant-style — only acquires buildings and towers, never enemy troops. */
   targetsBuildingsOnly?: boolean
+  /** Battle Healer-style — HP restored per pulse when attacking. */
+  healPerPulse?: number
+  /** Pulses per attack (default 4). */
+  healPulseCount?: number
+  /** Heal aura radius while attacking (grid cells). */
+  healRadius?: number
+  /** HP restored per pulse on deploy (spawn heal). */
+  spawnHealPerPulse?: number
+  /** Spawn-heal pulses on deploy (default 4). */
+  spawnHealPulseCount?: number
+  /** Spawn-heal radius on deploy (grid cells). */
+  spawnHealRadius?: number
 }
 
 export interface SpellStats {
@@ -84,6 +96,8 @@ export type GameEvent =
   | { type: 'SPELL_CAST';  cardId: string; owner: Owner; from: Vec2; to: Vec2; flightMs: number; entityId: string }
   | { type: 'SPELL_IMPACT'; cardId: string; position: Vec2; radius: number }
   | { type: 'DAMAGE'; targetId: string; amount: number; attackerId?: string; splash?: boolean }
+  | { type: 'HEAL'; targetId: string; amount: number; healerId?: string }
+  | { type: 'HEAL_AURA'; position: Vec2; radius: number; owner: Owner; healerId?: string }
   | { type: 'DEATH'; entityId: string; position: Vec2; cardId?: string; deathSplashRadius?: number }
   | { type: 'CROWN_LOST';   owner: Owner; towerId: string }
 

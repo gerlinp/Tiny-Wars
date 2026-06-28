@@ -233,6 +233,9 @@ export class DeckBuilderScene extends Phaser.Scene {
     this.elixirText.setText(formatAvgElixir(this.deck))
     this.saveBtn.setEnabled(full)
     this.clearBtn.setEnabled(this.deck.length > 0)
+    // Auto-save whenever the deck is complete so matches always use the
+    // latest deck even if the player doesn't press the SAVE button.
+    if (full) savePlayerDeck([...this.deck])
   }
 
   private flashFullWarning(): void {

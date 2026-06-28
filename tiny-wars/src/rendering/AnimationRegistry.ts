@@ -4,6 +4,7 @@ import {
   CARD_ASSET_BUNDLES,
   clipAnimKey,
   DAMAGE_FIRE_SHEETS,
+  MONK_HEAL_EFFECT_SHEETS,
   TROOP_DEATH_SHEET,
   type AnimClip,
   type ClipDef,
@@ -101,6 +102,20 @@ export function registerHexShamanFx(scene: Phaser.Scene): void {
       key: animKey,
       frames: scene.anims.generateFrameNumbers(sheetKey, { start: 0, end: 8 }),
       frameRate: 18,
+      repeat: 0,
+    })
+  }
+}
+
+/** Monk heal aura — blue/red Heal_Effect sheets (11 frames). */
+export function registerMonkHealFx(scene: Phaser.Scene): void {
+  for (const sheet of Object.values(MONK_HEAL_EFFECT_SHEETS)) {
+    if (scene.anims.exists(sheet.animKey)) continue
+    if (!scene.textures.exists(sheet.key)) continue
+    scene.anims.create({
+      key: sheet.animKey,
+      frames: scene.anims.generateFrameNumbers(sheet.key, { start: 0, end: 10 }),
+      frameRate: 16,
       repeat: 0,
     })
   }

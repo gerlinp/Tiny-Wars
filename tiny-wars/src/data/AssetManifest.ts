@@ -242,6 +242,46 @@ function knightSide(unit: string, side: 'Blue' | 'Red'): SideAssets {
   }
 }
 
+function monkSheet(side: 'Blue' | 'Red', clip: 'idle' | 'run' | 'attack'): SheetDef {
+  const folder = side === 'Blue' ? 'Blue Units' : 'Red Units'
+  const prefix = side === 'Blue' ? 'blue' : 'red'
+  const fileClip = clip === 'idle' ? 'Idle' : clip === 'run' ? 'Run' : 'Heal'
+  return {
+    key: `monk_${prefix}_${clip}`,
+    path: `assets/Units/${folder}/Monk/${fileClip}.png`,
+    frameWidth: FRAME_W,
+    frameHeight: FRAME_H,
+  }
+}
+
+function monkSide(side: 'Blue' | 'Red'): SideAssets {
+  const idle   = monkSheet(side, 'idle')
+  const run    = monkSheet(side, 'run')
+  const attack = monkSheet(side, 'attack')
+  return {
+    idle:   clip(idle,   0, 5,  10, -1),
+    run:    clip(run,    0, 3,  14, -1),
+    attack: clip(attack, 0, 10, 14,  0),
+  }
+}
+
+export const MONK_HEAL_EFFECT_SHEETS = {
+  blue: {
+    key: 'monk_blue_heal_effect',
+    path: 'assets/Units/Blue Units/Monk/Heal_Effect.png',
+    frameWidth: FRAME_W,
+    frameHeight: FRAME_H,
+    animKey: 'monk_blue_heal_effect_anim',
+  },
+  red: {
+    key: 'monk_red_heal_effect',
+    path: 'assets/Units/Red Units/Monk/Heal_Effect.png',
+    frameWidth: FRAME_W,
+    frameHeight: FRAME_H,
+    animKey: 'monk_red_heal_effect_anim',
+  },
+} as const
+
 /** Knights faction Archer — 1536×1344 combined sheet (8×7 grid @ 192px).
  *  Row 0: idle/walk down-right (0–5)   Row 1: idle/walk down-left (8–13)
  *  Row 2: death (16–23) — unused       Row 3: shoot right (24–31)
@@ -904,6 +944,14 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     tintBotSide: true,
     player: pandaSide('blue'),
     bot:    pandaSide('red'),
+  },
+  {
+    cardId: 'monk',
+    avatar: humanAvatar('Avatars_04.png'),
+    contentFill: 0.52,
+    attackHitFrame: 5,
+    player: monkSide('Blue'),
+    bot:    monkSide('Red'),
   },
   {
     cardId: 'arrows',

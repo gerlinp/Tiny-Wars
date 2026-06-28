@@ -370,6 +370,27 @@ describe('Card avatars', () => {
     expect(bundle.attackHitFrame).toBe(6)
   })
 
+  it('monk uses Monk sheets with dedicated human avatar and heal effect assets', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'monk')!
+    expect(cardAvatarKey('monk')).toBe('avatar_avatars_04')
+    expect(getCardAvatarDef('monk').path).toContain('Avatars_04.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('monk').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('/Monk/Idle.png')
+      expect(side.run.sheet.path).toContain('/Monk/Run.png')
+      expect(side.attack.sheet.path).toContain('/Monk/Heal.png')
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(6)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(4)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(11)
+    expect(bundle.tintBotSide).toBeUndefined()
+    expect(existsSync(resolve(PUBLIC, 'assets/Units/Blue Units/Monk/Heal_Effect.png'))).toBe(true)
+    expect(existsSync(resolve(PUBLIC, 'assets/Units/Red Units/Monk/Heal_Effect.png'))).toBe(true)
+  })
+
   it('bomb tower uses the wood tower building sprite in the card hand', () => {
     expect(cardAvatarKey('wood_tower')).toBe('avatar_bomb_tower')
     const def = getCardAvatarDef('wood_tower')

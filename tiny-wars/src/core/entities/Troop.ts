@@ -11,7 +11,7 @@ import {
   pushTroopOutOfEntity,
   surfaceDistToEntity,
 } from '../EntityGeometry'
-import { dealAreaDamage, applySlowInRadius } from '../AreaDamage'
+import { dealAreaDamage, applySlowInRadius, applyHealInRadius } from '../AreaDamage'
 import { distSq, dist } from '../Vector2'
 import { findNearestEnemy, findNearestEnemyStructure, isAttackableTower } from '../TargetSelection'
 import type { Tower } from './Tower'
@@ -90,6 +90,21 @@ export class Troop extends Entity {
     return this.lastMarchDir
   }
 
+  /** Deploy-time heal aura (e.g. Monk spawn heal). */
+  applySpawnHeal(state: GameState): void {
+    const s = this.stats
+    if (!s.spawnHealRadius || !s.spawnHealPerPulse) return
+    const total = s.spawnHealPerPulse * (s.spawnHealPulseCount ?? 4)
+    applyHealInRadius(state, this.owner, this.position, s.spawnHealRadius, total, this.id)
+    state.events.push({
+      type: 'HEAL_AURA',
+      position: { ...this.position },
+      radius: s.spawnHealRadius,
+      owner: this.owner,
+      healerId: this.id,
+    })
+  }
+
   /** World point the lancer is striking toward — for directional attack anims. */
   getAttackAimPoint(): Vec2 | null {
     if (this.state !== TroopState.ATTACKING || !this.target?.isAlive) return null
@@ -138,11 +153,27 @@ export class Troop extends Entity {
       this.dealSplashDamage(state, primary.position, primary.id, damage)
       this.resetCharge()
       this.firstHitConsumed = true
+      this.applyActiveHeal(state)
       return
     }
     this.dealDamageTo(state, primary, false, damage)
     this.resetCharge()
     this.firstHitConsumed = true
+    this.applyActiveHeal(state)
+  }
+
+  private applyActiveHeal(state: GameState): void {
+    const s = this.stats
+    if (!s.healRadius || !s.healPerPulse) return
+    const total = s.healPerPulse * (s.healPulseCount ?? 4)
+    applyHealInRadius(state, this.owner, this.position, s.healRadius, total, this.id)
+    state.events.push({
+      type: 'HEAL_AURA',
+      position: { ...this.position },
+      radius: s.healRadius,
+      owner: this.owner,
+      healerId: this.id,
+    })
   }
 
   /** Death nova — area damage and optional slow (e.g. Turtle). */

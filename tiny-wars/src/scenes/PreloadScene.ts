@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
-import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, getHealthBarImageKeys, HEALTH_BAR_ASSETS } from '@data/AssetManifest'
-import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims } from '@rendering/AnimationRegistry'
+import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, getHealthBarImageKeys, HEALTH_BAR_ASSETS, MONK_HEAL_EFFECT_SHEETS } from '@data/AssetManifest'
+import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx } from '@rendering/AnimationRegistry'
 import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET } from '@data/AssetManifest'
 import { TERRAIN_COLOR1, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_DECK } from '@data/TerrainManifest'
 import { DEFAULT_DECK } from '@data/CardData'
@@ -156,6 +156,13 @@ export class PreloadScene extends Phaser.Scene {
       { frameWidth: HEX_SHAMAN_EXPLOSION_SHEET.frameWidth, frameHeight: HEX_SHAMAN_EXPLOSION_SHEET.frameHeight },
     )
 
+    for (const sheet of Object.values(MONK_HEAL_EFFECT_SHEETS)) {
+      this.load.spritesheet(sheet.key, sheet.path, {
+        frameWidth: sheet.frameWidth,
+        frameHeight: sheet.frameHeight,
+      })
+    }
+
     // --- Effects ---
     this.load.image('explosion_1', 'assets/Particle FX/Explosion_01.png')
     this.load.image('explosion_2', 'assets/Particle FX/Explosion_02.png')
@@ -262,6 +269,7 @@ export class PreloadScene extends Phaser.Scene {
     registerCardAnimations(this)
     registerTroopDeathAnim(this)
     registerDamageFireAnims(this)
+    registerMonkHealFx(this)
 
     this.time.delayedCall(waitMs, () => this.scene.start('MainMenuScene'))
   }

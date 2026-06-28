@@ -6,65 +6,66 @@ Inventory of Tiny Swords unit art in `tiny-wars-assets` (symlinked at `public/as
 
 ---
 
-## Currently used
+## Currently wired (22 cards)
 
-**Active deck (8 cards):** `warrior`, `archer`, `skeleton`, `lancer`, `wizard`, `torch_goblin`, `arrows`, `tnt`
+**Default deck (8):** `warrior`, `archer`, `skeleton`, `lancer`, `wizard`, `torch_goblin`, `arrows`, `tnt`
 
-| Tiny-Wars card | Asset folder | CR mapping |
-|---|---|---|
-| Warrior | `Units/*/Warrior/` | Knight (melee) |
-| Archers | `Factions/Knights/Troops/Archer/` | Archers (×2 deploy) |
-| Skeletons | `Enemy Pack/.../Skull/` | Skeletons (×3 deploy) |
-| Spear Goblins | `Enemy Pack/.../Spear Goblin/` | Spear Goblins (×3 deploy) |
-| Troll | `Enemy Pack/.../Troll/` | Giant (building tank) |
-| Elite Archer | `Units/*/Archer/` | Musketeer |
-| Pawn | `Units/*/Pawn/` | Tanky melee (high HP) |
-| Lancer | `Units/*/Lancer/` | Prince |
-| Wizard | `Enemy Pack/.../Hex Shaman/` | Wizard (splash ranged) |
-| Torch Goblin | `Enemy Pack/.../Torch Goblin/` | Fast ranged goblin |
-| Arrows | Archer `Arrow.png` | Arrows spell |
-| Rocket | `Enemy Pack/.../Bomb/` | Rocket spell |
+| Tiny-Wars card | Asset folder | CR mapping (L14) | Deck |
+|---|---|---|---|
+| Warrior | `Units/*/Warrior/` | Knight | default |
+| Archers | `Factions/Knights/Troops/Archer/` | Archers ×2 | default |
+| Skeletons | `Enemy Pack/.../Skull/` | Skeletons ×3 | default |
+| Lancer | `Units/*/Lancer/` | Prince (charge) | default |
+| Wizard | `Enemy Pack/.../Hex Shaman/` | Wizard (splash) | default |
+| Torch Goblin | `Enemy Pack/.../Torch Goblin/` | Fast ranged goblin | default |
+| Arrows | Archer `Arrow.png` | Arrows spell | default |
+| Bomb | `Enemy Pack/.../Bomb/` | Rocket spell | default |
+| Elite Archer | `Units/*/Archer/` | Musketeer | builder |
+| Pawn | `Units/*/Pawn/` | Tanky melee | builder |
+| Spear Goblins | `Enemy Pack/.../Spear Goblin/` | Spear Goblins ×3 | builder |
+| Troll | `Enemy Pack/.../Troll/` | Giant (building-only) | builder |
+| Lizard | `Enemy Pack/.../Caveborn/Lizard/` | Inferno Dragon (air splash) | builder |
+| Pig Rider | `Enemy Pack/.../Pig Rider Spear Goblin/` | Hog Rider (building-only) | builder |
+| Bomb Fish | `Enemy Pack/.../Bomb Fish/` | Wall Breakers (ground splash) | builder |
+| Minotaur | `Enemy Pack/.../Minotaur/` | P.E.K.K.A | builder |
+| Thief | `Enemy Pack/.../Thief/` | Bandit (first-hit ×2) | builder |
+| Turtle | `Enemy Pack/.../Caveborn/Turtle/` | Ice Golem (death nova + slow) | builder |
+| Panda | `Enemy Pack/.../Panda/` | Valkyrie (splash 2) | builder |
+| Monk | `Units/*/Monk/` | Battle Healer (heal on attack + deploy) | builder |
+| Bomb Tower | `Factions/Goblins/Buildings/Wood_Tower/` | Bomb Tower | excluded (`DECK_EXCLUDED_CARD_IDS`) |
 
-**Coded but not in default deck:** `elite_archer` (Musketeer), `pawn` (tanky melee), `spear_goblin` (Spear Goblins), `troll` (Giant stats — deck builder only).
+**Enemy Pack wired (13 animated units):** Skull, Spear Goblin, Troll, Torch Goblin, Hex Shaman, Bomb (spell), Lizard, Pig Rider Spear Goblin, Bomb Fish, Minotaur, Thief, Turtle, Panda.
 
-**Coded but excluded from deck:** `wood_tower` → Bomb Tower (`Factions/Goblins/Buildings/Wood_Tower/`).
+**Knights faction wired:** Warrior, Archer (×2 art lines), Pawn, Lancer, Monk.
 
-**Enemy Pack wired:** Skull (Skeletons), Spear Goblin, Troll, Torch Goblin, Hex Shaman (Wizard), Bomb (Rocket). **~19 animated enemy units** still unused.
+**Backlog:** ~14 unused Enemy Pack animated folders + Goblin faction buildings/troops (Barrel, Dynamite, Cannon, etc.).
 
 ---
 
-## Tier 1 — Best fits
+## Tier 1 — Best fits (remaining)
 
-Full Idle/Run/Attack sheets, a matching card-hand portrait (or obvious Human Avatar pick), and a clear deck-role gap.
+Full Idle/Run/Attack (or equivalent) sheets, a clear deck-role gap, and a portrait pick.
 
 | Unused asset | CR reference | Elixir | Why |
 |---|---|---:|---|
-| **Pig Rider Spear Goblin** | Hog Rider | 4 | Fast single unit rushing towers. Deck has no win condition. |
-| **Bomb Fish** | Wall Breakers | 2 | Runs in and shoots bombs at buildings. Portrait: `Enemy Avatars/Bomb Fish.png`. |
-| **Monk** | Battle Healer | 4 | Only unused knight unit; has `Heal` + `Heal_Effect` clips. Support role missing from deck. Pick portrait from `Human Avatars/` (e.g. `Avatars_02` or `Avatars_06`). |
-| **Minotaur** | P.E.K.K.A | 7 | Slow hammer brute — big single-target tank. |
-| **Harpoon Shark** | Hunter | 4 | Throws harpoons at medium range. Portrait: `Harpoon Shark.png`; projectile: `Harpoon.png`. |
+| **Harpoon Shark** | Hunter | 4 | Medium-range harpoon thrower. Portrait: `Harpoon Shark.png`; projectile: `Harpoon.png`. |
 | **Barrel** (Goblin faction) | Goblin Barrel | 3 | Rolling barrel — spell or deployable. `Factions/Goblins/Troops/Barrel/`. |
 | **Wood Tower** (already coded) | Bomb Tower | 4 | Fully wired; excluded via `DECK_EXCLUDED_CARD_IDS`. |
 
 ---
 
-## Tier 2 — Good fits
+## Tier 2 — Good fits (remaining)
 
 Strong art/behavior match; more design or tuning work.
 
 | Unused asset | CR reference | Elixir | Why |
 |---|---|---:|---|
-| **Turtle** | Guards | 3 | Shell hide (`Guard_In` / `Guard_Out`) = shielded defensive melee. Best Guards fit now that Skull → Skeletons. |
-| **Thief** | Bandit or Goblins | 2–3 | Fast knife attacks — dash melee or cheap cycle. |
 | **Gnome** | Goblins or Bats | 2 | Tiny, very fast hammer swipes — ground or air swarm. |
 | **Bear** | Giant | 5 | Big slow melee — building-focused tank (distinct from wired Troll). |
-| **Gnoll** | Musketeer | 4 | Throws bones at range; `Gnoll_Bone.png` projectile included. |
+| **Gnoll** | Musketeer | 4 | Throws bones at range; `Gnoll_Bone.png` projectile. Portrait: `Enemy Avatars_10.png`. |
 | **Paddle Shark** | Barbarians | 5 | Oar melee rush; deploy ×2 like Barbarians. |
-| **Panda** | Mega Knight or Valkyrie | 4–7 | Martial arts melee with `Guard` stance. |
-| **Spider** | Bats or Graveyard | 2–5 | Fast small attacker — best as cheap air swarm. |
-| **Snake** | Bats (swarm) or Poison (spell) | 2–4 | No snake troop in CR; swarm or future poison spell. |
-| **Lizard** | Mega Minion or Inferno Dragon | 3–4 | `Lizard_Hit` spikes = area denial / defensive damage. |
+| **Spider** | Bats | 2 | Fast small attacker — cheap air swarm. Portrait: `Enemy Avatars_11.png`. |
+| **Snake** | Bats (swarm) or Poison (spell) | 2–4 | No snake troop in CR; swarm or future poison spell. Portrait: `Enemy Avatars_07.png`. |
 | **Dynamite goblin** (TNT faction) | Fireball or building goblin | 4 | Distinct from fish `Bomb/` used for Rocket. `Factions/Goblins/Troops/TNT/Dynamite/`. |
 
 ---
@@ -82,6 +83,24 @@ Strong art/behavior match; more design or tuning work.
 
 ---
 
+## Monk (`monk`) — Battle Healer L14
+
+**Status:** Done (June 2026) · **Asset:** `Units/{Blue,Red} Units/Monk/` · **Portrait:** `Avatars_04.png` · **CR:** [Battle Healer](https://liquipedia.net/clashroyale/Battle_Healer) L14 · **Deck:** builder
+
+| Stat | CR L14 | Tiny-Wars |
+|---|---:|---|
+| Elixir | 4 | `elixirCost: 4` |
+| HP / Damage | 2274 / 196 | `maxHp` / `damage` |
+| Hit speed | 1.5 s | `attackRate: 1 / 1.5` |
+| Range | Melee Long (1.6) | `attackRange: 1.6` |
+| Speed | Medium (60) | `CR_SPEED.medium` |
+| Active heal | ~33.75 HP/pulse ×4, radius 4 | `healPerPulse: 34`, `healPulseCount: 4`, `healRadius: 4` |
+| Spawn heal | ~66.75 HP/pulse ×4, radius 2.5 | `spawnHealPerPulse: 67`, `spawnHealPulseCount: 4`, `spawnHealRadius: 2.5` |
+
+**Sheets:** `Idle` (6), `Run` (4), `Heal` (11, attack anim), `Heal_Effect` (11, VFX) · Blue/Red palettes · Test: `MonkHeal.test.ts`
+
+---
+
 ## Unused clips on in-deck units
 
 Polish opportunities, not new cards.
@@ -92,21 +111,24 @@ Polish opportunities, not new cards.
 | **Lancer** | All `*_Defence` directional holds | Prince charge wind-up / Dark Prince shield |
 | **Pawn** | Tool variants (Axe, Pickaxe, Wood, …) | RTS economy — poor CR fit unless reskinned |
 | **Hex Shaman** | `Transformation Spell`, `Explosion Spell` | Witch skeleton spawn or second spell |
-| **Skeletons** | `Skull_Guard.png` | Block pose only — not wired (Guards reserved for Turtle) |
+| **Skeletons** | `Skull_Guard.png` | Block pose only — not wired |
 | **Spear Goblins** | `Spear Goblin_Attack Strong.png` | Alternate wind-up throw — not wired (`Attack Fast` used) |
+| **Turtle** | `Guard_In` / `Guard_Out` | Shell stance — not wired (Ice Golem has no guard in CR) |
 
 ---
 
 ## Suggested expansion order
 
-Given the current deck (knights + skeleton swarm + spells + enemy ranged):
+Given current deck (knights + skeleton swarm + spells + enemy ranged):
 
-1. **Hog Rider** (Pig Rider) — win condition
-2. **P.E.K.K.A** (Bear / Minotaur) — big tank
-3. **Battle Healer** (Monk) — support
-4. **Wall Breakers** (Bomb Fish) — building pressure
+1. ~~**Hog Rider** (Pig Rider)~~ — done
+2. ~~**P.E.K.K.A** (Minotaur)~~ — done
+3. ~~**Battle Healer** (Monk)~~ — done
+4. ~~**Wall Breakers** (Bomb Fish)~~ — done
 5. **Re-enable Bomb Tower** (Wood Tower) — building slot
-6. **Guards** (Turtle) — defensive counter
+6. ~~**Ice Golem** (Turtle)~~ — done
+7. **Hunter** (Harpoon Shark) — ranged counter
+8. **Gnoll** / **Spider** — portrait slots `_10` / `_11` reserved
 
 ---
 
@@ -115,7 +137,7 @@ Given the current deck (knights + skeleton swarm + spells + enemy ranged):
 | Sprite | Path | Suggested CR card | Notes |
 |---|---|---|---|
 | Hooded worker | `Units/*/Pawn/` | **Knight** (3) plain, or **Rascals** (5) knife variant | Not miner. `Avatars_05`. |
-| Blonde soldier | `Factions/Knights/Troops/Pawn/Pawn_Blue.png` | **Royal Recruits** (7, ×2) | Swing combat anims; `Avatars_06`. Barbarians reserved for Paddle Shark. |
+| Blonde soldier | `Factions/Knights/Troops/Pawn/Pawn_Blue.png` | **Royal Recruits** (7, ×2) | Swing combat anims; `Avatars_06` is **Thief** portrait, not this pawn. Barbarians reserved for Paddle Shark. |
 
 ---
 
@@ -146,7 +168,7 @@ Before wiring any new card, pick a dedicated portrait per [card-avatars rule](..
 |---|---|---|
 | `Enemy Avatars_07.png` | Snake | Swarm / poison spell |
 | **`Enemy Avatars_10.png`** | **Gnoll** | Musketeer-style ranged (`Enemy Pack/Enemies/Gnoll/`) |
-| `Enemy Avatars_11.png` | Spider | Bats swarm |
+| **`Enemy Avatars_11.png`** | **Spider** | Bats swarm |
 | `Enemy Avatars_14.png` | (hyena/gnoll alt — verify art) | — |
 | `Enemy Avatars_15.png` | Gnome | Goblins / cheap swarm |
 | `Harpoon Shark.png` | Harpoon Shark | Hunter |
@@ -154,7 +176,17 @@ Before wiring any new card, pick a dedicated portrait per [card-avatars rule](..
 
 ### Human Avatars — wired
 
-`Avatars_01` Warrior · `Avatars_02` Lancer · `Avatars_03` Elite Archer · `Avatars_05` Pawn · Knights Archer uses faction sprite (not human avatar folder)
+| Portrait | Card |
+|---|---|
+| `Avatars_01.png` | Warrior |
+| `Avatars_02.png` | Lancer |
+| `Avatars_03.png` | Elite Archer |
+| `Avatars_04.png` | Monk |
+| `Avatars_05.png` | Pawn |
+
+Knights Archer uses faction sprite (`Archer_Blue_(NoArms).png`), not the human avatar folder.
+
+**Available for new knight cards:** any unused human avatar (e.g. `_07`, `_08`, `_09`, …).
 
 ---
 
@@ -176,41 +208,55 @@ All new cards use **Clash Royale level 14** stats — the Arena 26 (“Royal Roa
 
 ---
 
-## Recently wired: Skeletons (`skeleton`)
+## Recently wired reference cards
 
-**Status:** Done (June 2026) · **Asset:** `Enemy Pack/Enemies/Skull/` · **Portrait:** `Enemy Avatars_01.png` · **CR:** [Skeletons](https://liquipedia.net/clashroyale/Skeletons) L14
+### Pig Rider (`pig_rider`) — Hog Rider L14
 
-| Stat | CR L14 | Tiny-Wars |
-|---|---:|---|
-| Elixir | 1 | `elixirCost: 1` |
-| Count | ×3 | `deployCount: 3` |
-| HP / Damage | 108 / 108 | `maxHp` / `damage` |
-| Hit speed | 1.1 s | `attackRate: 1 / 1.1` |
-| Speed | Fast (90) | `CR_SPEED.fast` |
-| Range | Melee 0.5 | `attackRange: 0.5` |
+**Asset:** `Enemy Pack/.../Pig Rider Spear Goblin/` · **Portrait:** `Pig Rider.png` · **Deck:** builder
 
-**Sheets:** `Skull_Idle` (8), `Skull_Run` (6), `Skull_Attack` (7) · `tintBotSide` · `mapHeightScale: 0.88` · `attackHitFrame: 4` · `Skull_Guard.png` not wired.
+Building-only melee, very fast. `targetsBuildingsOnly: true`.
 
-**Deck:** default slot (replaced `pawn`); `pawn` remains in deck builder.
+### Bomb Fish (`bomb_fish`) — Wall Breakers L14
 
----
+**Asset:** `Enemy Pack/.../Bomb Fish/` · **Portrait:** `Bomb Fish.png` · **Deck:** builder
 
-## Recently wired: Spear Goblins (`spear_goblin`)
+Ground-only ranged splash (`splashRadius: 1.5`). Uses wizard/lizard fireball VFX in battle.
 
-**Status:** Done (June 2026) · **Asset:** `Enemy Pack/Enemies/Goblin Raiders/Spear Goblin/` · **Portrait:** `Spear Goblin.png` · **CR:** [Spear Goblins](https://liquipedia.net/clashroyale/Spear_Goblins) L14
+### Minotaur (`minotaur`) — P.E.K.K.A L14
 
-| Stat | CR L14 | Tiny-Wars |
-|---|---:|---|
-| Elixir | 2 | `elixirCost: 2` |
-| Count | ×3 | `deployCount: 3` |
-| HP / Damage | 176 / 108 | `maxHp` / `damage` |
-| Hit speed | 1.7 s | `attackRate: 1 / 1.7` |
-| Speed | Very Fast (120) | `CR_SPEED.veryFast` |
-| Range | 5.0 | `attackRange: 5.0` |
+**Asset:** `Enemy Pack/.../Minotaur/` · **Portrait:** `Enemy Avatars_09.png` · **Deck:** builder
 
-**Sheets:** `Spear Goblin_Idle` (8), `Spear Goblin_Run` (6), `Spear Goblin_Attack Fast` (7) @ 256×256 · `tintBotSide` · `mapHeightScale: 0.88` · `attackHitFrame: 4` · `Attack Strong` not wired.
+Slow heavy single-target melee.
 
-**Deck:** deck builder only (default 8 unchanged).
+### Thief (`thief`) — Bandit L14
+
+**Asset:** `Enemy Pack/.../Thief/` · **Portrait:** `Enemy Avatars_06.png` · **Deck:** builder
+
+Fast melee with `firstHitDamageMultiplier: 2`.
+
+### Turtle (`turtle`) — Ice Golem L14
+
+**Asset:** `Enemy Pack/.../Caveborn/Turtle/` · **Portrait:** `Enemy Avatars_08.png` · **Deck:** builder
+
+Building-only tank with death nova (`deathSplashRadius`, `deathSlowSpeedMultiplier`, `deathSlowDurationMs`). Test: `TurtleDeathNova.test.ts`.
+
+### Panda (`panda`) — Valkyrie L14
+
+**Asset:** `Enemy Pack/.../Panda/` · **Portrait:** `Enemy Avatars_12.png` · **Deck:** builder
+
+Melee splash (`splashRadius: 2`).
+
+### Skeletons (`skeleton`) — Skeletons L14
+
+**Status:** Done · **Asset:** `Enemy Pack/.../Skull/` · **Portrait:** `Enemy Avatars_01.png` · **Deck:** default
+
+×3 deploy, fast melee. `Skull_Guard.png` not wired.
+
+### Spear Goblins (`spear_goblin`) — Spear Goblins L14
+
+**Status:** Done · **Asset:** `Enemy Pack/.../Spear Goblin/` · **Portrait:** `Spear Goblin.png` · **Deck:** builder
+
+×3 deploy, very fast ranged. `Attack Strong` not wired.
 
 ---
 
@@ -218,4 +264,5 @@ All new cards use **Clash Royale level 14** stats — the Arena 26 (“Royal Roa
 
 - Pull stats from the Java Clash Royale reference at **level 14** (`BALANCE_REFERENCE_LEVEL` in `GameConstants.ts`), same as existing cards in `CardData.ts`.
 - Enemy Pack units with one palette: use `tintBotSide: true` (see Torch Goblin / Wizard).
+- Knights faction units (Warrior, Pawn, Lancer, Monk): separate Blue/Red asset folders, no tint.
 - Add bundle entry in `AssetManifest.ts`, card in `CardData.ts`, and tests in `AssetManifest.test.ts` / behavior tests as needed.

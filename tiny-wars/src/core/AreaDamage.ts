@@ -50,6 +50,33 @@ export function dealAreaDamage(
   }
 }
 
+export function applyHealInRadius(
+  state: GameState,
+  owner: Owner,
+  center: Vec2,
+  radiusCells: number,
+  healAmount: number,
+  healerId?: string,
+): void {
+  const radiusPx = radiusCells * CELL_SIZE
+
+  for (const entity of state.entities.values()) {
+    if (entity.owner !== owner || !entity.isAlive || entity.kind !== EntityKind.TROOP) continue
+    if (entity.hp >= entity.maxHp) continue
+    if (dist(center, entity.position) > radiusPx) continue
+
+    const healed = entity.heal(healAmount)
+    if (healed > 0) {
+      state.events.push({
+        type: 'HEAL',
+        targetId: entity.id,
+        amount: healed,
+        healerId,
+      })
+    }
+  }
+}
+
 export function applySlowInRadius(
   state: GameState,
   owner: Owner,

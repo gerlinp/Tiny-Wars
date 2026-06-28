@@ -293,6 +293,25 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     splashRadius: 2,
   }, 'panda_blue_idle', 'panda_red_idle'),
 
+  /** L14 stats — melee support who heals nearby allies on each strike and on deploy. */
+  monk: troop('monk', 'Monk',
+    'A support fighter who restores hitpoints to nearby allies with each healing strike.',
+    4, {
+    maxHp: 2274,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 196,
+    attackRate: 1 / 1.5,
+    attackRange: 1.6,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+    healPerPulse: 34,
+    healPulseCount: 4,
+    healRadius: 4,
+    spawnHealPerPulse: 67,
+    spawnHealPulseCount: 4,
+    spawnHealRadius: 2.5,
+  }, 'monk_blue_idle', 'monk_red_idle'),
+
   arrows: spell('arrows', 'Arrows',
     'A volley of arrows that rains down on an area. Cheap and effective at clearing swarms.',
     3, {
