@@ -37,7 +37,7 @@ describe('GameSimulator', () => {
     const state = sim.state
     const lancerStats = CARD_DEFINITIONS.lancer!.stats!
 
-    let botKing = null as import('./entities/Tower').Tower | null
+    let botKing = null as import('@core/entities/Tower').Tower | null
     for (const [id, tower] of state.towers) {
       if (tower.owner === Owner.BOT && tower.isKing) {
         tower.activate()

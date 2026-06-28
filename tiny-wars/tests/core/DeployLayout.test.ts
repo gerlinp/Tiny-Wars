@@ -23,7 +23,6 @@ describe('DeployLayout', () => {
     )
     expect(offsets).toHaveLength(14)
 
-    const xs = offsets.map(p => p.x)
     const minDist = Math.min(
       ...offsets.flatMap((a, i) =>
         offsets.slice(i + 1).map(b => Math.hypot(a.x - b.x, a.y - b.y)),

@@ -65,7 +65,7 @@ describe('Gnoll boomerang (Executioner)', () => {
     const state = createInitialGameState()
     state.entities.set(gnoll.id, gnoll)
     state.entities.set(enemy.id, enemy)
-    gnoll.attackCooldownMs = 0
+    ;(gnoll as unknown as { attackCooldownMs: number }).attackCooldownMs = 0
 
     for (let i = 0; i < 20; i++) {
       gnoll.tick(50, state)

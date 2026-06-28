@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { CARD_ADDED_AT, CARD_DEFINITIONS, getCardAddedAtMs } from './CardData'
+import { CARD_ADDED_AT, CARD_DEFINITIONS, getCardAddedAtMs } from '@data/CardData'
 import {
   DEFAULT_COLLECTION_SORT,
   getDeckCandidates,
   sortDeckCandidateIds,
-} from './PlayerDeck'
+} from '@data/PlayerDeck'
 
 describe('CARD_ADDED_AT', () => {
   it('every collection card has a stable first-added timestamp on its definition', () => {
@@ -27,13 +27,13 @@ describe('getDeckCandidates', () => {
   it('defaults to most recent cards first (desc)', () => {
     const sorted = getDeckCandidates(DEFAULT_COLLECTION_SORT)
     expect(sorted[0]).toBe('tnt')
-    expect(sorted.at(-1)).toBe('warrior')
+    expect(sorted[sorted.length - 1]).toBe('warrior')
   })
 
   it('recent asc puts oldest cards first', () => {
     const sorted = getDeckCandidates({ mode: 'recent', direction: 'asc' })
     expect(sorted[0]).toBe('warrior')
-    expect(sorted.at(-1)).toBe('tnt')
+    expect(sorted[sorted.length - 1]).toBe('tnt')
   })
 
   it('sorts by elixir ascending', () => {

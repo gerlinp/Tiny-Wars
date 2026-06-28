@@ -131,7 +131,7 @@ export class Building extends Entity {
     if (at === AttackType.AIR_AND_GROUND) return true
 
     const troopType = (entity as { stats?: EntityStats }).stats?.unitType
-    if (!troopType) return at === AttackType.AIR_AND_GROUND
+    if (!troopType) return false
     if (at === AttackType.AIR_ONLY) return troopType === UnitType.AIR
     if (at === AttackType.GROUND_ONLY) return troopType === UnitType.GROUND
     return true

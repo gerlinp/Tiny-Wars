@@ -12,7 +12,6 @@ import {
   THIEF_DASH_WINDUP_MS,
   TROOP_COLLISION_RADIUS_CELLS,
 } from '@data/GameConstants'
-import { edgeDistBetweenEntities } from '@core/EntityGeometry'
 
 const troopStats: EntityStats = {
   maxHp: 500,
