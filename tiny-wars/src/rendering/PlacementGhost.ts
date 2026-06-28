@@ -5,7 +5,7 @@ import { CardType, Owner } from '@core/types'
 import { GAME_HEIGHT, CELL_SIZE } from '@data/GameConstants'
 import { getSideAssets } from '@data/AssetManifest'
 import { playCardAnim } from './AnimationRegistry'
-import { resolveTexture } from './PlaceholderFactory'
+import { resolveTexture } from './renderingUtils'
 import { applyCardDisplaySize } from './assetDisplaySize'
 
 const VALID_TINT   = 0x88ff88

@@ -12,6 +12,7 @@ import {
   surfaceDistToEntity,
 } from '../EntityGeometry'
 import { dealAreaDamage, applySlowInRadius, applyHealInRadius } from '../AreaDamage'
+import { launchBoomerang } from '../BoomerangSystem'
 import { distSq, dist } from '../Vector2'
 import { findNearestEnemy, findNearestEnemyStructure, isAttackableTower } from '../TargetSelection'
 import type { Tower } from './Tower'
@@ -29,9 +30,19 @@ import { moveTowardWithAllyAvoidance } from '../TroopAvoidance'
 import {
   CELL_SIZE, TROOP_AGGRO_RANGE_CELLS, EPSILON_DISTANCE,
   LEFT_LANE_COL, RIGHT_LANE_COL, RIVER_ROW_START, RIVER_ROW_END,
+  HEAL_PULSE_INTERVAL_MS, THIEF_DASH_WINDUP_MS,
 } from '@data/GameConstants'
 
+interface ActiveHealBurst {
+  radiusCells: number
+  healPerPulse: number
+  pulsesRemaining: number
+  nextPulseMs: number
+}
+
 const PATH_REPLAN_DIST_SQ = CELL_SIZE * CELL_SIZE * 4
+
+export type DashPhase = 'windup' | 'leap'
 
 /** Ground troop is "stuck" after this long with almost no forward progress while walking. */
 const STUCK_RECOVER_MS = 600
@@ -50,10 +61,13 @@ export class Troop extends Entity {
     return this.attackCooldownMs
   }
 
-  /** Movement speed in grid cells/sec — includes charge boost and slow debuffs. */
+  /** Movement speed in grid cells/sec — includes charge boost, dash leap, and slow debuffs. */
   getEffectiveSpeed(): number {
     let speed = this.stats.speed
     if (this.isCharging) speed *= this.stats.chargeSpeedMultiplier ?? 1
+    if (this.isDashing && this.dashWindupMsRemaining <= 0) {
+      speed *= this.stats.dashSpeedMultiplier ?? 1
+    }
     speed *= this.slowSpeedMultiplier
     return speed
   }
@@ -63,12 +77,25 @@ export class Troop extends Entity {
     return this.isCharging
   }
 
+  /** True while winding up or leaping on the opening dash (Bandit-style). */
+  isDashActive(): boolean {
+    return this.isDashing
+  }
+
+  /** Current opening-dash phase — `windup` (idle hold) or `leap` (frozen run pose). */
+  getDashPhase(): DashPhase | null {
+    if (!this.isDashing) return null
+    return this.dashWindupMsRemaining > 0 ? 'windup' : 'leap'
+  }
+
   private target: Entity | null = null
   readonly grid: Grid
   private readonly pathfinder: Pathfinder
   private pathWaypoints: Vec2[] = []
   private pathGoal: Vec2 | null = null
   private lastObjectiveId: string | null = null
+  /** Tower ID the unit is currently marching toward — used to sample the right flow field. */
+  private marchTowerId: string | null = null
   private lastMarchDir: Vec2
   private walkDistanceCells = 0
   private isCharging = false
@@ -76,6 +103,11 @@ export class Troop extends Entity {
   private slowSpeedMultiplier = 1
   private slowUntilMs = 0
   private firstHitConsumed = false
+  private isDashing = false
+  private dashWindupMsRemaining = 0
+  private dashTarget: Vec2 | null = null
+  private dashTargetEntity: Entity | null = null
+  private activeHealBurst: ActiveHealBurst | null = null
 
   constructor(owner: Owner, stats: EntityStats, position: Vec2, grid: Grid, cardId: string) {
     super(nextEntityId(), owner, EntityKind.TROOP, position, stats.maxHp, cardId)
@@ -94,26 +126,33 @@ export class Troop extends Entity {
   applySpawnHeal(state: GameState): void {
     const s = this.stats
     if (!s.spawnHealRadius || !s.spawnHealPerPulse) return
-    const total = s.spawnHealPerPulse * (s.spawnHealPulseCount ?? 4)
-    applyHealInRadius(state, this.owner, this.position, s.spawnHealRadius, total, this.id)
-    state.events.push({
-      type: 'HEAL_AURA',
-      position: { ...this.position },
-      radius: s.spawnHealRadius,
-      owner: this.owner,
-      healerId: this.id,
-    })
+    this.startHealBurst(state, s.spawnHealRadius, s.spawnHealPerPulse, s.spawnHealPulseCount ?? 4)
   }
 
-  /** World point the lancer is striking toward — for directional attack anims. */
+  /** World point the unit is striking toward — for directional attack anims and dash facing. */
   getAttackAimPoint(): Vec2 | null {
-    if (this.state !== TroopState.ATTACKING || !this.target?.isAlive) return null
-    return this.moveGoalFor(this.target)
+    const aimTarget = this.isDashing
+      ? this.dashTargetEntity
+      : (this.state === TroopState.ATTACKING ? this.target : null)
+    if (!aimTarget?.isAlive) return null
+    return this.moveGoalFor(aimTarget)
+  }
+
+  /** Aim vector while Prince-style charge is active — for the lunge attack clip. */
+  getChargeAimPoint(): Vec2 | null {
+    if (!this.isCharging) return null
+    if (this.target?.isAlive) return this.moveGoalFor(this.target)
+    const dir = this.lastMarchDir
+    return {
+      x: this.position.x + dir.x * CELL_SIZE * 4,
+      y: this.position.y + dir.y * CELL_SIZE * 4,
+    }
   }
 
   tick(deltaMs: number, state: GameState): void {
     if (!this.isAlive) { this.state = TroopState.DEAD; return }
 
+    this.tickHealPulses(deltaMs, state)
     this.tickSlow(deltaMs)
 
     if (this.attackCooldownMs > 0) this.attackCooldownMs -= deltaMs
@@ -123,6 +162,16 @@ export class Troop extends Entity {
     if (this.target) {
       const attackReach = this.stats.attackRange * CELL_SIZE
       const dist = this.combatDistTo(this.target)
+
+      if (this.isDashing) {
+        if (!this.target.isAlive || this.dashTargetEntity?.id !== this.target.id) {
+          this.cancelDash()
+        } else {
+          this.tickOpeningDash(deltaMs, state, this.target)
+          return
+        }
+      }
+
       if (dist <= attackReach) {
         this.state = TroopState.ATTACKING
         this.clearPath()
@@ -134,20 +183,34 @@ export class Troop extends Entity {
         return
       }
 
+      if (this.canStartOpeningDash(dist)) {
+        this.startOpeningDash(this.target)
+        this.tickOpeningDash(deltaMs, state, this.target)
+        return
+      }
+
       this.state = TroopState.WALKING
       this.trackObjective(this.target)
+      this.marchTowerId = this.target.kind === EntityKind.TOWER ? this.target.id : null
       this.moveFree(deltaMs, this.moveGoalFor(this.target), state)
       return
     }
 
     this.state = TroopState.WALKING
-    const marchGoal = this.getMarchGoal(state)
+    const marchGoal = this.getMarchGoal(state)  // also sets this.marchTowerId
     this.trackObjective(null)
     this.moveFree(deltaMs, marchGoal, state)
   }
 
   private performAttack(state: GameState, primary: Entity): void {
     const damage = this.getAttackDamage()
+    if (this.stats.boomerangAttack) {
+      const travelCells = this.stats.boomerangTravelCells ?? 7.5
+      launchBoomerang(state, this, primary, travelCells, damage)
+      this.resetCharge()
+      this.firstHitConsumed = true
+      return
+    }
     const splash = this.stats.splashRadius
     if (splash && splash > 0) {
       this.dealSplashDamage(state, primary.position, primary.id, damage)
@@ -165,15 +228,55 @@ export class Troop extends Entity {
   private applyActiveHeal(state: GameState): void {
     const s = this.stats
     if (!s.healRadius || !s.healPerPulse) return
-    const total = s.healPerPulse * (s.healPulseCount ?? 4)
-    applyHealInRadius(state, this.owner, this.position, s.healRadius, total, this.id)
-    state.events.push({
-      type: 'HEAL_AURA',
-      position: { ...this.position },
-      radius: s.healRadius,
-      owner: this.owner,
-      healerId: this.id,
-    })
+    this.startHealBurst(state, s.healRadius, s.healPerPulse, s.healPulseCount ?? 4)
+  }
+
+  /** CR-style heal burst — each pulse heals every injured ally in radius. */
+  private startHealBurst(
+    state: GameState,
+    radiusCells: number,
+    healPerPulse: number,
+    pulseCount: number,
+  ): void {
+    if (pulseCount <= 0) return
+    this.activeHealBurst = {
+      radiusCells,
+      healPerPulse,
+      pulsesRemaining: pulseCount,
+      nextPulseMs: 0,
+    }
+    this.fireHealPulse(state)
+  }
+
+  private tickHealPulses(deltaMs: number, state: GameState): void {
+    const burst = this.activeHealBurst
+    if (!burst) return
+
+    burst.nextPulseMs -= deltaMs
+    if (burst.nextPulseMs > 0) return
+
+    this.fireHealPulse(state)
+  }
+
+  private fireHealPulse(state: GameState): void {
+    const burst = this.activeHealBurst
+    if (!burst || burst.pulsesRemaining <= 0) return
+
+    applyHealInRadius(
+      state,
+      this.owner,
+      this.position,
+      burst.radiusCells,
+      burst.healPerPulse,
+      this.id,
+    )
+
+    burst.pulsesRemaining--
+    if (burst.pulsesRemaining <= 0) {
+      this.activeHealBurst = null
+    } else {
+      burst.nextPulseMs = HEAL_PULSE_INTERVAL_MS
+    }
   }
 
   /** Death nova — area damage and optional slow (e.g. Turtle). */
@@ -218,6 +321,53 @@ export class Troop extends Entity {
       damage = Math.round(damage * this.stats.firstHitDamageMultiplier)
     }
     return damage
+  }
+
+  private hasOpeningDash(): boolean {
+    return (this.stats.dashRangeCells ?? 0) > 0 && (this.stats.firstHitDamageMultiplier ?? 1) > 1
+  }
+
+  private canStartOpeningDash(distPx: number): boolean {
+    if (!this.hasOpeningDash() || this.firstHitConsumed || this.attackCooldownMs > 0) return false
+    const dashReachPx = this.stats.dashRangeCells! * CELL_SIZE
+    return distPx <= dashReachPx && distPx > this.stats.attackRange * CELL_SIZE
+  }
+
+  private startOpeningDash(target: Entity): void {
+    this.isDashing = true
+    this.dashWindupMsRemaining = this.stats.dashWindupMs ?? THIEF_DASH_WINDUP_MS
+    this.dashTargetEntity = target
+    this.dashTarget = this.moveGoalFor(target)
+    this.clearPath()
+    this.trackObjective(target)
+    this.state = TroopState.WALKING
+  }
+
+  private cancelDash(): void {
+    this.isDashing = false
+    this.dashWindupMsRemaining = 0
+    this.dashTarget = null
+    this.dashTargetEntity = null
+  }
+
+  private tickOpeningDash(deltaMs: number, state: GameState, target: Entity): void {
+    if (this.dashWindupMsRemaining > 0) {
+      this.dashWindupMsRemaining -= deltaMs
+      this.state = TroopState.WALKING
+      return
+    }
+
+    const goal = this.dashTarget ?? this.moveGoalFor(target)
+    this.dashTarget = goal
+    const step = this.getEffectiveSpeed() * CELL_SIZE * deltaMs / 1000
+    moveTowardDirect(this.position, goal, step)
+    this.state = TroopState.WALKING
+    if (reachedWorldPoint(this.position, goal, step)) {
+      this.cancelDash()
+      this.state = TroopState.ATTACKING
+      this.performAttack(state, target)
+      this.attackCooldownMs = 1000 / this.stats.attackRate
+    }
   }
 
   private hasChargeAbility(): boolean {
@@ -290,7 +440,7 @@ export class Troop extends Entity {
     return target.position
   }
 
-  /** 360° movement — pathfind proactively around the river, always at full speed. */
+  /** 360° movement — flow field navigation for towers; A* fallback for other targets. */
   private moveFree(deltaMs: number, goal: Vec2, state: GameState): void {
     const dx = goal.x - this.position.x
     const dy = goal.y - this.position.y
@@ -309,15 +459,35 @@ export class Troop extends Entity {
       return
     }
 
-    const mustPath = isOppositeRiverBank(this.position, goal) ||
-      !isDirectPathWalkable(this.grid, this.position, goal)
+    const directOk = !isOppositeRiverBank(this.position, goal) &&
+      isDirectPathWalkable(this.grid, this.position, goal)
 
-    if (mustPath) {
-      if (this.needsReplan(goal)) this.replanPath(goal)
-      this.moveAlongPath(speed, goal, state)
-    } else {
+    if (directOk) {
+      // Straight shot — no need for any pathfinding.
       this.clearPath()
       moveTowardWithAllyAvoidance(this.position, this, goal, speed, state, this.grid)
+    } else if (this.marchTowerId && state.flowFields) {
+      // Flow field navigation: sample the precomputed BFS direction for this tower.
+      const dir = state.flowFields.directionTo(this.marchTowerId, this.position.x, this.position.y)
+      if (dir) {
+        this.clearPath()
+        // Step toward the centre of the next cell in the flow direction.
+        const curCol = Math.floor(this.position.x / CELL_SIZE)
+        const curRow = Math.floor(this.position.y / CELL_SIZE)
+        const nextWorld = {
+          x: (curCol + Math.round(dir.x) + 0.5) * CELL_SIZE,
+          y: (curRow + Math.round(dir.y) + 0.5) * CELL_SIZE,
+        }
+        moveTowardWithAllyAvoidance(this.position, this, nextWorld, speed, state, this.grid)
+      } else {
+        // At goal cell or unreachable — fall back to A*.
+        if (this.needsReplan(goal)) this.replanPath(goal)
+        this.moveAlongPath(speed, goal, state)
+      }
+    } else {
+      // A* for non-tower targets (enemy troops, buildings) or when flow fields unavailable.
+      if (this.needsReplan(goal)) this.replanPath(goal)
+      this.moveAlongPath(speed, goal, state)
     }
 
     this.resolveCollisions(state)
@@ -545,7 +715,11 @@ export class Troop extends Entity {
       : TROOP_AGGRO_RANGE_CELLS
   }
 
-  private engageDistTo(entity: Entity): number {
+  private engageDistTo(entity: Entity, state?: GameState): number {
+    if (entity.kind === EntityKind.TOWER && state?.flowFields) {
+      const cost = state.flowFields.costTo(entity.id, this.position.x, this.position.y)
+      if (cost < Infinity) return cost * CELL_SIZE
+    }
     if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {
       return surfaceDistToEntity(this.position, entity)
     }
@@ -571,8 +745,8 @@ export class Troop extends Entity {
         owner: this.owner,
         from: this.position,
         canAttack: (entity) => this.canAttack(entity),
-        distance: (_from, entity) => this.engageDistTo(entity),
-      }))
+        distance: (_from, entity) => this.engageDistTo(entity, state),
+      }), state)
       return
     }
 
@@ -581,7 +755,7 @@ export class Troop extends Entity {
       from: this.position,
       includeTowers: false,
       canAttack: (entity) => this.canAttack(entity),
-      distance: (_from, entity) => this.engageDistTo(entity),
+      distance: (_from, entity) => this.engageDistTo(entity, state),
       maxDistance: this.aggroRangePx(),
     })
 
@@ -589,10 +763,10 @@ export class Troop extends Entity {
       owner: this.owner,
       from: this.position,
       canAttack: (entity) => this.canAttack(entity),
-      distance: (_from, entity) => this.engageDistTo(entity),
+      distance: (_from, entity) => this.engageDistTo(entity, state),
     })
 
-    this.target = troopTarget ?? this.stickyStructureTarget(structureTarget)
+    this.target = troopTarget ?? this.stickyStructureTarget(structureTarget, state)
   }
 
   /**
@@ -601,7 +775,7 @@ export class Troop extends Entity {
    * a troop near-equidistant between two towers flip-flops its target every tick, which clears
    * the cached path repeatedly and stalls it at the bridge.
    */
-  private stickyStructureTarget(candidate: Entity | null): Entity | null {
+  private stickyStructureTarget(candidate: Entity | null, state?: GameState): Entity | null {
     const current = this.target
     if (!candidate) return current?.isAlive ? current : null
 
@@ -612,20 +786,35 @@ export class Troop extends Entity {
     if (!currentIsStructure) return candidate
     if (current!.id === candidate.id) return current!
 
-    const curDist = this.engageDistTo(current!)
-    const candDist = this.engageDistTo(candidate)
+    const curDist = this.engageDistTo(current!, state)
+    const candDist = this.engageDistTo(candidate, state)
     return candDist < curDist - STRUCTURE_SWITCH_MARGIN ? candidate : current!
   }
 
-  /** March toward nearest enemy structure, or lane-biased fallback when none exist. */
+  /** March toward nearest enemy structure by path distance, or lane fallback when none exist. */
   private getMarchGoal(state: GameState): Vec2 {
+    // Prefer flow field: picks the tower with fewest walking steps, not Euclidean distance.
+    if (state.flowFields) {
+      const tower = state.flowFields.nearestEnemyTower(state, this.position, this.owner)
+      if (tower) {
+        this.marchTowerId = tower.id
+        return this.moveGoalFor(tower)
+      }
+    }
+
+    // Fallback (no flow fields, or all towers gone): Euclidean distance selection.
     const objective = findNearestEnemyStructure(state, {
       owner: this.owner,
       from: this.position,
       canAttack: (entity) => this.canAttack(entity),
-      distance: (_from, entity) => this.engageDistTo(entity),
+      distance: (_from, entity) => this.engageDistTo(entity, state),
     })
-    if (objective) return this.moveGoalFor(objective)
+    if (objective) {
+      this.marchTowerId = objective.kind === EntityKind.TOWER ? objective.id : null
+      return this.moveGoalFor(objective)
+    }
+
+    this.marchTowerId = null
     return this.getLaneMarchGoal()
   }
 

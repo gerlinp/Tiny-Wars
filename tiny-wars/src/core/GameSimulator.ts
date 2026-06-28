@@ -1,8 +1,9 @@
 import type { GameState } from './GameState'
 import { createInitialGameState } from './GameState'
 import type { Grid } from './Grid'
+import { FlowFieldManager } from './FlowFieldManager'
 import { tickElixir, grantElixir } from './ElixirSystem'
-import { resolveDeaths, checkTimeWin } from './CombatSystem'
+import { resolveDeaths, checkTimeWin, tickTowerTieBreak } from './CombatSystem'
 import { Troop } from './entities/Troop'
 import { Tower } from './entities/Tower'
 import { Building } from './entities/Building'
@@ -26,15 +27,24 @@ import { getActiveMapConfig } from '@data/ActiveMapConfig'
 import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
 import { dist } from './Vector2'
 import { rocketFlightMs, arrowsRainMs } from '@data/ProjectileConstants'
+import { kingCannonMuzzlePosition } from '@rendering/towerGarrison'
 import { resolveTroopCollisions } from './TroopCollision'
-import { isTroopDeployCell } from './DeployZones'
+import { isTroopDeployCell, troopDeployPositions } from './DeploySystem'
+import { tickBoomerangs } from './BoomerangSystem'
+
+export { troopDeployPositions } from './DeploySystem'
 
 export class GameSimulator {
   state: GameState
+  private flowFieldsDirty = false
 
   constructor(private grid: Grid) {
     this.state = createInitialGameState()
     this.placeTowers()
+    // Build initial flow fields after towers are placed
+    const mgr = new FlowFieldManager(grid)
+    mgr.rebuild(this.state)
+    this.state.flowFields = mgr
   }
 
   private placeTowers(): void {
@@ -74,6 +84,11 @@ export class GameSimulator {
   tick(deltaMs: number): GameState {
     if (this.state.phase === 'ENDED') return this.state
 
+    if (this.flowFieldsDirty) {
+      this.state.flowFields?.rebuild(this.state)
+      this.flowFieldsDirty = false
+    }
+
     this.state.tick++
     this.state.elapsedMs += deltaMs
 
@@ -89,8 +104,11 @@ export class GameSimulator {
 
     resolveTroopCollisions(this.state, deltaMs)
 
+    tickBoomerangs(this.state, deltaMs)
+
     this.unblockDeadBuildings()
     this.unblockDeadTowers()
+    tickTowerTieBreak(this.state, deltaMs)
     resolveDeaths(this.state)
     checkTimeWin(this.state, this.state.elapsedMs)
 
@@ -145,13 +163,9 @@ export class GameSimulator {
 
     if (card.cardType === CardType.TROOP) {
       const count = card.deployCount ?? 1
-      const spreadPx = TROOP_DEPLOY_SPREAD_CELLS * CELL_SIZE
-      const offsets = count === 1
-        ? [0]
-        : Array.from({ length: count }, (_, i) => (i - (count - 1) / 2) * spreadPx)
+      const positions = troopDeployPositions(worldPos, count, TROOP_DEPLOY_SPREAD_CELLS)
 
-      for (const xOffset of offsets) {
-        const pos: Vec2 = { x: worldPos.x + xOffset, y: worldPos.y }
+      for (const pos of positions) {
         const troop = new Troop(owner, card.stats as EntityStats, pos, this.grid, card.id)
         this.state.entities.set(troop.id, troop)
         troop.applySpawnHeal(this.state)
@@ -164,11 +178,15 @@ export class GameSimulator {
       for (const cell of building.blockedCells) {
         this.grid.blockCell(cell.x, cell.y)
       }
+      this.flowFieldsDirty = true
       this.state.events.push({ type: 'DEPLOY', entityId: building.id, cardId: card.id, position: worldPos })
       return true
     } else if (card.cardType === CardType.SPELL) {
       const stats = card.spellStats!
-      const launchFrom = this.kingTowerPosition(owner)
+      const kingPos = this.kingTowerPosition(owner)
+      const launchFrom = stats.delivery === 'rocket'
+        ? kingCannonMuzzlePosition(kingPos.x, kingPos.y, owner)
+        : kingPos
       const flightMs = stats.delivery === 'arrows'
         ? arrowsRainMs()
         : rocketFlightMs(dist(launchFrom, worldPos))
@@ -196,6 +214,7 @@ export class GameSimulator {
         for (const cell of tower.blockedCells) {
           this.grid.unblockCell(cell.x, cell.y)
         }
+        this.flowFieldsDirty = true
       }
     }
   }
@@ -207,6 +226,7 @@ export class GameSimulator {
         for (const cell of building.blockedCells) {
           this.grid.unblockCell(cell.x, cell.y)
         }
+        this.flowFieldsDirty = true
       }
     }
   }

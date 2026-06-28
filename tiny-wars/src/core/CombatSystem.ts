@@ -3,9 +3,8 @@ import { Building } from './entities/Building'
 import { Troop } from './entities/Troop'
 import { EntityKind } from './types'
 import { Owner } from './types'
-import { CELL_SIZE } from '@data/GameConstants'
-import { towerLaneFromCol } from './DeployZones'
-import { opponentOf } from './DeployPerspective'
+import { CELL_SIZE, GAME_DURATION_MS, OVERTIME_DURATION_MS, TIE_BREAK_TOWER_DPS } from '@data/GameConstants'
+import { towerLaneFromCol, opponentOf } from './DeploySystem'
 
 export function resolveDeaths(state: GameState): void {
   // Remove dead non-tower entities
@@ -71,6 +70,18 @@ export function resolveDeaths(state: GameState): void {
             t.activate()
           }
         }
+
+        // Overtime sudden death — first crown wins
+        if (state.phase === 'OVERTIME') {
+          state.phase = 'ENDED'
+          state.winner = crownOwner
+        }
+
+        // Tiebreaker — first tower to fall loses
+        if (state.phase === 'TIE_BREAK') {
+          state.phase = 'ENDED'
+          state.winner = crownOwner
+        }
       }
 
       // Remove from map (keep record via crown events)
@@ -80,16 +91,41 @@ export function resolveDeaths(state: GameState): void {
 }
 
 export function checkTimeWin(state: GameState, elapsedMs: number): void {
-  if (state.phase !== 'BATTLE') return
-  if (elapsedMs < 180_000) return
+  if (state.phase === 'BATTLE') {
+    if (elapsedMs < GAME_DURATION_MS) return
 
-  state.phase = 'ENDED'
-  if (state.playerCrowns > state.botCrowns) {
-    state.winner = Owner.PLAYER
-  } else if (state.botCrowns > state.playerCrowns) {
-    state.winner = Owner.BOT
-  } else {
-    // Tie — no winner (or add overtime logic later)
-    state.winner = null
+    if (state.playerCrowns !== state.botCrowns) {
+      state.phase = 'ENDED'
+      state.winner = state.playerCrowns > state.botCrowns ? Owner.PLAYER : Owner.BOT
+      return
+    }
+
+    state.phase = 'OVERTIME'
+    return
+  }
+
+  if (state.phase === 'OVERTIME') {
+    const overtimeMs = elapsedMs - GAME_DURATION_MS
+    if (overtimeMs < OVERTIME_DURATION_MS) return
+
+    if (state.playerCrowns !== state.botCrowns) {
+      state.phase = 'ENDED'
+      state.winner = state.playerCrowns > state.botCrowns ? Owner.PLAYER : Owner.BOT
+      return
+    }
+
+    state.phase = 'TIE_BREAK'
+    return
+  }
+}
+
+/** Drain all remaining towers equally — CR-style tiebreaker after overtime. */
+export function tickTowerTieBreak(state: GameState, deltaMs: number): void {
+  if (state.phase !== 'TIE_BREAK') return
+
+  const damage = (TIE_BREAK_TOWER_DPS * deltaMs) / 1000
+  for (const tower of state.towers.values()) {
+    if (!tower.isAlive) continue
+    tower.takeDamage(damage)
   }
 }

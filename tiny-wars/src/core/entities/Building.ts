@@ -26,6 +26,12 @@ export class Building extends Entity {
     return this.attackCooldownMs
   }
 
+  /** World point the building is bombing — for crew aim / projectiles. */
+  getAttackAimPoint(): Vec2 | null {
+    if (this.state !== BuildingState.ATTACKING || !this.target?.isAlive) return null
+    return { x: this.target.position.x, y: this.target.position.y }
+  }
+
   constructor(owner: Owner, stats: EntityStats, position: Vec2, cardId: string) {
     super(nextEntityId(), owner, EntityKind.BUILDING, position, stats.maxHp, cardId)
     this.stats = stats
@@ -71,7 +77,7 @@ export class Building extends Entity {
     this.attackCooldownMs = 1000 / this.stats.attackRate
   }
 
-  /** Death bomb — CR Bomb Tower hits air and ground in a large radius. */
+  /** Death bomb — CR Bomb Tower drops a bomb that hits ground troops in a large radius. */
   applyDeathSplash(state: GameState): void {
     const radius = this.stats.deathSplashRadius
     if (!radius) return
@@ -82,7 +88,7 @@ export class Building extends Entity {
       this.position,
       radius,
       this.stats.damage,
-      () => true,
+      (entity) => this.canAttack(entity),
       this.id,
     )
   }
@@ -125,7 +131,7 @@ export class Building extends Entity {
     if (at === AttackType.AIR_AND_GROUND) return true
 
     const troopType = (entity as { stats?: EntityStats }).stats?.unitType
-    if (!troopType) return true
+    if (!troopType) return at === AttackType.AIR_AND_GROUND
     if (at === AttackType.AIR_ONLY) return troopType === UnitType.AIR
     if (at === AttackType.GROUND_ONLY) return troopType === UnitType.GROUND
     return true

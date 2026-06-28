@@ -1,6 +1,6 @@
 import { CardType, UnitType, AttackType } from '@core/types'
 import type { CardDefinition, EntityStats, SpellStats } from '@core/types'
-import { BOMB_TOWER_LIFETIME_MS, CR_SPEED, crSpeedToCellsPerSec, LANCER_CHARGE_DAMAGE_MULT, LANCER_CHARGE_DISTANCE_CELLS, LANCER_CHARGE_SPEED_MULT } from '@data/GameConstants'
+import { BOMB_TOWER_LIFETIME_MS, CR_SPEED, crSpeedToCellsPerSec, LANCER_CHARGE_DAMAGE_MULT, LANCER_CHARGE_DISTANCE_CELLS, LANCER_CHARGE_SPEED_MULT, THIEF_DASH_RANGE_CELLS, THIEF_DASH_SPEED_MULT, THIEF_DASH_WINDUP_MS } from '@data/GameConstants'
 
 function troop(
   id: string,
@@ -11,7 +11,7 @@ function troop(
   textureKeyPlayer: string,
   textureKeyBot: string,
   deployCount = 1,
-): CardDefinition {
+): Omit<CardDefinition, 'addedAt'> {
   return {
     id,
     displayName,
@@ -33,7 +33,7 @@ function building(
   stats: EntityStats,
   textureKeyPlayer: string,
   textureKeyBot: string,
-): CardDefinition {
+): Omit<CardDefinition, 'addedAt'> {
   return { id, displayName, description, elixirCost, cardType: CardType.BUILDING, stats, textureKeyPlayer, textureKeyBot }
 }
 
@@ -45,7 +45,7 @@ function spell(
   spellStats: SpellStats,
   textureKeyPlayer: string,
   textureKeyBot: string,
-): CardDefinition {
+): Omit<CardDefinition, 'addedAt'> {
   return {
     id,
     displayName,
@@ -61,7 +61,53 @@ function spell(
 /** Stats tuned to Clash Royale equivalents at {@link BALANCE_REFERENCE_LEVEL} (level 14).
  *  HP and damage scaled from L11 baseline × 1.321 (~9.7%/level over 3 levels).
  *  Attack speed, range, and movement speed do not change with CR card level. */
-export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
+
+/** Parse a stable ISO timestamp for when a card id first entered the collection. */
+const AT = (iso: string): number => Date.parse(iso)
+
+/**
+ * First-added timestamps keyed by card id — merged onto {@link CARD_DEFINITIONS} as `addedAt`.
+ * Never change an existing entry when renaming a card; add a new id with a new date.
+ */
+export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
+  warrior:       AT('2024-06-01T12:00:00.000Z'),
+  archer:        AT('2024-06-08T12:00:00.000Z'),
+  skeleton:      AT('2024-06-15T12:00:00.000Z'),
+  lancer:        AT('2024-06-22T12:00:00.000Z'),
+  wizard:        AT('2024-07-01T12:00:00.000Z'),
+  arrows:        AT('2024-07-08T12:00:00.000Z'),
+  elite_archer:  AT('2024-07-15T12:00:00.000Z'),
+  pawn:          AT('2024-08-01T12:00:00.000Z'),
+  skeleton_army: AT('2026-05-15T12:00:00.000Z'),
+  spear_goblin:  AT('2024-09-01T12:00:00.000Z'),
+  troll:         AT('2024-09-15T12:00:00.000Z'),
+  lizard:        AT('2024-10-01T12:00:00.000Z'),
+  torch_goblin:  AT('2024-10-15T12:00:00.000Z'),
+  pig_rider:     AT('2024-11-01T12:00:00.000Z'),
+  bomb_fish:     AT('2024-11-15T12:00:00.000Z'),
+  minotaur:      AT('2025-01-01T12:00:00.000Z'),
+  thief:         AT('2025-02-01T12:00:00.000Z'),
+  turtle:        AT('2025-03-01T12:00:00.000Z'),
+  panda:         AT('2025-04-01T12:00:00.000Z'),
+  wood_tower:    AT('2025-05-01T12:00:00.000Z'),
+  gnoll:         AT('2025-06-01T12:00:00.000Z'),
+  monk:          AT('2026-01-01T12:00:00.000Z'),
+  tnt:           AT('2026-06-01T12:00:00.000Z'),
+}
+
+function withAddedAtTimestamps(
+  defs: Record<string, Omit<CardDefinition, 'addedAt'>>,
+): Record<string, CardDefinition> {
+  return Object.fromEntries(
+    Object.entries(defs).map(([id, def]) => {
+      const addedAt = CARD_ADDED_AT[id]
+      if (!addedAt) throw new Error(`Missing CARD_ADDED_AT for "${id}"`)
+      return [id, { ...def, addedAt }]
+    }),
+  ) as Record<string, CardDefinition>
+}
+
+const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   warrior: troop('warrior', 'Warrior',
     'A sturdy melee fighter with balanced stats. Reliable in any deck.',
     3, {
@@ -124,6 +170,19 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
   }, 'skeleton_blue_idle', 'skeleton_red_idle', 3),
+
+  /** Clash Royale {@link https://liquipedia.net/clashroyale/Skeleton_Army Skeleton Army} L14 — ×14 deploy. */
+  skeleton_army: troop('skeleton_army', 'Skeleton Army',
+    'A horde of fragile skeletons. Devastating against single-target troops but weak to splash.',
+    3, {
+    maxHp: 108,
+    speed: crSpeedToCellsPerSec(CR_SPEED.fast),
+    damage: 108,
+    attackRate: 1 / 1.1,
+    attackRange: 0.5,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+  }, 'skeleton_blue_idle', 'skeleton_red_idle', 14),
 
   /** Clash Royale {@link https://liquipedia.net/clashroyale/Spear_Goblins Spear Goblins} L14 — ×3 deploy. */
   spear_goblin: troop('spear_goblin', 'Spear Goblins',
@@ -248,8 +307,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'minotaur_blue_idle', 'minotaur_red_idle'),
 
   /** L14 stats — fast melee with a heavy opening strike. */
+  /** Clash Royale {@link https://liquipedia.net/clashroyale/Bandit Bandit} L14 — opening dash with 2× first hit. */
   thief: troop('thief', 'Thief',
-    'A quick knife fighter who lands an extra-powerful blow on the first hit.',
+    'Stops and dashes to nearby enemies on the first hit, landing double damage.',
     3, {
     maxHp: 1200,
     speed: crSpeedToCellsPerSec(CR_SPEED.fast),
@@ -259,6 +319,9 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
     firstHitDamageMultiplier: 2,
+    dashRangeCells: THIEF_DASH_RANGE_CELLS,
+    dashSpeedMultiplier: THIEF_DASH_SPEED_MULT,
+    dashWindupMs: THIEF_DASH_WINDUP_MS,
   }, 'thief_blue_idle', 'thief_red_idle'),
 
   /** L14 stats — cheap building tank with a slowing death burst. */
@@ -294,6 +357,22 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'panda_blue_idle', 'panda_red_idle'),
 
   /** L14 stats — melee support who heals nearby allies on each strike and on deploy. */
+  /** Clash Royale {@link https://liquipedia.net/clashroyale/Executioner Executioner} L14 — boomerang bone splash. */
+  gnoll: troop('gnoll', 'Gnoll',
+    'Hurls a bone axe in a straight line. It pierces enemies on the way out and returns for a second hit.',
+    5, {
+    maxHp: 1695,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 223,
+    attackRate: 1 / 2.4,
+    attackRange: 4.5,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.AIR_AND_GROUND,
+    splashRadius: 1.5,
+    boomerangAttack: true,
+    boomerangTravelCells: 7.5,
+  }, 'gnoll_blue_idle', 'gnoll_red_idle'),
+
   monk: troop('monk', 'Monk',
     'A support fighter who restores hitpoints to nearby allies with each healing strike.',
     4, {
@@ -319,7 +398,7 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
   }, 'arrow_blue', 'arrow_red'),
 
   wood_tower: building('wood_tower', 'Bomb Tower',
-    'A stationary tower lobbing bombs with area damage. Explodes in a large blast on destruction.',
+    'A stationary tower lobbing bombs at ground troops with area damage. Explodes on destruction.',
     4, {
     maxHp: 1791,
     speed: 0,
@@ -333,11 +412,19 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     lifetimeMs: BOMB_TOWER_LIFETIME_MS,
   }, 'wood_tower_blue_sheet', 'wood_tower_red_sheet'),
 
-  tnt: spell('tnt', 'Bomb',
-    'A high-damage bomb hurled at ground targets. Devastating against single targets and buildings.',
+  /** Clash Royale {@link https://liquipedia.net/clashroyale/Rocket Rocket} L14 — king-launched ground spell. */
+  tnt: spell('tnt', 'Big Bomb',
+    'A slow arcing bomb from your king tower. Huge damage on ground targets in a small radius.',
     6, {
     damage: 1960, radius: 2, duration: 0, groundOnly: true, delivery: 'rocket',
   }, 'bomb_idle', 'bomb_idle'),
+}
+
+export const CARD_DEFINITIONS: Record<string, CardDefinition> =
+  withAddedAtTimestamps(CARD_DEFINITIONS_BASE)
+
+export function getCardAddedAtMs(cardId: string): number {
+  return CARD_DEFINITIONS[cardId]?.addedAt ?? 0
 }
 
 /** Disabled from match decks — card/building code kept for when bugs are fixed. */

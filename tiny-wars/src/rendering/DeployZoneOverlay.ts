@@ -1,9 +1,8 @@
 import Phaser from 'phaser'
 import { GAME_WIDTH, GAME_HEIGHT } from '@data/GameConstants'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
-import type { LaneUnlocks } from '@core/DeployZones'
-import { EMPTY_LANE_UNLOCKS } from '@core/DeployZones'
-import { LOCAL_OWNER, deployOverlayRects, type DeployOverlayRect } from '@core/DeployPerspective'
+import type { LaneUnlocks } from '@core/DeploySystem'
+import { EMPTY_LANE_UNLOCKS, LOCAL_OWNER, deployOverlayRects, type DeployOverlayRect } from '@core/DeploySystem'
 import type { Owner } from '@core/types'
 
 export class DeployZoneOverlay {

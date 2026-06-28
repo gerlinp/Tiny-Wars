@@ -6,12 +6,12 @@ import { Troop } from '@core/entities/Troop'
 import { Building } from '@core/entities/Building'
 import { EntityKind, Owner } from '@core/types'
 import { CELL_SIZE } from '@data/GameConstants'
-import { towerTextureKey } from '@rendering/AssetRegistry'
+import { towerTextureKey } from '@rendering/renderingUtils'
 import { displaySizeForCard, displaySizeForTower } from '@rendering/assetDisplaySize'
 import { towerRenderX, towerRenderY } from '@rendering/towerRenderPosition'
 import { entityCollisionCenter, entityHalfExtents, troopCollisionRadius, buildingCombatCenter, buildingCombatRadius } from '@core/EntityGeometry'
 import { idleSheetKey } from '@data/AssetManifest'
-import { resolveTexture } from '@rendering/PlaceholderFactory'
+import { resolveTexture } from '@rendering/renderingUtils'
 
 const DEPTH = 15
 

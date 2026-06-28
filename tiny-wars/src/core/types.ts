@@ -40,6 +40,12 @@ export interface EntityStats {
   deathSlowDurationMs?: number
   /** First successful strike deals multiplied damage (e.g. opening dash). */
   firstHitDamageMultiplier?: number
+  /** Bandit-style — max tiles away to dash in on the first hit (must also set firstHitDamageMultiplier). */
+  dashRangeCells?: number
+  /** Speed multiplier while dashing to the target on the opening hit. */
+  dashSpeedMultiplier?: number
+  /** Ms to hold idle before the opening dash leap. */
+  dashWindupMs?: number
   /** Prince-style charge — tiles walked before charge activates. */
   chargeDistanceCells?: number
   /** Speed multiplier while charging (e.g. 2 = double speed). */
@@ -60,6 +66,10 @@ export interface EntityStats {
   spawnHealPulseCount?: number
   /** Spawn-heal radius on deploy (grid cells). */
   spawnHealRadius?: number
+  /** Executioner-style — bone travels out and returns, damaging twice along the path. */
+  boomerangAttack?: boolean
+  /** Max travel distance for the boomerang (grid cells); defaults to ~7.5 for executioner-style. */
+  boomerangTravelCells?: number
 }
 
 export interface SpellStats {
@@ -89,6 +99,8 @@ export interface CardDefinition {
   deployCount?: number
   textureKeyPlayer: string
   textureKeyBot: string
+  /** Hidden — ISO ms when this card id first entered the collection (stable across renames). */
+  addedAt: number
 }
 
 export type GameEvent =
@@ -98,6 +110,7 @@ export type GameEvent =
   | { type: 'DAMAGE'; targetId: string; amount: number; attackerId?: string; splash?: boolean }
   | { type: 'HEAL'; targetId: string; amount: number; healerId?: string }
   | { type: 'HEAL_AURA'; position: Vec2; radius: number; owner: Owner; healerId?: string }
+  | { type: 'BOOMERANG'; throwerId: string; owner: Owner; from: Vec2; dir: Vec2; travelLimitPx: number }
   | { type: 'DEATH'; entityId: string; position: Vec2; cardId?: string; deathSplashRadius?: number }
   | { type: 'CROWN_LOST';   owner: Owner; towerId: string }
 

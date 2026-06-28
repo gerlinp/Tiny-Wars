@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import type { CardDefinition } from '@core/types'
 import { CardType, UnitType, AttackType } from '@core/types'
 import { CINZEL_FONT, NUMBER_FONT } from './cardHandLayout'
-import { createCardPortrait } from './cardPortrait'
+import { createCardPortrait, destroyCardPortrait, type CardPortraitNode } from './cardPortrait'
 import { GAME_WIDTH, CANVAS_HEIGHT } from '@data/GameConstants'
 import { CR_SPEED, crSpeedToCellsPerSec } from '@data/GameConstants'
 
@@ -45,7 +45,7 @@ function add<T extends Phaser.GameObjects.GameObject>(container: Phaser.GameObje
 export class CardInfoModal {
   private readonly backdrop: Phaser.GameObjects.Rectangle
   private readonly panel: Phaser.GameObjects.Container
-  private portraits: Phaser.GameObjects.Image[] = []
+  private portraits: CardPortraitNode[] = []
   private sf = 1
 
   constructor(
@@ -67,7 +67,7 @@ export class CardInfoModal {
   }
 
   show(card: CardDefinition): void {
-    for (const img of this.portraits) img.destroy()
+    destroyCardPortrait(this.portraits)
     this.portraits = []
     // Keep only the panel bg (index 0), destroy everything else
     while (this.panel.list.length > 1) {
@@ -157,6 +157,8 @@ export class CardInfoModal {
         rows.push(['Life',    `${stats.lifetimeMs / 1000}s`])
       if (stats.chargeDistanceCells)
         rows.push(['Charge',  `×${stats.chargeDamageMultiplier} dmg`])
+      if (stats.dashRangeCells)
+        rows.push(['Dash',    `×${stats.firstHitDamageMultiplier ?? 2} dmg`])
     }
 
     if (spell) {

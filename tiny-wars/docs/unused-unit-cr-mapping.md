@@ -6,7 +6,7 @@ Inventory of Tiny Swords unit art in `tiny-wars-assets` (symlinked at `public/as
 
 ---
 
-## Currently wired (22 cards)
+## Currently wired (25 cards)
 
 **Default deck (8):** `warrior`, `archer`, `skeleton`, `lancer`, `wizard`, `torch_goblin`, `arrows`, `tnt`
 
@@ -15,11 +15,13 @@ Inventory of Tiny Swords unit art in `tiny-wars-assets` (symlinked at `public/as
 | Warrior | `Units/*/Warrior/` | Knight | default |
 | Archers | `Factions/Knights/Troops/Archer/` | Archers ×2 | default |
 | Skeletons | `Enemy Pack/.../Skull/` | Skeletons ×3 | default |
+| Skeleton Army | `Enemy Pack/.../Skull/` | Skeleton Army ×14 | builder |
 | Lancer | `Units/*/Lancer/` | Prince (charge) | default |
 | Wizard | `Enemy Pack/.../Hex Shaman/` | Wizard (splash) | default |
 | Torch Goblin | `Enemy Pack/.../Torch Goblin/` | Fast ranged goblin | default |
 | Arrows | Archer `Arrow.png` | Arrows spell | default |
 | Bomb | `Enemy Pack/.../Bomb/` | Rocket spell | default |
+| Gnoll | `Enemy Pack/.../Gnoll/` | Executioner (boomerang bone) | builder |
 | Elite Archer | `Units/*/Archer/` | Musketeer | builder |
 | Pawn | `Units/*/Pawn/` | Tanky melee | builder |
 | Spear Goblins | `Enemy Pack/.../Spear Goblin/` | Spear Goblins ×3 | builder |
@@ -34,7 +36,7 @@ Inventory of Tiny Swords unit art in `tiny-wars-assets` (symlinked at `public/as
 | Monk | `Units/*/Monk/` | Battle Healer (heal on attack + deploy) | builder |
 | Bomb Tower | `Factions/Goblins/Buildings/Wood_Tower/` | Bomb Tower | excluded (`DECK_EXCLUDED_CARD_IDS`) |
 
-**Enemy Pack wired (13 animated units):** Skull, Spear Goblin, Troll, Torch Goblin, Hex Shaman, Bomb (spell), Lizard, Pig Rider Spear Goblin, Bomb Fish, Minotaur, Thief, Turtle, Panda.
+**Enemy Pack wired (15 animated units):** Skull (×2 cards), Spear Goblin, Troll, Torch Goblin, Hex Shaman, Bomb (spell), Lizard, Pig Rider Spear Goblin, Bomb Fish, Minotaur, Gnoll, Thief, Turtle, Panda.
 
 **Knights faction wired:** Warrior, Archer (×2 art lines), Pawn, Lancer, Monk.
 
@@ -52,6 +54,8 @@ Full Idle/Run/Attack (or equivalent) sheets, a clear deck-role gap, and a portra
 | **Barrel** (Goblin faction) | Goblin Barrel | 3 | Rolling barrel — spell or deployable. `Factions/Goblins/Troops/Barrel/`. |
 | **Wood Tower** (already coded) | Bomb Tower | 4 | Fully wired; excluded via `DECK_EXCLUDED_CARD_IDS`. |
 
+~~**Gnoll**~~ — done as Executioner (`gnoll` card).
+
 ---
 
 ## Tier 2 — Good fits (remaining)
@@ -62,7 +66,6 @@ Strong art/behavior match; more design or tuning work.
 |---|---|---:|---|
 | **Gnome** | Goblins or Bats | 2 | Tiny, very fast hammer swipes — ground or air swarm. |
 | **Bear** | Giant | 5 | Big slow melee — building-focused tank (distinct from wired Troll). |
-| **Gnoll** | Musketeer | 4 | Throws bones at range; `Gnoll_Bone.png` projectile. Portrait: `Enemy Avatars_10.png`. |
 | **Paddle Shark** | Barbarians | 5 | Oar melee rush; deploy ×2 like Barbarians. |
 | **Spider** | Bats | 2 | Fast small attacker — cheap air swarm. Portrait: `Enemy Avatars_11.png`. |
 | **Snake** | Bats (swarm) or Poison (spell) | 2–4 | No snake troop in CR; swarm or future poison spell. Portrait: `Enemy Avatars_07.png`. |
@@ -111,7 +114,7 @@ Polish opportunities, not new cards.
 | **Lancer** | All `*_Defence` directional holds | Prince charge wind-up / Dark Prince shield |
 | **Pawn** | Tool variants (Axe, Pickaxe, Wood, …) | RTS economy — poor CR fit unless reskinned |
 | **Hex Shaman** | `Transformation Spell`, `Explosion Spell` | Witch skeleton spawn or second spell |
-| **Skeletons** | `Skull_Guard.png` | Block pose only — not wired |
+| **Skeletons** | `Skull_Guard.png` | Block pose only — unused |
 | **Spear Goblins** | `Spear Goblin_Attack Strong.png` | Alternate wind-up throw — not wired (`Attack Fast` used) |
 | **Turtle** | `Guard_In` / `Guard_Out` | Shell stance — not wired (Ice Golem has no guard in CR) |
 
@@ -128,7 +131,7 @@ Given current deck (knights + skeleton swarm + spells + enemy ranged):
 5. **Re-enable Bomb Tower** (Wood Tower) — building slot
 6. ~~**Ice Golem** (Turtle)~~ — done
 7. **Hunter** (Harpoon Shark) — ranged counter
-8. **Gnoll** / **Spider** — portrait slots `_10` / `_11` reserved
+8. **Spider** — portrait slot `_11` reserved
 
 ---
 
@@ -153,6 +156,7 @@ Before wiring any new card, pick a dedicated portrait per [card-avatars rule](..
 | `Enemy Avatars_06.png` | `thief` | Hooded thief |
 | `Enemy Avatars_08.png` | `turtle` | Turtle head |
 | `Enemy Avatars_09.png` | `minotaur` | |
+| `Enemy Avatars_10.png` | `gnoll` | Executioner-style boomerang bone |
 | `Enemy Avatars_12.png` | `panda` | Straw hat |
 | `Enemy Avatars_13.png` | `lizard` | |
 | `Enemy Avatars_16.png` | `troll` | |
@@ -167,9 +171,8 @@ Before wiring any new card, pick a dedicated portrait per [card-avatars rule](..
 | Portrait | Intended unit | Suggested role |
 |---|---|---|
 | `Enemy Avatars_07.png` | Snake | Swarm / poison spell |
-| **`Enemy Avatars_10.png`** | **Gnoll** | Musketeer-style ranged (`Enemy Pack/Enemies/Gnoll/`) |
 | **`Enemy Avatars_11.png`** | **Spider** | Bats swarm |
-| `Enemy Avatars_14.png` | (hyena/gnoll alt — verify art) | — |
+| `Enemy Avatars_14.png` | (verify art) | — |
 | `Enemy Avatars_15.png` | Gnome | Goblins / cheap swarm |
 | `Harpoon Shark.png` | Harpoon Shark | Hunter |
 | `Paddle Shark.png` | Paddle Shark | Barbarians ×2 |
@@ -232,7 +235,7 @@ Slow heavy single-target melee.
 
 **Asset:** `Enemy Pack/.../Thief/` · **Portrait:** `Enemy Avatars_06.png` · **Deck:** builder
 
-Fast melee with `firstHitDamageMultiplier: 2`.
+Fast melee with opening dash (`dashRangeCells`, `firstHitDamageMultiplier: 2`).
 
 ### Turtle (`turtle`) — Ice Golem L14
 
@@ -250,7 +253,13 @@ Melee splash (`splashRadius: 2`).
 
 **Status:** Done · **Asset:** `Enemy Pack/.../Skull/` · **Portrait:** `Enemy Avatars_01.png` · **Deck:** default
 
-×3 deploy, fast melee. `Skull_Guard.png` not wired.
+×3 deploy, fast melee.
+
+### Skeleton Army (`skeleton_army`) — Skeleton Army L14
+
+**Status:** Done · **Asset:** `Enemy Pack/.../Skull/` (shared) · **Portrait:** clustered idle sprites (14) · **Deck:** builder
+
+×14 deploy, same per-skeleton stats as `skeleton`. Spawns in a compact grid cluster.
 
 ### Spear Goblins (`spear_goblin`) — Spear Goblins L14
 

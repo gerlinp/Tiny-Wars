@@ -1,5 +1,12 @@
 import type { GameState } from './GameState'
-import { ELIXIR_MAX, ELIXIR_REGEN_MS, ELIXIR_FAST_MS, ELIXIR_FAST_AT, GAME_DURATION_MS } from '@data/GameConstants'
+import {
+  ELIXIR_MAX,
+  ELIXIR_REGEN_MS,
+  ELIXIR_FAST_MS,
+  ELIXIR_TRIPLE_MS,
+  ELIXIR_FAST_AT,
+  GAME_DURATION_MS,
+} from '@data/GameConstants'
 import { Owner } from './types'
 
 export function grantElixir(state: GameState, owner: Owner, amount: number): void {
@@ -10,9 +17,16 @@ export function grantElixir(state: GameState, owner: Owner, amount: number): voi
   }
 }
 
-export function tickElixir(state: GameState, deltaMs: number): void {
+/** Ms per +1 elixir — triple in overtime, double in last minute of regulation. */
+export function getElixirRegenMs(state: GameState): number {
+  if (state.phase === 'OVERTIME' || state.phase === 'TIE_BREAK') return ELIXIR_TRIPLE_MS
   const timeRemaining = GAME_DURATION_MS - state.elapsedMs
-  const regenMs = timeRemaining <= ELIXIR_FAST_AT ? ELIXIR_FAST_MS : ELIXIR_REGEN_MS
+  if (timeRemaining <= ELIXIR_FAST_AT) return ELIXIR_FAST_MS
+  return ELIXIR_REGEN_MS
+}
+
+export function tickElixir(state: GameState, deltaMs: number): void {
+  const regenMs = getElixirRegenMs(state)
   const gain = deltaMs / regenMs
 
   tickOwnerElixir(state, Owner.PLAYER, gain)

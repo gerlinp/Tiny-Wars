@@ -1,12 +1,13 @@
 import Phaser from 'phaser'
 import { Owner } from '@core/types'
 import type { Vec2 } from '@core/types'
-import { getSideAssets } from '@data/AssetManifest'
-import { applyCardDisplaySize } from './assetDisplaySize'
-import { resolveTexture } from './PlaceholderFactory'
+import { clipAnimKey } from '@data/AssetManifest'
+import { CELL_SIZE } from '@data/GameConstants'
+import { applyBombArcDisplaySize, BOMB_PROJECTILE_DISPLAY_SCALE, BOMB_SPIN_TIME_SCALE } from './bombProjectileVisual'
 
-const POOL_SIZE = 6
-const PROJECTILE_SCALE = 0.5
+const POOL_SIZE = 8
+const PROJECTILE_DISPLAY = CELL_SIZE * BOMB_PROJECTILE_DISPLAY_SCALE
+const BOMB_SPIN_SHEET = 'bomb_spinning'
 
 export class TntPool {
   private pool: Phaser.GameObjects.Sprite[] = []
@@ -18,11 +19,7 @@ export class TntPool {
   }
 
   private createProjectile(): Phaser.GameObjects.Sprite {
-    const key = resolveTexture(
-      this.scene,
-      getSideAssets('tnt', Owner.PLAYER)!.idle.sheet.key,
-      'placeholder_player',
-    )
+    const key = this.scene.textures.exists(BOMB_SPIN_SHEET) ? BOMB_SPIN_SHEET : 'placeholder_player'
     const spr = this.scene.add.sprite(0, 0, key, 0)
       .setDepth(21)
       .setOrigin(0.5, 0.5)
@@ -31,27 +28,26 @@ export class TntPool {
     return spr
   }
 
-  private layoutSprite(sprite: Phaser.GameObjects.Sprite, owner: Owner): void {
-    const side = getSideAssets('tnt', owner)!
-    const key = resolveTexture(this.scene, side.idle.sheet.key, 'placeholder_player')
-    sprite.setTexture(key, 0)
-    applyCardDisplaySize(sprite, this.scene, 'tnt', key, 0)
-    sprite.setScale(sprite.scaleX * PROJECTILE_SCALE, sprite.scaleY * PROJECTILE_SCALE)
-  }
-
   spawn(from: Vec2, to: Vec2, owner: Owner, flightMs: number): void {
-    const rocket = this.pool.find(b => !b.getData('flying'))
-    if (!rocket) return
+    const bomb = this.pool.find(b => !b.getData('flying'))
+    if (!bomb) return
 
-    this.layoutSprite(rocket, owner)
-    rocket.setData('flying', true)
-    rocket.setVisible(true)
-    rocket.setAlpha(1)
-    rocket.setPosition(from.x, from.y)
-    rocket.anims.stop()
+    const spinKey = clipAnimKey('tnt', owner, 'run')
 
-    const angle = Math.atan2(to.y - from.y, to.x - from.x)
-    rocket.setRotation(angle)
+    bomb.setData('flying', true)
+    bomb.setTexture(BOMB_SPIN_SHEET, 0)
+    bomb.setDisplaySize(PROJECTILE_DISPLAY, PROJECTILE_DISPLAY)
+    bomb.setPosition(from.x, from.y)
+    bomb.setRotation(0)
+    bomb.setVisible(true)
+    bomb.setAlpha(1)
+
+    if (this.scene.anims.exists(spinKey)) {
+      bomb.anims.timeScale = BOMB_SPIN_TIME_SCALE
+      bomb.anims.play(spinKey)
+    } else {
+      bomb.anims.stop()
+    }
 
     this.scene.tweens.add({
       targets: { t: 0 },
@@ -60,21 +56,23 @@ export class TntPool {
       ease: 'Linear',
       onUpdate: (_tween, target) => {
         const t = (target as { t: number }).t
-        rocket.setPosition(
+        bomb.setPosition(
           from.x + (to.x - from.x) * t,
           from.y + (to.y - from.y) * t,
         )
+        applyBombArcDisplaySize(bomb, PROJECTILE_DISPLAY, t)
       },
-      onComplete: () => this.finish(rocket),
+      onComplete: () => this.finish(bomb),
     })
   }
 
-  private finish(rocket: Phaser.GameObjects.Sprite): void {
-    rocket.setAlpha(0)
-    rocket.setVisible(false)
-    rocket.setRotation(0)
-    rocket.setData('flying', false)
-    rocket.removeAllListeners()
-    this.scene.tweens.killTweensOf(rocket)
+  private finish(bomb: Phaser.GameObjects.Sprite): void {
+    bomb.setVisible(false)
+    bomb.setData('flying', false)
+    bomb.anims.stop()
+    bomb.anims.timeScale = 1
+    bomb.removeAllListeners()
+    bomb.setDisplaySize(PROJECTILE_DISPLAY, PROJECTILE_DISPLAY)
+    this.scene.tweens.killTweensOf(bomb)
   }
 }

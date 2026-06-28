@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import type { CardDefinition } from '@core/types'
 import { CINZEL_FONT, NUMBER_FONT } from './cardHandLayout'
-import { createCardPortrait } from './cardPortrait'
+import { createCardPortrait, destroyCardPortrait, type CardPortraitNode } from './cardPortrait'
 
 const ICON_FILL  = 0.74
 const BTN_H      = 38
@@ -27,6 +27,10 @@ export class DeckCard {
   private readonly actionBtnBg: Phaser.GameObjects.Rectangle
   private readonly actionBtnText: Phaser.GameObjects.Text
   private readonly panelBg: Phaser.GameObjects.Rectangle
+  private readonly portraitNodes: CardPortraitNode[]
+  private readonly nameText: Phaser.GameObjects.Text
+  private readonly elixirText: Phaser.GameObjects.Text
+  private readonly hitZone: Phaser.GameObjects.Rectangle
   private expanded = false
   private btnPressed = false
   /** True for 50 ms after any interaction — lets the scene dismiss-handler skip this card. */
@@ -43,16 +47,17 @@ export class DeckCard {
     this.bg = scene.add.rectangle(x, y, w, h, 0x0d1b3e, 0.92)
       .setStrokeStyle(2, 0x2e4480).setDepth(0)
 
-    for (const img of createCardPortrait(scene, card, x, y, w * ICON_FILL, h * ICON_FILL)) {
+    this.portraitNodes = createCardPortrait(scene, card, x, y, w * ICON_FILL, h * ICON_FILL)
+    for (const img of this.portraitNodes) {
       img.setDepth(1)
     }
 
-    scene.add.text(x, y - h / 2 + 11, card.displayName, {
+    this.nameText = scene.add.text(x, y - h / 2 + 11, card.displayName, {
       fontSize: '13px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
       color: '#cfe0ff', stroke: '#000022', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(2)
 
-    scene.add.text(x - w / 2 + 4, y + h / 2 - 4, `${card.elixirCost}`, {
+    this.elixirText = scene.add.text(x - w / 2 + 4, y + h / 2 - 4, `${card.elixirCost}`, {
       fontSize: '14px', fontFamily: NUMBER_FONT, fontStyle: 'bold',
       color: '#ffffff', stroke: '#1a004a', strokeThickness: 2,
       backgroundColor: '#5500cc', padding: { x: 5, y: 3 },
@@ -95,7 +100,7 @@ export class DeckCard {
       fontSize: BTN_FONT, fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5).setDepth(11).setVisible(false)
 
-    scene.add.rectangle(x, y, w, h, 0x000000, 0).setDepth(5)
+    this.hitZone = scene.add.rectangle(x, y, w, h, 0x000000, 0).setDepth(5)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => { this.justInteracted = true })
       .on('pointerup',   () => {
@@ -108,6 +113,20 @@ export class DeckCard {
           this.expand()
         }
       })
+  }
+
+  destroy(): void {
+    destroyCardPortrait(this.portraitNodes)
+    this.bg.destroy()
+    this.dim.destroy()
+    this.infoBtnBg.destroy()
+    this.infoBtnText.destroy()
+    this.actionBtnBg.destroy()
+    this.actionBtnText.destroy()
+    this.panelBg.destroy()
+    this.nameText.destroy()
+    this.elixirText.destroy()
+    this.hitZone.destroy()
   }
 
   expand(): void {

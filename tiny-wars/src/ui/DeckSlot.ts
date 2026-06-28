@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import type { CardDefinition } from '@core/types'
 import { CINZEL_FONT, NUMBER_FONT } from './cardHandLayout'
-import { createCardPortrait } from './cardPortrait'
+import { createCardPortrait, destroyCardPortrait, type CardPortraitNode } from './cardPortrait'
 
 const ICON_FILL  = 0.78
 const BTN_H      = 38
@@ -23,7 +23,7 @@ export class DeckSlot {
   private readonly remBtnBg: Phaser.GameObjects.Rectangle
   private readonly remBtnText: Phaser.GameObjects.Text
   private readonly hitArea: Phaser.GameObjects.Rectangle
-  private portrait: Phaser.GameObjects.Image[] = []
+  private portrait: CardPortraitNode[] = []
   private expanded = false
   private hasCard = false
   private btnPressed = false
@@ -137,7 +137,7 @@ export class DeckSlot {
   }
 
   setCard(card: CardDefinition | null): void {
-    for (const img of this.portrait) img.destroy()
+    destroyCardPortrait(this.portrait)
     this.portrait = []
     this.collapse()
 

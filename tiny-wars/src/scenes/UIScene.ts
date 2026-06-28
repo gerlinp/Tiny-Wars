@@ -4,6 +4,7 @@ import { CardHand } from '@ui/CardHand'
 import { TimerDisplay } from '@ui/TimerDisplay'
 import { CrownCounter } from '@ui/CrownCounter'
 import type { HandState } from '@core/CardSystem'
+import type { GamePhase } from '@core/GameState'
 import { GAME_HEIGHT, HUD_HEIGHT } from '@data/GameConstants'
 import { deckCenterY, elixirBarY } from '@ui/cardHandLayout'
 import { DevMode } from '@debug/DevMode'
@@ -14,6 +15,7 @@ export interface UISnapshot {
   playerCrowns: number
   botCrowns: number
   elapsedMs: number
+  phase: GamePhase
   hand: HandState
 }
 
@@ -123,7 +125,7 @@ export class UIScene extends Phaser.Scene {
   updateState(snapshot: UISnapshot): void {
     this.elixirBar.update(Math.floor(snapshot.playerElixir))
     this.cardHand.update(this, snapshot.hand, snapshot.playerElixir)
-    this.timer.update(snapshot.elapsedMs)
+    this.timer.update(snapshot.elapsedMs, snapshot.phase)
     this.crowns.update(snapshot.playerCrowns, snapshot.botCrowns)
   }
 }

@@ -5,6 +5,8 @@ import {
   clipAnimKey,
   DAMAGE_FIRE_SHEETS,
   MONK_HEAL_EFFECT_SHEETS,
+  EXPLOSION_SHEET,
+  GNOLL_BONE_SHEET,
   TROOP_DEATH_SHEET,
   type AnimClip,
   type ClipDef,
@@ -119,6 +121,36 @@ export function registerMonkHealFx(scene: Phaser.Scene): void {
       repeat: 0,
     })
   }
+}
+
+/** Gnoll bone boomerang — spinning projectile (4 frames). */
+export function registerGnollBoneFx(scene: Phaser.Scene): void {
+  if (scene.anims.exists(GNOLL_BONE_SHEET.animKey)) return
+  if (!scene.textures.exists(GNOLL_BONE_SHEET.key)) return
+  scene.anims.create({
+    key: GNOLL_BONE_SHEET.animKey,
+    frames: scene.anims.generateFrameNumbers(GNOLL_BONE_SHEET.key, {
+      start: GNOLL_BONE_SHEET.frameStart,
+      end: GNOLL_BONE_SHEET.frameEnd,
+    }),
+    frameRate: GNOLL_BONE_SHEET.frameRate,
+    repeat: -1,
+  })
+}
+
+/** Generic bomb blast — Effects/Explosion/Explosions.png. */
+export function registerExplosionFx(scene: Phaser.Scene): void {
+  if (scene.anims.exists(EXPLOSION_SHEET.animKey)) return
+  if (!scene.textures.exists(EXPLOSION_SHEET.key)) return
+  scene.anims.create({
+    key: EXPLOSION_SHEET.animKey,
+    frames: scene.anims.generateFrameNumbers(EXPLOSION_SHEET.key, {
+      start: 0,
+      end: EXPLOSION_SHEET.frameEnd,
+    }),
+    frameRate: EXPLOSION_SHEET.frameRate,
+    repeat: 0,
+  })
 }
 
 export function playCardAnim(

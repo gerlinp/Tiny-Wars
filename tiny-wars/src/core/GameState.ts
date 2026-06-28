@@ -1,10 +1,13 @@
 import type { GameEvent, Owner } from './types'
 import type { Entity } from './entities/Entity'
 import type { Tower } from './entities/Tower'
-import type { LaneUnlocks } from './DeployZones'
-import { createEmptyEnemyLaneDeploy } from './DeployZones'
+import type { LaneUnlocks } from './DeploySystem'
+import type { FlowFieldManager } from './FlowFieldManager'
+import type { ActiveBoomerang } from './BoomerangSystem'
+import { createEmptyEnemyLaneDeploy } from './DeploySystem'
+import { ELIXIR_START } from '@data/GameConstants'
 
-export type GamePhase = 'BATTLE' | 'OVERTIME' | 'ENDED'
+export type GamePhase = 'BATTLE' | 'OVERTIME' | 'TIE_BREAK' | 'ENDED'
 
 export interface GameState {
   tick: number
@@ -22,14 +25,18 @@ export interface GameState {
   events: GameEvent[]
   phase: GamePhase
   winner: Owner | null
+  /** Flow fields for tower-march navigation. Undefined in tests/environments without GameSimulator. */
+  flowFields?: FlowFieldManager
+  /** Active boomerang projectiles (Executioner / Gnoll). */
+  boomerangs?: ActiveBoomerang[]
 }
 
 export function createInitialGameState(): GameState {
   return {
     tick: 0,
     elapsedMs: 0,
-    playerElixir: 4,
-    botElixir: 4,
+    playerElixir: ELIXIR_START,
+    botElixir: ELIXIR_START,
     playerElixirAccum: 0,
     botElixirAccum: 0,
     playerCrowns: 0,

@@ -8,6 +8,27 @@ export function menuButtonDisplayWidth(): number {
   return MENU_BUTTON_SRC_W * MENU_BUTTON_SCALE
 }
 
+export interface FooterButtonRowLayout {
+  centers: number[]
+  scale: number
+  btnW: number
+}
+
+/** Fit N sprite buttons within horizontal margins (deck builder footer, etc.). */
+export function footerButtonRowLayout(
+  screenWidth: number,
+  count: number,
+  sideMargin: number,
+  gap: number,
+): FooterButtonRowLayout {
+  const available = screenWidth - sideMargin * 2
+  const btnW = (available - gap * (count - 1)) / count
+  const scale = btnW / MENU_BUTTON_SRC_W
+  const startX = sideMargin + btnW / 2
+  const centers = Array.from({ length: count }, (_, i) => startX + i * (btnW + gap))
+  return { centers, scale, btnW }
+}
+
 /** Center X positions for N menu buttons in a horizontal row. */
 export function menuButtonRowCenters(screenWidth: number, count: number, gap: number): number[] {
   const btnW = menuButtonDisplayWidth()
@@ -37,7 +58,7 @@ export function createMenuButton(
     stroke: '#000022',
     strokeThickness: 3,
   }).setOrigin(0.5).setDepth(depth + 1)
-  btn.on('pointerdown', onPress)
+  btn.on('pointerup', onPress)
   btn.on('pointerover', () => btn.setTint(0xdddddd))
-  btn.on('pointerout', () => btn.clearTint())
+  btn.on('pointerout',  () => btn.clearTint())
 }

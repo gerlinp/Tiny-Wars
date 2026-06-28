@@ -8,8 +8,7 @@ import { Owner } from '@core/types'
 import { CardType } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { GAME_HEIGHT } from '@data/GameConstants'
-import { LOCAL_OWNER, enemyLaneUnlocksFor } from '@core/DeployPerspective'
-import { isTroopDeployCell } from '@core/DeployZones'
+import { LOCAL_OWNER, enemyLaneUnlocksFor, isTroopDeployCell } from '@core/DeploySystem'
 
 type State = 'IDLE' | 'CARD_SELECTED'
 

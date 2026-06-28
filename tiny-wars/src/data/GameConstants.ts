@@ -44,6 +44,10 @@ export const BOT_KING_COL   = 12
 export const BOT_TOWER_ROW  = 12
 export const BOT_TOWER_COLS = [4, 19] as const
 
+/** King-tower garrison cannon — map grid row (centre of tile). */
+export const PLAYER_KING_CANNON_ROW = 39
+export const BOT_KING_CANNON_ROW = 5
+
 /** Bridge spans 3 cells centred on the tower's lane column (wider crossing reduces clogging). */
 function bridgeColsOnLeftTowerLane(towerCol: number): readonly number[] {
   return [towerCol - 1, towerCol, towerCol + 1]
@@ -73,10 +77,20 @@ export const GAME_DURATION_MS = 180_000  // 3 minutes
 
 // Elixir
 export const ELIXIR_MAX      = 10
-export const ELIXIR_START    = 4
+export const ELIXIR_START    = 5
 export const ELIXIR_REGEN_MS = 2800   // ms per +1 elixir
-export const ELIXIR_FAST_MS  = 1400   // ms per +1 elixir in last 60 seconds
+export const ELIXIR_FAST_MS  = 1400   // ms per +1 elixir in last 60 seconds of regulation
+export const ELIXIR_TRIPLE_MS = 900   // ms per +1 elixir in overtime (~CR triple rate)
 export const ELIXIR_FAST_AT  = 60_000 // switch to fast regen when time_remaining <= this
+
+/** Overtime when regulation ends tied — first crown wins; triple elixir. */
+export const OVERTIME_DURATION_MS = 120_000  // 2 minutes
+
+/** After overtime expires tied — all towers drain until one falls (CR tiebreaker). */
+export const TIE_BREAK_TOWER_DPS = 60  // damage per second to each remaining tower
+
+/** Monk / Battle Healer — delay between each heal pulse in a burst. */
+export const HEAL_PULSE_INTERVAL_MS = 500
 
 /**
  * Arena tile footprints (official CR: princess 3×3; king ~4×4 diameter per placement guides).
@@ -160,6 +174,13 @@ export const TROOP_AGGRO_RANGE_CELLS = 6
 export const LANCER_CHARGE_DISTANCE_CELLS = 3.5
 export const LANCER_CHARGE_SPEED_MULT = 2
 export const LANCER_CHARGE_DAMAGE_MULT = 2
+
+/** Clash Royale Bandit — max tiles away to initiate the opening dash on first hit. */
+export const THIEF_DASH_RANGE_CELLS = 4
+/** Pause (idle) before the leap — Bandit-style wind-up. */
+export const THIEF_DASH_WINDUP_MS = 550
+/** Fast leap across the gap; total dash time stays CR-like with the wind-up above. */
+export const THIEF_DASH_SPEED_MULT = 8
 
 /** Ground troop feet collision — small circle (CR-style), not sprite-sized boxes. */
 export const TROOP_COLLISION_RADIUS_CELLS = 0.35

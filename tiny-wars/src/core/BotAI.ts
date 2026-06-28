@@ -4,7 +4,7 @@ import type { BotAction } from './types'
 import { Owner } from './types'
 import { CardType } from './types'
 import { BOT_THINK_MIN_MS, BOT_THINK_MAX_MS } from '@data/GameConstants'
-import { listTroopDeployCells } from './DeployZones'
+import { listTroopDeployCells } from './DeploySystem'
 
 export class BotAI {
   private thinkCooldownMs = BOT_THINK_MIN_MS

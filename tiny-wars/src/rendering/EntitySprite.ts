@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { HealthBar } from './HealthBar'
-import { resolveTexture } from './PlaceholderFactory'
+import { resolveTexture } from './renderingUtils'
 import { clipAnimKey, idleSheetKey, getSideAssets, isAnimatedCard, usesTintedBotSide, BOT_SIDE_TINT, resolveAttackAnimKey, type AnimClip } from '@data/AssetManifest'
 import { Owner, CardType } from '@core/types'
 import type { Vec2 } from '@core/types'
@@ -18,6 +18,12 @@ export interface AttackSync {
   aimPoint?: Vec2
 }
 
+export interface DashSync {
+  phase: 'windup' | 'leap'
+  aimPoint?: Vec2
+  leapPose?: { sheetKey: string; frame: number }
+}
+
 export class EntitySprite {
   readonly sprite: DisplayObject
   private healthBar: HealthBar
@@ -33,6 +39,9 @@ export class EntitySprite {
   private bombCrew: BombTowerCrew | null = null
   private buildingSize = { width: 0, height: 0 }
   private attackAimPoint: Vec2 | undefined
+  private frozenPoseActive = false
+  private frozenPoseKey: string | null = null
+  private frozenPoseFrame = -1
 
   constructor(
     private scene: Phaser.Scene,
@@ -92,24 +101,39 @@ export class EntitySprite {
     moveSpeed = 1.5,
     showHealthBar = false,
     attackSync?: AttackSync,
+    dashSync?: DashSync,
   ): void {
     if (this.animated) {
-      this.attackAimPoint = attackSync?.aimPoint
+      this.attackAimPoint = attackSync?.aimPoint ?? dashSync?.aimPoint
 
+      const aimForFacing = dashSync?.aimPoint ?? attackSync?.aimPoint
       const dx = x - this.lastX
       if (!this.attackSwingPlaying) {
-        if (dx < -0.3) this.sprite.setFlipX(true)
-        else if (dx > 0.3) this.sprite.setFlipX(false)
+        if (aimForFacing) {
+          this.sprite.setFlipX(aimForFacing.x < x)
+        } else if (dx < -0.3) {
+          this.sprite.setFlipX(true)
+        } else if (dx > 0.3) {
+          this.sprite.setFlipX(false)
+        }
       }
 
-      if (attackSync && attackSync.windupMs > 0 && !this.attackSwingPlaying) {
+      if (attackSync && attackSync.windupMs > 0 && !this.attackSwingPlaying && !this.bombCrew) {
         if (attackSync.cooldownMs > 0 && attackSync.cooldownMs <= attackSync.windupMs) {
           this.beginAttackSwing()
         }
       }
 
       if (!this.attackSwingPlaying) {
-        this.playLocomotion(anim, moveSpeed)
+        if (dashSync?.phase === 'windup') {
+          this.clearFrozenPose()
+          this.playLocomotion('idle', 1)
+        } else if (dashSync?.phase === 'leap' && dashSync.leapPose) {
+          this.showFrozenPose(dashSync.leapPose.sheetKey, dashSync.leapPose.frame, this.sprite.flipX, 'run')
+        } else {
+          this.clearFrozenPose()
+          this.playLocomotion(anim, moveSpeed)
+        }
       }
     }
 
@@ -134,18 +158,29 @@ export class EntitySprite {
       )
 
       this.bombCrew?.layout(x, y, this.buildingSize.height)
-      this.bombCrew?.syncAttack(this.owner, attackSync)
+      this.bombCrew?.syncAttack(attackSync)
     }
   }
 
+  /** Bomb Fish crew perch — for tower lobs and VFX origin. */
+  getBombCrewOrigin(): Vec2 | null {
+    return this.bombCrew?.getWorldPosition() ?? null
+  }
+
   /** Fallback when windup did not start before the first strike in a engagement. */
-  onAttackImpact(): void {
+  onAttackImpact(aimPoint?: Vec2): void {
+    if (this.bombCrew) {
+      this.bombCrew.onAttackImpact(aimPoint)
+      return
+    }
     if (!this.attackSwingPlaying) this.beginAttackSwing()
   }
 
   private beginAttackSwing(): void {
     if (!this.animated || !(this.sprite instanceof Phaser.GameObjects.Sprite)) return
     if (this.attackSwingPlaying) return
+
+    this.clearFrozenPose()
 
     const aim = this.attackAimPoint
     const { key, flipX } = aim
@@ -164,6 +199,37 @@ export class EntitySprite {
       this.attackSwingPlaying = false
       if (this.currentAnim === 'attack') this.currentAnim = 'idle'
     })
+  }
+
+  private clearFrozenPose(): void {
+    this.frozenPoseActive = false
+    this.frozenPoseKey = null
+    this.frozenPoseFrame = -1
+  }
+
+  private showFrozenPose(
+    sheetKey: string,
+    frame: number,
+    flipX: boolean,
+    currentAnim: AnimClip,
+  ): void {
+    if (!(this.sprite instanceof Phaser.GameObjects.Sprite)) return
+
+    this.sprite.setFlipX(flipX)
+    if (
+      this.frozenPoseActive &&
+      this.frozenPoseKey === sheetKey &&
+      this.frozenPoseFrame === frame
+    ) {
+      return
+    }
+
+    this.sprite.anims.stop()
+    this.sprite.setTexture(sheetKey, frame)
+    this.frozenPoseActive = true
+    this.frozenPoseKey = sheetKey
+    this.frozenPoseFrame = frame
+    this.currentAnim = currentAnim
   }
 
   private playLocomotion(anim: AnimClip, moveSpeed: number): void {

@@ -1,19 +1,16 @@
 import Phaser from 'phaser'
 import { CardSlot } from './CardSlot'
 import type { HandState } from '@core/CardSystem'
-import { cardAvatarKey, getCardAvatarBackdrop } from '@data/AssetManifest'
-import { applyCardAvatarTexture } from '@rendering/cardAvatarTexture'
 import {
-  applyIconDisplaySize, applyBackdropDisplaySize, applyCardAvatarIconSize,
   handSlotCenterX, nextCardCenterX, nextIconDisplaySize,
   NEXT_SLOT_W, NEXT_SLOT_H, CINZEL_FONT,
 } from './cardHandLayout'
+import { createCardPortrait, destroyCardPortrait, type CardPortraitNode } from './cardPortrait'
 
 export class CardHand {
   private slots: CardSlot[] = []
   private nextBorder: Phaser.GameObjects.Rectangle
-  private nextBackdrop: Phaser.GameObjects.Image
-  private nextIcon: Phaser.GameObjects.Image
+  private nextPortrait: CardPortraitNode[] = []
   private nextLabel: Phaser.GameObjects.Text
   private nextCardId: string | null = null
   onCardSelected: ((index: number) => void) | null = null
@@ -35,18 +32,6 @@ export class CardHand {
       fontSize: '12px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
       color: '#aabbdd', stroke: '#000022', strokeThickness: 2,
     }).setOrigin(0.5, 0).setDepth(50).setVisible(false)
-
-    this.nextBackdrop = scene.add.image(nextX, y, cardAvatarKey('warrior'))
-      .setAlpha(0.85)
-      .setDepth(51)
-      .setVisible(false)
-
-    const nextSize = nextIconDisplaySize()
-    this.nextIcon = scene.add.image(nextX, y, cardAvatarKey('warrior'))
-      .setAlpha(0.85)
-      .setDepth(52)
-      .setVisible(false)
-    applyIconDisplaySize(this.nextIcon, nextSize.w, nextSize.h)
   }
 
   update(scene: Phaser.Scene, handState: HandState, playerElixir: number): void {
@@ -61,29 +46,22 @@ export class CardHand {
     }
 
     const next = handState.nextCard
+    const nextX = this.nextBorder.x
+    const nextY = this.nextBorder.y
     const nextSize = nextIconDisplaySize()
-    if (this.nextCardId !== next.id) {
-      applyCardAvatarTexture(this.nextIcon, scene, next.id)
-      this.nextCardId = next.id
 
-      const backdrop = getCardAvatarBackdrop(next.id)
-      if (backdrop) {
-        if (!scene.textures.exists(backdrop.key)) {
-          throw new Error(`Card avatar backdrop "${backdrop.key}" for "${next.id}" is not loaded.`)
-        }
-        this.nextBackdrop.setTexture(backdrop.key)
-        this.nextBackdrop.setVisible(true)
-      } else {
-        this.nextBackdrop.setVisible(false)
+    if (this.nextCardId !== next.id) {
+      destroyCardPortrait(this.nextPortrait)
+      this.nextPortrait = createCardPortrait(scene, next, nextX, nextY, nextSize.w, nextSize.h)
+      for (const node of this.nextPortrait) {
+        node.setAlpha(0.85)
+        node.setDepth(node instanceof Phaser.GameObjects.Container ? 52 : 51)
       }
+      this.nextCardId = next.id
     }
 
-    const hasBackdrop = this.nextBackdrop.visible
-    if (hasBackdrop) applyBackdropDisplaySize(this.nextBackdrop, nextSize.w, nextSize.h)
-    applyCardAvatarIconSize(this.nextIcon, next.id, nextSize.w, nextSize.h, hasBackdrop)
-
     this.nextBorder.setVisible(true)
-    this.nextIcon.setVisible(true)
+    for (const node of this.nextPortrait) node.setVisible(true)
     this.nextLabel.setVisible(true)
   }
 }

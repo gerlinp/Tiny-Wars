@@ -1,0 +1,113 @@
+import Phaser from 'phaser'
+import { Owner } from '@core/types'
+import { EXPLOSION_SHEET, MONK_HEAL_EFFECT_SHEETS, TROOP_DEATH_SHEET } from '@data/AssetManifest'
+import { CELL_SIZE, MAP_UNIT_TARGET_HEIGHT } from '@data/GameConstants'
+
+// ─── EffectsPool ─────────────────────────────────────────────────────────────
+
+const EFFECTS_POOL_SIZE = 10
+
+export class EffectsPool {
+  private pool: Phaser.GameObjects.Sprite[] = []
+
+  constructor(private scene: Phaser.Scene) {
+    for (let i = 0; i < EFFECTS_POOL_SIZE; i++) {
+      const spr = scene.add.sprite(0, 0, EXPLOSION_SHEET.key, 0)
+        .setDepth(20)
+        .setOrigin(0.5, 0.5)
+        .setVisible(false)
+      spr.setData('playing', false)
+      this.pool.push(spr)
+    }
+  }
+
+  spawn(x: number, y: number, radiusPx = CELL_SIZE * 2.4): void {
+    const spr = this.pool.find(p => !p.getData('playing'))
+    if (!spr || !this.scene.anims.exists(EXPLOSION_SHEET.animKey)) return
+
+    const size = Math.max(CELL_SIZE * 2.4, radiusPx * 1.2)
+    spr.setData('playing', true)
+    spr.setPosition(x, y)
+    spr.setDisplaySize(size, size)
+    spr.setVisible(true)
+    spr.setAlpha(1)
+    spr.anims.stop()
+    spr.play(EXPLOSION_SHEET.animKey)
+
+    spr.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      spr.setVisible(false)
+      spr.setData('playing', false)
+      spr.anims.stop()
+    })
+  }
+}
+
+// ─── HealEffectPool ──────────────────────────────────────────────────────────
+
+const HEAL_POOL_SIZE = 20
+const HEAL_EFFECT_DISPLAY = CELL_SIZE * 3.2
+const UNIT_EFFECT_DISPLAY = CELL_SIZE * 2.2
+
+export class HealEffectPool {
+  private pool: Phaser.GameObjects.Sprite[] = []
+
+  constructor(private scene: Phaser.Scene) {
+    for (let i = 0; i < HEAL_POOL_SIZE; i++) {
+      const spr = scene.add.sprite(0, 0, MONK_HEAL_EFFECT_SHEETS.blue.key, 0)
+        .setDepth(21)
+        .setOrigin(0.5, 0.5)
+        .setVisible(false)
+      spr.setData('playing', false)
+      this.pool.push(spr)
+    }
+  }
+
+  spawnOnUnit(x: number, y: number, owner: Owner): void {
+    this.playEffect(x, y, owner, UNIT_EFFECT_DISPLAY, 0.9)
+  }
+
+  spawn(x: number, y: number, owner: Owner, radiusCells: number): void {
+    const size = Math.max(HEAL_EFFECT_DISPLAY, radiusCells * CELL_SIZE * 1.6)
+    this.playEffect(x, y, owner, size, 0.85)
+  }
+
+  private playEffect(x: number, y: number, owner: Owner, size: number, alpha: number): void {
+    const sheet = owner === Owner.PLAYER ? MONK_HEAL_EFFECT_SHEETS.blue : MONK_HEAL_EFFECT_SHEETS.red
+    const burst = this.pool.find(p => !p.getData('playing'))
+    if (!burst || !this.scene.anims.exists(sheet.animKey)) return
+
+    burst.setData('playing', true)
+    burst.setTexture(sheet.key, 0)
+    burst.setPosition(x, y)
+    burst.setDisplaySize(size, size)
+    burst.setVisible(true)
+    burst.setAlpha(alpha)
+    burst.play(sheet.animKey)
+
+    burst.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      burst.setVisible(false)
+      burst.setData('playing', false)
+      burst.anims.stop()
+    })
+  }
+}
+
+// ─── DeathPool ───────────────────────────────────────────────────────────────
+
+const DEATH_DISPLAY_SIZE = MAP_UNIT_TARGET_HEIGHT * 1.1
+
+export class DeathPool {
+  constructor(private scene: Phaser.Scene) {}
+
+  spawn(x: number, y: number, flipX = false): void {
+    if (!this.scene.anims.exists(TROOP_DEATH_SHEET.animKey)) return
+
+    const sprite = this.scene.add.sprite(x, y, TROOP_DEATH_SHEET.key, 0)
+      .setDepth(5.5)
+      .setDisplaySize(DEATH_DISPLAY_SIZE, DEATH_DISPLAY_SIZE)
+      .setFlipX(flipX)
+
+    sprite.play(TROOP_DEATH_SHEET.animKey)
+    sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => sprite.destroy())
+  }
+}

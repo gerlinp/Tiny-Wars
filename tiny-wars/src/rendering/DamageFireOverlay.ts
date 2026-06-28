@@ -1,9 +1,9 @@
 import Phaser from 'phaser'
 import { DAMAGE_FIRE_GRID, DAMAGE_FIRE_SHEETS } from '@data/AssetManifest'
 import { CELL_SIZE } from '@data/GameConstants'
-import { damageFireTier, pickDamageFireGridCell } from './damageFireLogic'
+import { damageFireTier, pickDamageFireGridCell } from './renderingUtils'
 
-export { damageFireTier, pickDamageFireGridCell } from './damageFireLogic'
+export { damageFireTier, pickDamageFireGridCell } from './renderingUtils'
 
 const FIRE_DEPTH = 5.8
 const FIRE_DISPLAY = CELL_SIZE * 1.1

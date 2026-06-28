@@ -1,10 +1,24 @@
 import Phaser from 'phaser'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
+import { footerButtonRowLayout } from '../ui/SceneButton'
 import { DeckCard } from '../ui/DeckCard'
 import { DeckSlot } from '../ui/DeckSlot'
 import { CardInfoModal } from '../ui/CardInfoModal'
 import { CARD_DEFINITIONS } from '@data/CardData'
-import { DECK_SIZE, getDeckCandidates, loadPlayerDeck, savePlayerDeck } from '@data/PlayerDeck'
+import {
+  COLLECTION_SORT_LABELS,
+  COLLECTION_SORT_MODES,
+  collectionSortLabel,
+  DECK_SIZE,
+  defaultSortDirection,
+  getDeckCandidates,
+  loadCollectionSort,
+  loadPlayerDeck,
+  saveCollectionSort,
+  savePlayerDeck,
+  type CollectionSortMode,
+  type CollectionSortState,
+} from '@data/PlayerDeck'
 import { GAME_WIDTH, CANVAS_HEIGHT } from '@data/GameConstants'
 
 const COLS = 4
@@ -20,6 +34,9 @@ const FOOTER_H = 96
 // — "space.panel.bottom" for bottom padding inside a scrollable panel.
 const EXPANDED_PANEL_H = 38 * 2 + 2 + 8 * 2  // BTN_H*2 + BTN_GAP + PANEL_PAD*2
 const SCROLL_BOTTOM_PAD = FOOTER_H + EXPANDED_PANEL_H + 20
+const COLLECTION_TITLE_BOTTOM_MARGIN = 18
+const COLLECTION_SORT_BTN_H = 28
+const COLLECTION_SORT_BOTTOM_MARGIN = 14
 
 export class DeckBuilderScene extends Phaser.Scene {
   private deck: string[] = []
@@ -36,6 +53,11 @@ export class DeckBuilderScene extends Phaser.Scene {
   private expandedSlot: DeckSlot | null = null
   private collectionTop = 0
   private maxCollectionScrollY = 0
+  private collectionSort: CollectionSortState = loadCollectionSort()
+  private cellW = 0
+  private cellH = 0
+  private sortBtnBgs = new Map<CollectionSortMode, Phaser.GameObjects.Rectangle>()
+  private sortBtnTexts = new Map<CollectionSortMode, Phaser.GameObjects.Text>()
 
   constructor() {
     super({ key: 'DeckBuilderScene' })
@@ -63,6 +85,8 @@ export class DeckBuilderScene extends Phaser.Scene {
     }).setOrigin(1, 0.5)
 
     const { cellW, cellH } = this.cellSize()
+    this.cellW = cellW
+    this.cellH = cellH
     const deckBottom = DECK_TOP + 2 * cellH + CELL_GAP_Y
     this.collectionTop = deckBottom + 120
 
@@ -70,9 +94,14 @@ export class DeckBuilderScene extends Phaser.Scene {
       fontSize: '16px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#d8a8ff',
     }).setOrigin(0.5, 0)
 
-    this.add.text(SIDE_MARGIN, this.collectionTop - 22, 'COLLECTION', {
+    const sortRowY = this.collectionTop - COLLECTION_SORT_BTN_H / 2 - COLLECTION_SORT_BOTTOM_MARGIN
+    const titleY = sortRowY - COLLECTION_SORT_BTN_H - COLLECTION_TITLE_BOTTOM_MARGIN
+
+    this.add.text(SIDE_MARGIN, titleY, 'COLLECTION', {
       fontSize: '17px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
     }).setOrigin(0, 0.5)
+
+    this.buildSortControls(sortRowY)
 
     this.warningText = this.add.text(GAME_WIDTH / 2, this.collectionTop - 8, 'DECK IS FULL!', {
       fontSize: '15px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
@@ -114,8 +143,73 @@ export class DeckBuilderScene extends Phaser.Scene {
     }
   }
 
+  private buildSortControls(y: number): void {
+    const btnW = 86
+    const btnH = COLLECTION_SORT_BTN_H
+    const gap = 6
+    const count = COLLECTION_SORT_MODES.length
+    const totalW = count * btnW + (count - 1) * gap
+    let cx = (GAME_WIDTH - totalW) / 2 + btnW / 2
+
+    for (const mode of COLLECTION_SORT_MODES) {
+      const bg = this.add.rectangle(cx, y, btnW, btnH, 0x1a2a4a)
+        .setStrokeStyle(1.5, 0x2e4480)
+        .setDepth(20)
+        .setInteractive({ useHandCursor: true })
+      const text = this.add.text(cx, y, COLLECTION_SORT_LABELS[mode], {
+        fontSize: '12px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
+      }).setOrigin(0.5).setDepth(21)
+
+      bg.on('pointerdown', () => this.setCollectionSort(mode))
+      this.sortBtnBgs.set(mode, bg)
+      this.sortBtnTexts.set(mode, text)
+      cx += btnW + gap
+    }
+
+    this.updateSortButtonStyles()
+  }
+
+  private updateSortButtonStyles(): void {
+    for (const mode of COLLECTION_SORT_MODES) {
+      const active = mode === this.collectionSort.mode
+      const bg = this.sortBtnBgs.get(mode)
+      const text = this.sortBtnTexts.get(mode)
+      bg?.setFillStyle(active ? 0x2e4480 : 0x1a2a4a)
+      bg?.setStrokeStyle(1.5, active ? 0x88aaff : 0x2e4480)
+      text?.setColor(active ? '#ffffff' : '#9ab0d8')
+      text?.setText(collectionSortLabel(
+        active ? this.collectionSort : { mode, direction: defaultSortDirection(mode) },
+        active,
+      ))
+    }
+  }
+
+  private setCollectionSort(mode: CollectionSortMode): void {
+    if (this.collectionSort.mode === mode) {
+      this.collectionSort = {
+        mode,
+        direction: this.collectionSort.direction === 'asc' ? 'desc' : 'asc',
+      }
+    } else {
+      this.collectionSort = { mode, direction: defaultSortDirection(mode) }
+    }
+    saveCollectionSort(this.collectionSort)
+    this.updateSortButtonStyles()
+    this.rebuildCollection()
+  }
+
+  private rebuildCollection(): void {
+    this.expandedCard?.collapse()
+    this.expandedCard = null
+    for (const cardUi of this.collection) cardUi.destroy()
+    this.collection = []
+    this.buildCollection(this.cellW, this.cellH)
+    this.updateScrollBounds(this.cellH)
+    this.refresh()
+  }
+
   private buildCollection(cellW: number, cellH: number): void {
-    getDeckCandidates().forEach((id, i) => {
+    getDeckCandidates(this.collectionSort).forEach((id, i) => {
       const def = CARD_DEFINITIONS[id]
       if (!def) return
       const col = i % COLS
@@ -135,17 +229,22 @@ export class DeckBuilderScene extends Phaser.Scene {
     })
   }
 
-  private setupScrolling(cellH: number): void {
-    const candidates = getDeckCandidates()
+  private updateScrollBounds(cellH: number): void {
+    const candidates = getDeckCandidates(this.collectionSort)
     const rows = Math.ceil(candidates.length / COLS)
     const totalCollH = rows * (cellH + CELL_GAP_Y) - CELL_GAP_Y
     const worldBottom = this.collectionTop + totalCollH + SCROLL_BOTTOM_PAD
-    // Always guarantee at least FOOTER_H of scroll so the bottom row
-    // can clear the fixed footer when expanded.
     this.maxCollectionScrollY = Math.max(FOOTER_H, worldBottom - CANVAS_HEIGHT)
-    const totalWorldHeight = CANVAS_HEIGHT + this.maxCollectionScrollY
+    this.cameras.main.setBounds(0, 0, GAME_WIDTH, CANVAS_HEIGHT + this.maxCollectionScrollY)
+    this.cameras.main.scrollY = Phaser.Math.Clamp(
+      this.cameras.main.scrollY,
+      0,
+      this.maxCollectionScrollY,
+    )
+  }
 
-    this.cameras.main.setBounds(0, 0, GAME_WIDTH, totalWorldHeight)
+  private setupScrolling(cellH: number): void {
+    this.updateScrollBounds(cellH)
 
     const DRAG_THRESHOLD = 8
     let dragStartY = 0
@@ -264,14 +363,12 @@ export class DeckBuilderScene extends Phaser.Scene {
     this.add.rectangle(GAME_WIDTH / 2, CANVAS_HEIGHT - FOOTER_H, GAME_WIDTH, 1, 0x2e4480, 0.6)
       .setDepth(30).setScrollFactor(0)
 
-    const btnW = 130
-    const gap = 12
-    const totalW = btnW * 3 + gap * 2
-    const left = (GAME_WIDTH - totalW) / 2 + btnW / 2
+    const { centers, btnW } = footerButtonRowLayout(GAME_WIDTH, 3, SIDE_MARGIN, 8)
+    const depth = 31
 
-    makeButton(this, left,                   footerY, btnW, 'BACK',  0x44324f, 31, () => this.scene.start('MainMenuScene'))
-    this.clearBtn = makeButton(this, left + btnW + gap,       footerY, btnW, 'CLEAR', 0x8b3a3a, 31, () => this.clearDeck())
-    this.saveBtn  = makeButton(this, left + (btnW + gap) * 2, footerY, btnW, 'SAVE',  0x2e7d32, 31, () => {
+    makeButton(this, centers[0]!, footerY, btnW, 'BACK',  0x44324f, depth, () => this.scene.start('MainMenuScene'))
+    this.clearBtn = makeButton(this, centers[1]!, footerY, btnW, 'CLEAR', 0x8b3a3a, depth, () => this.clearDeck())
+    this.saveBtn  = makeButton(this, centers[2]!, footerY, btnW, 'SAVE',  0x2e7d32, depth, () => {
       if (this.deck.length !== DECK_SIZE) return
       savePlayerDeck([...this.deck])
       this.flashSaved()

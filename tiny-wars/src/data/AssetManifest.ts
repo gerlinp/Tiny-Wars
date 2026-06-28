@@ -18,6 +18,17 @@ export const TROOP_DEATH_SHEET = {
   animKey: 'troop_death',
 } as const
 
+/** Generic combat explosion — Effects/Explosion/Explosions.png (9 frames @ 192px). */
+export const EXPLOSION_SHEET = {
+  key: 'fx_explosion',
+  path: 'assets/Effects/Explosion/Explosions.png',
+  frameWidth: FRAME_W,
+  frameHeight: FRAME_H,
+  frameEnd: 8,
+  frameRate: 18,
+  animKey: 'fx_explosion_anim',
+} as const
+
 /** Building/tower damage fire — horizontal strips @ 64px; one sheet per HP tier. */
 export const DAMAGE_FIRE_SHEETS = [
   {
@@ -207,6 +218,8 @@ export interface CardAssetBundle {
   avatarCropRatio?: number
   /** Tall building sprites — fit full frame in the slot instead of portrait crop. */
   avatarBuildingFit?: boolean
+  /** Composite portrait — spawn units in the same cluster layout as deploy. */
+  avatarSwarmSourceCardId?: string
   player: SideAssets
   bot: SideAssets
 }
@@ -398,7 +411,7 @@ function enemyAvatar(file: string): ImageDef {
   return { key: `avatar_${stem}`, path: `${ENEMY_AVATARS}/${file}` }
 }
 
-/** Reserved enemy portraits (no card wired yet): _07 snake, _10 gnoll, _11 spider, _14, _15 gnome. */
+/** Reserved enemy portraits (no card wired yet): _07 snake, _11 spider, _14, _15 gnome. */
 
 const ICON_FRAME = 64
 
@@ -634,6 +647,40 @@ function minotaurSide(side: 'blue' | 'red'): SideAssets {
 const THIEF_PATH = 'assets/Enemy Pack/Enemies/Thief'
 const THIEF_FRAME = 192
 
+const GNOLL_PATH = 'assets/Enemy Pack/Enemies/Gnoll'
+
+export const GNOLL_BONE_SHEET = {
+  key: 'gnoll_bone',
+  path: `${GNOLL_PATH}/Gnoll_Bone.png`,
+  frameWidth: 64,
+  frameHeight: 64,
+  animKey: 'gnoll_bone_spin',
+  frameStart: 0,
+  frameEnd: 3,
+  frameRate: 14,
+}
+
+/** Enemy Pack Gnoll — Executioner-style boomerang bone thrower. */
+function gnollSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `gnoll_${side}_idle`,
+    path: `${GNOLL_PATH}/Gnoll_Idle.png`,
+  }
+  const run: SheetDef = {
+    key: `gnoll_${side}_run`,
+    path: `${GNOLL_PATH}/Gnoll_Walk.png`,
+  }
+  const attack: SheetDef = {
+    key: `gnoll_${side}_attack`,
+    path: `${GNOLL_PATH}/Gnoll_Throw.png`,
+  }
+  return {
+    idle:   clip(idle,   0, 5, 10, -1),
+    run:    clip(run,    0, 7, 14, -1),
+    attack: clip(attack, 0, 7, 14,  0),
+  }
+}
+
 /** Enemy Pack Thief — 192×192 frames. */
 function thiefSide(side: 'blue' | 'red'): SideAssets {
   const idle: SheetDef = {
@@ -837,6 +884,23 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     bot:    skullSide('red'),
   },
   {
+    cardId: 'skeleton_army',
+    avatar: {
+      key: 'avatar_skeleton_army',
+      path: `${SKULL_PATH}/Skull_Idle.png`,
+      frameWidth: FRAME_W,
+      frameHeight: FRAME_H,
+      frame: 0,
+    },
+    avatarBackdrop: AVATAR_BACKDROP_BANNER,
+    avatarSwarmSourceCardId: 'skeleton',
+    contentFill: 0.55,
+    attackHitFrame: 4,
+    tintBotSide: true,
+    player: skullSide('blue'),
+    bot:    skullSide('red'),
+  },
+  {
     cardId: 'troll',
     avatar: enemyAvatar('Enemy Avatars_16.png'),
     contentFill: 0.48,
@@ -914,6 +978,16 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     tintBotSide: true,
     player: minotaurSide('blue'),
     bot:    minotaurSide('red'),
+  },
+  {
+    cardId: 'gnoll',
+    avatar: enemyAvatar('Enemy Avatars_10.png'),
+    avatarCropRatio: 0.58,
+    contentFill: 0.55,
+    attackHitFrame: 4,
+    tintBotSide: true,
+    player: gnollSide('blue'),
+    bot:    gnollSide('red'),
   },
   {
     cardId: 'thief',
@@ -1004,6 +1078,45 @@ export function clipAnimKey(
 }
 
 /** Pick attack clip from aim vector — lancer up/down, knights archer 4-way shoot. */
+export function resolveAttackClip(
+  cardId: string,
+  owner: Owner,
+  fromX: number,
+  fromY: number,
+  aimX: number,
+  aimY: number,
+): { clip: ClipDef; flipX: boolean } | null {
+  const side = getSideAssets(cardId, owner)
+  if (!side?.attack) return null
+
+  const dx = aimX - fromX
+  const dy = aimY - fromY
+  const absDx = Math.abs(dx)
+  const absDy = Math.abs(dy)
+
+  if (side.attackDownRight && side.attackDownLeft && side.attackDown) {
+    if (dy > 0 && absDy > absDx * 0.25) {
+      if (absDx < absDy * 0.5) {
+        return { clip: side.attackDown, flipX: false }
+      }
+      if (dx >= 0) {
+        return { clip: side.attackDownRight, flipX: false }
+      }
+      return { clip: side.attackDownLeft, flipX: false }
+    }
+    return { clip: side.attack, flipX: dx < 0 }
+  }
+
+  if (side.attackUp && side.attackDown && absDy > absDx) {
+    if (dy < 0) {
+      return { clip: side.attackUp, flipX: false }
+    }
+    return { clip: side.attackDown, flipX: false }
+  }
+
+  return { clip: side.attack, flipX: dx < 0 }
+}
+
 export function resolveAttackAnimKey(
   cardId: string,
   owner: Owner,
@@ -1012,36 +1125,26 @@ export function resolveAttackAnimKey(
   aimX: number,
   aimY: number,
 ): { key: string; flipX: boolean } {
-  const side = getSideAssets(cardId, owner)
-  const dx = aimX - fromX
-  const dy = aimY - fromY
-  const absDx = Math.abs(dx)
-  const absDy = Math.abs(dy)
-
-  if (side?.attackDownRight && side?.attackDownLeft && side?.attackDown) {
-    if (dy > 0 && absDy > absDx * 0.25) {
-      if (absDx < absDy * 0.5) {
-        return { key: clipAnimKey(cardId, owner, 'attack', 'down'), flipX: false }
-      }
-      if (dx >= 0) {
-        return { key: clipAnimKey(cardId, owner, 'attack', 'down_right'), flipX: false }
-      }
-      return { key: clipAnimKey(cardId, owner, 'attack', 'down_left'), flipX: false }
-    }
-    return { key: clipAnimKey(cardId, owner, 'attack'), flipX: dx < 0 }
+  const resolved = resolveAttackClip(cardId, owner, fromX, fromY, aimX, aimY)
+  if (!resolved) {
+    return { key: clipAnimKey(cardId, owner, 'attack'), flipX: false }
   }
 
-  if (side?.attackUp && side?.attackDown && absDy > absDx) {
-    if (dy < 0) {
-      return { key: clipAnimKey(cardId, owner, 'attack', 'up'), flipX: false }
-    }
-    return { key: clipAnimKey(cardId, owner, 'attack', 'down'), flipX: false }
+  const { clip, flipX } = resolved
+  const side = getSideAssets(cardId, owner)!
+  if (clip === side.attackUp) {
+    return { key: clipAnimKey(cardId, owner, 'attack', 'up'), flipX }
   }
-
-  return {
-    key: clipAnimKey(cardId, owner, 'attack'),
-    flipX: dx < 0,
+  if (clip === side.attackDown) {
+    return { key: clipAnimKey(cardId, owner, 'attack', 'down'), flipX }
   }
+  if (clip === side.attackDownRight) {
+    return { key: clipAnimKey(cardId, owner, 'attack', 'down_right'), flipX }
+  }
+  if (clip === side.attackDownLeft) {
+    return { key: clipAnimKey(cardId, owner, 'attack', 'down_left'), flipX }
+  }
+  return { key: clipAnimKey(cardId, owner, 'attack'), flipX }
 }
 
 export function isAnimatedCard(cardId: string): boolean {
@@ -1118,6 +1221,11 @@ export function getCardAvatarBuildingFit(cardId: string): boolean {
   return bundle?.avatarBuildingFit === true
 }
 
+export function getCardAvatarSwarmSource(cardId: string): string | null {
+  const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
+  return bundle?.avatarSwarmSourceCardId ?? null
+}
+
 export function getUniqueSheets(): SheetDef[] {
   const seen = new Set<string>()
   const sheets: SheetDef[] = []
@@ -1137,7 +1245,87 @@ export function getUniqueSheets(): SheetDef[] {
       }
     }
   }
+  for (const sheet of getGarrisonExtraSheets()) {
+    if (seen.has(sheet.key)) continue
+    seen.add(sheet.key)
+    sheets.push(sheet)
+  }
   return sheets
+}
+
+const GARRISON_CANNON_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Cannon'
+const GARRISON_CANNON_FRAME = 128
+
+/** King-tower garrison cannon — directional 128×128 sheets. */
+export const GARRISON_CANNON_SHEETS = {
+  right: {
+    key: 'garrison_cannon_right',
+    path: `${GARRISON_CANNON_PATH}/Cannon_Right.png`,
+    frameWidth: GARRISON_CANNON_FRAME,
+    frameHeight: GARRISON_CANNON_FRAME,
+  },
+  up: {
+    key: 'garrison_cannon_up',
+    path: `${GARRISON_CANNON_PATH}/Cannon_Up.png`,
+    frameWidth: GARRISON_CANNON_FRAME,
+    frameHeight: GARRISON_CANNON_FRAME,
+  },
+  down: {
+    key: 'garrison_cannon_down',
+    path: `${GARRISON_CANNON_PATH}/Cannon_Down.png`,
+    frameWidth: GARRISON_CANNON_FRAME,
+    frameHeight: GARRISON_CANNON_FRAME,
+  },
+  upRight: {
+    key: 'garrison_cannon_up_right',
+    path: `${GARRISON_CANNON_PATH}/Cannon_UpRight.png`,
+    frameWidth: GARRISON_CANNON_FRAME,
+    frameHeight: GARRISON_CANNON_FRAME,
+  },
+  downRight: {
+    key: 'garrison_cannon_down_right',
+    path: `${GARRISON_CANNON_PATH}/Cannon_DownRight.png`,
+    frameWidth: GARRISON_CANNON_FRAME,
+    frameHeight: GARRISON_CANNON_FRAME,
+  },
+} as const satisfies Record<string, SheetDef>
+
+export function getGarrisonExtraSheets(): SheetDef[] {
+  return Object.values(GARRISON_CANNON_SHEETS)
+}
+
+/** Default facing for the king-tower cannon while idle. */
+export function garrisonCannonIdleKey(owner: Owner): string {
+  return owner === Owner.PLAYER
+    ? GARRISON_CANNON_SHEETS.up.key
+    : GARRISON_CANNON_SHEETS.down.key
+}
+
+/** Aim the garrison cannon at a target — mirrors archer diagonal clip picking. */
+export function resolveGarrisonCannonKey(
+  fromX: number,
+  fromY: number,
+  aimX: number,
+  aimY: number,
+): { key: string; flipX: boolean } {
+  const dx = aimX - fromX
+  const dy = aimY - fromY
+  const absDx = Math.abs(dx)
+  const absDy = Math.abs(dy)
+
+  if (dy < 0 && absDy > absDx * 0.25) {
+    if (absDx < absDy * 0.5) {
+      return { key: GARRISON_CANNON_SHEETS.up.key, flipX: false }
+    }
+    return { key: GARRISON_CANNON_SHEETS.upRight.key, flipX: dx < 0 }
+  }
+  if (dy > 0 && absDy > absDx * 0.25) {
+    if (absDx < absDy * 0.5) {
+      return { key: GARRISON_CANNON_SHEETS.down.key, flipX: false }
+    }
+    return { key: GARRISON_CANNON_SHEETS.downRight.key, flipX: dx < 0 }
+  }
+  return { key: GARRISON_CANNON_SHEETS.right.key, flipX: dx < 0 }
 }
 
 export function getSideAssets(cardId: string, owner: Owner): SideAssets | null {
@@ -1153,6 +1341,16 @@ export function getClipDurationMs(cardId: string, owner: Owner, anim: AnimClip):
   const clip = side[anim]
   const frameCount = clip.end - clip.start + 1
   return (frameCount / clip.frameRate) * 1000
+}
+
+/** Mid-stride frame from the run sheet — frozen pose during opening dash leaps. */
+export function getRunLeapPose(cardId: string, owner: Owner): { sheetKey: string; frame: number } | null {
+  const side = getSideAssets(cardId, owner)
+  if (!side?.run) return null
+  const clip = side.run
+  const frameCount = clip.end - clip.start + 1
+  const frame = clip.start + Math.floor(frameCount / 2)
+  return { sheetKey: clip.sheet.key, frame }
 }
 
 /** Ms from attack anim start → damage tick (native frame rate, not stretched). */

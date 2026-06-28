@@ -6,16 +6,11 @@ import { BotAI } from '@core/BotAI'
 import { TileMapRenderer } from '@rendering/TileMapRenderer'
 import { ForestBorder } from '@rendering/ForestBorder'
 import { DecorationLayer } from '@rendering/DecorationLayer'
-import { EntitySprite, type AttackSync } from '@rendering/EntitySprite'
+import { EntitySprite, type AttackSync, type DashSync } from '@rendering/EntitySprite'
 import { TowerSprite } from '@rendering/TowerSprite'
-import { EffectsPool } from '@rendering/EffectsPool'
-import { DeathPool } from '@rendering/DeathPool'
-import { ArrowPool } from '@rendering/ArrowPool'
-import { HexFireballPool } from '@rendering/HexFireballPool'
-import { HealEffectPool } from '@rendering/HealEffectPool'
-import { ArrowsSpellPool } from '@rendering/ArrowsSpellPool'
-import { TntPool } from '@rendering/TntPool'
-import { ensurePlaceholders } from '@rendering/PlaceholderFactory'
+import { EffectsPool, HealEffectPool, DeathPool } from '@rendering/VFXPools'
+import { ArrowPool, ArrowsSpellPool, TntPool, BoneBoomerangPool, HexFireballPool } from '@rendering/ProjectilePools'
+import { ensurePlaceholders } from '@rendering/renderingUtils'
 import { CardDeployController } from '@input/CardDeployController'
 import { DeployZoneOverlay } from '@rendering/DeployZoneOverlay'
 import { PlacementGhost } from '@rendering/PlacementGhost'
@@ -25,7 +20,8 @@ import { Troop } from '@core/entities/Troop'
 import type { Building } from '@core/entities/Building'
 import { Owner, EntityKind, TroopState, BuildingState, CardType } from '@core/types'
 import type { EntityStats } from '@core/types'
-import { getAttackWindupMs, type AnimClip } from '@data/AssetManifest'
+import { getAttackWindupMs, getRunLeapPose, type AnimClip } from '@data/AssetManifest'
+import { rocketFlightMs, arrowFlightMs } from '@data/ProjectileConstants'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { loadPlayerDeck } from '@data/PlayerDeck'
 import { GAME_HEIGHT, CELL_SIZE, GRID_ROWS } from '@data/GameConstants'
@@ -51,6 +47,7 @@ export class BattleScene extends Phaser.Scene {
   private arrows!: ArrowPool
   private hexFireballs!: HexFireballPool
   private healEffects!: HealEffectPool
+  private boneBoomerangs!: BoneBoomerangPool
   private arrowsSpell!: ArrowsSpellPool
   private tntProjectiles!: TntPool
   private deployCtrl!: CardDeployController
@@ -101,6 +98,7 @@ export class BattleScene extends Phaser.Scene {
     this.arrows   = new ArrowPool(this)
     this.hexFireballs = new HexFireballPool(this)
     this.healEffects = new HealEffectPool(this)
+    this.boneBoomerangs = new BoneBoomerangPool(this)
     this.arrowsSpell = new ArrowsSpellPool(this)
     this.tntProjectiles = new TntPool(this)
 
@@ -219,9 +217,12 @@ export class BattleScene extends Phaser.Scene {
             const radiusPx = def.spellStats!.radius * CELL_SIZE
             this.arrowsSpell.spawn(event.to, event.owner, radiusPx, event.flightMs)
           } else {
-            const from = event.owner === Owner.PLAYER
-              ? this.getPlayerKingLaunchPos()
-              : this.getBotKingLaunchPos()
+            const kingSprite = this.getKingTowerSprite(event.owner)
+            const from = kingSprite?.fireCannonAt(event.to)
+              ?? kingSprite?.getCannonMuzzle()
+              ?? (event.owner === Owner.PLAYER
+                ? this.getPlayerKingLaunchPos()
+                : this.getBotKingLaunchPos())
             this.tntProjectiles.spawn(from, event.to, event.owner, event.flightMs)
           }
           break
@@ -242,16 +243,39 @@ export class BattleScene extends Phaser.Scene {
           if (attacker?.kind === EntityKind.TOWER && to) {
             const towerSprite = this.towerSprites.get(attacker.id)
             towerSprite?.onAttackImpact(to)
-            from = towerSprite?.getArrowOrigin() ?? from
+            from = towerSprite?.getCannonMuzzle()
+              ?? towerSprite?.getArrowOrigin()
+              ?? from
           } else if (event.attackerId) {
-            this.sprites.get(event.attackerId)?.onAttackImpact()
+            const aimPoint = to ? { x: to.x, y: to.y } : undefined
+            this.sprites.get(event.attackerId)?.onAttackImpact(aimPoint)
           }
 
           if (attackerCardId === 'wood_tower' && to) {
             const splashR = (attacker?.stats as EntityStats | undefined)?.splashRadius ?? 1.5
+            const crewOrigin = event.attackerId
+              ? this.sprites.get(event.attackerId)?.getBombCrewOrigin()
+              : null
+            const bombFrom = crewOrigin ?? from
+            if (bombFrom) {
+              const flightMs = rocketFlightMs(Math.hypot(to.x - bombFrom.x, to.y - bombFrom.y))
+              this.tntProjectiles.spawn(bombFrom, to, attacker!.owner, flightMs)
+            }
             this.effects.spawn(to.x, to.y, splashR * CELL_SIZE)
             flash()
-          } else if (attacker && from && to && isRangedAttacker(attacker) && !event.splash) {
+          } else if (
+            attacker?.kind === EntityKind.TOWER
+            && (attacker as Tower).isKing
+            && from
+            && to
+            && !event.splash
+          ) {
+            const flightMs = arrowFlightMs(
+              Math.hypot(to.x - from.x, to.y - from.y),
+              this.getAttackRate(attacker),
+            )
+            this.tntProjectiles.spawn(from, to, attacker.owner, flightMs, flash, 'flat')
+          } else if (attacker && from && to && isRangedAttacker(attacker) && !event.splash && attackerCardId !== 'gnoll') {
             const attackRate = this.getAttackRate(attacker)
             const cardId = this.entityCardIds.get(attacker.id) ?? attacker.cardId ?? ''
             if (cardId === 'wizard' || cardId === 'lizard' || cardId === 'torch_goblin' || cardId === 'bomb_fish') {
@@ -262,6 +286,21 @@ export class BattleScene extends Phaser.Scene {
           } else {
             flash()
           }
+          break
+        }
+        case 'HEAL': {
+          const target = this.entityPosition(state, event.targetId)
+          const healer = event.healerId ? this.findEntity(state, event.healerId) : null
+          const owner = healer?.owner ?? Owner.PLAYER
+          if (target) this.healEffects.spawnOnUnit(target.x, target.y, owner)
+          break
+        }
+        case 'BOOMERANG': {
+          const aim = {
+            x: event.from.x + event.dir.x * event.travelLimitPx,
+            y: event.from.y + event.dir.y * event.travelLimitPx,
+          }
+          this.sprites.get(event.throwerId)?.onAttackImpact(aim)
           break
         }
         case 'HEAL_AURA': {
@@ -296,6 +335,8 @@ export class BattleScene extends Phaser.Scene {
     }
     state.events = []
 
+    this.boneBoomerangs.syncFromState(state.boomerangs ?? [])
+
     // Sync sprite positions each frame
     for (const [id, sprite] of this.sprites) {
       const entity = state.entities.get(id)
@@ -303,15 +344,24 @@ export class BattleScene extends Phaser.Scene {
         let anim: AnimClip = 'idle'
         let moveSpeed = 1.5
         let attackSync: AttackSync | undefined
+        let dashSync: DashSync | undefined
 
         const cardId = this.entityCardIds.get(id) ?? entity.cardId ?? ''
 
         if (entity.kind === EntityKind.TROOP) {
           const troop = entity as Troop
           moveSpeed = troop.getEffectiveSpeed()
-          if (troop.state === TroopState.WALKING) anim = 'run'
-          else if (troop.state === TroopState.ATTACKING) {
-            const aimPoint = troop.getAttackAimPoint() ?? undefined
+          const aimPoint = troop.getAttackAimPoint() ?? undefined
+          const dashPhase = troop.getDashPhase()
+          if (dashPhase) {
+            dashSync = {
+              phase: dashPhase,
+              aimPoint,
+              leapPose: dashPhase === 'leap' ? getRunLeapPose(cardId, entity.owner) ?? undefined : undefined,
+            }
+          } else if (troop.state === TroopState.WALKING) {
+            anim = 'run'
+          } else if (troop.state === TroopState.ATTACKING) {
             attackSync = {
               cooldownMs: troop.getAttackCooldownMs(),
               windupMs: getAttackWindupMs(cardId, entity.owner),
@@ -321,11 +371,13 @@ export class BattleScene extends Phaser.Scene {
         } else if (entity.kind === EntityKind.BUILDING) {
           const building = entity as Building
           if (building.state === BuildingState.ATTACKING) {
+            const aimPoint = building.getAttackAimPoint() ?? undefined
             attackSync = {
               cooldownMs: building.getAttackCooldownMs(),
               windupMs: cardId === 'wood_tower'
-                ? getAttackWindupMs('tnt', entity.owner)
+                ? getAttackWindupMs('bomb_fish', entity.owner)
                 : getAttackWindupMs(cardId, entity.owner),
+              aimPoint,
             }
           }
         }
@@ -338,6 +390,7 @@ export class BattleScene extends Phaser.Scene {
           moveSpeed,
           this.shouldShowHealthBar(entity),
           attackSync,
+          dashSync,
         )
       }
     }
@@ -372,6 +425,7 @@ export class BattleScene extends Phaser.Scene {
       playerCrowns: state.playerCrowns,
       botCrowns:    state.botCrowns,
       elapsedMs:    state.elapsedMs,
+      phase:        state.phase,
       hand:         this.playerCardSystem.snapshot,
     }
     uiScene.updateState(snapshot)
@@ -429,6 +483,16 @@ export class BattleScene extends Phaser.Scene {
   private getTowerPos(towerId: string): [number, number] {
     const towerSprite = this.towerSprites.get(towerId)
     return towerSprite ? [towerSprite.image.x, towerSprite.image.y] : [240, 427]
+  }
+
+  private getKingTowerSprite(owner: Owner): TowerSprite | null {
+    for (const [id, sprite] of this.towerSprites) {
+      const tower = this.simulator.state.towers.get(id)
+      if (tower?.owner === owner && tower.isKing && tower.isAlive) {
+        return sprite
+      }
+    }
+    return null
   }
 
   private getPlayerKingLaunchPos(): Vec2 {

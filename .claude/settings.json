@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "Check if a card balance review is needed. The hook input is: $ARGUMENTS\n\nFirst, extract the file_path from tool_input in the JSON above. If it does NOT end with 'CardData.ts', stop immediately — do not read any files, output nothing.\n\nIf it DOES end with 'CardData.ts', read the file and perform a balance analysis for Tiny Wars (a Clash Royale-inspired mobile game). For each card:\n- Compute DPS = damage × attackRate (attacks/sec)\n- For multi-deploy cards (deployCount > 1), use total DPS = DPS × deployCount and total HP = maxHp × deployCount\n- Note elixir cost, HP, special traits (splash, charge, heal, targetsBuildingsOnly, etc.)\n- Compute elixir efficiency: total DPS / elixirCost and total HP / elixirCost\n- Compare cards within the same elixir cost bracket\n\nFlag outliers relative to their cost tier:\n- Overtuned: exceptional DPS, HP, or utility per elixir compared to peers\n- Undertuned: weak stats or utility per elixir compared to peers\n- Balanced: within normal range\n\nOutput a concise balance report:\n1. A compact table: Card | Cost | Total HP | DPS | Special | Verdict\n2. A short bullet list (max 5 bullets) of the biggest balance concerns or newly added cards worth watching\n\nKeep the entire report under 400 words.",
+            "statusMessage": "Analyzing card balance...",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

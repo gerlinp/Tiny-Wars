@@ -62,18 +62,15 @@ export function applyHealInRadius(
 
   for (const entity of state.entities.values()) {
     if (entity.owner !== owner || !entity.isAlive || entity.kind !== EntityKind.TROOP) continue
-    if (entity.hp >= entity.maxHp) continue
     if (dist(center, entity.position) > radiusPx) continue
 
-    const healed = entity.heal(healAmount)
-    if (healed > 0) {
-      state.events.push({
-        type: 'HEAL',
-        targetId: entity.id,
-        amount: healed,
-        healerId,
-      })
-    }
+    const healed = entity.hp >= entity.maxHp ? 0 : entity.heal(healAmount)
+    state.events.push({
+      type: 'HEAL',
+      targetId: entity.id,
+      amount: healed,
+      healerId,
+    })
   }
 }
 
