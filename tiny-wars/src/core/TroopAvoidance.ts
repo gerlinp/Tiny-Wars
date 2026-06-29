@@ -4,7 +4,7 @@ import { Troop } from './entities/Troop'
 import { circlesOverlap, troopCollisionRadius } from './EntityGeometry'
 import { EntityKind, TroopState, UnitType } from './types'
 import type { Vec2 } from './types'
-import { isWorldWalkable, moveTowardDirect } from './Movement'
+import { isWorldWalkable, isOppositeRiverBank, moveTowardDirect } from './Movement'
 import { CELL_SIZE, EPSILON_DISTANCE, RIVER_ROW_START, RIVER_ROW_END } from '@data/GameConstants'
 
 /** Melee-only — ranged troops stay grouped and attack from behind the front line. */
@@ -67,11 +67,12 @@ function moveStepIfWalkable(pos: Vec2, mx: number, my: number, step: number, gri
 export function findBlockingAlly(troop: Troop, goal: Vec2, state: GameState): AllyBlock | null {
   if (!isMeleeTroop(troop)) return null
 
-  // Within the bridge approach zone, march straight — lateral spread blocks the bridge entrance.
+  // When heading across the river and near the bridge zone, march straight rather than
+  // steering sideways — lateral spread blocks the bridge entrance and causes wave stacking.
   const row = (troop.position.y / CELL_SIZE) | 0
-  if (row >= RIVER_ROW_START - BRIDGE_APPROACH_ROW_MARGIN && row <= RIVER_ROW_END + BRIDGE_APPROACH_ROW_MARGIN) {
-    return null
-  }
+  const nearRiver = row >= RIVER_ROW_START - BRIDGE_APPROACH_ROW_MARGIN
+    && row <= RIVER_ROW_END + BRIDGE_APPROACH_ROW_MARGIN
+  if (nearRiver && isOppositeRiverBank(troop.position, goal)) return null
 
   const dir = goalDirection(troop.position, goal)
   if (!dir) return null

@@ -7,7 +7,7 @@ import { Grid } from '@core/Grid'
 import { createInitialGameState } from '@core/GameState'
 import { Owner, UnitType, AttackType } from '@core/types'
 import type { EntityStats } from '@core/types'
-import { BOMB_TOWER_LIFETIME_MS, BOT_KING_COL, BOT_KING_ROW } from '@data/GameConstants'
+import { BOMB_TOWER_LIFETIME_MS, BOT_KING_COL, BOT_KING_ROW, CELL_SIZE } from '@data/GameConstants'
 import { KING_TOWER } from '@data/TowerData'
 
 const troopStats: EntityStats = {
@@ -111,8 +111,6 @@ describe('refreshStickyTarget', () => {
 })
 
 describe('dormant king targeting', () => {
-  const grid = new Grid()
-
   it('buildings with tower attacks ignore a dormant king', () => {
     const king = new Tower(
       Owner.BOT,

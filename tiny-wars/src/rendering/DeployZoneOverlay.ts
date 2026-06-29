@@ -12,8 +12,6 @@ export class DeployZoneOverlay {
   private hint: Phaser.GameObjects.Text
   private mode: 'troop' | 'elixir' | 'spell' = 'troop'
   private friendlyRect: DeployOverlayRect = { x: 0, y: 0, w: GAME_WIDTH, h: 0, kind: 'friendly' }
-  private dragToAim = false
-
   constructor(scene: Phaser.Scene) {
     this.scene = scene
     this.syncExpandedZones(LOCAL_OWNER, EMPTY_LANE_UNLOCKS)
@@ -54,7 +52,6 @@ export class DeployZoneOverlay {
 
   show(mode: 'troop' | 'elixir' | 'spell' = 'troop', dragToAim = false): void {
     this.mode = mode
-    this.dragToAim = dragToAim
     if (mode === 'elixir') {
       this.baseZone
         .setPosition(0, 0)

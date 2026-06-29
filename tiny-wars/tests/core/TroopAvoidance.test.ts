@@ -26,9 +26,9 @@ describe('TroopAvoidance', () => {
   const grid = new Grid()
 
   it('detects an ally directly ahead on the march path', () => {
-    const goal = { x: 240, y: 240 }
-    const front = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 360 }, grid, 'warrior')
-    const rear = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 373 }, grid, 'lancer')
+    const goal = { x: 240, y: 500 }
+    const front = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 560 }, grid, 'warrior')
+    const rear = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 573 }, grid, 'lancer')
     const state = createInitialGameState()
     state.entities.set(front.id, front)
     state.entities.set(rear.id, rear)

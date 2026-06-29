@@ -3,7 +3,7 @@ import { Grid } from '@core/Grid'
 import { GameSimulator } from '@core/GameSimulator'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { Owner } from '@core/types'
-import { PLAYER_DEPLOY_ROW_MIN, PLAYER_DEPLOY_ROW_MAX, GAME_DURATION_MS } from '@data/GameConstants'
+import { PLAYER_DEPLOY_ROW_MIN, GAME_DURATION_MS } from '@data/GameConstants'
 
 function makeSim() {
   return new GameSimulator(new Grid())
