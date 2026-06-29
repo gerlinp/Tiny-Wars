@@ -21,7 +21,7 @@ export const KING_TOWER: TowerDefinition = {
   maxHp: 6373,
   damage: 144,
   attackRate: 1.0,
-  range: 7,
+  range: 18,
   attackType: AttackType.AIR_AND_GROUND,
   isKing: true,
 }

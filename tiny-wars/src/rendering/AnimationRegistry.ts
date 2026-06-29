@@ -22,12 +22,16 @@ function registerClip(
   if (scene.anims.exists(key)) return
   if (!scene.textures.exists(def.sheet.key)) return
 
+  const frames = def.frames
+    ? def.frames.map(frame => ({ key: def.sheet.key, frame }))
+    : scene.anims.generateFrameNumbers(def.sheet.key, {
+        start: def.start,
+        end: def.end,
+      })
+
   scene.anims.create({
     key,
-    frames: scene.anims.generateFrameNumbers(def.sheet.key, {
-      start: def.start,
-      end: def.end,
-    }),
+    frames,
     frameRate: def.frameRate,
     repeat: def.repeat,
   })

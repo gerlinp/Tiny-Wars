@@ -1,9 +1,24 @@
 import type { GameState } from './GameState'
 import { Troop } from './entities/Troop'
+import { isRangedAttacker } from './CombatHelpers'
 import { circlesOverlap, separateCirclePair, troopCollisionRadius } from './EntityGeometry'
 import { tryAllyLateralSeparation, clampGroundTroopToWalkable } from './TroopAvoidance'
 import { EntityKind, UnitType } from './types'
-import { CELL_SIZE, EPSILON_DISTANCE } from '@data/GameConstants'
+import { CELL_SIZE, EPSILON_DISTANCE, RIVER_ROW_START, RIVER_ROW_END } from '@data/GameConstants'
+
+// Rows where allies are allowed to fully overlap (bridge crossing zone).
+// Rigid separation here causes oscillation: push → wall → clamp → repeat.
+const BRIDGE_ZONE_START = RIVER_ROW_START
+const BRIDGE_ZONE_END   = RIVER_ROW_END
+
+// Allies apply only this fraction of overlap correction per pass — keeps swarm
+// clusters tighter so they fit through the bridge in fewer waves.
+const ALLY_SEPARATION_FRACTION = 0.35
+
+function inBridgeZone(troop: Troop): boolean {
+  const row = (troop.position.y / CELL_SIZE) | 0
+  return row >= BRIDGE_ZONE_START && row <= BRIDGE_ZONE_END
+}
 
 function isBoomerangAnchored(troop: Troop, state: GameState): boolean {
   return troop.isBoomerangAnchored(state)
@@ -77,8 +92,13 @@ export function resolveTroopCollisions(state: GameState, deltaMs: number): void 
 
         if (!allyLaterallySeparated && circlesOverlap(a.position, rA, b.position, rB)) {
           if (anchoredA && anchoredB) continue
+          // Bridge zone: allies ghost through each other rather than oscillating against walls.
+          if (a.owner === b.owner && inBridgeZone(a) && inBridgeZone(b)) continue
+          // Ranged troops pass through enemies — only melee-vs-melee uses rigid separation.
+          if (a.owner !== b.owner && (isRangedAttacker(a) || isRangedAttacker(b))) continue
           const moveRatioA = anchoredA ? 0 : anchoredB ? 1 : 0.5
-          separateCirclePair(a.position, rA, b.position, rB, moveRatioA)
+          const fraction = a.owner === b.owner ? ALLY_SEPARATION_FRACTION : 1.0
+          separateCirclePair(a.position, rA, b.position, rB, moveRatioA, fraction)
         }
       }
     }

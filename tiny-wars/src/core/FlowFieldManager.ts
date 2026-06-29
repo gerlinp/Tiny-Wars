@@ -4,6 +4,7 @@ import type { GameState } from './GameState'
 import type { Tower } from './entities/Tower'
 import type { Owner, Vec2 } from './types'
 import { isAttackableTower } from './TargetSelection'
+import { BRIDGE_CENTER_COL, CELL_SIZE } from '@data/GameConstants'
 
 /**
  * Manages one flow field per living, attackable enemy tower.
@@ -60,24 +61,57 @@ export class FlowFieldManager {
 
   /**
    * Return the enemy tower that should be the march objective from `fromPos`.
-   * An active king tower (unlocked by a fallen princess) always takes priority
-   * over remaining princess towers — matches CR behaviour where the king castle
-   * becomes the primary target once unlocked.
+   *
+   * Lane priority (left/right): units stay on their spawn lane and target the
+   * princess tower on that side. They only march toward the king once that
+   * side's princess is gone. Cross-side princess towers are never targeted
+   * as the primary march goal.
    */
-  nearestEnemyTower(state: GameState, fromPos: Vec2, myOwner: Owner): Tower | null {
-    let best: Tower | null = null
-    let bestCost = Infinity
+  nearestEnemyTower(
+    state: GameState,
+    fromPos: Vec2,
+    myOwner: Owner,
+    preferredSide?: 'left' | 'right',
+  ): Tower | null {
+    const centerX = BRIDGE_CENTER_COL * CELL_SIZE
+
+    let kingTower: Tower | null = null
+    let kingCost = Infinity
+    let sidePrincess: Tower | null = null
+    let sidePrincessCost = Infinity
+    let anyPrincess: Tower | null = null
+    let anyPrincessCost = Infinity
+
+    const unitOnLeft = preferredSide
+      ? preferredSide === 'left'
+      : fromPos.x < centerX
 
     for (const tower of state.towers.values()) {
       if (tower.owner === myOwner || !tower.isAlive) continue
-      if (!isAttackableTower(tower)) continue
       const field = this.fields.get(tower.id)
       if (!field) continue
       const cost = field.costAt(fromPos.x, fromPos.y)
-      if (cost < bestCost) { bestCost = cost; best = tower }
+      if (cost >= Infinity) continue
+
+      if (tower.isKing) {
+        // King is always a valid march destination once alive — isActive() only gates shooting.
+        // This prevents the 1-tick window where the princess just died but resolveDeaths hasn't
+        // run yet, which would otherwise cause units to target the cross-side princess instead.
+        if (cost < kingCost) { kingCost = cost; kingTower = tower }
+      } else {
+        if (!isAttackableTower(tower)) continue  // princess towers are always active; safety check
+        const towerOnLeft = tower.position.x < centerX
+        if (towerOnLeft === unitOnLeft && cost < sidePrincessCost) {
+          sidePrincessCost = cost; sidePrincess = tower
+        }
+        if (cost < anyPrincessCost) { anyPrincessCost = cost; anyPrincess = tower }
+      }
     }
 
-    return best
+    // Priority: same-side princess → king (once unlocked) → fallback cross-side
+    if (sidePrincess) return sidePrincess
+    if (kingTower) return kingTower
+    return anyPrincess
   }
 
   /**

@@ -5,7 +5,7 @@ import type { GameState } from '../GameState'
 import type { Grid } from '../Grid'
 import { Pathfinder } from '../Pathfinder'
 import {
-  approachPointOnSurface,
+
   edgeDistBetweenEntities,
   meleeApproachPoint,
   pushTroopOutOfEntity,
@@ -34,7 +34,7 @@ import {
   CELL_SIZE, TROOP_AGGRO_RANGE_CELLS, COMBAT_LEASH_MULTIPLIER, EPSILON_DISTANCE,
   LEFT_LANE_COL, RIGHT_LANE_COL, RIVER_ROW_START, RIVER_ROW_END,
   HEAL_PULSE_INTERVAL_MS, THIEF_DASH_WINDUP_MS, HOOK_WINDUP_MS,
-  TROOP_DEPLOY_SPREAD_CELLS,
+  TROOP_DEPLOY_SPREAD_CELLS, BRIDGE_CENTER_COL,
 } from '@data/GameConstants'
 
 interface ActiveHealBurst {
@@ -67,7 +67,9 @@ export class Troop extends Entity {
 
   /** Movement speed in grid cells/sec — includes charge boost, dash leap, and slow debuffs. */
   getEffectiveSpeed(): number {
-    let speed = this.stats.speed
+    let speed = this.buildingChargeRunActive && this.stats.buildingChargeSpeed != null
+      ? this.stats.buildingChargeSpeed
+      : this.stats.speed
     if (this.isCharging) speed *= this.stats.chargeSpeedMultiplier ?? 1
     if (this.isDashing && this.dashWindupMsRemaining <= 0) {
       speed *= this.stats.dashSpeedMultiplier ?? 1
@@ -130,6 +132,7 @@ export class Troop extends Entity {
   private lastObjectiveId: string | null = null
   /** Tower ID the unit is currently marching toward — used to sample the right flow field. */
   private marchTowerId: string | null = null
+  private readonly spawnLane: 'left' | 'right'
   private lastMarchDir: Vec2
   private walkDistanceCells = 0
   private isCharging = false
@@ -147,6 +150,9 @@ export class Troop extends Entity {
   private armorHp = 0
   private boomerangAnchorPos: Vec2 | null = null
   private spawnMinionCooldownMs: number | null = null
+  /** Goblin Demolisher — HP clamped at charge threshold until the suicide run starts. */
+  private buildingChargeArmed = false
+  private buildingChargeRunActive = false
 
   constructor(owner: Owner, stats: EntityStats, position: Vec2, grid: Grid, cardId: string) {
     super(nextEntityId(), owner, EntityKind.TROOP, position, stats.maxHp, cardId)
@@ -155,6 +161,7 @@ export class Troop extends Entity {
     this.grid = grid
     this.pathfinder = new Pathfinder(grid)
     this.lastMarchDir = owner === Owner.PLAYER ? { x: 0, y: -1 } : { x: 0, y: 1 }
+    this.spawnLane = position.x < BRIDGE_CENTER_COL * CELL_SIZE ? 'left' : 'right'
     if (stats.spawnMinionCardId) {
       this.spawnMinionCooldownMs = stats.spawnMinionInitialDelayMs ?? 1000
     }
@@ -172,6 +179,17 @@ export class Troop extends Entity {
 
   override takeDamage(amount: number): void {
     if (amount <= 0) return
+
+    const floor = this.buildingChargeHpThreshold()
+    if (floor !== null && this.hp < floor) {
+      this.buildingChargeArmed = true
+      this.buildingChargeRunActive = true
+    }
+
+    if (floor !== null && this.buildingChargeArmed && !this.buildingChargeRunActive) {
+      return
+    }
+
     this.hasBeenDamaged = true
     let remaining = amount
     if (this.armorHp > 0) {
@@ -180,6 +198,14 @@ export class Troop extends Entity {
       remaining -= absorbed
     }
     if (remaining > 0) {
+      if (floor !== null && !this.buildingChargeRunActive && this.hp > floor) {
+        const newHp = this.hp - remaining
+        if (newHp <= floor) {
+          this.hp = floor
+          this.buildingChargeArmed = true
+          return
+        }
+      }
       this.hp = Math.max(0, this.hp - remaining)
     }
   }
@@ -228,6 +254,8 @@ export class Troop extends Entity {
     this.syncBoomerangAnchor(state)
   }
 
+  private wasInBuildingChargeMode = false
+
   private runTick(deltaMs: number, state: GameState): void {
     if (!this.isAlive) { this.state = TroopState.DEAD; return }
 
@@ -237,10 +265,12 @@ export class Troop extends Entity {
 
     if (this.attackCooldownMs > 0) this.attackCooldownMs -= deltaMs
 
+    this.syncBuildingChargeState()
+    this.syncBuildingChargeTransition()
     this.refreshCombatTarget(state)
 
     if (this.target) {
-      const attackReach = this.stats.attackRange * CELL_SIZE
+      const attackReach = this.effectiveAttackRange() * CELL_SIZE
       const dist = this.combatDistTo(this.target)
 
       if (this.isDashing) {
@@ -279,6 +309,13 @@ export class Troop extends Entity {
         this.state = TroopState.ATTACKING
         this.clearPath()
         this.trackObjective(this.target)
+        if (
+          this.isBuildingChargeMode()
+          && (this.target.kind === EntityKind.BUILDING || this.target.kind === EntityKind.TOWER)
+        ) {
+          this.detonateOnStructure(state)
+          return
+        }
         if (this.attackCooldownMs <= 0) {
           this.performAttack(state, this.target)
           this.attackCooldownMs = 1000 / this.stats.attackRate
@@ -337,9 +374,62 @@ export class Troop extends Entity {
     }
     this.resetCharge()
     this.applyActiveHeal(state)
-    if (this.stats.suicideOnAttack) {
-      this.hp = 0
+  }
+
+  /** CR Goblin Demolisher — kamikaze at or below this HP fraction (e.g. 0.5 = half health). */
+  inBuildingChargeMode(): boolean {
+    if (this.buildingChargeArmed) return true
+    const floor = this.buildingChargeHpThreshold()
+    if (floor === null || this.maxHp <= 0) return false
+    return this.hp <= floor
+  }
+
+  /** True once the suicide run has started (movement toward a building). */
+  isBuildingChargeRunActive(): boolean {
+    return this.buildingChargeRunActive
+  }
+
+  private buildingChargeHpThreshold(): number | null {
+    const threshold = this.stats.buildingChargeHpFraction
+    if (threshold === undefined || this.maxHp <= 0) return null
+    return Math.floor(this.maxHp * threshold)
+  }
+
+  private isBuildingChargeMode(): boolean {
+    return this.inBuildingChargeMode()
+  }
+
+  private syncBuildingChargeState(): void {
+    const floor = this.buildingChargeHpThreshold()
+    if (floor === null) return
+    if (this.hp < floor) {
+      this.buildingChargeArmed = true
+      this.buildingChargeRunActive = true
+    } else if (this.hp <= floor) {
+      this.buildingChargeArmed = true
     }
+  }
+
+  /** CR — stop throwing and rush buildings the tick HP crosses the charge threshold. */
+  private syncBuildingChargeTransition(): void {
+    const inCharge = this.isBuildingChargeMode()
+    if (inCharge && !this.wasInBuildingChargeMode) {
+      if (this.target?.kind === EntityKind.TROOP) this.target = null
+      this.clearPath()
+      this.attackCooldownMs = 0
+    }
+    this.wasInBuildingChargeMode = inCharge
+  }
+
+  private effectiveAttackRange(): number {
+    if (this.isBuildingChargeMode() && this.stats.buildingChargeAttackRange != null) {
+      return this.stats.buildingChargeAttackRange
+    }
+    return this.stats.attackRange
+  }
+
+  private effectiveTargetsBuildingsOnly(): boolean {
+    return this.isBuildingChargeMode() || this.stats.targetsBuildingsOnly === true
   }
 
   private applyActiveHeal(state: GameState): void {
@@ -430,10 +520,14 @@ export class Troop extends Entity {
     }
   }
 
+  private deathExplosionTriggered = false
+
   /** Death nova — area damage and optional slow (e.g. Turtle). */
   applyDeathNova(state: GameState): void {
+    if (this.deathExplosionTriggered) return
     const radius = this.stats.deathSplashRadius
     if (!radius) return
+    this.deathExplosionTriggered = true
 
     const damage = this.stats.deathSplashDamage ?? this.stats.damage
     dealAreaDamage(state, this.owner, this.position, radius, damage, () => true, this.id)
@@ -448,6 +542,12 @@ export class Troop extends Entity {
         this.stats.deathSlowSpeedMultiplier,
       )
     }
+  }
+
+  /** Wall-breaker style detonation on reaching a structure in charge mode. */
+  private detonateOnStructure(state: GameState): void {
+    this.applyDeathNova(state)
+    this.hp = 0
   }
 
   applySlow(durationMs: number, speedMultiplier: number): void {
@@ -624,11 +724,14 @@ export class Troop extends Entity {
   }
 
   private moveGoalFor(target: Entity): Vec2 {
-    if (this.stats.attackRange <= 2) {
-      return meleeApproachPoint(this.position, this, target, this.stats.attackRange)
-    }
+    const range = this.effectiveAttackRange()
     if (target.kind === EntityKind.BUILDING || target.kind === EntityKind.TOWER) {
-      return approachPointOnSurface(this.position, target)
+      // Always use meleeApproachPoint for structures — it stops the unit at attack range
+      // from the surface (not at the surface itself), so ranged units fire from distance.
+      return meleeApproachPoint(this.position, this, target, range)
+    }
+    if (range <= 2) {
+      return meleeApproachPoint(this.position, this, target, range)
     }
     return target.position
   }
@@ -646,6 +749,26 @@ export class Troop extends Entity {
     const beforeX = this.position.x
     const beforeY = this.position.y
 
+    if (
+      this.target?.isAlive
+      && this.isBuildingChargeMode()
+      && (this.target.kind === EntityKind.BUILDING || this.target.kind === EntityKind.TOWER)
+      && edgeDistBetweenEntities(this, this.target) <= CELL_SIZE * 2.5
+    ) {
+      this.clearPath()
+      const chargeGoal = meleeApproachPoint(
+        this.position,
+        this,
+        this.target,
+        this.effectiveAttackRange(),
+      )
+      moveTowardDirect(this.position, chargeGoal, speed)
+      this.resolveCollisions(state)
+      this.finishMove(beforeX, beforeY)
+      this.updateStuckRecovery(deltaMs, speed, chargeGoal, beforeX, beforeY)
+      return
+    }
+
     if (this.stats.unitType === UnitType.AIR) {
       moveTowardDirect(this.position, goal, speed)
       this.finishMove(beforeX, beforeY)
@@ -659,7 +782,7 @@ export class Troop extends Entity {
       // Straight shot — no need for any pathfinding.
       this.clearPath()
       moveTowardWithAllyAvoidance(this.position, this, goal, speed, state, this.grid)
-    } else if (this.marchTowerId && state.flowFields && this.stats.attackRange > 2) {
+    } else if (this.marchTowerId && state.flowFields && this.effectiveAttackRange() > 2) {
       // Flow field — ranged / lane march only; melee uses direct approach to standoff point.
       const dir = state.flowFields.directionTo(this.marchTowerId, this.position.x, this.position.y)
       if (dir) {
@@ -740,6 +863,15 @@ export class Troop extends Entity {
   }
 
   private finishMove(beforeX: number, beforeY: number): void {
+    const moved = Math.hypot(this.position.x - beforeX, this.position.y - beforeY) > EPSILON_DISTANCE
+    if (
+      moved
+      && this.buildingChargeArmed
+      && !this.buildingChargeRunActive
+      && this.state === TroopState.WALKING
+    ) {
+      this.buildingChargeRunActive = true
+    }
     this.recordWalkDistance(
       Math.hypot(this.position.x - beforeX, this.position.y - beforeY) / CELL_SIZE,
     )
@@ -762,7 +894,13 @@ export class Troop extends Entity {
       const step = Math.min(budget, d)
       const beforeSegX = this.position.x
       const beforeSegY = this.position.y
-      moveTowardWithAllyAvoidance(this.position, this, target, step, state, this.grid)
+      const curRow = (this.position.y / CELL_SIZE) | 0
+      const inBridgeRows = curRow >= RIVER_ROW_START && curRow <= RIVER_ROW_END
+      if (inBridgeRows) {
+        moveTowardDirect(this.position, target, step)
+      } else {
+        moveTowardWithAllyAvoidance(this.position, this, target, step, state, this.grid)
+      }
       budget -= Math.hypot(this.position.x - beforeSegX, this.position.y - beforeSegY)
 
       if (reachedWorldPoint(this.position, target)) {
@@ -904,16 +1042,16 @@ export class Troop extends Entity {
   }
 
   private aggroRangeCells(): number {
-    // Ranged troops detect enemies at attack range; melee uses a fixed radius
-    return this.stats.attackRange > 2
-      ? this.stats.attackRange
-      : TROOP_AGGRO_RANGE_CELLS
+    const range = this.effectiveAttackRange()
+    return range > 2 ? range : TROOP_AGGRO_RANGE_CELLS
   }
 
   private engageDistTo(entity: Entity, state?: GameState): number {
     if (entity.kind === EntityKind.TOWER && state?.flowFields) {
       const cost = state.flowFields.costTo(entity.id, this.position.x, this.position.y)
-      if (cost < Infinity) return cost * CELL_SIZE
+      // Flow field costs are 10-scaled (cardinal=10, diagonal=14); divide by 10 to normalize
+      // back to approximate hop count before converting to pixel distance.
+      if (cost < Infinity) return (cost / 10) * CELL_SIZE
     }
     if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {
       return surfaceDistToEntity(this.position, entity)
@@ -926,26 +1064,50 @@ export class Troop extends Entity {
    * Giant-style troops only consider buildings and towers.
    */
   private refreshCombatTarget(state: GameState): void {
-    const attackReach = this.stats.attackRange * CELL_SIZE
+    const attackReach = this.effectiveAttackRange() * CELL_SIZE
     const engagedTarget = this.target?.isAlive ? this.target : null
     const engagedOnTroop = engagedTarget?.kind === EntityKind.TROOP
-    const engaged =
-      engagedTarget !== null &&
-      this.combatDistTo(engagedTarget) <= attackReach * COMBAT_LEASH_MULTIPLIER &&
-      !(this.stats.targetsBuildingsOnly && engagedOnTroop)
-    if (engaged) return
 
-    // This unit's tower target just died — redirect to the now-exposed king rather than
-    // falling back to a distance comparison that might pick the wrong remaining princess
+    // Structures: keep target while within leash range.
+    if (
+      engagedTarget !== null &&
+      !engagedOnTroop &&
+      this.combatDistTo(engagedTarget) <= attackReach * COMBAT_LEASH_MULTIPLIER &&
+      !this.effectiveTargetsBuildingsOnly()
+    ) return
+
+    // Troops: keep chasing as long as they're alive and nothing closer has appeared.
+    if (engagedOnTroop && !this.effectiveTargetsBuildingsOnly()) {
+      const nearestTroop = findNearestEnemy(state, {
+        owner: this.owner,
+        from: this.position,
+        includeTowers: false,
+        canAttack: (entity) => this.canAttack(entity),
+        distance: (_from, entity) => this.engageDistTo(entity, state),
+        maxDistance: this.aggroRangePx(),
+      })
+      // Keep current troop unless a different one is meaningfully closer.
+      const currentDist = this.engageDistTo(engagedTarget!, state)
+      const nearestDist = nearestTroop ? this.engageDistTo(nearestTroop, state) : Infinity
+      if (!nearestTroop || nearestTroop.id === engagedTarget!.id || nearestDist >= currentDist - CELL_SIZE * 2) {
+        return
+      }
+      this.target = nearestTroop
+      return
+    }
+
+    // This unit's tower target just died — redirect using lane-aware selection so we
+    // hit the same-side princess next (if alive) or the king, not the cross-side tower.
     if (this.target?.kind === EntityKind.TOWER && !this.target.isAlive && state.flowFields) {
-      const king = state.flowFields.nearestEnemyTower(state, this.position, this.owner)
-      if (king?.isKing) {
-        this.target = king
+      const next = state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.spawnLane)
+      if (next) {
+        this.target = next
         return
       }
     }
 
-    if (this.stats.targetsBuildingsOnly) {
+    if (this.effectiveTargetsBuildingsOnly()) {
+      if (this.target?.kind === EntityKind.TROOP) this.target = null
       this.target = this.stickyStructureTarget(findNearestEnemyStructure(state, {
         owner: this.owner,
         from: this.position,
@@ -964,7 +1126,13 @@ export class Troop extends Entity {
       maxDistance: this.aggroRangePx(),
     })
 
-    const structureTarget = findNearestEnemyStructure(state, {
+    // Use lane-aware tower selection so units march to their assigned side's princess
+    // (not the globally cheapest tower). Fall back to findNearestEnemyStructure only
+    // if no tower is reachable (e.g., targets a placed building in the way).
+    const laneAwareTower = state.flowFields
+      ? state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.spawnLane)
+      : null
+    const structureTarget = laneAwareTower ?? findNearestEnemyStructure(state, {
       owner: this.owner,
       from: this.position,
       canAttack: (entity) => this.canAttack(entity),
@@ -998,9 +1166,9 @@ export class Troop extends Entity {
 
   /** March toward nearest enemy structure by path distance, or lane fallback when none exist. */
   private getMarchGoal(state: GameState): Vec2 {
-    // Prefer flow field: picks the tower with fewest walking steps, not Euclidean distance.
+    // Prefer flow field: lane-aware selection keeps units on their spawn side.
     if (state.flowFields) {
-      const tower = state.flowFields.nearestEnemyTower(state, this.position, this.owner)
+      const tower = state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.spawnLane)
       if (tower) {
         this.marchTowerId = tower.id
         return this.moveGoalFor(tower)
@@ -1034,9 +1202,14 @@ export class Troop extends Entity {
     )
   }
 
-  /** Melee uses edge-to-edge gap; ranged uses center-to-center. */
+  /** Melee uses edge-to-edge gap; ranged uses center-to-center. Building-charge uses edge gap on structures. */
   private combatDistTo(entity: Entity): number {
-    if (this.stats.attackRange > 2) {
+    if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {
+      // Structures: always surface-to-surface so attackRange means "cells from tower edge".
+      // This matches meleeApproachPoint which also stops at range cells from the surface.
+      return edgeDistBetweenEntities(this, entity)
+    }
+    if (this.effectiveAttackRange() > 2) {
       return Math.sqrt(distSq(this.position, entity.position))
     }
     return edgeDistBetweenEntities(this, entity)

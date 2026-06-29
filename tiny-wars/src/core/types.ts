@@ -54,6 +54,12 @@ export interface EntityStats {
   targetsBuildingsOnly?: boolean
   /** Dies immediately after dealing attack damage (e.g. wall-breaker dynamite). */
   suicideOnAttack?: boolean
+  /** At or below this HP fraction, enter building-charge mode (Goblin Demolisher). */
+  buildingChargeHpFraction?: number
+  /** Movement speed during building-charge mode (grid cells/sec). */
+  buildingChargeSpeed?: number
+  /** Melee reach while charging buildings (grid cells). */
+  buildingChargeAttackRange?: number
   /** Battle Healer-style — HP restored per pulse when attacking. */
   healPerPulse?: number
   /** Extra HP pool absorbed before body HP (per unit) — displayed as Armor. */

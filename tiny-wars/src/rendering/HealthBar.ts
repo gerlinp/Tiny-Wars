@@ -17,10 +17,6 @@ const HEALTH_BAR_FILL_SHEET_W = 64
 const HEALTH_WARN_THRESHOLD = 0.3
 const HEALTH_CRIT_THRESHOLD = 0.15
 
-const TINT_PLAYER_FULL  = 0x4488ff
-const TINT_PLAYER_LOW   = 0x2255cc
-const TINT_BOT_FULL     = 0xff4444
-const TINT_BOT_LOW      = 0xcc2222
 
 export interface HealthBarOptions {
   /** Pixels above entity centre; zero = y is already the bar centre */
@@ -79,7 +75,8 @@ export class HealthBar {
     this.frameCenter = scene.add.image(0, cy, baseKey, 'mid').setOrigin(0.5, 0.5).setDepth(frameOpts.depth).setVisible(frameOpts.visible)
     this.frameRight  = scene.add.image(0, cy, baseKey, 'rightCap').setOrigin(0.5, 0.5).setDepth(frameOpts.depth).setVisible(frameOpts.visible)
 
-    this.fill = scene.add.image(0, cy, assets.fill.key, 'fill')
+    const fillKey = options.owner === Owner.PLAYER ? assets.fillPlayer.key : assets.fill.key
+    this.fill = scene.add.image(0, cy, fillKey, 'fill')
       .setOrigin(0, 0.5)
       .setDepth(this.depth + 1)
       .setVisible(false)
@@ -90,7 +87,7 @@ export class HealthBar {
   /** Troop bar — thin bar above the unit */
   static forTroop(scene: Phaser.Scene, x: number, y: number, spriteHeight: number, owner?: Owner): HealthBar {
     return new HealthBar(scene, x, y, {
-      barWidth: Math.max(40, Math.round(spriteHeight * 0.6)),
+      barWidth: Math.max(28, Math.round(spriteHeight * 0.4)),
       offsetY: -Math.round(spriteHeight * 0.52),
       variant: 'small',
       owner,
@@ -117,9 +114,9 @@ export class HealthBar {
     isKing: boolean,
     owner?: Owner,
   ): HealthBar {
-    const widthMult = isKing ? 0.55 : 0.46
+    const widthMult = isKing ? 0.38 : 0.32
     return new HealthBar(scene, x, barY, {
-      barWidth: Math.max(isKing ? 72 : 60, Math.round(spriteWidth * widthMult)),
+      barWidth: Math.max(isKing ? 50 : 40, Math.round(spriteWidth * widthMult)),
       offsetY: 0,
       depth: 48,
       variant: 'big',
@@ -214,6 +211,10 @@ export class HealthBar {
   }
 
   private applyFillTint(fraction: number): void {
+    if (this.owner !== undefined) {
+      this.fill.clearTint()
+      return
+    }
     if (fraction > HEALTH_WARN_THRESHOLD) {
       this.fill.clearTint()
       return

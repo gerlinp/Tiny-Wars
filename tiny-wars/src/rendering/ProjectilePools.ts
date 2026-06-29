@@ -187,13 +187,18 @@ export class TntPool {
     const baseSize = flat ? TOWER_CANNON_PROJECTILE_DISPLAY : TNT_PROJECTILE_DISPLAY
     const peakScale = flat ? FLAT_LOB_PEAK_SCALE : undefined
 
-    const projectileKey = projectileStyle?.projectileKey
+    let projectileKey = projectileStyle?.projectileKey
       ?? (this.scene.textures.exists(BOMB_SPIN_SHEET) ? BOMB_SPIN_SHEET : 'placeholder_player')
+    if (!this.scene.textures.exists(projectileKey)) {
+      projectileKey = this.scene.textures.exists(BOMB_SPIN_SHEET) ? BOMB_SPIN_SHEET : 'placeholder_player'
+    }
     const spinKey = projectileStyle?.spinAnimKey ?? clipAnimKey('tnt', owner, 'run')
 
     bomb.setData('flying', true)
     bomb.setData('projectileDisplay', baseSize)
+    bomb.anims.stop()
     bomb.setTexture(projectileKey, 0)
+    bomb.setFrame(0)
     bomb.setDisplaySize(baseSize, baseSize)
     bomb.setPosition(from.x, from.y)
     const dx = to.x - from.x
@@ -202,11 +207,9 @@ export class TntPool {
     bomb.setVisible(true)
     bomb.setAlpha(1)
 
-    if (!straight && this.scene.anims.exists(spinKey)) {
-      bomb.anims.timeScale = BOMB_SPIN_TIME_SCALE
+    if (this.scene.anims.exists(spinKey)) {
+      bomb.anims.timeScale = straight ? 1 : BOMB_SPIN_TIME_SCALE
       bomb.anims.play(spinKey)
-    } else {
-      bomb.anims.stop()
     }
 
     this.scene.tweens.add({

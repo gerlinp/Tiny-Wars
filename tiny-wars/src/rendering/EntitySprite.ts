@@ -79,8 +79,8 @@ export class EntitySprite {
     }
 
     this.healthBar = this.isBuilding
-      ? HealthBar.forBuilding(scene, x, y, size.height)
-      : HealthBar.forTroop(scene, x, y, size.height)
+      ? HealthBar.forBuilding(scene, x, y, size.height, owner)
+      : HealthBar.forTroop(scene, x, y, size.height, owner)
     if (this.isBuilding) {
       this.buildingSize = size
       this.damageFire = new DamageFireOverlay(scene)
@@ -175,6 +175,12 @@ export class EntitySprite {
   /** Bomb Fish crew perch — for tower lobs and VFX origin. */
   getBombCrewOrigin(): Vec2 | null {
     return this.bombCrew?.getWorldPosition() ?? null
+  }
+
+  /** Troop ranged projectile launch point — above feet toward the upper body. */
+  getProjectileOrigin(): Vec2 {
+    const lift = this.sprite.displayHeight * 0.22
+    return { x: this.sprite.x, y: this.sprite.y - lift }
   }
 
   /** Fallback when windup did not start before the first strike in a engagement. */

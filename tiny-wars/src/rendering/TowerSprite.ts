@@ -85,6 +85,7 @@ export class TowerSprite {
       barY,
       size.width,
       tower.isKing,
+      tower.owner,
     )
     this.towerCx = tower.position.x
     this.towerRy = ry

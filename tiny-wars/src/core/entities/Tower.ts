@@ -30,7 +30,12 @@ export class Tower extends Entity {
   }
 
   /** Called when a friendly Princess Tower is destroyed or the king takes damage. */
-  activate(): void { this.active = true }
+  activate(): void {
+    if (!this.active && this.isKing) {
+      this.attackCooldownMs = 1000
+    }
+    this.active = true
+  }
 
   override takeDamage(amount: number): void {
     super.takeDamage(amount)

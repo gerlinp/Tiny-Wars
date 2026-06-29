@@ -271,6 +271,9 @@ export class PreloadScene extends Phaser.Scene {
       const fillTex = this.textures.get(variant.fill.key)
       const ff = variant.fillFrame
       fillTex.add('fill', 0, 0, ff.y, 64, ff.h)
+
+      const fillPlayerTex = this.textures.get(variant.fillPlayer.key)
+      fillPlayerTex.add('fill', 0, 0, ff.y, 64, ff.h)
     }
 
     const bridgeTex = this.textures.get(TERRAIN_BRIDGE.key)

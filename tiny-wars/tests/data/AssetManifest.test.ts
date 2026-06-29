@@ -215,6 +215,24 @@ describe('Card avatars', () => {
     expect(bundle.attackHitFrame).toBe(4)
   })
 
+  it('paddle shark uses pirate fish sheets and dedicated avatar', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'paddle_shark')!
+    expect(cardAvatarKey('paddle_shark')).toBe('avatar_paddle_shark')
+    expect(getCardAvatarDef('paddle_shark').path).toContain('Paddle Shark.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('paddle_shark').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Paddle Shark_Idle.png')
+      expect(side.run.sheet.path).toContain('Paddle Shark_Run.png')
+      expect(side.attack.sheet.path).toContain('Paddle Shark_Attack.png')
+      expect(side.idle.sheet.frameWidth).toBe(192)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.attackHitFrame).toBe(3)
+  })
+
   it('troll uses 384×384 Troll sheets with dedicated enemy avatar', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'troll')!
     expect(cardAvatarKey('troll')).toBe('avatar_enemy_avatars_16')
@@ -527,8 +545,7 @@ describe('Card avatars', () => {
       expect(side.idle.sheet.frameWidth).toBe(192)
       expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
     }
-    expect(bundle.player.run.start).toBe(0)
-    expect(bundle.player.run.end).toBe(11)
+    expect(bundle.player.run.frames).toEqual([0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12])
     expect(bundle.player.attack.start).toBe(14)
     expect(bundle.player.attack.end).toBe(20)
     expect(existsSync(resolve(PUBLIC, GOBLIN_DYNAMITE_SHEET.path))).toBe(true)

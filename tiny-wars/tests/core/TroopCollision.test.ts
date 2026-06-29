@@ -7,6 +7,7 @@ import type { EntityStats } from '@core/types'
 import { circlesOverlap, separateCirclePair, troopCollisionRadius } from '@core/EntityGeometry'
 import { resolveTroopCollisions } from '@core/TroopCollision'
 import { crSpeedToCellsPerSec, CR_SPEED } from '@data/GameConstants'
+import { CARD_DEFINITIONS } from '@data/CardData'
 
 const slowStats: EntityStats = {
   maxHp: 500,
@@ -28,7 +29,7 @@ describe('TroopCollision', () => {
 
   it('separates overlapping ground troops', () => {
     const a = new Troop(Owner.PLAYER, slowStats, { x: 200, y: 500 }, grid, 'warrior')
-    const b = new Troop(Owner.BOT, slowStats, { x: 200, y: 500 }, grid, 'warrior')
+    const b = new Troop(Owner.BOT, slowStats, { x: 201, y: 500 }, grid, 'warrior')
     const state = createInitialGameState()
     state.entities.set(a.id, a)
     state.entities.set(b.id, b)
@@ -41,7 +42,7 @@ describe('TroopCollision', () => {
 
   it('pushes a slower ally forward when a faster unit is behind', () => {
     const slow = new Troop(Owner.PLAYER, slowStats, { x: 200, y: 500 }, grid, 'warrior')
-    const fast = new Troop(Owner.PLAYER, fastStats, { x: 200, y: 512 }, grid, 'torch_goblin')
+    const fast = new Troop(Owner.PLAYER, fastStats, { x: 200, y: 510 }, grid, 'torch_goblin')
     const state = createInitialGameState()
     state.entities.set(slow.id, slow)
     state.entities.set(fast.id, fast)
@@ -52,9 +53,9 @@ describe('TroopCollision', () => {
     expect(slow.position.y).toBeLessThan(beforeY)
   })
 
-  it('still separates overlapping enemy troops', () => {
+  it('still separates overlapping enemy melee troops', () => {
     const front = new Troop(Owner.PLAYER, slowStats, { x: 200, y: 500 }, grid, 'warrior')
-    const behind = new Troop(Owner.BOT, fastStats, { x: 200, y: 500 }, grid, 'torch_goblin')
+    const behind = new Troop(Owner.BOT, slowStats, { x: 201, y: 500 }, grid, 'warrior')
     const state = createInitialGameState()
     state.entities.set(front.id, front)
     state.entities.set(behind.id, behind)
@@ -66,6 +67,23 @@ describe('TroopCollision', () => {
     resolveTroopCollisions(state, 200)
 
     expect(circlesOverlap(front.position, rFront, behind.position, rBehind)).toBe(false)
+  })
+
+  it('does not push ranged troops away from overlapping enemy melee', () => {
+    const warrior = new Troop(Owner.PLAYER, slowStats, { x: 200, y: 500 }, grid, 'warrior')
+    const torchStats = CARD_DEFINITIONS.torch_goblin!.stats!
+    const torch = new Troop(Owner.BOT, torchStats, { x: 200, y: 500 }, grid, 'torch_goblin')
+    const state = createInitialGameState()
+    state.entities.set(warrior.id, warrior)
+    state.entities.set(torch.id, torch)
+
+    const rWarrior = troopCollisionRadius(warrior)
+    const rTorch = troopCollisionRadius(torch)
+    expect(circlesOverlap(warrior.position, rWarrior, torch.position, rTorch)).toBe(true)
+
+    resolveTroopCollisions(state, 200)
+
+    expect(circlesOverlap(warrior.position, rWarrior, torch.position, rTorch)).toBe(true)
   })
 })
 

@@ -54,13 +54,15 @@ export function circlesOverlap(posA: Vec2, rA: number, posB: Vec2, rB: number): 
   return dx * dx + dy * dy < sum * sum
 }
 
-/** Separate two overlapping circles; moveRatioA is the fraction applied to posA. */
+/** Separate two overlapping circles; moveRatioA is the fraction applied to posA.
+ *  fraction < 1 allows soft/damped separation (units tolerate partial overlap). */
 export function separateCirclePair(
   posA: Vec2,
   rA: number,
   posB: Vec2,
   rB: number,
   moveRatioA = 0.5,
+  fraction = 1.0,
 ): void {
   const dx = posA.x - posB.x
   const dy = posA.y - posB.y
@@ -69,13 +71,14 @@ export function separateCirclePair(
 
   if (dist >= minDist) return
 
+  const PUSH_MARGIN = 1e-6
   if (dist < EPSILON_DISTANCE) {
-    posA.x += minDist * moveRatioA
-    posB.x -= minDist * (1 - moveRatioA)
+    posA.x += (minDist + PUSH_MARGIN) * moveRatioA * fraction
+    posB.x -= (minDist + PUSH_MARGIN) * (1 - moveRatioA) * fraction
     return
   }
 
-  const overlap = minDist - dist
+  const overlap = (minDist - dist + PUSH_MARGIN) * fraction
   const nx = dx / dist
   const ny = dy / dist
   posA.x += nx * overlap * moveRatioA

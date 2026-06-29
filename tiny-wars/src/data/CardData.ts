@@ -85,6 +85,7 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   pig_rider:     AT('2024-11-01T12:00:00.000Z'),
   bomb_fish:     AT('2024-11-15T12:00:00.000Z'),
   goblin_demolisher: AT('2026-06-29T12:00:00.000Z'),
+  paddle_shark:    AT('2026-06-29T18:00:00.000Z'),
   minotaur:      AT('2025-01-01T12:00:00.000Z'),
   thief:         AT('2025-02-01T12:00:00.000Z'),
   turtle:        AT('2025-03-01T12:00:00.000Z'),
@@ -311,21 +312,24 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     splashRadius: 1.5,
   }, 'bomb_fish_blue_idle', 'bomb_fish_red_idle'),
 
-  /** Building-only wall-breaker pair — Factions TNT goblin art. */
+  /** Building-only wall-breaker — Factions TNT goblin art. */
   goblin_demolisher: troop('goblin_demolisher', 'Goblin Demolisher',
-    'A pair of goblins that rush buildings and detonate on impact.',
+    'Lobs dynamite at ground troops. At half health, charges the nearest building and explodes on death.',
     4, {
-    maxHp: 634,
-    speed: crSpeedToCellsPerSec(CR_SPEED.fast),
-    damage: 378,
-    attackRate: 1 / 1.8,
-    attackRange: 1.2,
+    maxHp: 1300,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 246,
+    attackRate: 1 / 1.2,
+    attackRange: 5.0,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
-    targetsBuildingsOnly: true,
     splashRadius: 1.5,
-    suicideOnAttack: true,
-  }, 'goblin_demolisher_blue_sheet', 'goblin_demolisher_red_sheet', 2),
+    deathSplashRadius: 2.5,
+    deathSplashDamage: 614,
+    buildingChargeHpFraction: 0.5,
+    buildingChargeSpeed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
+    buildingChargeAttackRange: 1.0,
+  }, 'goblin_demolisher_blue_sheet', 'goblin_demolisher_red_sheet'),
 
   /** Slow heavy melee — Minotaur enemy art. */
   minotaur: troop('minotaur', 'Minotaur',
@@ -440,6 +444,19 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     hookSlowDurationMs: HOOK_SLOW_DURATION_MS,
     hookSlowSpeedMultiplier: HOOK_SLOW_SPEED_MULT,
   }, 'harpoon_shark_blue_idle', 'harpoon_shark_red_idle'),
+
+  /** ×5 deploy — Paddle Shark art. CR Barbarians. */
+  paddle_shark: troop('paddle_shark', 'Paddle Sharks',
+    'Five oar-wielding raiders charge ground troops in a frenzy.',
+    5, {
+    maxHp: 915,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 254,
+    attackRate: 1 / 1.4,
+    attackRange: 0.7,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+  }, 'paddle_shark_blue_idle', 'paddle_shark_red_idle', 5),
 
   /** Witch-style spawner — Caveborn Spider art, green splash bolts + tiny spiderlings. */
   spider: troop('spider', 'Spider',

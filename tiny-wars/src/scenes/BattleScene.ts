@@ -320,15 +320,19 @@ export class BattleScene extends Phaser.Scene {
             const cardId = this.entityCardIds.get(attacker.id) ?? attacker.cardId ?? ''
             if (cardId === 'goblin_demolisher') {
               const splashR = (attacker.stats as EntityStats).splashRadius ?? 1.5
+              const launchFrom = event.attackerId
+                ? this.sprites.get(event.attackerId)?.getProjectileOrigin() ?? from
+                : from
               const flightMs = arrowFlightMs(
-                Math.hypot(to.x - from.x, to.y - from.y),
+                Math.hypot(to.x - launchFrom.x, to.y - launchFrom.y),
                 attackRate,
               )
-              this.tntProjectiles.spawn(from, to, attacker.owner, flightMs, () => {
+              this.tntProjectiles.spawn(launchFrom, to, attacker.owner, flightMs, () => {
                 this.effects.spawn(to.x, to.y, splashR * CELL_SIZE)
                 flash()
               }, 'straight', {
                 projectileKey: GOBLIN_DYNAMITE_SHEET.key,
+                spinAnimKey: GOBLIN_DYNAMITE_SHEET.animKey,
               })
             } else if (cardId === 'wizard' || cardId === 'lizard' || cardId === 'torch_goblin' || cardId === 'bomb_fish' || cardId === 'spider') {
               this.hexFireballs.spawn(

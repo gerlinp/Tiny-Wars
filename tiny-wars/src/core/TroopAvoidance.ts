@@ -5,18 +5,24 @@ import { circlesOverlap, troopCollisionRadius } from './EntityGeometry'
 import { EntityKind, TroopState, UnitType } from './types'
 import type { Vec2 } from './types'
 import { isWorldWalkable, moveTowardDirect } from './Movement'
-import { CELL_SIZE, EPSILON_DISTANCE } from '@data/GameConstants'
+import { CELL_SIZE, EPSILON_DISTANCE, RIVER_ROW_START, RIVER_ROW_END } from '@data/GameConstants'
 
 /** Melee-only — ranged troops stay grouped and attack from behind the front line. */
 const MELEE_ATTACK_RANGE_CELLS = 2
 
+/** Rows on each side of the river where lateral avoidance is suppressed so units queue straight into the bridge. */
+const BRIDGE_APPROACH_ROW_MARGIN = 4
+
 /** How far ahead (in body widths) to look for a directly stacked ally. */
-const ALLY_BLOCK_LOOKAHEAD_MULT = 1.75
-/** Lateral steering weight when stacked behind an ally (keep subtle). */
-const ALLY_AVOID_LATERAL_BLEND = 0.38
+const ALLY_BLOCK_LOOKAHEAD_MULT = 2.5
+/** Lateral steering weight when blocked by a moving ally. */
+const ALLY_AVOID_LATERAL_BLEND = 0.55
+/** Lateral steering weight when blocked by a stationary (attacking) ally — steer fully around. */
+const ALLY_AVOID_LATERAL_BLEND_STATIONARY = 0.80
 
 interface AllyBlock {
   lateral: 1 | -1
+  allyStationary: boolean
 }
 
 function isMeleeTroop(troop: Troop): boolean {
@@ -61,6 +67,12 @@ function moveStepIfWalkable(pos: Vec2, mx: number, my: number, step: number, gri
 export function findBlockingAlly(troop: Troop, goal: Vec2, state: GameState): AllyBlock | null {
   if (!isMeleeTroop(troop)) return null
 
+  // Within the bridge approach zone, march straight — lateral spread blocks the bridge entrance.
+  const row = (troop.position.y / CELL_SIZE) | 0
+  if (row >= RIVER_ROW_START - BRIDGE_APPROACH_ROW_MARGIN && row <= RIVER_ROW_END + BRIDGE_APPROACH_ROW_MARGIN) {
+    return null
+  }
+
   const dir = goalDirection(troop.position, goal)
   if (!dir) return null
 
@@ -69,6 +81,7 @@ export function findBlockingAlly(troop: Troop, goal: Vec2, state: GameState): Al
 
   let bestAhead = Infinity
   let bestLateral: 1 | -1 = 1
+  let bestStationary = false
 
   for (const ally of groundAllies(troop, state)) {
     const allyRadius = troopCollisionRadius(ally)
@@ -86,9 +99,10 @@ export function findBlockingAlly(troop: Troop, goal: Vec2, state: GameState): Al
     bestAhead = ahead
     const cross = dir.x * toAllyY - dir.y * toAllyX
     bestLateral = cross >= 0 ? -1 : 1
+    bestStationary = ally.state === TroopState.ATTACKING
   }
 
-  return bestAhead < Infinity ? { lateral: bestLateral } : null
+  return bestAhead < Infinity ? { lateral: bestLateral, allyStationary: bestStationary } : null
 }
 
 /** Move toward goal, steering around allies that block the path (CR-style local avoidance). */
@@ -111,9 +125,10 @@ export function moveTowardWithAllyAvoidance(
 
   const perpX = -dir.y * block.lateral
   const perpY = dir.x * block.lateral
-  const fwd = 1 - ALLY_AVOID_LATERAL_BLEND
-  const mx = dir.x * fwd + perpX * ALLY_AVOID_LATERAL_BLEND
-  const my = dir.y * fwd + perpY * ALLY_AVOID_LATERAL_BLEND
+  const blend = block.allyStationary ? ALLY_AVOID_LATERAL_BLEND_STATIONARY : ALLY_AVOID_LATERAL_BLEND
+  const fwd = 1 - blend
+  const mx = dir.x * fwd + perpX * blend
+  const my = dir.y * fwd + perpY * blend
 
   if (moveStepIfWalkable(pos, mx, my, step, grid)) return
 
@@ -155,7 +170,7 @@ export function tryAllyLateralSeparation(rear: Troop, front: Troop): boolean {
   const perpY = nx
   const cross = nx * toFrontY - ny * toFrontX
   const preferred = cross >= 0 ? -1 : 1
-  const nudge = Math.min(rearRadius + frontRadius - lateral + CELL_SIZE * 0.15, CELL_SIZE * 0.45)
+  const nudge = Math.min(rearRadius + frontRadius - lateral + CELL_SIZE * 0.15, CELL_SIZE * 0.22)
   const grid = rear.grid
 
   for (const side of [preferred, -preferred as 1 | -1]) {

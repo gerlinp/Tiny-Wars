@@ -95,6 +95,7 @@ export const HEALTH_BAR_ASSETS = {
   small: {
     base: { key: 'health_bar_sm_base', path: `${UI_BARS}/SmallBar_Base.png` },
     fill: { key: 'health_bar_sm_fill', path: `${UI_BARS}/SmallBar_Fill.png` },
+    fillPlayer: { key: 'health_bar_sm_fill_player', path: `${UI_BARS}/SmallBar_Fill_Player.png` },
     displayHeight: 12,
     baseRegions: {
       leftCap:  { x: 49,  w: 15 },
@@ -113,6 +114,7 @@ export const HEALTH_BAR_ASSETS = {
   big: {
     base: { key: 'health_bar_lg_base', path: `${UI_BARS}/BigBar_Base.png` },
     fill: { key: 'health_bar_lg_fill', path: `${UI_BARS}/BigBar_Fill.png` },
+    fillPlayer: { key: 'health_bar_lg_fill_player', path: `${UI_BARS}/BigBar_Fill_Player.png` },
     displayHeight: 20,
     baseRegions: {
       leftCap:  { x: 40,  w: 24 },
@@ -130,6 +132,7 @@ export const HEALTH_BAR_ASSETS = {
 } as const satisfies Record<string, {
   base: { key: string; path: string }
   fill: { key: string; path: string }
+  fillPlayer: { key: string; path: string }
   displayHeight: number
   baseRegions: HealthBarBaseRegions
   baseFrame: HealthBarArtFrame
@@ -141,7 +144,7 @@ export const HEALTH_BAR_ASSETS = {
 export function getHealthBarImageKeys(): { key: string; path: string }[] {
   const keys: { key: string; path: string }[] = []
   for (const variant of Object.values(HEALTH_BAR_ASSETS)) {
-    keys.push(variant.base, variant.fill)
+    keys.push(variant.base, variant.fill, variant.fillPlayer)
   }
   return keys
 }
@@ -159,6 +162,8 @@ export interface ClipDef {
   end: number
   frameRate: number
   repeat: number
+  /** When set, play these sheet indices in order (skips empty cells). */
+  frames?: number[]
 }
 
 export interface SideAssets {
@@ -368,6 +373,15 @@ function clip(sheet: SheetDef, start: number, end: number, frameRate = 8, repeat
   return { sheet, start, end, frameRate, repeat }
 }
 
+function clipFrames(
+  sheet: SheetDef,
+  frames: readonly number[],
+  frameRate = 8,
+  repeat = -1,
+): ClipDef {
+  return { sheet, start: frames[0], end: frames[frames.length - 1], frameRate, repeat, frames: [...frames] }
+}
+
 function goblinBuildingSheet(cardId: string, side: 'Blue' | 'Red', folder: string, file: string): SheetDef {
   const prefix = side === 'Blue' ? 'blue' : 'red'
   return {
@@ -466,12 +480,14 @@ function goblinDemolisherSheet(side: 'Blue' | 'Red'): SheetDef {
   }
 }
 
-/** Factions TNT goblin — row 0–1 walk (12f), row 2 place dynamite (7f). */
+/** Factions TNT goblin — rows 0–1 walk (6+6f; cols 7 empty), row 2 place dynamite (7f). */
+const TNT_RUN_FRAMES = [0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12] as const
+
 function goblinDemolisherSide(side: 'Blue' | 'Red'): SideAssets {
   const sheet = goblinDemolisherSheet(side)
   return {
     idle:   clip(sheet, 0,  0,  10, -1),
-    run:    clip(sheet, 0, 11,  14, -1),
+    run:    clipFrames(sheet, TNT_RUN_FRAMES, 14, -1),
     attack: clip(sheet, 14, 20,  14,  0),
   }
 }
@@ -821,6 +837,36 @@ function thiefSide(side: 'blue' | 'red'): SideAssets {
   }
   return {
     idle:   clip(idle,   0, 5, 10, -1),
+    run:    clip(run,    0, 5, 14, -1),
+    attack: clip(attack, 0, 5, 14,  0),
+  }
+}
+
+const PADDLE_SHARK_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Paddle Shark'
+const PADDLE_SHARK_FRAME = 192
+
+/** Enemy Pack Paddle Shark — oar melee, Barbarians-style horde. */
+function paddleSharkSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `paddle_shark_${side}_idle`,
+    path: `${PADDLE_SHARK_PATH}/Paddle Shark_Idle.png`,
+    frameWidth: PADDLE_SHARK_FRAME,
+    frameHeight: PADDLE_SHARK_FRAME,
+  }
+  const run: SheetDef = {
+    key: `paddle_shark_${side}_run`,
+    path: `${PADDLE_SHARK_PATH}/Paddle Shark_Run.png`,
+    frameWidth: PADDLE_SHARK_FRAME,
+    frameHeight: PADDLE_SHARK_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `paddle_shark_${side}_attack`,
+    path: `${PADDLE_SHARK_PATH}/Paddle Shark_Attack.png`,
+    frameWidth: PADDLE_SHARK_FRAME,
+    frameHeight: PADDLE_SHARK_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0, 7, 10, -1),
     run:    clip(run,    0, 5, 14, -1),
     attack: clip(attack, 0, 5, 14,  0),
   }
@@ -1206,6 +1252,16 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     tintBotSide: true,
     player: harpoonSharkSide('blue'),
     bot:    harpoonSharkSide('red'),
+  },
+  {
+    cardId: 'paddle_shark',
+    avatar: { key: 'avatar_paddle_shark', path: `${ENEMY_AVATARS}/Paddle Shark.png` },
+    avatarCropRatio: 0.55,
+    contentFill: 0.52,
+    attackHitFrame: 3,
+    tintBotSide: true,
+    player: paddleSharkSide('blue'),
+    bot:    paddleSharkSide('red'),
   },
   {
     cardId: 'spider',
