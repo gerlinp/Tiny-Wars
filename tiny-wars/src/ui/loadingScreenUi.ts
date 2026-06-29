@@ -10,9 +10,9 @@ export interface LoadingBarWidgets {
 
 export function loadingLayoutY(height: number): { walkerY: number; barY: number; labelY: number } {
   return {
-    walkerY: height / 2 - 50,
-    barY: height / 2 + 70,
-    labelY: height / 2 + 94,
+    walkerY: height / 2 - 200,
+    barY: height / 2 + 280,
+    labelY: height / 2 + 376,
   }
 }
 
@@ -22,11 +22,11 @@ export function createLoadingBar(
   barY: number,
   labelY: number,
 ): LoadingBarWidgets {
-  const barBg = scene.add.rectangle(width / 2, barY, 300, 20, 0x333366)
-  const bar = scene.add.rectangle(width / 2 - 150, barY, 0, 16, 0x6688cc)
+  const barBg = scene.add.rectangle(width / 2, barY, 1200, 80, 0x333366)
+  const bar = scene.add.rectangle(width / 2 - 600, barY, 0, 64, 0x6688cc)
   bar.setOrigin(0, 0.5)
   const label = scene.add.text(width / 2, labelY, 'Loading...', {
-    fontSize: '14px',
+    fontSize: '56px',
     color: '#aabbff',
   }).setOrigin(0.5)
   return { barBg, bar, label }
@@ -34,7 +34,7 @@ export function createLoadingBar(
 
 export function setLoadingProgress(widgets: LoadingBarWidgets, value: number): void {
   const clamped = Math.max(0, Math.min(1, value))
-  widgets.bar.width = 296 * clamped
+  widgets.bar.width = 1184 * clamped
   widgets.label.setText(`Loading... ${Math.round(clamped * 100)}%`)
 }
 

@@ -146,6 +146,7 @@ export type TntLobStyle = 'rocket' | 'flat' | 'straight'
 export interface TntProjectileStyle {
   projectileKey?: string
   spinAnimKey?: string
+  displaySize?: number
 }
 
 export class TntPool {
@@ -184,7 +185,7 @@ export class TntPool {
 
     const flat = lobStyle === 'flat'
     const straight = lobStyle === 'straight'
-    const baseSize = flat ? TOWER_CANNON_PROJECTILE_DISPLAY : TNT_PROJECTILE_DISPLAY
+    const baseSize = projectileStyle?.displaySize ?? (flat ? TOWER_CANNON_PROJECTILE_DISPLAY : TNT_PROJECTILE_DISPLAY)
     const peakScale = flat ? FLAT_LOB_PEAK_SCALE : undefined
 
     let projectileKey = projectileStyle?.projectileKey
@@ -397,7 +398,7 @@ export class BoneBoomerangPool {
 
 const HEX_POOL_SIZE = 16
 const HEX_PROJECTILE_KEY = 'hex_shaman_projectile'
-const HEX_PROJECTILE_DISPLAY = 28
+const HEX_PROJECTILE_DISPLAY = 128
 
 export interface HexFireballStyle {
   projectileTint?: number

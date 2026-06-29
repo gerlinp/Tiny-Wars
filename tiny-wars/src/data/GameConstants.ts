@@ -8,8 +8,8 @@ export const EPSILON_DISTANCE = 0.01
 export const ARENA_FENCE_ROWS = 1
 export const ARENA_FENCE_COLS = 1
 
-// Each grid cell in pixels — 16 fits a 480×1000 arena into ~384×828, matching portrait phones at 1:1 CSS pixels
-export const CELL_SIZE = 16
+// Each grid cell in pixels — 64 renders terrain at native 64×64 and troops near-native 192×192
+export const CELL_SIZE = 64
 
 // Map display scale — relative to visible unit height (matches Tiny Swords reference art)
 export const MAP_UNIT_TARGET_HEIGHT = CELL_SIZE * 2.5
@@ -31,10 +31,10 @@ export const MAP_TOWER_CONTENT_FILL = {
   tower_king:     0.88,
 } as const
 
-export const GAME_WIDTH  = GRID_COLS * CELL_SIZE  // 384
-export const GAME_HEIGHT = GRID_ROWS * CELL_SIZE  // 688 — arena only
-export const HUD_HEIGHT  = 140
-export const CANVAS_HEIGHT = GAME_HEIGHT + HUD_HEIGHT  // 828 — must match GameConfig height
+export const GAME_WIDTH  = GRID_COLS * CELL_SIZE  // 1536
+export const GAME_HEIGHT = GRID_ROWS * CELL_SIZE  // 2752 — arena only
+export const HUD_HEIGHT  = 560
+export const CANVAS_HEIGHT = GAME_HEIGHT + HUD_HEIGHT  // 3312 — must match GameConfig height
 
 // Tower hitbox anchors (map.json overrides — combat, pathing, targeting)
 export const PLAYER_KING_ROW    = 41
@@ -123,16 +123,16 @@ export function towerFootprintHalfExtents(isKing: boolean): { halfW: number; hal
 
 /** Princess-only sprite shift toward the river (visual only; hitboxes unchanged). */
 export const PRINCESS_TOWER_RENDER_NUDGE_Y = {
-  player: -38,
+  player: -152,
   bot: 0,
 } as const
 
 /** Tower health bar placement — Clash Royale style (see layout-editor.html). */
 export const TOWER_HEALTH_BAR_Y = {
   /** Bot bar centre: px above sprite top (smaller = closer to tower) */
-  botGapAboveTop: 3,
+  botGapAboveTop: 12,
   /** Player bar centre: px below sprite centre (+ = lower on tower toward HUD) */
-  playerOffsetFromCenter: 6,
+  playerOffsetFromCenter: 24,
 } as const
 
 // Deployment zones — exclude fence border rows from valid placement

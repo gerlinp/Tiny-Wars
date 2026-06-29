@@ -15,13 +15,13 @@ export class TimerDisplay {
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.text = scene.add.text(x, y, '3:00', {
-      fontSize: '26px',
+      fontSize: '104px',
       fontFamily: NUMBER_FONT,
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000022',
-      strokeThickness: 5,
-      shadow: { offsetX: 0, offsetY: 3, color: '#000000', blur: 10, stroke: true, fill: true },
+      strokeThickness: 20,
+      shadow: { offsetX: 0, offsetY: 12, color: '#000000', blur: 10, stroke: true, fill: true },
     }).setOrigin(0.5).setDepth(50)
   }
 

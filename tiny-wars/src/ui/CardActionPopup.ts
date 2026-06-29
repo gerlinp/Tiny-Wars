@@ -2,9 +2,9 @@ import Phaser from 'phaser'
 import { CINZEL_FONT } from './cardHandLayout'
 import { GAME_WIDTH, CANVAS_HEIGHT } from '@data/GameConstants'
 
-const BTN_H = 36
-const GAP   = 4
-const PAD   = 6
+const BTN_H = 144
+const GAP   = 16
+const PAD   = 24
 
 export class CardActionPopup {
   private readonly panel: Phaser.GameObjects.Container
@@ -26,25 +26,25 @@ export class CardActionPopup {
   constructor(private readonly scene: Phaser.Scene) {
     this.panel = scene.add.container(0, 0).setDepth(191).setVisible(false).setAlpha(0)
 
-    this.panelBg = scene.add.rectangle(0, 0, 1, 1, 0x060e1f).setStrokeStyle(1.5, 0x1a3a6a)
+    this.panelBg = scene.add.rectangle(0, 0, 1, 1, 0x060e1f).setStrokeStyle(6, 0x1a3a6a)
     this.panel.add(this.panelBg)
 
     this.infoBg = scene.add.rectangle(0, BTN_H / 2, 1, BTN_H, 0x1a4a8a)
-      .setStrokeStyle(1, 0x4477cc)
+      .setStrokeStyle(4, 0x4477cc)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', (p: Phaser.Input.Pointer) => { p.event.stopPropagation(); this.onInfoCb?.() })
       .on('pointerover', () => this.infoBg.setFillStyle(0x2a6ac0))
       .on('pointerout',  () => this.infoBg.setFillStyle(0x1a4a8a))
     this.infoText = scene.add.text(0, BTN_H / 2, 'Info', {
-      fontSize: '15px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
+      fontSize: '60px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5)
 
     this.actionBtnBg = scene.add.rectangle(0, BTN_H + GAP + BTN_H / 2, 1, BTN_H, 0x6a1a1a)
-      .setStrokeStyle(1, 0xaa4444)
+      .setStrokeStyle(4, 0xaa4444)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', (p: Phaser.Input.Pointer) => { p.event.stopPropagation(); this.onActionCb?.() })
     this.actionBtnText = scene.add.text(0, BTN_H + GAP + BTN_H / 2, '', {
-      fontSize: '15px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
+      fontSize: '60px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5)
 
     this.panel.add([this.infoBg, this.infoText, this.actionBtnBg, this.actionBtnText])
@@ -69,19 +69,19 @@ export class CardActionPopup {
     this.actionBtnBg.setSize(cardW, BTN_H)
 
     if (inDeck) {
-      this.actionBtnBg.setFillStyle(0x6a1a1a).setStrokeStyle(1, 0xaa4444)
+      this.actionBtnBg.setFillStyle(0x6a1a1a).setStrokeStyle(4, 0xaa4444)
       this.actionBtnBg.off('pointerover').on('pointerover', () => this.actionBtnBg.setFillStyle(0x8a2a2a))
       this.actionBtnBg.off('pointerout') .on('pointerout',  () => this.actionBtnBg.setFillStyle(0x6a1a1a))
       this.actionBtnText.setText('Remove')
     } else {
-      this.actionBtnBg.setFillStyle(0x1a5a2a).setStrokeStyle(1, 0x44aa66)
+      this.actionBtnBg.setFillStyle(0x1a5a2a).setStrokeStyle(4, 0x44aa66)
       this.actionBtnBg.off('pointerover').on('pointerover', () => this.actionBtnBg.setFillStyle(0x2a7a3a))
       this.actionBtnBg.off('pointerout') .on('pointerout',  () => this.actionBtnBg.setFillStyle(0x1a5a2a))
       this.actionBtnText.setText('Add')
     }
 
-    const x = Phaser.Math.Clamp(cardCx, cardW / 2 + 4, GAME_WIDTH - cardW / 2 - 4)
-    const y = Math.min(cardBottom + 2, CANVAS_HEIGHT - this.storedTotalH - 4)
+    const x = Phaser.Math.Clamp(cardCx, cardW / 2 + 16, GAME_WIDTH - cardW / 2 - 16)
+    const y = Math.min(cardBottom + 8, CANVAS_HEIGHT - this.storedTotalH - 16)
 
     this.scene.tweens.killTweensOf(this.panel)
 

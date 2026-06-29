@@ -20,9 +20,9 @@ function flexColumn(heights: number[], gap: number, startY = 0): number[] {
   return centres
 }
 
-const BTN_H   = 64   // pixel height of a scale-2 button sprite
-const INPUT_H = 42
-const NAME_H  = 36
+const BTN_H   = 256
+const INPUT_H = 168
+const NAME_H  = 144
 
 export class PvPLobbyScene extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text
@@ -53,24 +53,24 @@ export class PvPLobbyScene extends Phaser.Scene {
 
     // Title — fixed at the top
     this.add.text(width / 2, height * 0.10, 'ONLINE BATTLE', {
-      fontSize: '34px',
+      fontSize: '136px',
       fontFamily: CINZEL_FONT,
       fontStyle: 'bold',
       color: '#ffdd88',
       stroke: '#332200',
-      strokeThickness: 6,
+      strokeThickness: 24,
     }).setOrigin(0.5)
 
     // Name section label (always visible except during WAITING state)
     this.add.text(width / 2, height * 0.20, 'YOUR NAME (optional)', {
-      fontSize: '13px',
+      fontSize: '52px',
       fontFamily: BODY_FONT,
       color: '#556688',
     }).setOrigin(0.5)
 
     // Status line
     this.statusText = this.add.text(width / 2, height * 0.36, '', {
-      fontSize: '16px',
+      fontSize: '64px',
       fontFamily: BODY_FONT,
       color: '#aaaacc',
       align: 'center',
@@ -113,13 +113,13 @@ export class PvPLobbyScene extends Phaser.Scene {
     const nameInputPhaserY = height * 0.26
     const niScreenX = rect.left + (width / 2) * sx
     const niScreenY = rect.top + nameInputPhaserY * sy
-    const niW = 180 * sx
+    const niW = 720 * sx
     const niH = NAME_H * sy
     ni.style.left     = `${niScreenX - niW / 2}px`
     ni.style.top      = `${niScreenY - niH / 2}px`
     ni.style.width    = `${niW}px`
     ni.style.height   = `${niH}px`
-    ni.style.fontSize = `${14 * sy}px`
+    ni.style.fontSize = `${56 * sy}px`
 
     // ── Room-code DOM input ─────────────────────────────────────────────────
     const di = document.createElement('input')
@@ -148,16 +148,16 @@ export class PvPLobbyScene extends Phaser.Scene {
     document.body.appendChild(di)
     this.domInput = di
 
-    const [inputY] = flexColumn([INPUT_H, BTN_H, BTN_H], 48)
+    const [inputY] = flexColumn([INPUT_H, BTN_H, BTN_H], 192)
     const diScreenX = rect.left + (width / 2) * sx
     const diScreenY = rect.top + (height * 0.46 + inputY) * sy
-    const diW = 200 * sx
+    const diW = 800 * sx
     const diH = INPUT_H * sy
     di.style.left     = `${diScreenX - diW / 2}px`
     di.style.top      = `${diScreenY - diH / 2}px`
     di.style.width    = `${diW}px`
     di.style.height   = `${diH}px`
-    di.style.fontSize = `${22 * sy}px`
+    di.style.fontSize = `${88 * sy}px`
 
     di.addEventListener('input', () => {
       di.value = di.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5)
@@ -179,17 +179,17 @@ export class PvPLobbyScene extends Phaser.Scene {
   // ---------------------------------------------------------------------------
 
   private buildMenuContainer(width: number, height: number): void {
-    const gap    = 16
-    const btnW   = 128
+    const gap    = 64
+    const btnW   = 512
     const pairW  = btnW * 2 + gap
     const leftX  = -pairW / 2 + btnW / 2
     const rightX = pairW  / 2 - btnW / 2
 
-    const [rowY, backY] = flexColumn([BTN_H, BTN_H], 40)
+    const [rowY, backY] = flexColumn([BTN_H, BTN_H], 160)
 
-    const createBtn = this.makeBtn(leftX,  rowY,  'CREATE', '15px', () => this.onCreateRoom())
-    const joinBtn   = this.makeBtn(rightX, rowY,  'JOIN',   '15px', () => this.showJoinInput())
-    const backBtn   = this.makeBtn(0,      backY, 'BACK',   '13px', () => this.goBack())
+    const createBtn = this.makeBtn(leftX,  rowY,  'CREATE', '60px', () => this.onCreateRoom())
+    const joinBtn   = this.makeBtn(rightX, rowY,  'JOIN',   '60px', () => this.showJoinInput())
+    const backBtn   = this.makeBtn(0,      backY, 'BACK',   '52px', () => this.goBack())
 
     this.menuContainer = this.add.container(width / 2, height * 0.52, [
       ...createBtn, ...joinBtn, ...backBtn,
@@ -197,16 +197,16 @@ export class PvPLobbyScene extends Phaser.Scene {
   }
 
   private buildJoinContainer(width: number, height: number): void {
-    const [inputY, connectY, backY] = flexColumn([INPUT_H, BTN_H, BTN_H], 48)
+    const [inputY, connectY, backY] = flexColumn([INPUT_H, BTN_H, BTN_H], 192)
 
-    const label = this.add.text(0, inputY - INPUT_H / 2 - 18, 'ROOM CODE', {
-      fontSize: '16px',
+    const label = this.add.text(0, inputY - INPUT_H / 2 - 72, 'ROOM CODE', {
+      fontSize: '64px',
       fontFamily: BODY_FONT,
       color: '#6677bb',
     }).setOrigin(0.5)
 
-    const connectBtn = this.makeBtn(0, connectY, 'CONNECT', '14px', () => this.onJoinRoom())
-    const backBtn    = this.makeBtn(0, backY,    'BACK',    '13px', () => this.goBack())
+    const connectBtn = this.makeBtn(0, connectY, 'CONNECT', '56px', () => this.onJoinRoom())
+    const backBtn    = this.makeBtn(0, backY,    'BACK',    '52px', () => this.goBack())
 
     this.joinContainer = this.add.container(width / 2, height * 0.46, [
       label, ...connectBtn, ...backBtn,
@@ -214,50 +214,50 @@ export class PvPLobbyScene extends Phaser.Scene {
   }
 
   private buildWaitingContainer(width: number, height: number): void {
-    const CODE_BOX_H = 70
-    const HINT_H     = 20
+    const CODE_BOX_H = 280
+    const HINT_H     = 80
 
     const [codeY, , shareY, waitY, backY] =
-      flexColumn([CODE_BOX_H, HINT_H, BTN_H, 20, BTN_H], 24)
+      flexColumn([CODE_BOX_H, HINT_H, BTN_H, 80, BTN_H], 96)
 
-    const codeBox = this.add.rectangle(0, codeY, 300, CODE_BOX_H, 0x112233)
-      .setStrokeStyle(2, 0x44aaff)
+    const codeBox = this.add.rectangle(0, codeY, 1200, CODE_BOX_H, 0x112233)
+      .setStrokeStyle(8, 0x44aaff)
       .setInteractive({ useHandCursor: true })
 
-    this.codeText = this.add.text(0, codeY - 10, '', {
-      fontSize: '15px',
+    this.codeText = this.add.text(0, codeY - 40, '', {
+      fontSize: '60px',
       fontFamily: 'monospace',
       fontStyle: 'bold',
       color: '#88ffcc',
     }).setOrigin(0.5)
 
-    this.copyHint = this.add.text(0, codeY + 18, 'TAP TO COPY', {
-      fontSize: '13px',
+    this.copyHint = this.add.text(0, codeY + 72, 'TAP TO COPY', {
+      fontSize: '52px',
       fontFamily: BODY_FONT,
       color: '#4477aa',
     }).setOrigin(0.5)
 
     codeBox.on('pointerdown', () => this.copyCode())
     codeBox.on('pointerover', () => {
-      codeBox.setStrokeStyle(2, 0x88ddff)
+      codeBox.setStrokeStyle(8, 0x88ddff)
       this.copyHint.setColor('#88bbff')
     })
     codeBox.on('pointerout', () => {
-      codeBox.setStrokeStyle(2, 0x44aaff)
+      codeBox.setStrokeStyle(8, 0x44aaff)
       this.copyHint.setColor('#4477aa')
     })
     this.codeText.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.copyCode())
 
-    const shareBtn = this.makeBtn(0, shareY, 'SHARE', '14px', () => this.shareCode())
+    const shareBtn = this.makeBtn(0, shareY, 'SHARE', '56px', () => this.shareCode())
 
     this.waitingText = this.add.text(0, waitY, '', {
-      fontSize: '16px',
+      fontSize: '64px',
       fontFamily: BODY_FONT,
       color: '#aabbff',
       align: 'center',
     }).setOrigin(0.5)
 
-    const backBtn = this.makeBtn(0, backY, 'BACK', '13px', () => this.goBack())
+    const backBtn = this.makeBtn(0, backY, 'BACK', '52px', () => this.goBack())
 
     this.waitingContainer = this.add.container(width / 2, height * 0.30, [
       codeBox, this.codeText, this.copyHint,
@@ -276,14 +276,14 @@ export class PvPLobbyScene extends Phaser.Scene {
   ): Phaser.GameObjects.GameObject[] {
     const img = this.add.image(x, y, 'button_blue')
       .setInteractive({ useHandCursor: true })
-      .setScale(2)
+      .setScale(8)
     const txt = this.add.text(x, y, label, {
       fontSize,
       fontFamily: CINZEL_FONT,
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000022',
-      strokeThickness: 3,
+      strokeThickness: 12,
     }).setOrigin(0.5).setDepth(1)
     img.on('pointerdown', onPress)
     img.on('pointerover', () => img.setTint(0xdddddd))

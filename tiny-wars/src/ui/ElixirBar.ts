@@ -2,9 +2,9 @@ import Phaser from 'phaser'
 import { ELIXIR_MAX } from '@data/GameConstants'
 import { NUMBER_FONT } from './cardHandLayout'
 
-const PIP_W = 26
-const PIP_H = 14
-const PIP_GAP = 3
+const PIP_W = 104
+const PIP_H = 56
+const PIP_GAP = 12
 
 export class ElixirBar {
   private pips: Phaser.GameObjects.Rectangle[] = []
@@ -19,13 +19,13 @@ export class ElixirBar {
       const pip = scene.add.rectangle(x, y, PIP_W, PIP_H, 0x220033, 1)
         .setOrigin(0, 0.5)
         .setDepth(50)
-        .setStrokeStyle(1, 0x8800cc)
+        .setStrokeStyle(4, 0x8800cc)
       this.pips.push(pip)
     }
 
-    this.label = scene.add.text(cx, y + 10, '0', {
-      fontSize: '15px', fontFamily: NUMBER_FONT, fontStyle: 'bold',
-      color: '#dd99ff', stroke: '#1a0033', strokeThickness: 2,
+    this.label = scene.add.text(cx, y + 40, '0', {
+      fontSize: '60px', fontFamily: NUMBER_FONT, fontStyle: 'bold',
+      color: '#dd99ff', stroke: '#1a0033', strokeThickness: 8,
     }).setOrigin(0.5).setDepth(51)
   }
 

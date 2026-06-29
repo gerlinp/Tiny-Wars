@@ -333,6 +333,7 @@ export class BattleScene extends Phaser.Scene {
               }, 'straight', {
                 projectileKey: GOBLIN_DYNAMITE_SHEET.key,
                 spinAnimKey: GOBLIN_DYNAMITE_SHEET.animKey,
+                displaySize: 64,
               })
             } else if (cardId === 'wizard' || cardId === 'lizard' || cardId === 'torch_goblin' || cardId === 'bomb_fish' || cardId === 'spider') {
               this.hexFireballs.spawn(
@@ -341,7 +342,9 @@ export class BattleScene extends Phaser.Scene {
                 attacker.owner,
                 attackRate,
                 flash,
-                cardId === 'spider' ? { projectileTint: 0x55ee44, explosionTint: 0x44dd33 } : undefined,
+                cardId === 'spider'       ? { projectileTint: 0x55ee44, explosionTint: 0x44dd33 } :
+                cardId === 'torch_goblin' ? { projectileTint: 0xffcc22, explosionTint: 0xff8800 } :
+                undefined,
               )
             } else {
               this.arrows.spawn(from, to, attacker.owner, attackRate, flash)

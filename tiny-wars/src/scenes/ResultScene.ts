@@ -27,12 +27,12 @@ export class ResultScene extends Phaser.Scene {
                        winner === Owner.BOT    ? '#ff4444'  : '#aabbff'
 
     this.add.text(width / 2, height * 0.35, titleText, {
-      fontSize: '44px',
+      fontSize: '176px',
       fontFamily: CINZEL_FONT,
       fontStyle: 'bold',
       color: titleColor,
       stroke: '#000000',
-      strokeThickness: 7,
+      strokeThickness: 28,
     }).setOrigin(0.5).setDepth(10)
 
     if (pvpNetwork) {
@@ -43,11 +43,11 @@ export class ResultScene extends Phaser.Scene {
   }
 
   private buildSoloButtons(width: number, height: number): void {
-    createMenuButton(this, width / 2, height * 0.56, 'PLAY AGAIN', '19px', 10, () => startBattleLoading(this))
-    createMenuButton(this, width / 2, height * 0.66, 'DECK', '19px', 10, () => this.scene.start('DeckBuilderScene'))
+    createMenuButton(this, width / 2, height * 0.56, 'PLAY AGAIN', '76px', 10, () => startBattleLoading(this))
+    createMenuButton(this, width / 2, height * 0.66, 'DECK', '76px', 10, () => this.scene.start('DeckBuilderScene'))
     this.add.text(width / 2, height * 0.75, 'Main Menu', {
-      fontSize: '16px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#aabbff', stroke: '#000022', strokeThickness: 2,
+      fontSize: '64px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#aabbff', stroke: '#000022', strokeThickness: 8,
     }).setOrigin(0.5).setDepth(11)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.scene.start('MainMenuScene'))
@@ -58,21 +58,21 @@ export class ResultScene extends Phaser.Scene {
     let remoteReady = false
 
     const statusText = this.add.text(width / 2, height * 0.52, '', {
-      fontSize: '15px',
+      fontSize: '60px',
       fontFamily: "'Philosopher', Georgia, serif",
       color: '#aabbff',
       align: 'center',
     }).setOrigin(0.5).setDepth(11)
 
     // REMATCH button — built inline so we can update its appearance
-    const [rematchX, menuX] = menuButtonRowCenters(width, 2, 10)
+    const [rematchX, menuX] = menuButtonRowCenters(width, 2, 40)
     const rematchBtn = this.add.image(rematchX, height * 0.62, 'button_blue')
       .setInteractive({ useHandCursor: true })
       .setScale(MENU_BUTTON_SCALE)
       .setDepth(10)
     const rematchLabel = this.add.text(rematchX, height * 0.62, 'REMATCH', {
-      fontSize: '15px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#ffffff', stroke: '#000022', strokeThickness: 3,
+      fontSize: '60px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#ffffff', stroke: '#000022', strokeThickness: 12,
     }).setOrigin(0.5).setDepth(11)
     rematchBtn.on('pointerover', () => { if (!localReady) rematchBtn.setTint(0xdddddd) })
     rematchBtn.on('pointerout',  () => { if (!localReady) rematchBtn.clearTint() })
@@ -88,7 +88,7 @@ export class ResultScene extends Phaser.Scene {
       checkBothReady()
     })
 
-    createMenuButton(this, menuX, height * 0.62, 'MENU', '15px', 10, () => {
+    createMenuButton(this, menuX, height * 0.62, 'MENU', '60px', 10, () => {
       network.destroy()
       this.scene.start('MainMenuScene')
     })

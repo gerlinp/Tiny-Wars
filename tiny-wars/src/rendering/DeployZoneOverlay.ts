@@ -22,12 +22,12 @@ export class DeployZoneOverlay {
       .setVisible(false)
 
     this.hint = scene.add.text(GAME_WIDTH / 2, 0, 'Select a card', {
-      fontSize: '13px',
+      fontSize: '52px',
       fontFamily: CINZEL_FONT,
       fontStyle: 'bold',
       color: '#88cc99',
       stroke: '#003322',
-      strokeThickness: 2,
+      strokeThickness: 8,
     }).setOrigin(0.5).setDepth(3).setVisible(false)
   }
 
@@ -61,7 +61,7 @@ export class DeployZoneOverlay {
       this.setExpandedVisible(false)
       this.hint
         .setText(dragToAim ? 'Drag to aim, release to use' : 'Tap anywhere to use')
-        .setPosition(GAME_WIDTH / 2, GAME_HEIGHT - 36)
+        .setPosition(GAME_WIDTH / 2, GAME_HEIGHT - 144)
         .setColor('#ddaaff')
         .setVisible(true)
       return
@@ -76,7 +76,7 @@ export class DeployZoneOverlay {
       this.setExpandedVisible(false)
       this.hint
         .setText(dragToAim ? 'Drag to aim, release to cast' : 'Tap anywhere to cast')
-        .setPosition(GAME_WIDTH / 2, GAME_HEIGHT - 36)
+        .setPosition(GAME_WIDTH / 2, GAME_HEIGHT - 144)
         .setColor('#ffbb88')
         .setVisible(true)
       return
@@ -90,7 +90,7 @@ export class DeployZoneOverlay {
     this.setExpandedVisible(true)
     this.hint
       .setText('Select a card')
-      .setPosition(GAME_WIDTH / 2, this.friendlyRect.y + this.friendlyRect.h - 30)
+      .setPosition(GAME_WIDTH / 2, this.friendlyRect.y + this.friendlyRect.h - 120)
       .setColor('#88cc99')
       .setVisible(true)
   }

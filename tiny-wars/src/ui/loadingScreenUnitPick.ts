@@ -3,7 +3,7 @@ import { CARD_DEFINITIONS } from '@data/CardData'
 import { CARD_ASSET_BUNDLES, FRAME_H, FRAME_W, getSideAssets } from '@data/AssetManifest'
 
 /** On-screen walker height — several times larger than in-battle units. */
-export const LOADING_WALKER_HEIGHT = 200
+export const LOADING_WALKER_HEIGHT = 800
 
 export function loadingWalkerCandidates(): string[] {
   return CARD_ASSET_BUNDLES

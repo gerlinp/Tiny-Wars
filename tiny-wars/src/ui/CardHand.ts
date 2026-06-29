@@ -25,12 +25,12 @@ export class CardHand {
     const nextX = nextCardCenterX(cx)
     this.nextBorder = scene.add.rectangle(nextX, y, NEXT_SLOT_W, NEXT_SLOT_H, 0x0d1b3e, 0.9)
       .setDepth(49)
-      .setStrokeStyle(1.5, 0x2e4480)
+      .setStrokeStyle(6, 0x2e4480)
       .setVisible(false)
 
-    this.nextLabel = scene.add.text(nextX, y + NEXT_SLOT_H / 2 + 4, 'NEXT', {
-      fontSize: '12px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#aabbdd', stroke: '#000022', strokeThickness: 2,
+    this.nextLabel = scene.add.text(nextX, y + NEXT_SLOT_H / 2 + 16, 'NEXT', {
+      fontSize: '48px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#aabbdd', stroke: '#000022', strokeThickness: 8,
     }).setOrigin(0.5, 0).setDepth(50).setVisible(false)
   }
 

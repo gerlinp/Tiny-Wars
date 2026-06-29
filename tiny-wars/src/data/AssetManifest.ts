@@ -96,7 +96,7 @@ export const HEALTH_BAR_ASSETS = {
     base: { key: 'health_bar_sm_base', path: `${UI_BARS}/SmallBar_Base.png` },
     fill: { key: 'health_bar_sm_fill', path: `${UI_BARS}/SmallBar_Fill.png` },
     fillPlayer: { key: 'health_bar_sm_fill_player', path: `${UI_BARS}/SmallBar_Fill_Player.png` },
-    displayHeight: 12,
+    displayHeight: 48,
     baseRegions: {
       leftCap:  { x: 49,  w: 15 },
       mid:      { x: 128, w: 64 },
@@ -115,7 +115,7 @@ export const HEALTH_BAR_ASSETS = {
     base: { key: 'health_bar_lg_base', path: `${UI_BARS}/BigBar_Base.png` },
     fill: { key: 'health_bar_lg_fill', path: `${UI_BARS}/BigBar_Fill.png` },
     fillPlayer: { key: 'health_bar_lg_fill_player', path: `${UI_BARS}/BigBar_Fill_Player.png` },
-    displayHeight: 20,
+    displayHeight: 80,
     baseRegions: {
       leftCap:  { x: 40,  w: 24 },
       mid:      { x: 128, w: 64 },

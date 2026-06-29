@@ -6,9 +6,9 @@ import { createCardPortrait, destroyCardPortrait, type CardPortraitNode } from '
 import { GAME_WIDTH, CANVAS_HEIGHT } from '@data/GameConstants'
 import { CR_SPEED, crSpeedToCellsPerSec } from '@data/GameConstants'
 
-const MODAL_W = GAME_WIDTH - 40
-const MODAL_H = 380
-const PORTRAIT_SIZE = 100
+const MODAL_W = GAME_WIDTH - 160
+const MODAL_H = 1520
+const PORTRAIT_SIZE = 400
 
 function speedLabel(cellsPerSec: number): string {
   if (cellsPerSec <= crSpeedToCellsPerSec(CR_SPEED.slow))   return 'Slow'
@@ -59,7 +59,7 @@ export class CardInfoModal {
     this.panel = scene.add.container(GAME_WIDTH / 2, CANVAS_HEIGHT / 2).setDepth(201)
 
     this.panel.add(
-      scene.add.rectangle(0, 0, MODAL_W, MODAL_H, 0x0d1b3e).setStrokeStyle(2, 0x4466bb),
+      scene.add.rectangle(0, 0, MODAL_W, MODAL_H, 0x0d1b3e).setStrokeStyle(8, 0x4466bb),
     )
 
     this.backdrop.setVisible(false)
@@ -78,10 +78,10 @@ export class CardInfoModal {
     const top = -MODAL_H / 2
 
     // ── Portrait ──────────────────────────────────────────────────────────
-    const portraitX = -MODAL_W / 2 + PORTRAIT_SIZE / 2 + 16
-    const portraitY = top + PORTRAIT_SIZE / 2 + 16
+    const portraitX = -MODAL_W / 2 + PORTRAIT_SIZE / 2 + 64
+    const portraitY = top + PORTRAIT_SIZE / 2 + 64
     add(this.panel, scene.add.rectangle(portraitX, portraitY, PORTRAIT_SIZE, PORTRAIT_SIZE, 0x05122a)
-      .setStrokeStyle(2, 0x2e4480))
+      .setStrokeStyle(8, 0x2e4480))
     this.portraits = createCardPortrait(scene, card, 0, 0, PORTRAIT_SIZE * 0.82, PORTRAIT_SIZE * 0.82)
     for (const img of this.portraits) {
       img.setPosition(portraitX, portraitY)
@@ -89,44 +89,44 @@ export class CardInfoModal {
     }
 
     // ── Title / type / elixir ─────────────────────────────────────────────
-    const titleX  = portraitX + PORTRAIT_SIZE / 2 + 14
-    const titleW  = MODAL_W / 2 - titleX + MODAL_W / 2 - 12
+    const titleX  = portraitX + PORTRAIT_SIZE / 2 + 56
+    const titleW  = MODAL_W / 2 - titleX + MODAL_W / 2 - 48
 
-    add(this.panel, scene.add.text(titleX, top + 18, card.displayName, {
-      fontSize: '20px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#ffdd88', stroke: '#2a1500', strokeThickness: 4,
+    add(this.panel, scene.add.text(titleX, top + 72, card.displayName, {
+      fontSize: '80px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#ffdd88', stroke: '#2a1500', strokeThickness: 16,
       wordWrap: { width: titleW },
     }).setOrigin(0, 0))
 
-    add(this.panel, scene.add.text(titleX, top + 48, typeLabel(card), {
-      fontSize: '13px', fontFamily: CINZEL_FONT,
+    add(this.panel, scene.add.text(titleX, top + 192, typeLabel(card), {
+      fontSize: '52px', fontFamily: CINZEL_FONT,
       color: '#aabbff', backgroundColor: '#1a2d6a',
-      padding: { x: 6, y: 3 },
+      padding: { x: 24, y: 12 },
     }).setOrigin(0, 0))
 
-    add(this.panel, scene.add.text(titleX, top + 76, `${card.elixirCost}`, {
-      fontSize: '16px', fontFamily: NUMBER_FONT, fontStyle: 'bold',
+    add(this.panel, scene.add.text(titleX, top + 304, `${card.elixirCost}`, {
+      fontSize: '64px', fontFamily: NUMBER_FONT, fontStyle: 'bold',
       color: '#ffffff', backgroundColor: '#5500cc',
-      padding: { x: 8, y: 4 },
+      padding: { x: 32, y: 16 },
     }).setOrigin(0, 0))
 
     // ── Description ───────────────────────────────────────────────────────
-    const descY = top + PORTRAIT_SIZE + 36
+    const descY = top + PORTRAIT_SIZE + 144
     add(this.panel, scene.add.text(0, descY, card.description, {
-      fontSize: '15px', fontFamily: "'Philosopher', Georgia, serif",
-      color: '#c8d8f0', wordWrap: { width: MODAL_W - 32 },
-      lineSpacing: 4, align: 'center',
+      fontSize: '60px', fontFamily: "'Philosopher', Georgia, serif",
+      color: '#c8d8f0', wordWrap: { width: MODAL_W - 128 },
+      lineSpacing: 16, align: 'center',
     }).setOrigin(0.5, 0))
 
     // ── Stats ─────────────────────────────────────────────────────────────
-    const statsY = descY + 70
+    const statsY = descY + 280
     this.buildStats(card, statsY)
 
     // ── Close button ──────────────────────────────────────────────────────
-    const closeBg = add(this.panel, scene.add.rectangle(MODAL_W / 2 - 16, top + 16, 28, 28, 0x441111)
-      .setStrokeStyle(1, 0xaa4444).setInteractive({ useHandCursor: true }))
-    add(this.panel, scene.add.text(MODAL_W / 2 - 16, top + 16, '✕', {
-      fontSize: '14px', fontFamily: CINZEL_FONT, color: '#ff8888',
+    const closeBg = add(this.panel, scene.add.rectangle(MODAL_W / 2 - 64, top + 64, 112, 112, 0x441111)
+      .setStrokeStyle(4, 0xaa4444).setInteractive({ useHandCursor: true }))
+    add(this.panel, scene.add.text(MODAL_W / 2 - 64, top + 64, '✕', {
+      fontSize: '56px', fontFamily: CINZEL_FONT, color: '#ff8888',
     }).setOrigin(0.5))
     closeBg.on('pointerdown', (p: Phaser.Input.Pointer) => { p.event.stopPropagation(); this.hide() })
 
@@ -170,9 +170,9 @@ export class CardInfoModal {
         rows.push(['Targets', 'Ground Only'])
     }
 
-    const colW = (MODAL_W - 32) / 2
-    const rowH = 24
-    const left = -MODAL_W / 2 + 16
+    const colW = (MODAL_W - 128) / 2
+    const rowH = 96
+    const left = -MODAL_W / 2 + 64
 
     rows.forEach(([label, value], i) => {
       const col = i % 2
@@ -181,11 +181,11 @@ export class CardInfoModal {
       const y   = startY + row * rowH
 
       add(this.panel, scene.add.text(x, y, label, {
-        fontSize: '13px', fontFamily: CINZEL_FONT, color: '#8899cc',
+        fontSize: '52px', fontFamily: CINZEL_FONT, color: '#8899cc',
       }).setOrigin(0, 0))
 
-      add(this.panel, scene.add.text(x + colW - 8, y, value, {
-        fontSize: '14px', fontFamily: NUMBER_FONT, fontStyle: 'bold', color: '#ffffff',
+      add(this.panel, scene.add.text(x + colW - 32, y, value, {
+        fontSize: '56px', fontFamily: NUMBER_FONT, fontStyle: 'bold', color: '#ffffff',
       }).setOrigin(1, 0))
     })
   }

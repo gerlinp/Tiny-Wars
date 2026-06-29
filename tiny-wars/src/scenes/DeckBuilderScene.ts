@@ -22,21 +22,19 @@ import {
 import { GAME_WIDTH, CANVAS_HEIGHT } from '@data/GameConstants'
 
 const COLS = 4
-const SIDE_MARGIN = 16
-const CELL_GAP_X = 8
-const CELL_GAP_Y = 10
+const SIDE_MARGIN = 64
+const CELL_GAP_X = 32
+const CELL_GAP_Y = 40
 
-const DECK_TOP = 92
-const FOOTER_H = 96
+const DECK_TOP = 368
+const FOOTER_H = 384
 // Extra space below the last collection row so the expanded action panel of the
 // bottom row clears the fixed footer when scrolled fully down.
-// Reference: rexrainbow.github.io/phaser3-rex-notes/docs/site/ui-scrollablepanel/
-// — "space.panel.bottom" for bottom padding inside a scrollable panel.
-const EXPANDED_PANEL_H = 38 * 2 + 2 + 8 * 2  // BTN_H*2 + BTN_GAP + PANEL_PAD*2
-const SCROLL_BOTTOM_PAD = FOOTER_H + EXPANDED_PANEL_H + 20
-const COLLECTION_TITLE_BOTTOM_MARGIN = 18
-const COLLECTION_SORT_BTN_H = 28
-const COLLECTION_SORT_BOTTOM_MARGIN = 14
+const EXPANDED_PANEL_H = 152 * 2 + 8 + 32 * 2  // BTN_H*2 + BTN_GAP + PANEL_PAD*2
+const SCROLL_BOTTOM_PAD = FOOTER_H + EXPANDED_PANEL_H + 80
+const COLLECTION_TITLE_BOTTOM_MARGIN = 72
+const COLLECTION_SORT_BTN_H = 112
+const COLLECTION_SORT_BOTTOM_MARGIN = 56
 
 export class DeckBuilderScene extends Phaser.Scene {
   private deck: string[] = []
@@ -71,42 +69,42 @@ export class DeckBuilderScene extends Phaser.Scene {
 
     this.add.rectangle(0, 0, GAME_WIDTH, CANVAS_HEIGHT, 0x1a1a2e).setOrigin(0).setScrollFactor(0)
 
-    this.add.text(GAME_WIDTH / 2, 40, 'DECK BUILDER', {
-      fontSize: '32px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#ffdd88', stroke: '#332200', strokeThickness: 6,
+    this.add.text(GAME_WIDTH / 2, 160, 'DECK BUILDER', {
+      fontSize: '128px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#ffdd88', stroke: '#332200', strokeThickness: 24,
     }).setOrigin(0.5)
 
-    this.add.text(SIDE_MARGIN, 72, 'YOUR DECK', {
-      fontSize: '17px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
+    this.add.text(SIDE_MARGIN, 288, 'YOUR DECK', {
+      fontSize: '68px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
     }).setOrigin(0, 0.5)
 
-    this.counterText = this.add.text(GAME_WIDTH - SIDE_MARGIN, 72, '', {
-      fontSize: '17px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
+    this.counterText = this.add.text(GAME_WIDTH - SIDE_MARGIN, 288, '', {
+      fontSize: '68px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(1, 0.5)
 
     const { cellW, cellH } = this.cellSize()
     this.cellW = cellW
     this.cellH = cellH
     const deckBottom = DECK_TOP + 2 * cellH + CELL_GAP_Y
-    this.collectionTop = deckBottom + 120
+    this.collectionTop = deckBottom + 480
 
-    this.elixirText = this.add.text(GAME_WIDTH / 2, deckBottom + 14, '', {
-      fontSize: '16px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#d8a8ff',
+    this.elixirText = this.add.text(GAME_WIDTH / 2, deckBottom + 56, '', {
+      fontSize: '64px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#d8a8ff',
     }).setOrigin(0.5, 0)
 
     const sortRowY = this.collectionTop - COLLECTION_SORT_BTN_H / 2 - COLLECTION_SORT_BOTTOM_MARGIN
     const titleY = sortRowY - COLLECTION_SORT_BTN_H - COLLECTION_TITLE_BOTTOM_MARGIN
 
     this.add.text(SIDE_MARGIN, titleY, 'COLLECTION', {
-      fontSize: '17px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
+      fontSize: '68px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
     }).setOrigin(0, 0.5)
 
     this.buildSortControls(sortRowY)
 
-    this.warningText = this.add.text(GAME_WIDTH / 2, this.collectionTop - 8, 'DECK IS FULL!', {
-      fontSize: '15px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#ff6666', stroke: '#1a0000', strokeThickness: 3,
-      backgroundColor: '#330000', padding: { x: 10, y: 5 },
+    this.warningText = this.add.text(GAME_WIDTH / 2, this.collectionTop - 32, 'DECK IS FULL!', {
+      fontSize: '60px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#ff6666', stroke: '#1a0000', strokeThickness: 12,
+      backgroundColor: '#330000', padding: { x: 40, y: 20 },
     }).setOrigin(0.5, 1).setAlpha(0).setDepth(50)
 
     this.modal = new CardInfoModal(this, () => this.modal.hide())
@@ -144,20 +142,20 @@ export class DeckBuilderScene extends Phaser.Scene {
   }
 
   private buildSortControls(y: number): void {
-    const btnW = 86
+    const btnW = 344
     const btnH = COLLECTION_SORT_BTN_H
-    const gap = 6
+    const gap = 24
     const count = COLLECTION_SORT_MODES.length
     const totalW = count * btnW + (count - 1) * gap
     let cx = (GAME_WIDTH - totalW) / 2 + btnW / 2
 
     for (const mode of COLLECTION_SORT_MODES) {
       const bg = this.add.rectangle(cx, y, btnW, btnH, 0x1a2a4a)
-        .setStrokeStyle(1.5, 0x2e4480)
+        .setStrokeStyle(6, 0x2e4480)
         .setDepth(20)
         .setInteractive({ useHandCursor: true })
       const text = this.add.text(cx, y, COLLECTION_SORT_LABELS[mode], {
-        fontSize: '12px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
+        fontSize: '48px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
       }).setOrigin(0.5).setDepth(21)
 
       bg.on('pointerdown', () => this.setCollectionSort(mode))
@@ -175,7 +173,7 @@ export class DeckBuilderScene extends Phaser.Scene {
       const bg = this.sortBtnBgs.get(mode)
       const text = this.sortBtnTexts.get(mode)
       bg?.setFillStyle(active ? 0x2e4480 : 0x1a2a4a)
-      bg?.setStrokeStyle(1.5, active ? 0x88aaff : 0x2e4480)
+      bg?.setStrokeStyle(6, active ? 0x88aaff : 0x2e4480)
       text?.setColor(active ? '#ffffff' : '#9ab0d8')
       text?.setText(collectionSortLabel(
         active ? this.collectionSort : { mode, direction: defaultSortDirection(mode) },
@@ -363,7 +361,7 @@ export class DeckBuilderScene extends Phaser.Scene {
     this.add.rectangle(GAME_WIDTH / 2, CANVAS_HEIGHT - FOOTER_H, GAME_WIDTH, 1, 0x2e4480, 0.6)
       .setDepth(30).setScrollFactor(0)
 
-    const { centers, btnW } = footerButtonRowLayout(GAME_WIDTH, 3, SIDE_MARGIN, 8)
+    const { centers, btnW } = footerButtonRowLayout(GAME_WIDTH, 3, SIDE_MARGIN, 32)
     const depth = 31
 
     makeButton(this, centers[0]!, footerY, btnW, 'BACK',  0x44324f, depth, () => this.scene.start('MainMenuScene'))
@@ -392,11 +390,11 @@ function makeButton(
   depth: number,
   onPress: () => void,
 ): { setEnabled: (on: boolean) => void } {
-  const h = 54
-  const bg   = scene.add.rectangle(cx, y, w, h, color).setStrokeStyle(2, 0xffffff, 0.25).setDepth(depth).setScrollFactor(0)
+  const h = 216
+  const bg   = scene.add.rectangle(cx, y, w, h, color).setStrokeStyle(8, 0xffffff, 0.25).setDepth(depth).setScrollFactor(0)
   const text = scene.add.text(cx, y, label, {
-    fontSize: '22px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-    color: '#ffffff', stroke: '#000022', strokeThickness: 3,
+    fontSize: '88px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+    color: '#ffffff', stroke: '#000022', strokeThickness: 12,
   }).setOrigin(0.5).setDepth(depth).setScrollFactor(0)
 
   let enabled = true

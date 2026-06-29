@@ -43,8 +43,8 @@ export class UIScene extends Phaser.Scene {
 
     const cx = width / 2
 
-    this.timer  = new TimerDisplay(this, cx, 20)
-    this.crowns = new CrownCounter(this, cx, 10)
+    this.timer  = new TimerDisplay(this, cx, 80)
+    this.crowns = new CrownCounter(this, cx, 40)
 
     this.elixirBar = new ElixirBar(this, cx, elixirBarY(GAME_HEIGHT))
     this.cardHand  = new CardHand(this, cx, deckCenterY(GAME_HEIGHT))
@@ -53,11 +53,11 @@ export class UIScene extends Phaser.Scene {
       this.onCardSelected?.(i)
     }
 
-    this.devBtn = this.add.text(12, 12, 'DEV: OFF', {
-      fontSize: '13px',
+    this.devBtn = this.add.text(48, 48, 'DEV: OFF', {
+      fontSize: '52px',
       color: '#888888',
       backgroundColor: '#222244',
-      padding: { x: 6, y: 4 },
+      padding: { x: 24, y: 16 },
     }).setOrigin(0, 0).setDepth(60).setInteractive({ useHandCursor: true })
 
     this.devBtn.on('pointerdown', () => {
@@ -68,9 +68,9 @@ export class UIScene extends Phaser.Scene {
 
     this.updateDevButton(DevMode.enabled)
 
-    this.pauseBtn = this.add.text(width - 12, 12, '⏸', {
-      fontSize: '22px',
-      shadow: { offsetX: 1, offsetY: 2, color: '#000000', blur: 6, fill: true },
+    this.pauseBtn = this.add.text(width - 48, 48, '⏸', {
+      fontSize: '88px',
+      shadow: { offsetX: 4, offsetY: 8, color: '#000000', blur: 6, fill: true },
     }).setOrigin(1, 0).setDepth(60).setInteractive({ useHandCursor: true })
 
     this.pauseBtn.on('pointerdown', () => {
@@ -86,25 +86,25 @@ export class UIScene extends Phaser.Scene {
     const { width } = this.scale
     this.pauseBtn.setVisible(false).disableInteractive()
 
-    this.add.text(width - 12, 12, '🌐 ONLINE', {
-      fontSize: '13px',
+    this.add.text(width - 48, 48, '🌐 ONLINE', {
+      fontSize: '52px',
       color: '#44ddff',
       backgroundColor: '#0a1a2a',
-      padding: { x: 6, y: 4 },
+      padding: { x: 24, y: 16 },
     }).setOrigin(1, 0).setDepth(60)
 
     // Player name — bottom-left of HUD panel
     const youLabel = localName || 'YOU'
-    this.add.text(8, GAME_HEIGHT + 6, youLabel, {
-      fontSize: '11px',
+    this.add.text(32, GAME_HEIGHT + 24, youLabel, {
+      fontSize: '44px',
       fontFamily: "'Philosopher', Georgia, serif",
       color: '#88aacc',
     }).setOrigin(0, 0).setDepth(60)
 
     // Opponent name — bottom-right of HUD panel (updated once HELLO arrives)
     const oppLabel = opponentName || 'OPPONENT'
-    this.opponentNameText = this.add.text(width - 8, GAME_HEIGHT + 6, oppLabel, {
-      fontSize: '11px',
+    this.opponentNameText = this.add.text(width - 32, GAME_HEIGHT + 24, oppLabel, {
+      fontSize: '44px',
       fontFamily: "'Philosopher', Georgia, serif",
       color: '#cc8888',
     }).setOrigin(1, 0).setDepth(60)
