@@ -75,15 +75,15 @@ export class DevModeOverlay {
       // Collision footprint — small circle for troops, box for buildings
       if (entity.kind === EntityKind.TROOP) {
         const radius = troopCollisionRadius(entity)
-        g.lineStyle(1.5, COL.grid, 0.9)
+        g.lineStyle(6, COL.grid, 0.9)
         g.strokeCircle(entity.position.x, entity.position.y, radius)
       } else if (entity.kind === EntityKind.BUILDING) {
         const building = entity as Building
         const combatCenter = buildingCombatCenter(building)
         const combatR = buildingCombatRadius()
-        g.lineStyle(1.5, COL.building, 0.9)
+        g.lineStyle(6, COL.building, 0.9)
         g.strokeCircle(combatCenter.x, combatCenter.y, combatR)
-        g.lineStyle(1, COL.building, 0.45)
+        g.lineStyle(4, COL.building, 0.45)
         g.strokeRect(
           building.position.x - building.pathHalfW,
           building.position.y - building.pathHalfH * 2,
@@ -98,7 +98,7 @@ export class DevModeOverlay {
         const fallback = entity.owner === Owner.PLAYER ? 'placeholder_player' : 'placeholder_bot'
         const key = resolveTexture(this.scene, sheetKey, fallback)
         const size = displaySizeForCard(this.scene, cardId, key, 0)
-        g.lineStyle(1.5, COL.sprite, 0.85)
+        g.lineStyle(6, COL.sprite, 0.85)
         if (entity.kind === EntityKind.BUILDING) {
           g.strokeRect(
             entity.position.x - size.width / 2,
@@ -119,7 +119,7 @@ export class DevModeOverlay {
       // Attack range (red)
       const attackRangePx = this.attackRangePx(entity)
       if (attackRangePx > 0) {
-        g.lineStyle(1.5, COL.attack, 0.55)
+        g.lineStyle(6, COL.attack, 0.55)
         const rangeCenter = entity.kind === EntityKind.BUILDING
           ? entityCollisionCenter(entity)
           : entity.position
@@ -130,13 +130,13 @@ export class DevModeOverlay {
       if (entity.kind === EntityKind.TROOP) {
         const troop = entity as Troop
         const aggroPx = troop.getAggroRangePx()
-        g.lineStyle(1, COL.aggro, 0.35)
+        g.lineStyle(4, COL.aggro, 0.35)
         g.strokeCircle(entity.position.x, entity.position.y, aggroPx)
       }
 
       // Owner tint dot at centre
       g.fillStyle(ownerCol, 0.8)
-      g.fillCircle(entity.position.x, entity.position.y, 3)
+      g.fillCircle(entity.position.x, entity.position.y, 12)
     }
   }
 
@@ -149,7 +149,7 @@ export class DevModeOverlay {
       const collisionCenter = entityCollisionCenter(tower)
       const combatR = entityCombatRadius(tower)!
 
-      g.lineStyle(1.5, COL.tower, 0.9)
+      g.lineStyle(6, COL.tower, 0.9)
       g.strokeCircle(collisionCenter.x, collisionCenter.y, combatR)
 
       const key = towerTextureKey(tower.isKing, tower.owner)
@@ -157,7 +157,7 @@ export class DevModeOverlay {
       const rx = towerRenderX(tower.position.x, tower.owner, tower.isKing)
       const ry = towerRenderY(tower.position.y, tower.owner, tower.isKing, tower.position.x)
 
-      g.lineStyle(1.5, COL.sprite, 0.7)
+      g.lineStyle(6, COL.sprite, 0.7)
       g.strokeRect(
         rx - size.width / 2,
         ry - size.height / 2,
@@ -173,12 +173,12 @@ export class DevModeOverlay {
         tower.isKing,
       )
       if (!tower.isKing || tower.isActive()) {
-        g.lineStyle(1.5, COL.attack, 0.5)
+        g.lineStyle(6, COL.attack, 0.5)
         g.strokeCircle(attackCenter.x, attackCenter.y, rangePx)
       }
 
       g.fillStyle(this.ownerColor(tower.owner), 0.8)
-      g.fillCircle(attackCenter.x, attackCenter.y, tower.isActive() ? 3 : 2)
+      g.fillCircle(attackCenter.x, attackCenter.y, tower.isActive() ? 12 : 8)
     }
   }
 
@@ -196,28 +196,28 @@ export class DevModeOverlay {
       let prevX = entity.position.x
       let prevY = entity.position.y
 
-      g.lineStyle(2, COL.path, 0.85)
+      g.lineStyle(8, COL.path, 0.85)
       for (const wp of info.waypoints) {
         g.lineBetween(prevX, prevY, wp.x, wp.y)
         g.fillStyle(COL.path, 0.9)
-        g.fillCircle(wp.x, wp.y, 4)
+        g.fillCircle(wp.x, wp.y, 16)
         prevX = wp.x
         prevY = wp.y
       }
 
       const finalGoal = info.goal ?? info.marchGoal
       if (finalGoal) {
-        g.lineStyle(2, COL.path, 0.5)
+        g.lineStyle(8, COL.path, 0.5)
         g.lineBetween(prevX, prevY, finalGoal.x, finalGoal.y)
-        g.lineStyle(1.5, COL.goal, 0.9)
-        g.strokeCircle(finalGoal.x, finalGoal.y, 6)
+        g.lineStyle(6, COL.goal, 0.9)
+        g.strokeCircle(finalGoal.x, finalGoal.y, 24)
       }
 
       if (info.targetPos) {
-        g.lineStyle(1.5, COL.target, 0.9)
+        g.lineStyle(6, COL.target, 0.9)
         g.lineBetween(entity.position.x, entity.position.y, info.targetPos.x, info.targetPos.y)
         g.fillStyle(COL.target, 0.9)
-        g.fillCircle(info.targetPos.x, info.targetPos.y, 5)
+        g.fillCircle(info.targetPos.x, info.targetPos.y, 20)
       }
     }
   }

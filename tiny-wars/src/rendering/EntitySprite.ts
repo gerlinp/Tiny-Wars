@@ -9,6 +9,7 @@ import { CELL_SIZE } from '@data/GameConstants'
 import { displaySizeForCard } from './assetDisplaySize'
 import { DamageFireOverlay } from './DamageFireOverlay'
 import { BombTowerCrew } from './BombTowerCrew'
+import { AirBoatCrew, AIR_BOAT_HEALTH_BAR_Y_FROM_BOAT, AIR_BOAT_SPRITE_ORIGIN_Y, airBoatAimYOffset } from './AirBoatCrew'
 
 type DisplayObject = Phaser.GameObjects.Sprite | Phaser.GameObjects.Image
 
@@ -42,6 +43,7 @@ export class EntitySprite {
   private readonly isBuilding: boolean
   private damageFire: DamageFireOverlay | null = null
   private bombCrew: BombTowerCrew | null = null
+  private airBoatCrew: AirBoatCrew | null = null
   private buildingSize = { width: 0, height: 0 }
   private attackAimPoint: Vec2 | undefined
   private frozenPoseActive = false
@@ -78,15 +80,24 @@ export class EntitySprite {
       this.sprite = img
     }
 
+    // air_boat — health bar on the balloon; combat anchor sits below the hull.
+    const hbarHeight = cardId === 'air_boat' ? size.height * 0.5 : size.height
+    const hbarY = cardId === 'air_boat'
+      ? y + size.height * AIR_BOAT_HEALTH_BAR_Y_FROM_BOAT
+      : y
     this.healthBar = this.isBuilding
       ? HealthBar.forBuilding(scene, x, y, size.height, owner)
-      : HealthBar.forTroop(scene, x, y, size.height, owner)
+      : HealthBar.forTroop(scene, x, hbarY, hbarHeight, owner)
     if (this.isBuilding) {
       this.buildingSize = size
       this.damageFire = new DamageFireOverlay(scene)
       if (cardId === 'wood_tower') {
         this.bombCrew = new BombTowerCrew(scene, owner)
       }
+    } else if (cardId === 'air_boat') {
+      // Combat anchor sits below the hull; boat + balloon render above tower-top height.
+      this.sprite.setOrigin(0.5, AIR_BOAT_SPRITE_ORIGIN_Y)
+      this.airBoatCrew = new AirBoatCrew(scene, owner)
     }
     this.applyTeamTint()
     this.lastX = x
@@ -149,7 +160,16 @@ export class EntitySprite {
 
     this.lastX = x
     this.sprite.setPosition(x, y)
-    this.healthBar.update(x, y, hpFraction, showHealthBar)
+    if (this.airBoatCrew) {
+      this.airBoatCrew.layout(x, y, this.sprite.displayWidth, this.sprite.displayHeight, this.sprite.flipX)
+      this.airBoatCrew.syncMovement(anim === 'run')
+    }
+    this.healthBar.update(
+      x,
+      this.airBoatCrew ? y + this.sprite.displayHeight * AIR_BOAT_HEALTH_BAR_Y_FROM_BOAT : y,
+      hpFraction,
+      showHealthBar,
+    )
 
     if (this.isBuilding) {
       const key = this.sprite.texture.key
@@ -177,8 +197,20 @@ export class EntitySprite {
     return this.bombCrew?.getWorldPosition() ?? null
   }
 
+  /** World point attackers should face / strike — hull centre for air boat, feet otherwise. */
+  getAimPoint(): Vec2 {
+    if (this.cardId === 'air_boat') {
+      return {
+        x: this.sprite.x,
+        y: this.sprite.y + airBoatAimYOffset(this.sprite.displayHeight),
+      }
+    }
+    return { x: this.sprite.x, y: this.sprite.y }
+  }
+
   /** Troop ranged projectile launch point — above feet toward the upper body. */
   getProjectileOrigin(): Vec2 {
+    if (this.cardId === 'air_boat') return this.getAimPoint()
     const lift = this.sprite.displayHeight * 0.22
     return { x: this.sprite.x, y: this.sprite.y - lift }
   }
@@ -316,6 +348,7 @@ export class EntitySprite {
   destroy(): void {
     this.damageFire?.destroy()
     this.bombCrew?.destroy()
+    this.airBoatCrew?.destroy()
     this.sprite.destroy()
     this.healthBar.destroy()
     this.flashTween?.stop()

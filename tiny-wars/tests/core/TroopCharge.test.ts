@@ -5,11 +5,7 @@ import { createInitialGameState } from '@core/GameState'
 import { Owner, UnitType, AttackType } from '@core/types'
 import type { EntityStats } from '@core/types'
 import { CARD_DEFINITIONS } from '@data/CardData'
-import {
-  LANCER_CHARGE_DAMAGE_MULT,
-  LANCER_CHARGE_DISTANCE_CELLS,
-  LANCER_CHARGE_SPEED_MULT,
-} from '@data/GameConstants'
+import { LANCER_CHARGE_DAMAGE_MULT, LANCER_CHARGE_DISTANCE_CELLS, LANCER_CHARGE_SPEED_MULT } from '@data/CardAbilities'
 
 const troopStats: EntityStats = {
   maxHp: 500,
@@ -27,10 +23,10 @@ describe('Lancer charge (Prince)', () => {
   const grid = new Grid()
   const lancerStats = CARD_DEFINITIONS.lancer!.stats!
 
-  it('declares Clash Royale charge constants on the lancer card', () => {
-    expect(lancerStats.chargeDistanceCells).toBe(LANCER_CHARGE_DISTANCE_CELLS)
-    expect(lancerStats.chargeSpeedMultiplier).toBe(LANCER_CHARGE_SPEED_MULT)
-    expect(lancerStats.chargeDamageMultiplier).toBe(LANCER_CHARGE_DAMAGE_MULT)
+  it('declares Clash Royale charge constants in CardAbilities', () => {
+    expect(LANCER_CHARGE_DISTANCE_CELLS).toBe(3.5)
+    expect(LANCER_CHARGE_SPEED_MULT).toBe(2)
+    expect(LANCER_CHARGE_DAMAGE_MULT).toBe(2)
   })
 
   it('activates charge after walking 3.5 tiles', () => {

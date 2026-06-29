@@ -33,6 +33,10 @@ export class Building extends Entity {
     return { x: this.target.position.x, y: this.target.position.y }
   }
 
+  getAimTarget(): Entity | null {
+    return this.state === BuildingState.ATTACKING ? this.target : null
+  }
+
   constructor(owner: Owner, stats: EntityStats, position: Vec2, cardId: string) {
     super(nextEntityId(), owner, EntityKind.BUILDING, position, stats.maxHp, cardId)
     this.stats = stats

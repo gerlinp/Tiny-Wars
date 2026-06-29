@@ -126,6 +126,7 @@ describe('King tower activation', () => {
     king.takeDamage(1)
     expect(king.isActive()).toBe(true)
 
+    king.tick(1000, state)  // burn the activation warm-up
     king.tick(800, state)
     expect(king.getTarget()?.id).toBe(enemy.id)
     expect(enemy.hp).toBeLessThan(troopStats.maxHp)

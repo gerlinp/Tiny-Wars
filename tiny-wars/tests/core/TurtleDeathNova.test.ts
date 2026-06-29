@@ -37,7 +37,7 @@ describe('Turtle death nova', () => {
     const grid = new Grid()
     const turtle = new Troop(Owner.PLAYER, turtleStats, { x: 200, y: 500 }, grid, 'turtle')
     const nearby = new Troop(Owner.BOT, warriorStats, { x: 220, y: 500 }, grid, 'warrior')
-    const far = new Troop(Owner.BOT, warriorStats, { x: 320, y: 500 }, grid, 'warrior')
+    const far = new Troop(Owner.BOT, warriorStats, { x: 400, y: 500 }, grid, 'warrior')
     turtle.hp = 0
 
     const state = createInitialGameState()

@@ -5,13 +5,13 @@ import { Owner, UnitType, AttackType } from '@core/types'
 import type { EntityStats } from '@core/types'
 import { Grid } from '@core/Grid'
 import { CARD_DEFINITIONS } from '@data/CardData'
+import { crSpeedToCellsPerSec, CR_SPEED } from '@data/GameConstants'
 import {
-  crSpeedToCellsPerSec,
-  CR_SPEED,
-  WITCH_MINION_SPAWN_INITIAL_DELAY_MS,
-  WITCH_MINION_SPAWN_INTERVAL_MS,
-  WITCH_MINION_SPAWN_COUNT,
-} from '@data/GameConstants'
+  SPIDER_MINION_CARD_ID,
+  SPIDER_MINION_SPAWN_COUNT,
+  SPIDER_MINION_SPAWN_INTERVAL_MS,
+  SPIDER_MINION_SPAWN_INITIAL_DELAY_MS,
+} from '@data/CardAbilities'
 import { getAllDeckCandidateIds } from '@data/PlayerDeck'
 
 const spiderStats = CARD_DEFINITIONS.spider!.stats!
@@ -35,10 +35,10 @@ describe('Spider (Witch)', () => {
     expect(spiderStats.attackRate).toBeCloseTo(1 / 1.1, 5)
     expect(spiderStats.attackRange).toBe(5.5)
     expect(spiderStats.splashRadius).toBe(1.5)
-    expect(spiderStats.spawnMinionCardId).toBe('spiderling')
-    expect(spiderStats.spawnMinionCount).toBe(WITCH_MINION_SPAWN_COUNT)
-    expect(spiderStats.spawnMinionIntervalMs).toBe(WITCH_MINION_SPAWN_INTERVAL_MS)
-    expect(spiderStats.spawnMinionInitialDelayMs).toBe(WITCH_MINION_SPAWN_INITIAL_DELAY_MS)
+    expect(SPIDER_MINION_CARD_ID).toBe('spiderling')
+    expect(SPIDER_MINION_SPAWN_COUNT).toBe(4)
+    expect(SPIDER_MINION_SPAWN_INTERVAL_MS).toBe(7000)
+    expect(SPIDER_MINION_SPAWN_INITIAL_DELAY_MS).toBe(1000)
   })
 
   it('spiderlings match skeleton stats and are hidden from the deck builder', () => {
@@ -57,12 +57,12 @@ describe('Spider (Witch)', () => {
     const state = createInitialGameState()
     state.entities.set(spider.id, spider)
 
-    spider.tick(WITCH_MINION_SPAWN_INITIAL_DELAY_MS - 1, state)
+    spider.tick(SPIDER_MINION_SPAWN_INITIAL_DELAY_MS - 1, state)
     expect([...state.entities.values()].filter(e => e.cardId === 'spiderling')).toHaveLength(0)
 
     spider.tick(1, state)
     const minions = [...state.entities.values()].filter(e => e.cardId === 'spiderling')
-    expect(minions).toHaveLength(WITCH_MINION_SPAWN_COUNT)
+    expect(minions).toHaveLength(SPIDER_MINION_SPAWN_COUNT)
     expect(minions.every(m => m.owner === Owner.PLAYER)).toBe(true)
   })
 
@@ -72,10 +72,10 @@ describe('Spider (Witch)', () => {
     const state = createInitialGameState()
     state.entities.set(spider.id, spider)
 
-    spider.tick(WITCH_MINION_SPAWN_INITIAL_DELAY_MS, state)
+    spider.tick(SPIDER_MINION_SPAWN_INITIAL_DELAY_MS, state)
     expect([...state.entities.values()].filter(e => e.cardId === 'spiderling')).toHaveLength(4)
 
-    spider.tick(WITCH_MINION_SPAWN_INTERVAL_MS, state)
+    spider.tick(SPIDER_MINION_SPAWN_INTERVAL_MS, state)
     expect([...state.entities.values()].filter(e => e.cardId === 'spiderling')).toHaveLength(8)
   })
 

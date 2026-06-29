@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { GAME_WIDTH, HUD_HEIGHT } from '@data/GameConstants'
-import { getCardAvatarBuildingFit, getCardAvatarCropRatio, getCardAvatarHandScale, AVATAR_CROP_RATIO_DEFAULT } from '@data/AssetManifest'
+import { getCardAvatarBuildingFit, getCardAvatarCropRatio, getCardAvatarFocusY, getCardAvatarHandScale, AVATAR_CROP_RATIO_DEFAULT } from '@data/AssetManifest'
 import { centerCropFillScale, containAvatarScale } from './cardAvatarFit'
 
 export const CINZEL_FONT  = "'Philosopher', Georgia, serif"
@@ -51,9 +51,9 @@ export const AVATAR_BACKDROP_SCALE = 0.74
 /** Counter-clockwise tilt — matches angled plaques on enemy avatar PNGs. */
 export const AVATAR_BACKDROP_ROTATION = -0.26
 /** Tighter crop zooms small unit sprites (bomb) to match face size on framed avatars. */
-const AVATAR_ON_BACKDROP_CROP_RATIO = 0.48
+export const AVATAR_ON_BACKDROP_CROP_RATIO = 0.48
 
-function applyHandScale(icon: Phaser.GameObjects.Image, handScale: number): void {
+export function applyHandScale(icon: Phaser.GameObjects.Image, handScale: number): void {
   if (handScale !== 1) {
     icon.setScale(icon.scaleX * handScale, icon.scaleY * handScale)
   }
@@ -64,6 +64,7 @@ function applyCenterCropFillDisplaySize(
   w: number,
   h: number,
   cropRatio: number,
+  focusY = 0.5,
 ): void {
   const fw = icon.frame.width
   const fh = icon.frame.height
@@ -78,7 +79,10 @@ function applyCenterCropFillDisplaySize(
     icon.setCrop(0, 0, fw, fh)
     icon.setScale(fit.scale)
   } else {
-    icon.setCrop((fw - fit.cropW) / 2, (fh - fit.cropH) / 2, fit.cropW, fit.cropH)
+    // focusY shifts the crop window vertically (0 = top, 0.5 = centre, 1 = bottom) so portraits
+    // can centre on a subject in the lower part of the frame (e.g. the air boat's hull).
+    const cropY = (fh - fit.cropH) * Phaser.Math.Clamp(focusY, 0, 1)
+    icon.setCrop((fw - fit.cropW) / 2, cropY, fit.cropW, fit.cropH)
     icon.setScale(fit.scaleX, fit.scaleY)
   }
   icon.setRotation(0)
@@ -100,8 +104,8 @@ export function nextIconDisplaySize(): { w: number; h: number } {
   return { w: NEXT_SLOT_W * AVATAR_SLOT_FILL, h: NEXT_SLOT_H * AVATAR_SLOT_FILL }
 }
 
-export function applyIconDisplaySize(icon: Phaser.GameObjects.Image, w: number, h: number, cropRatio = AVATAR_CROP_RATIO): void {
-  applyCenterCropFillDisplaySize(icon, w, h, cropRatio)
+export function applyIconDisplaySize(icon: Phaser.GameObjects.Image, w: number, h: number, cropRatio = AVATAR_CROP_RATIO, focusY = 0.5): void {
+  applyCenterCropFillDisplaySize(icon, w, h, cropRatio, focusY)
 }
 
 /** Fill slot with a UI backdrop tile (no crop). */
@@ -114,8 +118,14 @@ export function applyBackdropDisplaySize(icon: Phaser.GameObjects.Image, w: numb
 }
 
 /** Foreground portrait on a backdrop — full slot size, tighter crop than framed avatars. */
-export function applyLayeredPortraitDisplaySize(icon: Phaser.GameObjects.Image, w: number, h: number): void {
-  applyCenterCropFillDisplaySize(icon, w, h, AVATAR_ON_BACKDROP_CROP_RATIO)
+export function applyLayeredPortraitDisplaySize(
+  icon: Phaser.GameObjects.Image,
+  w: number,
+  h: number,
+  focusY = 0.5,
+  cropRatio = AVATAR_ON_BACKDROP_CROP_RATIO,
+): void {
+  applyCenterCropFillDisplaySize(icon, w, h, cropRatio, focusY)
 }
 
 /** Fit a tall building sprite inside the card slot (full frame, no portrait crop). */
@@ -150,12 +160,13 @@ export function applyCardAvatarIconSize(
   h: number,
   _hasBackdrop: boolean,
 ): void {
+  const focusY = getCardAvatarFocusY(cardId)
   if (getCardAvatarBuildingFit(cardId)) {
     applyBuildingAvatarDisplaySize(icon, w, h)
   } else if (_hasBackdrop) {
-    applyLayeredPortraitDisplaySize(icon, w, h)
+    applyLayeredPortraitDisplaySize(icon, w, h, focusY)
   } else {
-    applyIconDisplaySize(icon, w, h, getCardAvatarCropRatio(cardId))
+    applyIconDisplaySize(icon, w, h, getCardAvatarCropRatio(cardId), focusY)
   }
   applyHandScale(icon, getCardAvatarHandScale(cardId))
 }

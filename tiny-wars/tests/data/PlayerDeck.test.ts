@@ -26,18 +26,21 @@ describe('CARD_ADDED_AT', () => {
 describe('getDeckCandidates', () => {
   it('defaults to most recent cards first (desc)', () => {
     const sorted = getDeckCandidates(DEFAULT_COLLECTION_SORT)
-    expect(sorted[0]).toBe('spider')
-    expect(sorted[1]).toBe('goblin_barrel')
-    expect(sorted[2]).toBe('harpoon_shark')
-    expect(sorted[3]).toBe('spear_goblin')
-    expect(sorted[4]).toBe('villagers')
+    expect(sorted[0]).toBe('pig')
+    expect(sorted[1]).toBe('air_boat')
+    expect(sorted[2]).toBe('goblin_demolisher')
+    expect(sorted[3]).toBe('spider')
+    expect(sorted[4]).toBe('goblin_barrel')
+    expect(sorted[5]).toBe('harpoon_shark')
+    expect(sorted[6]).toBe('spear_goblin')
+    expect(sorted[7]).toBe('villagers')
     expect(sorted[sorted.length - 1]).toBe('warrior')
   })
 
   it('recent asc puts oldest cards first', () => {
     const sorted = getDeckCandidates({ mode: 'recent', direction: 'asc' })
     expect(sorted[0]).toBe('warrior')
-    expect(sorted[sorted.length - 1]).toBe('spider')
+    expect(sorted[sorted.length - 1]).toBe('pig')
   })
 
   it('sorts by elixir ascending', () => {

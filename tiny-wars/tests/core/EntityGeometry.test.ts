@@ -150,7 +150,7 @@ describe('EntityGeometry', () => {
     const lancer = new Troop(
       Owner.PLAYER,
       CARD_DEFINITIONS.lancer!.stats!,
-      { x: 100, y: logicY + 180 },
+      { x: 100, y: logicY + 300 },
       grid,
       'lancer',
     )

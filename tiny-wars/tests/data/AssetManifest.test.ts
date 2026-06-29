@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
-import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, AVATAR_CROP_RATIO_DEFAULT, EXPLOSION_SHEET, GNOLL_BONE_SHEET, GOBLIN_DYNAMITE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarCropRatio, getCardAvatarDef, getCardAvatarSwarmSource, resolveAttackAnimKey } from '@data/AssetManifest'
+import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, AVATAR_CROP_RATIO_DEFAULT, EXPLOSION_SHEET, GARRISON_CANNON_BALL, GNOLL_BONE_SHEET, GOBLIN_DYNAMITE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarCropRatio, getCardAvatarDef, getCardAvatarSwarmSource, resolveAttackAnimKey } from '@data/AssetManifest'
 import { DEFAULT_DECK } from '@data/CardData'
 import { Owner } from '@core/types'
 
@@ -34,11 +34,6 @@ describe('Card avatars', () => {
   it('throws when a card has no avatar instead of falling back', () => {
     expect(() => getCardAvatarDef('not_a_card')).toThrow(/unknown card/i)
     expect(() => cardAvatarKey('not_a_card')).toThrow()
-  })
-
-  it('pawn uses its dedicated human avatar, not the unit spritesheet', () => {
-    expect(cardAvatarKey('pawn')).toBe('avatar_avatars_05')
-    expect(cardAvatarKey('pawn')).not.toBe('pawn_blue_idle')
   })
 
   it('torch goblin uses Enemy Pack sprite sheets with correct frame counts', () => {
@@ -215,22 +210,10 @@ describe('Card avatars', () => {
     expect(bundle.attackHitFrame).toBe(4)
   })
 
-  it('paddle shark uses pirate fish sheets and dedicated avatar', () => {
-    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'paddle_shark')!
-    expect(cardAvatarKey('paddle_shark')).toBe('avatar_paddle_shark')
-    expect(getCardAvatarDef('paddle_shark').path).toContain('Paddle Shark.png')
-    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('paddle_shark').path))).toBe(true)
-    for (const side of [bundle.player, bundle.bot] as const) {
-      expect(side.idle.sheet.path).toContain('Paddle Shark_Idle.png')
-      expect(side.run.sheet.path).toContain('Paddle Shark_Run.png')
-      expect(side.attack.sheet.path).toContain('Paddle Shark_Attack.png')
-      expect(side.idle.sheet.frameWidth).toBe(192)
-      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
-      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
-      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
-    }
-    expect(bundle.tintBotSide).toBe(true)
-    expect(bundle.attackHitFrame).toBe(3)
+  it('king tower projectile uses Cannon_Ball.png from the garrison cannon folder', () => {
+    expect(GARRISON_CANNON_BALL.key).toBe('garrison_cannon_ball')
+    expect(GARRISON_CANNON_BALL.path).toContain('Cannon/Cannon_Ball.png')
+    expect(existsSync(resolve(PUBLIC, GARRISON_CANNON_BALL.path))).toBe(true)
   })
 
   it('troll uses 384×384 Troll sheets with dedicated enemy avatar', () => {
@@ -322,6 +305,28 @@ describe('Card avatars', () => {
     expect(bundle.attackHitFrame).toBe(5)
   })
 
+  it('mega minion uses native 256×256 Bear sheets with idle portrait', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'mega_minion')!
+    expect(cardAvatarKey('mega_minion')).toBe('avatar_mega_minion')
+    expect(getCardAvatarDef('mega_minion').path).toContain('Caveborn/Bear/Bear_Idle.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('mega_minion').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Caveborn/Bear/Bear_Idle.png')
+      expect(side.run.sheet.path).toContain('Bear_Run.png')
+      expect(side.attack.sheet.path).toContain('Bear_Attack.png')
+      expect(side.idle.sheet.frameWidth).toBe(256)
+      expect(side.idle.sheet.frameHeight).toBe(256)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(5)
+    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(9)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.attackHitFrame).toBe(4)
+  })
+
   it('pig rider uses Pig Rider sheets with dedicated enemy avatar', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'pig_rider')!
     expect(cardAvatarKey('pig_rider')).toBe('avatar_pig_rider')
@@ -341,6 +346,26 @@ describe('Card avatars', () => {
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(7)
     expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(4)
+  })
+
+  it('pig uses native 192×192 Pig sheets with idle portrait', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'pig')!
+    expect(cardAvatarKey('pig')).toBe('avatar_pig')
+    expect(getCardAvatarDef('pig').path).toContain('Goblin Raiders/Pig/Pig_Idle.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('pig').path))).toBe(true)
+    for (const side of [bundle.player, bundle.bot] as const) {
+      expect(side.idle.sheet.path).toContain('Pig/Pig_Idle.png')
+      expect(side.run.sheet.path).toContain('Pig_Run.png')
+      expect(side.attack.sheet.path).toContain('Pig_Run.png')
+      expect(side.idle.sheet.frameWidth).toBe(192)
+      expect(side.idle.sheet.frameHeight).toBe(192)
+      expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
+    }
+    expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(10)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(4)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.attackHitFrame).toBe(2)
   })
 
   it('bomb fish uses Bomb Fish sheets with dedicated enemy avatar', () => {

@@ -99,11 +99,6 @@ export const TIE_BREAK_TOWER_DPS = 60  // damage per second to each remaining to
 /** Monk / Battle Healer — delay between each heal pulse in a burst (CR ~0.25s). */
 export const HEAL_PULSE_INTERVAL_MS = 250
 
-/** Witch / Spider — minion spawn timing (CR L14). */
-export const WITCH_MINION_SPAWN_INTERVAL_MS = 7000
-export const WITCH_MINION_SPAWN_INITIAL_DELAY_MS = 1000
-export const WITCH_MINION_SPAWN_COUNT = 4
-
 /**
  * Arena tile footprints (official CR: princess 3×3; king ~4×4 diameter per placement guides).
  * Collision uses grid cells, not rendered sprite bounds.
@@ -185,25 +180,6 @@ export const TROOP_AGGRO_RANGE_CELLS = 6
 /** How far beyond attack range a unit can be pushed before it drops its current target.
  *  1.0 = drop immediately at edge of range; 2.0 = hold until twice attack range away. */
 export const COMBAT_LEASH_MULTIPLIER = 2.0
-
-/** Clash Royale Prince — charge after this many tiles of walking. */
-export const LANCER_CHARGE_DISTANCE_CELLS = 3.5
-export const LANCER_CHARGE_SPEED_MULT = 2
-export const LANCER_CHARGE_DAMAGE_MULT = 2
-
-/** Clash Royale Bandit — max tiles away to dash in before each strike (beyond melee range). */
-export const THIEF_DASH_RANGE_CELLS = 4
-/** Pause (idle) before the leap — Bandit-style wind-up. */
-export const THIEF_DASH_WINDUP_MS = 550
-/** Fast leap across the gap; total dash time stays CR-like with the wind-up above. */
-export const THIEF_DASH_SPEED_MULT = 8
-
-/** Fisherman L14 — hook band and charge (Harpoon Shark card). */
-export const HOOK_MIN_RANGE_CELLS = 3.5
-export const HOOK_MAX_RANGE_CELLS = 7
-export const HOOK_WINDUP_MS = 1300
-export const HOOK_SLOW_DURATION_MS = 1500
-export const HOOK_SLOW_SPEED_MULT = 0.65
 
 /** Ground troop feet collision — small circle (CR-style), not sprite-sized boxes. */
 export const TROOP_COLLISION_RADIUS_CELLS = 0.35

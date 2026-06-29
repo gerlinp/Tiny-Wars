@@ -5,6 +5,7 @@ import { Owner, UnitType, AttackType } from '@core/types'
 import type { EntityStats } from '@core/types'
 import { Grid } from '@core/Grid'
 import { crSpeedToCellsPerSec, CR_SPEED, HEAL_PULSE_INTERVAL_MS } from '@data/GameConstants'
+import { MONK_SPAWN_HEAL_PER_PULSE } from '@data/CardAbilities'
 import { CARD_DEFINITIONS } from '@data/CardData'
 
 const monkStats = CARD_DEFINITIONS.monk!.stats!
@@ -78,10 +79,10 @@ describe('Monk heal', () => {
 
     monk.applySpawnHeal(state)
     const afterFirstPulse = ally.hp
-    expect(afterFirstPulse).toBe(1500 + monkStats.spawnHealPerPulse!)
+    expect(afterFirstPulse).toBe(1500 + MONK_SPAWN_HEAL_PER_PULSE)
 
     monk.tick(HEAL_PULSE_INTERVAL_MS, state)
-    expect(ally.hp).toBe(afterFirstPulse + monkStats.spawnHealPerPulse!)
+    expect(ally.hp).toBe(afterFirstPulse + MONK_SPAWN_HEAL_PER_PULSE)
   })
 
   it('does not overheal allies at full HP but still shows heal effect in range', () => {
@@ -101,7 +102,7 @@ describe('Monk heal', () => {
   it('does not heal allies outside radius', () => {
     const grid = new Grid()
     const monk = new Troop(Owner.PLAYER, monkStats, { x: 200, y: 500 }, grid, 'monk')
-    const allyOut = new Troop(Owner.PLAYER, warriorStats, { x: 320, y: 500 }, grid, 'warrior')
+    const allyOut = new Troop(Owner.PLAYER, warriorStats, { x: 400, y: 500 }, grid, 'warrior')
     allyOut.hp = 1500
 
     const state = createInitialGameState()
@@ -132,6 +133,6 @@ describe('Monk heal', () => {
 
     expect(state.events.filter(e => e.type === 'HEAL_AURA' && e.healerId === monk.id)).toHaveLength(2)
     expect(monk.isHealBurstActive()).toBe(true)
-    expect(ally.hp).toBeGreaterThan(1500 + monkStats.spawnHealPerPulse!)
+    expect(ally.hp).toBeGreaterThan(1500 + MONK_SPAWN_HEAL_PER_PULSE)
   })
 })

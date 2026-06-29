@@ -18,7 +18,7 @@ export class CardDeployController {
   /** Pointer went down on the arena while aiming — release there to deploy. */
   private aimPointerActive = false
 
-  onDeploy: ((cardId: string, gridPos: Vec2) => void) | null = null
+  onDeploy: ((cardId: string, gridPos: Vec2, worldPos: Vec2) => void) | null = null
 
   constructor(
     private scene: Phaser.Scene,
@@ -150,9 +150,10 @@ export class CardDeployController {
     if (!card) return false
 
     const cell = this.grid.worldToCell(x, y)
-    const success = this.simulator.deployCard(Owner.PLAYER, card, cell)
+    const worldPos: Vec2 = { x, y }
+    const success = this.simulator.deployCard(Owner.PLAYER, card, cell, worldPos)
     if (success) {
-      this.onDeploy?.(card.id, cell)
+      this.onDeploy?.(card.id, cell, worldPos)
       this.cardSystem.consumeCard(this.selectedIndex)
       this.deselect()
     } else {

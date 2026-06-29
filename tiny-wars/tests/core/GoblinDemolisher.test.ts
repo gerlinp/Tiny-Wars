@@ -9,6 +9,7 @@ import { Grid } from '@core/Grid'
 import { GameSimulator } from '@core/GameSimulator'
 import { edgeDistBetweenEntities } from '@core/EntityGeometry'
 import { BOMB_TOWER_LIFETIME_MS, CELL_SIZE } from '@data/GameConstants'
+import { GOBLIN_DEMOLISHER_CHARGE_HP_FRACTION, GOBLIN_DEMOLISHER_CHARGE_ATTACK_RANGE } from '@data/CardAbilities'
 import { CARD_DEFINITIONS } from '@data/CardData'
 
 const BOMB_TOWER_STATS: EntityStats = {
@@ -40,11 +41,11 @@ describe('Goblin Demolisher', () => {
 
   it('deploys a single unit with CR-style charge threshold', () => {
     expect(CARD_DEFINITIONS.goblin_demolisher!.deployCount).toBe(1)
-    expect(stats.buildingChargeHpFraction).toBe(0.5)
+    expect(GOBLIN_DEMOLISHER_CHARGE_HP_FRACTION).toBe(0.5)
     expect(stats.maxHp).toBe(1300)
     expect(stats.deathSplashRadius).toBe(2.5)
     expect(stats.deathSplashDamage).toBe(614)
-    expect(stats.buildingChargeAttackRange).toBe(1.0)
+    expect(GOBLIN_DEMOLISHER_CHARGE_ATTACK_RANGE).toBe(1.0)
     expect(stats.attackRange).toBe(5.0)
   })
 
@@ -95,7 +96,7 @@ describe('Goblin Demolisher', () => {
     }
 
     expect(demolisher.isBuildingChargeRunActive()).toBe(true)
-    expect(demolisher.getEffectiveSpeed()).toBe(stats.buildingChargeSpeed)
+    expect(demolisher.getEffectiveSpeed()).toBeGreaterThan(stats.speed)
 
     demolisher.takeDamage(50)
     expect(demolisher.hp).toBeLessThan(halfHp)

@@ -6,6 +6,7 @@ const COLLECTION_SORT_KEY = 'tinywars.collectionSort'
 /** Renamed card ids — migrated when loading saved decks. */
 const CARD_ID_MIGRATIONS: Record<string, string> = {
   pawns: 'villagers',
+  pawn:  'warrior',
 }
 
 function migrateDeckIds(ids: string[]): string[] {

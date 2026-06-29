@@ -1,24 +1,18 @@
 import type { GameState } from './GameState'
 import { Troop } from './entities/Troop'
-import { isRangedAttacker } from './CombatHelpers'
 import { circlesOverlap, separateCirclePair, troopCollisionRadius } from './EntityGeometry'
 import { tryAllyLateralSeparation, clampGroundTroopToWalkable } from './TroopAvoidance'
 import { EntityKind, UnitType } from './types'
-import { CELL_SIZE, EPSILON_DISTANCE, RIVER_ROW_START, RIVER_ROW_END } from '@data/GameConstants'
-
-// Rows where allies are allowed to fully overlap (bridge crossing zone).
-// Rigid separation here causes oscillation: push → wall → clamp → repeat.
-const BRIDGE_ZONE_START = RIVER_ROW_START
-const BRIDGE_ZONE_END   = RIVER_ROW_END
+import { CELL_SIZE, EPSILON_DISTANCE } from '@data/GameConstants'
 
 // Allies apply only this fraction of overlap correction per pass — keeps swarm
 // clusters tighter so they fit through the bridge in fewer waves.
 const ALLY_SEPARATION_FRACTION = 0.35
 
-function inBridgeZone(troop: Troop): boolean {
-  const row = (troop.position.y / CELL_SIZE) | 0
-  return row >= BRIDGE_ZONE_START && row <= BRIDGE_ZONE_END
-}
+// Enemies use soft separation too (units overlap slightly and spread out naturally) rather
+// than rigid body-blocking. Deviation: Clash Royale has no troop collision at all (discrete
+// grid cells); the previous code hard-blocked enemies (fraction 1.0). Tunable here.
+const ENEMY_SEPARATION_FRACTION = 0.5
 
 function isBoomerangAnchored(troop: Troop, state: GameState): boolean {
   return troop.isBoomerangAnchored(state)
@@ -32,6 +26,17 @@ function groundTroops(state: GameState): Troop[] {
     if (!entity.isAlive || entity.kind !== EntityKind.TROOP) continue
     const troop = entity as Troop
     if (troop.stats.unitType === UnitType.AIR) continue
+    troops.push(troop)
+  }
+  return troops
+}
+
+function airTroops(state: GameState): Troop[] {
+  const troops: Troop[] = []
+  for (const entity of state.entities.values()) {
+    if (!entity.isAlive || entity.kind !== EntityKind.TROOP) continue
+    const troop = entity as Troop
+    if (troop.stats.unitType !== UnitType.AIR) continue
     troops.push(troop)
   }
   return troops
@@ -92,12 +97,12 @@ export function resolveTroopCollisions(state: GameState, deltaMs: number): void 
 
         if (!allyLaterallySeparated && circlesOverlap(a.position, rA, b.position, rB)) {
           if (anchoredA && anchoredB) continue
-          // Bridge zone: allies ghost through each other rather than oscillating against walls.
-          if (a.owner === b.owner && inBridgeZone(a) && inBridgeZone(b)) continue
-          // Ranged troops pass through enemies — only melee-vs-melee uses rigid separation.
-          if (a.owner !== b.owner && (isRangedAttacker(a) || isRangedAttacker(b))) continue
+          // Fix 5: Removed bridge-zone ally ghosting — allies always use normal separation
+          // so units queue naturally at the bridge bottleneck (CR behavior).
           const moveRatioA = anchoredA ? 0 : anchoredB ? 1 : 0.5
-          const fraction = a.owner === b.owner ? ALLY_SEPARATION_FRACTION : 1.0
+          const fraction = a.owner === b.owner ? ALLY_SEPARATION_FRACTION : ENEMY_SEPARATION_FRACTION
+          // Soft separation for both allies and enemies — units tolerate partial overlap and
+          // spread out naturally instead of clumping or hard body-blocking at chokepoints.
           separateCirclePair(a.position, rA, b.position, rB, moveRatioA, fraction)
         }
       }
@@ -107,6 +112,26 @@ export function resolveTroopCollisions(state: GameState, deltaMs: number): void 
   for (const troop of troops) {
     if (!isBoomerangAnchored(troop, state)) {
       clampGroundTroopToWalkable(troop)
+    }
+  }
+
+  // Fix 4: Air-vs-air collision — air units block each other but pass through ground units.
+  const airUnits = airTroops(state)
+  for (let pass = 0; pass < RESOLVE_PASSES; pass++) {
+    for (let i = 0; i < airUnits.length; i++) {
+      for (let j = i + 1; j < airUnits.length; j++) {
+        const a = airUnits[i]!
+        const b = airUnits[j]!
+        const rA = troopCollisionRadius(a)
+        const rB = troopCollisionRadius(b)
+
+        if (!circlesOverlap(a.position, rA, b.position, rB)) continue
+
+        const moveRatioA = 0.5
+        // Soft separation for both allies and enemies (see ground loop above).
+        const fraction = a.owner === b.owner ? ALLY_SEPARATION_FRACTION : ENEMY_SEPARATION_FRACTION
+        separateCirclePair(a.position, rA, b.position, rB, moveRatioA, fraction)
+      }
     }
   }
 }

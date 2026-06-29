@@ -1,0 +1,54 @@
+import { describe, it, expect } from 'vitest'
+import { assignSlotIndex, attackSlotPosition, slotBaseAngle } from '@core/AttackSlots'
+
+describe('AttackSlots', () => {
+  it('assigns deterministic slot indices from sorted ids', () => {
+    expect(assignSlotIndex('b', ['c', 'a', 'b'])).toEqual({ index: 1, total: 3 })
+    expect(assignSlotIndex('a', ['c', 'a', 'b'])).toEqual({ index: 0, total: 3 })
+
+    // Every attacker agrees on the ordering, so each gets a distinct index.
+    const ids = ['t3', 't1', 't2']
+    const indices = ids.map((id) => assignSlotIndex(id, ids).index).sort()
+    expect(indices).toEqual([0, 1, 2])
+  })
+
+  it('falls back to a single slot when the id is missing or list empty', () => {
+    expect(assignSlotIndex('x', [])).toEqual({ index: 0, total: 1 })
+    expect(assignSlotIndex('x', ['a', 'b'])).toEqual({ index: 0, total: 2 })
+  })
+
+  it('places attackers on a ring around the target at the standoff radius', () => {
+    const center = { x: 100, y: 100 }
+    const targetR = 20
+    const attackerR = 5
+    const rangePx = 10
+    const total = 4
+    const positions = [0, 1, 2, 3].map((i) =>
+      attackSlotPosition(center, targetR, attackerR, rangePx, i, total, 0),
+    )
+
+    const expectedRadius = targetR + attackerR + rangePx
+    for (const p of positions) {
+      expect(Math.hypot(p.x - center.x, p.y - center.y)).toBeCloseTo(expectedRadius, 5)
+    }
+
+    const unique = new Set(positions.map((p) => `${p.x.toFixed(3)},${p.y.toFixed(3)}`))
+    expect(unique.size).toBe(total)
+  })
+
+  it('subtracts slack from the ring radius', () => {
+    const p = attackSlotPosition({ x: 0, y: 0 }, 20, 5, 10, 0, 1, 0, 8)
+    expect(Math.hypot(p.x, p.y)).toBeCloseTo(20 + 5 + 10 - 8, 5)
+  })
+
+  it('faces the first slot toward the attacker via baseAngle', () => {
+    const center = { x: 0, y: 0 }
+    const attacker = { x: 50, y: 0 } // directly to the right of the target
+    const angle = slotBaseAngle(attacker, center)
+    expect(angle).toBeCloseTo(0, 5)
+
+    const first = attackSlotPosition(center, 10, 2, 0, 0, 4, angle)
+    expect(first.x).toBeGreaterThan(0)
+    expect(first.y).toBeCloseTo(0, 5)
+  })
+})

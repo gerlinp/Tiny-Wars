@@ -93,7 +93,7 @@ describe('TroopAvoidance', () => {
 
   it('laterally separates a rear ally stuck behind a front ally', () => {
     const front = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 360 }, grid, 'warrior')
-    const rear = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 369 }, grid, 'lancer')
+    const rear = new Troop(Owner.PLAYER, warriorStats, { x: 240, y: 380 }, grid, 'lancer')
     rear.getMarchDirection = () => ({ x: 0, y: -1 })
 
     expect(tryAllyLateralSeparation(rear, front)).toBe(true)

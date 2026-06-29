@@ -8,6 +8,7 @@ import { launchBoomerang, tickBoomerangs, isBoomerangThrowerBusy } from '@core/B
 import { resolveTroopCollisions, restoreBoomerangThrowerAnchors } from '@core/TroopCollision'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { crSpeedToCellsPerSec, CR_SPEED } from '@data/GameConstants'
+import { GNOLL_BOOMERANG_TRAVEL_CELLS } from '@data/CardAbilities'
 
 const gnollStats = CARD_DEFINITIONS.gnoll!.stats!
 
@@ -30,7 +31,7 @@ describe('Gnoll boomerang (Executioner)', () => {
     state.entities.set(gnoll.id, gnoll)
     state.entities.set(enemy.id, enemy)
 
-    launchBoomerang(state, gnoll, enemy, gnollStats.boomerangTravelCells ?? 7.5, gnollStats.damage)
+    launchBoomerang(state, gnoll, enemy, GNOLL_BOOMERANG_TRAVEL_CELLS, gnollStats.damage)
 
     for (let i = 0; i < 500 && state.boomerangs?.length; i++) {
       tickBoomerangs(state, 16)
@@ -49,7 +50,7 @@ describe('Gnoll boomerang (Executioner)', () => {
     state.entities.set(front.id, front)
     state.entities.set(back.id, back)
 
-    launchBoomerang(state, gnoll, back, gnollStats.boomerangTravelCells ?? 7.5, gnollStats.damage)
+    launchBoomerang(state, gnoll, back, GNOLL_BOOMERANG_TRAVEL_CELLS, gnollStats.damage)
 
     for (let i = 0; i < 500 && state.boomerangs?.length; i++) {
       tickBoomerangs(state, 16)

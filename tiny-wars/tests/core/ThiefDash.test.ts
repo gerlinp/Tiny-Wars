@@ -5,13 +5,8 @@ import { createInitialGameState } from '@core/GameState'
 import { Owner, UnitType, AttackType } from '@core/types'
 import type { EntityStats } from '@core/types'
 import { CARD_DEFINITIONS } from '@data/CardData'
-import {
-  CELL_SIZE,
-  THIEF_DASH_RANGE_CELLS,
-  THIEF_DASH_SPEED_MULT,
-  THIEF_DASH_WINDUP_MS,
-  TROOP_COLLISION_RADIUS_CELLS,
-} from '@data/GameConstants'
+import { CELL_SIZE, TROOP_COLLISION_RADIUS_CELLS } from '@data/GameConstants'
+import { THIEF_DASH_RANGE_CELLS, THIEF_DASH_SPEED_MULT, THIEF_DASH_WINDUP_MS } from '@data/CardAbilities'
 
 const troopStats: EntityStats = {
   maxHp: 500,
@@ -36,10 +31,10 @@ describe('Thief dash (Bandit)', () => {
   const grid = new Grid()
   const thiefStats = CARD_DEFINITIONS.thief!.stats!
 
-  it('declares Clash Royale dash constants on the thief card', () => {
-    expect(thiefStats.dashRangeCells).toBe(THIEF_DASH_RANGE_CELLS)
-    expect(thiefStats.dashSpeedMultiplier).toBe(THIEF_DASH_SPEED_MULT)
-    expect(thiefStats.dashWindupMs).toBe(THIEF_DASH_WINDUP_MS)
+  it('declares Clash Royale dash constants in CardAbilities', () => {
+    expect(THIEF_DASH_RANGE_CELLS).toBe(4)
+    expect(THIEF_DASH_SPEED_MULT).toBe(8)
+    expect(THIEF_DASH_WINDUP_MS).toBe(550)
   })
 
   it('holds idle during wind-up before leaping', () => {

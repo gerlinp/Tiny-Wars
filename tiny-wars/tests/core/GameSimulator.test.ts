@@ -76,7 +76,7 @@ describe('GameSimulator', () => {
 
   it('runs 30 ticks without crashing', () => {
     const sim = makeSim()
-    const card = CARD_DEFINITIONS['pawn']!
+    const card = CARD_DEFINITIONS['warrior']!
     sim.state.playerElixir = 10
     sim.deployCard(Owner.PLAYER, card, { x: 11, y: PLAYER_DEPLOY_ROW_MIN })
 

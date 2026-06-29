@@ -5,7 +5,7 @@ import { Tower } from '@core/entities/Tower'
 import { Grid } from '@core/Grid'
 import { createInitialGameState } from '@core/GameState'
 import { Owner, UnitType, AttackType } from '@core/types'
-import type { EntityStats } from '@core/types'
+import type { EntityStats, TargetClass } from '@core/types'
 import { BOMB_TOWER_LIFETIME_MS, BOT_KING_COL, BOT_KING_ROW, BOT_TOWER_COLS, BOT_TOWER_ROW, CELL_SIZE } from '@data/GameConstants'
 import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
 
@@ -169,6 +169,47 @@ describe('Troop targeting', () => {
     expect(marchGoal!.y).toBeGreaterThan(king.position.y)
   })
 
+  it('drops a fled enemy troop once it leaves leash range', () => {
+    const warrior = new Troop(Owner.PLAYER, troopStats, { x: 100, y: 100 }, grid, 'warrior')
+    const prey = new Troop(Owner.BOT, troopStats, { x: 180, y: 100 }, grid, 'warrior')
+    const state = createInitialGameState()
+    state.entities.set(warrior.id, warrior)
+    state.entities.set(prey.id, prey)
+
+    warrior.tick(16, state)
+    // Acquired and chasing the prey.
+    expect(warrior.getDevInfo(state).targetPos).not.toBeNull()
+
+    // Prey flees far beyond leash range.
+    prey.position.x = 1000
+    warrior.tick(16, state)
+
+    const info = warrior.getDevInfo(state)
+    // Target dropped — falls back to lane march instead of chasing forever.
+    expect(info.targetPos).toBeNull()
+    expect(info.marchGoal).not.toBeNull()
+  })
+
+  it('honors targetPriority to prefer a building over a nearer enemy troop', () => {
+    const buildingFirst: EntityStats = {
+      ...troopStats,
+      targetPriority: ['building', 'tower', 'troop', 'king'] as TargetClass[],
+    }
+    const unit = new Troop(Owner.PLAYER, buildingFirst, { x: 200, y: 500 }, grid, 'warrior')
+    const building = new Building(Owner.BOT, BOMB_TOWER_STATS, { x: 350, y: 500 }, 'wood_tower')
+    const nearerTroop = new Troop(Owner.BOT, troopStats, { x: 260, y: 500 }, grid, 'warrior')
+    const state = createInitialGameState()
+    state.entities.set(unit.id, unit)
+    state.entities.set(building.id, building)
+    state.entities.set(nearerTroop.id, nearerTroop)
+
+    unit.tick(33, state)
+
+    const targetPos = unit.getDevInfo(state).targetPos
+    // Approaches the building (standoff ~x=247) rather than the nearer troop (standoff ~x=170).
+    expect(targetPos?.x).toBeGreaterThan(220)
+  })
+
   it('building-only troops ignore enemy troops and march toward structures', () => {
     const giantStats: EntityStats = {
       ...troopStats,
@@ -184,8 +225,11 @@ describe('Troop targeting', () => {
 
     troll.tick(33, state)
 
+    // Building-only: must approach the structure (to its right, past the nearer troop),
+    // never lock the closer enemy troop — a troop lock would aim the move goal back left.
     const targetPos = troll.getDevInfo(state).targetPos
-    expect(targetPos?.x).toBeGreaterThan(300)
+    expect(targetPos).not.toBeNull()
+    expect(targetPos!.x).toBeGreaterThan(nearerTroop.position.x)
     expect(nearerTroop.hp).toBe(troopStats.maxHp)
   })
 

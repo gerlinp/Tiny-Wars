@@ -6,15 +6,14 @@ import { tickHooks } from '@core/HookSystem'
 import { Owner, UnitType, AttackType } from '@core/types'
 import type { EntityStats } from '@core/types'
 import { CARD_DEFINITIONS } from '@data/CardData'
+import { CELL_SIZE, TROOP_COLLISION_RADIUS_CELLS } from '@data/GameConstants'
 import {
-  CELL_SIZE,
   HOOK_MAX_RANGE_CELLS,
   HOOK_MIN_RANGE_CELLS,
   HOOK_SLOW_DURATION_MS,
   HOOK_SLOW_SPEED_MULT,
   HOOK_WINDUP_MS,
-  TROOP_COLLISION_RADIUS_CELLS,
-} from '@data/GameConstants'
+} from '@data/CardAbilities'
 
 const tankStats: EntityStats = {
   maxHp: 3000,
@@ -36,13 +35,13 @@ describe('Harpoon Shark hook (Fisherman)', () => {
   const grid = new Grid()
   const sharkStats = CARD_DEFINITIONS.harpoon_shark!.stats!
 
-  it('declares fisherman hook constants on the card', () => {
+  it('declares fisherman hook constants in CardAbilities', () => {
     expect(CARD_DEFINITIONS.harpoon_shark!.elixirCost).toBe(3)
-    expect(sharkStats.hookMinRangeCells).toBe(HOOK_MIN_RANGE_CELLS)
-    expect(sharkStats.hookMaxRangeCells).toBe(HOOK_MAX_RANGE_CELLS)
-    expect(sharkStats.hookWindupMs).toBe(HOOK_WINDUP_MS)
-    expect(sharkStats.hookSlowDurationMs).toBe(HOOK_SLOW_DURATION_MS)
-    expect(sharkStats.hookSlowSpeedMultiplier).toBe(HOOK_SLOW_SPEED_MULT)
+    expect(HOOK_MIN_RANGE_CELLS).toBe(3.5)
+    expect(HOOK_MAX_RANGE_CELLS).toBe(7)
+    expect(HOOK_WINDUP_MS).toBe(1300)
+    expect(HOOK_SLOW_DURATION_MS).toBe(1500)
+    expect(HOOK_SLOW_SPEED_MULT).toBe(0.65)
     expect(sharkStats.maxHp).toBe(1152)
     expect(sharkStats.damage).toBe(257)
   })

@@ -55,9 +55,17 @@ export function bridgeSliceHeights(totalH: number, bridgeW: number): {
 } {
   const toDisplayH = (texH: number) =>
     Math.max(1, Math.round(bridgeW * (texH / BRIDGE_DECK.artWidth)))
-  const topH = toDisplayH(BRIDGE_DECK.regions.topCap.h)
-  const bottomH = toDisplayH(BRIDGE_DECK.regions.bottomCap.h)
-  const midH = Math.max(0, totalH - topH - bottomH)
+  let topH = toDisplayH(BRIDGE_DECK.regions.topCap.h)
+  let bottomH = toDisplayH(BRIDGE_DECK.regions.bottomCap.h)
+  // For short spans the proportional caps can exceed the total height; scale them down so the
+  // stretched mid section always keeps at least 1px.
+  if (topH + bottomH > totalH - 1) {
+    const avail = Math.max(2, totalH - 1)
+    const scale = avail / (topH + bottomH)
+    topH = Math.max(1, Math.floor(topH * scale))
+    bottomH = Math.max(1, Math.floor(bottomH * scale))
+  }
+  const midH = totalH - topH - bottomH
   return { topH, midH, bottomH }
 }
 

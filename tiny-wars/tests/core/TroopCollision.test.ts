@@ -27,17 +27,21 @@ const fastStats: EntityStats = {
 describe('TroopCollision', () => {
   const grid = new Grid()
 
-  it('separates overlapping ground troops', () => {
+  it('spreads overlapping ground troops apart (soft separation)', () => {
     const a = new Troop(Owner.PLAYER, slowStats, { x: 200, y: 500 }, grid, 'warrior')
     const b = new Troop(Owner.BOT, slowStats, { x: 201, y: 500 }, grid, 'warrior')
     const state = createInitialGameState()
     state.entities.set(a.id, a)
     state.entities.set(b.id, b)
 
+    const before = Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y)
     resolveTroopCollisions(state, 33)
+    const after = Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y)
 
     const r = troopCollisionRadius(a)
-    expect(circlesOverlap(a.position, r, b.position, r)).toBe(false)
+    // Soft separation pushes them apart toward (but not necessarily fully to) the rest distance.
+    expect(after).toBeGreaterThan(before)
+    expect(after).toBeGreaterThan((r + r) * 0.95)
   })
 
   it('pushes a slower ally forward when a faster unit is behind', () => {
@@ -53,7 +57,7 @@ describe('TroopCollision', () => {
     expect(slow.position.y).toBeLessThan(beforeY)
   })
 
-  it('still separates overlapping enemy melee troops', () => {
+  it('softly separates overlapping enemy melee troops (no hard body-block)', () => {
     const front = new Troop(Owner.PLAYER, slowStats, { x: 200, y: 500 }, grid, 'warrior')
     const behind = new Troop(Owner.BOT, slowStats, { x: 201, y: 500 }, grid, 'warrior')
     const state = createInitialGameState()
@@ -66,7 +70,10 @@ describe('TroopCollision', () => {
 
     resolveTroopCollisions(state, 200)
 
-    expect(circlesOverlap(front.position, rFront, behind.position, rBehind)).toBe(false)
+    // Enemies use the soft separation fraction too: they are pushed nearly fully apart rather
+    // than rigidly snapped to exactly the rest distance.
+    const dist = Math.hypot(front.position.x - behind.position.x, front.position.y - behind.position.y)
+    expect(dist).toBeGreaterThan((rFront + rBehind) * 0.95)
   })
 
   it('does not push ranged troops away from overlapping enemy melee', () => {

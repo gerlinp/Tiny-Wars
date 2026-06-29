@@ -148,7 +148,14 @@ export class GameSimulator {
     }
   }
 
-  deployCard(owner: Owner, card: CardDefinition, gridPos: Vec2): boolean {
+  /**
+   * @param precisePos Optional exact world position under the pointer. When given, troops and
+   * spells spawn there (matching the placement preview / finger) instead of snapping to the cell
+   * centre. Validity is still checked against `gridPos`. Buildings stay cell-snapped so their
+   * footprint aligns to the grid. Pass the same precise position on every PvP client to keep the
+   * simulation deterministic.
+   */
+  deployCard(owner: Owner, card: CardDefinition, gridPos: Vec2, precisePos?: Vec2): boolean {
     if (!this.canDeployAt(owner, card, gridPos)) return false
 
     if (owner === Owner.PLAYER) this.state.playerElixir -= card.elixirCost
@@ -159,10 +166,14 @@ export class GameSimulator {
       return true
     }
 
-    const worldPos: Vec2 = {
+    const cellCenter: Vec2 = {
       x: gridPos.x * CELL_SIZE + CELL_SIZE / 2,
       y: gridPos.y * CELL_SIZE + CELL_SIZE / 2,
     }
+    // Buildings keep the cell centre (footprint must align to the grid); troops/spells follow the
+    // pointer when a precise position is supplied.
+    const worldPos: Vec2 =
+      precisePos && card.cardType !== CardType.BUILDING ? precisePos : cellCenter
 
     if (card.cardType === CardType.TROOP) {
       const count = card.deployCount ?? 1

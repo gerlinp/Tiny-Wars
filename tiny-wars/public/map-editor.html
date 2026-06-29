@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tiny Wars – Map Editor</title>
+<title>Tiny Wars – Editor</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -170,13 +170,99 @@ table.tower-table tr:nth-child(even) td { background: #16182a; }
 }
 canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; cursor: default; flex-shrink: 0; }
 #status { color: #6070a0; font-size: 11px; font-variant-numeric: tabular-nums; min-height: 16px; text-align: center; }
+
+/* ── Tab bar ── */
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid #2a2a4a;
+  flex-shrink: 0;
+}
+.tab-btn {
+  flex: 1;
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #6070a0;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: color 0.1s, border-color 0.1s;
+}
+.tab-btn:hover { color: #a0b8ff; }
+.tab-btn.active { color: #a0b8ff; border-bottom-color: #4060cc; }
+
+/* ── Unit editor sidebar ── */
+#unit-sidebar {
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+}
+.range-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.range-row input[type=range] { flex: 1; accent-color: #4060cc; }
+.range-row input[type=number] {
+  width: 58px;
+  background: #1e2040;
+  border: 1px solid #2a2a5a;
+  color: #e0e8ff;
+  padding: 3px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.unit-select {
+  width: 100%;
+  background: #1e2040;
+  border: 1px solid #2a2a5a;
+  color: #c0c8e0;
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.verdict-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+.verdict-ok  { background: #1a3a1a; color: #60ff80; }
+.verdict-warn{ background: #3a1a1a; color: #ff6060; }
+
+/* ── Unit editor canvas area ── */
+#unit-canvas-wrap {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  background: #08080e;
+  padding: 16px;
+}
+#unit-canvas-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin: 0 auto;
+}
+#unit-status { color: #6070a0; font-size: 11px; font-variant-numeric: tabular-nums; min-height: 16px; text-align: center; }
 </style>
 </head>
 <body>
 
 <div id="sidebar">
-  <h1>Tiny Wars Map Editor</h1>
+  <h1>Tiny Wars Editor</h1>
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-map-btn">Map</button>
+    <button class="tab-btn" id="tab-units-btn">Units</button>
+  </div>
 
+  <div id="map-sidebar" style="display:contents">
   <div class="section">
     <div class="section-title">Tools</div>
     <button class="tool-btn active" id="btn-select" title="S">▶ Select / Move</button>
@@ -268,12 +354,67 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
     </div>
     <pre id="export-out"></pre>
   </div>
-</div>
+  </div><!-- /#map-sidebar -->
+
+  <!-- ── Unit Editor Sidebar ─────────────────────────── -->
+  <div id="unit-sidebar" style="display:none">
+
+    <div class="section">
+      <div class="section-title">Unit / Tower</div>
+      <select class="unit-select" id="unit-picker"></select>
+      <div class="toggle-row"><label>Bot (red) side</label><input type="checkbox" id="tog-unit-bot"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Attack Range — drag slider or type to tune</div>
+      <div class="range-row">
+        <input type="range" id="range-slider" min="0.1" max="22" step="0.05">
+        <input type="number" id="range-val" step="0.05" min="0.1" max="22" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">cells</span>
+      </div>
+      <button class="export-btn" id="btn-copy-range" style="margin-bottom:0">⎘ Copy value for CardData.ts</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Overlays</div>
+      <div class="toggle-row"><label>Collision circle</label><input type="checkbox" id="tog-collision" checked></div>
+      <div class="toggle-row"><label>Attack range ring</label><input type="checkbox" id="tog-range-ring" checked></div>
+      <div class="toggle-row"><label>Attack slots</label><input type="checkbox" id="tog-slots" checked></div>
+      <div class="toggle-row"><label>Tower comparison</label><input type="checkbox" id="tog-tower-comp" checked></div>
+      <div class="toggle-row"><label>Grid lines</label><input type="checkbox" id="tog-unit-grid" checked></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Info</div>
+      <div class="info-row"><span>Collision radius</span><span class="info-val">0.35 cells</span></div>
+      <div class="info-row"><span>Effective reach</span><span class="info-val" id="lbl-reach">—</span></div>
+      <div class="info-row"><span>vs Princess Tower (7.5)</span><span class="info-val" id="lbl-vs-pt">—</span></div>
+      <div class="info-row"><span>vs King Tower (20)</span><span class="info-val" id="lbl-vs-kt">—</span></div>
+      <div class="info-row"><span>Display size</span><span class="info-val" id="lbl-sprite-sz">—</span></div>
+      <div class="info-row"><span>Canvas scale</span><span class="info-val" id="lbl-ucell">—</span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Tower Comparison — player | bot</div>
+      <canvas id="tower-compare-c" style="display:block; image-rendering:pixelated; border:1px solid #2a2a4a; width:100%;"></canvas>
+    </div>
+
+  </div><!-- /#unit-sidebar -->
+
+</div><!-- /#sidebar -->
 
 <div id="canvas-wrap">
   <div id="canvas-stage">
     <canvas id="c"></canvas>
     <div id="status">Hover over the map — gray margin area is outside the playfield</div>
+  </div>
+</div>
+
+<!-- ── Unit Editor Canvas ─────────────────────────── -->
+<div id="unit-canvas-wrap" style="display:none; flex:1; min-height:0; min-width:0; overflow:auto; background:#08080e; padding:16px;">
+  <div id="unit-canvas-stage" style="display:flex; flex-direction:column; align-items:center; gap:6px; width:fit-content; margin:0 auto;">
+    <canvas id="unit-c" style="display:block; image-rendering:pixelated; border:1px solid #2a2a5a; cursor:crosshair;"></canvas>
+    <div id="unit-status">Select a unit to inspect its attack geometry</div>
   </div>
 </div>
 
@@ -1531,6 +1672,477 @@ async function initEditor() {
 
 // ── Init ──────────────────────────────────────────────────────
 initEditor()
+
+// ═══════════════════════════════════════════════════════════════
+// UNIT EDITOR
+// ═══════════════════════════════════════════════════════════════
+
+// ── Tab switching ─────────────────────────────────────────────
+function switchTab(tab) {
+  const isMap = tab === 'map'
+  document.getElementById('tab-map-btn').classList.toggle('active', isMap)
+  document.getElementById('tab-units-btn').classList.toggle('active', !isMap)
+  document.getElementById('map-sidebar').style.display = isMap ? 'contents' : 'none'
+  const us = document.getElementById('unit-sidebar')
+  us.style.display = isMap ? 'none' : 'flex'
+  document.getElementById('canvas-wrap').style.display = isMap ? '' : 'none'
+  document.getElementById('unit-canvas-wrap').style.display = isMap ? 'none' : 'block'
+  if (!isMap) drawUnit()
+}
+document.getElementById('tab-map-btn').addEventListener('click', () => switchTab('map'))
+document.getElementById('tab-units-btn').addEventListener('click', () => switchTab('units'))
+
+// ── Unit catalog ──────────────────────────────────────────────
+// Mirrors CardData.ts + AssetManifest.ts.  path = player (blue) idle spritesheet.
+const UNIT_CATALOG = [
+  // Troops
+  { id:'warrior',           name:'Warrior',           attackRange:1.2,  fw:192, fh:192, path:'assets/Units/Blue Units/Warrior/Warrior_Idle.png',                                                    contentFill:0.52 },
+  { id:'archer',            name:'Archers',            attackRange:5.5,  fw:192, fh:192, path:'assets/Factions/Knights/Troops/Archer/Blue/Archer_Blue.png',                                          contentFill:0.50 },
+  { id:'elite_archer',      name:'Elite Archer',       attackRange:6.5,  fw:192, fh:192, path:'assets/Units/Blue Units/Archer/Archer_Idle.png',                                                      contentFill:0.50 },
+  { id:'lancer',            name:'Lancer',             attackRange:1.6,  fw:320, fh:320, path:'assets/Units/Blue Units/Lancer/Lancer_Idle.png',                                                      contentFill:0.30 },
+  { id:'skeleton',          name:'Skeletons',          attackRange:0.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png',                                                      contentFill:0.55 },
+  { id:'skeleton_army',     name:'Skeleton Army',      attackRange:0.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png',                                                      contentFill:0.55 },
+  { id:'troll',             name:'Troll',              attackRange:1.2,  fw:384, fh:384, path:'assets/Enemy Pack/Enemies/Troll/Troll_Idle.png',                                                      contentFill:0.48 },
+  { id:'spear_goblin',      name:'Spear Goblin',       attackRange:1.6,  fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin/Spear Goblin_Idle.png',                        contentFill:0.55 },
+  { id:'villagers',         name:'Villagers',          attackRange:0.5,  fw:192, fh:192, path:'assets/Units/Blue Units/Pawn/Pawn_Idle.png',                                                          contentFill:0.52 },
+  { id:'torch_goblin',      name:'Torch Goblin',       attackRange:5.0,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin/Torch Goblin_Idle.png',                        contentFill:0.55 },
+  { id:'wizard',            name:'Wizard',             attackRange:5.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png',                            contentFill:0.55 },
+  { id:'lizard',            name:'Lizard',             attackRange:3.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Lizard/Lizard_Idle_Flying.png',                                   contentFill:0.55 },
+  { id:'air_boat',          name:'Air Boat',           attackRange:1.5,  fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Pirate Fish/Boat/AirBoat_Idle.png',                                        contentFill:0.42, spriteOriginY:0.25 },
+  { id:'mega_minion',       name:'Mega Minion',        attackRange:1.2,  fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Caveborn/Bear/Bear_Idle.png',                                              contentFill:0.50 },
+  { id:'pig_rider',         name:'Pig Rider',          attackRange:1.6,  fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig Rider Spear Goblin/Pig Rider_Idle.png',                contentFill:0.52 },
+  { id:'pig',               name:'Pig',                attackRange:0.8,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig/Pig_Idle.png',                                          contentFill:0.50 },
+  { id:'bomb_fish',         name:'Bomb Fish',          attackRange:5.0,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Bomb Fish/Bomb Fish_Idle.png',                                 contentFill:0.55 },
+  { id:'goblin_demolisher', name:'Goblin Demolisher',  attackRange:4.5,  fw:192, fh:192, path:'assets/Factions/Goblins/Troops/TNT/Blue/TNT_Blue.png',                                               contentFill:0.55 },
+  { id:'minotaur',          name:'Minotaur',           attackRange:1.2,  fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Minotaur/Minotaur_Idle.png',                                               contentFill:0.46 },
+  { id:'gnoll',             name:'Gnoll',              attackRange:4.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Gnoll/Gnoll_Idle.png',                                                     contentFill:0.55 },
+  { id:'thief',             name:'Thief',              attackRange:1.2,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Thief/Thief_Idle.png',                                                     contentFill:0.55 },
+  { id:'turtle',            name:'Turtle',             attackRange:0.75, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Caveborn/Turtle/Turtle_Idle.png',                                          contentFill:0.50 },
+  { id:'panda',             name:'Panda',              attackRange:0.75, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Panda/Panda_Idle.png',                                                     contentFill:0.52 },
+  { id:'monk',              name:'Monk',               attackRange:5.5,  fw:192, fh:192, path:'assets/Units/Blue Units/Monk/Monk_Idle.png',                                                          contentFill:0.52 },
+  { id:'harpoon_shark',     name:'Harpoon Shark',      attackRange:5.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Harpoon Shark/Harpoon Shark_Idle.png',                        contentFill:0.52 },
+  { id:'spider',            name:'Spider',             attackRange:5.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png',                                          contentFill:0.52 },
+  { id:'spiderling',        name:'Spiderling',         attackRange:5.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png',                                          contentFill:0.52 },
+  // Towers (isKing / isTower flags used for sizing)
+  { id:'princess_tower',    name:'Princess Tower',     attackRange:7.5,  fw:128, fh:256, path:'assets/Factions/Knights/Buildings/Tower/Tower_Blue.png',                                             contentFill:0.90, isTower:true, isKing:false },
+  { id:'king_tower',        name:'King Tower',         attackRange:20,   fw:320, fh:256, path:'assets/Factions/Knights/Buildings/Castle/Castle_Blue.png',                                           contentFill:0.88, isTower:true, isKing:true  },
+]
+
+// Live-editable ranges (user can tweak without touching source)
+const liveRanges = {}
+for (const u of UNIT_CATALOG) liveRanges[u.id] = u.attackRange
+
+// ── Preload sprites ───────────────────────────────────────────
+const unitSpriteCache = {}
+for (const u of UNIT_CATALOG) {
+  if (unitSpriteCache[u.path]) continue
+  const img = new Image()
+  img.src = u.path
+  img.onload = () => { if (activeUnitId) drawUnit() }
+  img.onerror = () => {}
+  unitSpriteCache[u.path] = img
+}
+
+// ── State ─────────────────────────────────────────────────────
+let activeUnitId = UNIT_CATALOG[0].id
+let unitShowBot    = false
+let unitShowColl   = true
+let unitShowRing   = true
+let unitShowSlots  = true
+let unitShowTower  = true
+let unitShowGrid   = true
+
+// ── Constants mirroring game ──────────────────────────────────
+const GCS = 64   // CELL_SIZE (game pixels per cell)
+const TROOP_R   = 0.35   // TROOP_COLLISION_RADIUS_CELLS
+const APPROACH_SLACK = 0.5  // CELL_SIZE * 0.5 / CELL_SIZE
+const PT_RANGE = 7.5   // Princess Tower range (cells, center-to-center)
+const KT_RANGE = 20.0  // King Tower range
+const PT_RADIUS = 1.5  // Princess Tower combat radius (3-cell footprint / 2)
+const KT_RADIUS = 2.0  // King Tower (4-cell footprint / 2)
+
+// ── Canvas setup ──────────────────────────────────────────────
+const unitCanvas = document.getElementById('unit-c')
+const uctx = unitCanvas.getContext('2d')
+const UCW = 860
+const UCH = 860
+unitCanvas.width  = UCW
+unitCanvas.height = UCH
+
+// ── Unit picker ───────────────────────────────────────────────
+function buildUnitPicker() {
+  const sel = document.getElementById('unit-picker')
+  const troops = UNIT_CATALOG.filter(u => !u.isTower)
+  const towers = UNIT_CATALOG.filter(u =>  u.isTower)
+  const grpT = document.createElement('optgroup'); grpT.label = 'Troops'
+  const grpW = document.createElement('optgroup'); grpW.label = 'Towers'
+  for (const u of troops) { const o = document.createElement('option'); o.value = u.id; o.textContent = u.name; grpT.appendChild(o) }
+  for (const u of towers) { const o = document.createElement('option'); o.value = u.id; o.textContent = u.name; grpW.appendChild(o) }
+  sel.appendChild(grpT); sel.appendChild(grpW)
+  sel.value = activeUnitId
+  sel.addEventListener('change', () => {
+    activeUnitId = sel.value
+    const r = liveRanges[activeUnitId]
+    document.getElementById('range-slider').value = r
+    document.getElementById('range-val').value    = r
+    drawUnit(); drawTowerCompare()
+  })
+}
+buildUnitPicker()
+
+// ── Range controls ────────────────────────────────────────────
+function setRange(v) {
+  v = Math.round(v * 20) / 20  // snap to 0.05
+  liveRanges[activeUnitId] = v
+  document.getElementById('range-slider').value = v
+  document.getElementById('range-val').value    = v
+  drawUnit(); drawTowerCompare()
+}
+document.getElementById('range-slider').addEventListener('input', e => setRange(+e.target.value))
+document.getElementById('range-val').addEventListener('change', e => setRange(+e.target.value))
+
+document.getElementById('btn-copy-range').addEventListener('click', () => {
+  const v = liveRanges[activeUnitId]
+  const txt = `attackRange: ${v},`
+  navigator.clipboard.writeText(txt).catch(() => {
+    const ta = document.createElement('textarea')
+    ta.value = txt; document.body.appendChild(ta); ta.select()
+    document.execCommand('copy'); document.body.removeChild(ta)
+  })
+  document.getElementById('btn-copy-range').textContent = '✓ Copied!'
+  setTimeout(() => { document.getElementById('btn-copy-range').textContent = '⎘ Copy value for CardData.ts' }, 1400)
+})
+
+document.getElementById('tog-unit-bot').addEventListener('change', e => { unitShowBot   = e.target.checked; drawUnit(); drawTowerCompare() })
+document.getElementById('tog-collision').addEventListener('change', e => { unitShowColl  = e.target.checked; drawUnit() })
+document.getElementById('tog-range-ring').addEventListener('change', e => { unitShowRing  = e.target.checked; drawUnit() })
+document.getElementById('tog-slots').addEventListener('change', e => { unitShowSlots = e.target.checked; drawUnit() })
+document.getElementById('tog-tower-comp').addEventListener('change', e => { unitShowTower = e.target.checked; drawUnit() })
+document.getElementById('tog-unit-grid').addEventListener('change', e => { unitShowGrid  = e.target.checked; drawUnit() })
+
+// seed slider/input with first unit
+document.getElementById('range-slider').value = liveRanges[activeUnitId]
+document.getElementById('range-val').value    = liveRanges[activeUnitId]
+
+// ── Helper: compute canvas cell size so range ring + tower comparison fit ──
+function computeUCELL(attackRange) {
+  const maxRadius = Math.max(attackRange + TROOP_R, PT_RANGE) + 3
+  return Math.min(32, Math.floor((UCW / 2 - 20) / maxRadius))
+}
+
+// ── Helper: display height for a unit in game px ─────────────
+// Mirrors assetDisplaySize.ts: SPRITE_VISUAL_SCALE applies to all troops
+// except the explicitly unscaled set.  Towers: only king gets scale.
+const UNSCALED_CARD_IDS = new Set(['skeleton', 'skeleton_army', 'archer', 'villagers', 'spiderling'])
+
+function unitDisplayHGame(unit) {
+  const fill = unit.contentFill ?? 0.52
+  if (unit.isTower) {
+    const hmult = unit.isKing ? 2.5 : 3.5
+    const vscale = unit.isKing ? SPRITE_VISUAL_SCALE : 1.0
+    return GCS * 2.5 * hmult / fill * vscale
+  }
+  const scale = UNSCALED_CARD_IDS.has(unit.id) ? 1.0 : SPRITE_VISUAL_SCALE
+  return GCS * 2.5 / fill * scale
+}
+
+// ── Main unit draw ────────────────────────────────────────────
+function drawUnit() {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit) return
+
+  const attackRange = liveRanges[unit.id]
+  const UCELL = computeUCELL(attackRange)
+
+  uctx.clearRect(0, 0, UCW, UCH)
+
+  // Dark background
+  uctx.fillStyle = '#0a0c14'
+  uctx.fillRect(0, 0, UCW, UCH)
+
+  const cx = UCW / 2
+  const cy = UCH / 2
+
+  // Grid
+  if (unitShowGrid) drawUnitGrid(cx, cy, UCELL)
+
+  // Tower comparison (behind sprite)
+  if (unitShowTower && !unit.isTower) drawTowerOverlay(unit, cx, cy, UCELL, attackRange)
+
+  // Sprite
+  drawUnitSprite(unit, cx, cy, UCELL)
+
+  // Collision circle
+  if (unitShowColl) {
+    const cr = TROOP_R * UCELL
+    uctx.beginPath(); uctx.arc(cx, cy, cr, 0, Math.PI * 2)
+    uctx.fillStyle = 'rgba(100,180,255,0.12)'; uctx.fill()
+    uctx.strokeStyle = 'rgba(100,180,255,0.75)'; uctx.lineWidth = 1.5; uctx.stroke()
+  }
+
+  // Attack range ring (from unit edge, i.e. center + collisionR + attackRange)
+  if (unitShowRing) {
+    const ringR = (TROOP_R + attackRange) * UCELL
+    uctx.beginPath(); uctx.arc(cx, cy, ringR, 0, Math.PI * 2)
+    uctx.fillStyle = 'rgba(255,200,60,0.05)'; uctx.fill()
+    uctx.strokeStyle = 'rgba(255,200,60,0.85)'; uctx.lineWidth = 2
+    uctx.setLineDash([6, 4]); uctx.stroke(); uctx.setLineDash([])
+    // Label
+    uctx.fillStyle = 'rgba(255,200,60,0.9)'; uctx.font = 'bold 11px sans-serif'; uctx.textAlign = 'center'
+    uctx.fillText(`range ${attackRange} cells`, cx, cy - ringR - 7)
+  }
+
+  // Melee hit zone: ring where a typical melee attacker (range ~1.0) parks to hit the selected unit.
+  // Uses a fixed reference range — NOT the selected unit's own range — so this stays
+  // tight around the unit regardless of whether it's a ranged or melee card.
+  if (unitShowSlots && !unit.isTower) {
+    const MELEE_REF_RANGE = 1.0  // representative melee attackRange
+    const slotR = Math.max(0, TROOP_R + TROOP_R + MELEE_REF_RANGE - APPROACH_SLACK) * UCELL
+    uctx.strokeStyle = 'rgba(180,160,255,0.30)'; uctx.lineWidth = 1
+    uctx.setLineDash([3,3])
+    uctx.beginPath(); uctx.arc(cx, cy, slotR, 0, Math.PI * 2); uctx.stroke()
+    uctx.setLineDash([])
+    // Label
+    uctx.fillStyle = 'rgba(180,160,255,0.55)'; uctx.font = '10px sans-serif'; uctx.textAlign = 'left'
+    uctx.fillText(`melee hit zone`, cx + slotR + 4, cy + 4)
+    // Draw 6 ghost melee attackers surrounding this unit
+    const collR = TROOP_R * UCELL
+    for (let i = 0; i < 6; i++) {
+      const angle = -Math.PI / 2 + (Math.PI * 2 * i) / 6
+      const sx = cx + Math.cos(angle) * slotR
+      const sy = cy + Math.sin(angle) * slotR
+      uctx.beginPath(); uctx.arc(sx, sy, collR, 0, Math.PI * 2)
+      uctx.fillStyle = 'rgba(180,160,255,0.15)'; uctx.fill()
+      uctx.strokeStyle = 'rgba(180,160,255,0.45)'; uctx.lineWidth = 1; uctx.stroke()
+    }
+  }
+
+  // Entity position dot
+  uctx.beginPath(); uctx.arc(cx, cy, 3, 0, Math.PI * 2)
+  uctx.fillStyle = '#ffffff'; uctx.fill()
+
+  // Cell scale legend
+  uctx.fillStyle = '#50607a'; uctx.font = '10px sans-serif'; uctx.textAlign = 'left'
+  uctx.fillText(`1 cell = ${UCELL}px  (game: ${GCS}px)`, 8, UCH - 8)
+  uctx.fillStyle = '#50607a'; uctx.textAlign = 'right'
+  uctx.fillText(`${unit.name}  ·  ${attackRange} cells`, UCW - 8, UCH - 8)
+
+  updateUnitInfoPanel(unit, attackRange, UCELL)
+}
+
+function drawUnitGrid(cx, cy, UCELL) {
+  uctx.strokeStyle = 'rgba(255,255,255,0.05)'; uctx.lineWidth = 0.5
+  // Cell lines anchored to center
+  for (let x = cx % UCELL; x < UCW; x += UCELL) { uctx.beginPath(); uctx.moveTo(x,0); uctx.lineTo(x,UCH); uctx.stroke() }
+  for (let y = cy % UCELL; y < UCH; y += UCELL) { uctx.beginPath(); uctx.moveTo(0,y); uctx.lineTo(UCW,y); uctx.stroke() }
+  // Axis lines
+  uctx.strokeStyle = 'rgba(255,255,255,0.12)'; uctx.lineWidth = 1
+  uctx.beginPath(); uctx.moveTo(cx,0); uctx.lineTo(cx,UCH); uctx.stroke()
+  uctx.beginPath(); uctx.moveTo(0,cy); uctx.lineTo(UCW,cy); uctx.stroke()
+  // Cell distance labels along right axis
+  uctx.fillStyle = 'rgba(80,100,130,0.7)'; uctx.font = '9px monospace'; uctx.textAlign = 'right'
+  for (let c = 1; c * UCELL < UCH / 2; c++) {
+    uctx.fillText(c, cx - 3, cy - c * UCELL + 3)
+    uctx.fillText(c, cx - 3, cy + c * UCELL + 3)
+  }
+}
+
+function drawUnitSprite(unit, cx, cy, UCELL) {
+  const img = unitSpriteCache[unit.path]
+  if (!img || !img.complete || img.naturalWidth === 0) return
+  const dispHgame = unitDisplayHGame(unit)
+  const dispH = dispHgame * (UCELL / GCS)
+  const dispW = (unit.fw / unit.fh) * dispH
+  const originY = unit.spriteOriginY ?? 0.5
+  const sx = cx - dispW / 2
+  const sy = cy - originY * dispH
+  uctx.save(); uctx.globalAlpha = 0.82
+  if (unitShowBot) {
+    // Tint red for bot side (same as BOT_SIDE_TINT 0xff9999)
+    uctx.filter = 'sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.1)'
+  }
+  uctx.drawImage(img, 0, 0, unit.fw, unit.fh, sx, sy, dispW, dispH)
+  uctx.restore()
+  // Bounding box hint
+  uctx.strokeStyle = 'rgba(255,255,255,0.06)'; uctx.lineWidth = 1
+  uctx.strokeRect(sx, sy, dispW, dispH)
+}
+
+function drawTowerOverlay(unit, cx, cy, UCELL, attackRange) {
+  // Draw princess tower to the right at PT_RANGE cells from unit center
+  // (towers measure range center-to-center, so the tower center = cx + PT_RANGE*UCELL)
+  const tx = cx + PT_RANGE * UCELL
+  const ty = cy
+
+  // Tower combat hull circle
+  const towerCircleR = PT_RADIUS * UCELL
+  uctx.beginPath(); uctx.arc(tx, ty, towerCircleR, 0, Math.PI * 2)
+  uctx.fillStyle = 'rgba(200,70,70,0.12)'; uctx.fill()
+  uctx.strokeStyle = 'rgba(220,80,80,0.55)'; uctx.lineWidth = 1.5; uctx.stroke()
+
+  // Princess tower range ring (center-to-center)
+  uctx.beginPath(); uctx.arc(tx, ty, PT_RANGE * UCELL, 0, Math.PI * 2)
+  uctx.strokeStyle = 'rgba(220,80,80,0.30)'; uctx.lineWidth = 1.5
+  uctx.setLineDash([5,4]); uctx.stroke(); uctx.setLineDash([])
+
+  // Tower sprite (reuse towerImages from map editor)
+  const tImg = towerImages['tower_blue']
+  if (tImg && tImg.complete && tImg.naturalWidth > 0) {
+    const tH = GCS * 2.5 * 3.5 / 0.90 * (UCELL / GCS)
+    const tW = (128 / 256) * tH
+    uctx.save(); uctx.globalAlpha = 0.45
+    uctx.drawImage(tImg, tx - tW / 2, ty - tH, tW, tH)
+    uctx.restore()
+  }
+
+  // Engagement distance line: from unit center to tower edge (= where unit attack fires)
+  const engageDist = (attackRange + TROOP_R + PT_RADIUS) * UCELL
+  const unitOutranges = (attackRange + TROOP_R + PT_RADIUS) < PT_RANGE
+
+  uctx.strokeStyle = unitOutranges ? 'rgba(255,80,80,0.5)' : 'rgba(80,255,120,0.5)'
+  uctx.lineWidth = 1; uctx.setLineDash([3,3])
+  uctx.beginPath(); uctx.moveTo(cx, cy); uctx.lineTo(cx + engageDist, cy); uctx.stroke()
+  uctx.setLineDash([])
+
+  // Labels
+  uctx.fillStyle = 'rgba(220,80,80,0.8)'; uctx.font = '10px sans-serif'; uctx.textAlign = 'center'
+  uctx.fillText('Princess', tx, ty + towerCircleR + 13)
+  uctx.fillText(`(${PT_RANGE} cells)`, tx, ty + towerCircleR + 23)
+}
+
+function updateUnitInfoPanel(unit, attackRange, UCELL) {
+  const towerR = unit.isTower ? 0 : PT_RADIUS
+  const effReach = attackRange + TROOP_R
+  const engagePT = effReach + PT_RADIUS   // unit center to tower center when attack triggers
+  const engageKT = effReach + KT_RADIUS
+
+  document.getElementById('lbl-reach').textContent   = `${effReach.toFixed(2)} cells from center`
+  document.getElementById('lbl-ucell').textContent   = `${UCELL}px / cell`
+  const dispH = Math.round(unitDisplayHGame(unit))
+  document.getElementById('lbl-sprite-sz').textContent = `${dispH}px tall (game)`
+
+  const vspt = document.getElementById('lbl-vs-pt')
+  if (unit.isTower) {
+    vspt.textContent = '—'; vspt.className = 'info-val'
+    document.getElementById('lbl-vs-kt').textContent = '—'
+    document.getElementById('lbl-vs-kt').className = 'info-val'
+  } else {
+    const outPT = engagePT < PT_RANGE
+    vspt.innerHTML = outPT
+      ? '<span class="verdict-badge verdict-warn">⚠ Outranges</span>'
+      : '<span class="verdict-badge verdict-ok">Tower wins</span>'
+
+    const outKT = engageKT < KT_RANGE
+    const ktEl = document.getElementById('lbl-vs-kt')
+    ktEl.innerHTML = outKT
+      ? '<span class="verdict-badge verdict-warn">⚠ Outranges</span>'
+      : '<span class="verdict-badge verdict-ok">Tower wins</span>'
+  }
+}
+
+// ── Tower comparison strip (sidebar canvas) ───────────────────
+const tCompCanvas = document.getElementById('tower-compare-c')
+const tCompCtx    = tCompCanvas.getContext('2d')
+
+function drawTowerCompare() {
+  const W = tCompCanvas.offsetWidth || 232
+  const H = 180
+  tCompCanvas.width  = W
+  tCompCanvas.height = H
+  tCompCtx.fillStyle = '#0d0f1a'
+  tCompCtx.fillRect(0, 0, W, H)
+
+  const TCELL = 8   // small scale for comparison panel
+  const midY = H * 0.75
+
+  function drawTowerInStrip(imgKey, range, x, label, isKing) {
+    const img = towerImages[imgKey]
+    const hmult = isKing ? 2.5 : 3.5
+    const vscale = isKing ? 1.35 : 1
+    const fill = isKing ? 0.88 : 0.90
+    const tH = GCS * 2.5 * hmult / fill * vscale * (TCELL / GCS)
+    const tW = (isKing ? 320/256 : 128/256) * tH
+
+    if (img && img.complete && img.naturalWidth > 0) {
+      tCompCtx.save(); tCompCtx.globalAlpha = 0.7
+      tCompCtx.drawImage(img, x - tW/2, midY - tH, tW, tH)
+      tCompCtx.restore()
+    }
+
+    // Range ring
+    const rangeR = range * TCELL
+    tCompCtx.beginPath(); tCompCtx.arc(x, midY, rangeR, 0, Math.PI * 2)
+    tCompCtx.strokeStyle = 'rgba(220,80,80,0.4)'; tCompCtx.lineWidth = 1
+    tCompCtx.setLineDash([3,3]); tCompCtx.stroke(); tCompCtx.setLineDash([])
+
+    // Combat hull
+    const hullR = (isKing ? KT_RADIUS : PT_RADIUS) * TCELL
+    tCompCtx.beginPath(); tCompCtx.arc(x, midY, hullR, 0, Math.PI * 2)
+    tCompCtx.strokeStyle = 'rgba(220,80,80,0.6)'; tCompCtx.lineWidth = 1; tCompCtx.stroke()
+
+    // Label
+    tCompCtx.fillStyle = '#6070a0'; tCompCtx.font = '9px sans-serif'; tCompCtx.textAlign = 'center'
+    tCompCtx.fillText(label, x, H - 5)
+    tCompCtx.fillText(`range: ${range}`, x, H - 14)
+  }
+
+  // Bot side (left) — castle red + towers
+  const botKingX  = W * 0.17
+  const botLeftX  = W * 0.34
+  const botRightX = W * 0.50
+
+  drawTowerInStrip('castle_red',  KT_RANGE, botKingX,  'Bot King',  true)
+  drawTowerInStrip('tower_red',   PT_RANGE, botLeftX,  'Bot Left',  false)
+  drawTowerInStrip('tower_red',   PT_RANGE, botRightX, 'Bot Right', false)
+
+  // Player side (right) — castle blue + towers
+  const plyKingX  = W * 0.83
+  const plyLeftX  = W * 0.50
+  const plyRightX = W * 0.66
+
+  drawTowerInStrip('castle_blue', KT_RANGE, plyKingX,  'Ply King',  true)
+  drawTowerInStrip('tower_blue',  PT_RANGE, plyLeftX,  'Ply Left',  false)
+  drawTowerInStrip('tower_blue',  PT_RANGE, plyRightX, 'Ply Right', false)
+
+  // Selected unit range overlay across the strip
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (unit && !unit.isTower) {
+    const attackRange = liveRanges[unit.id]
+    const effectiveR  = (attackRange + TROOP_R + PT_RADIUS) * TCELL
+    tCompCtx.strokeStyle = 'rgba(255,200,60,0.5)'
+    tCompCtx.lineWidth = 1; tCompCtx.setLineDash([4,3])
+    // Show reach radius from the midpoint
+    const midX = W / 2
+    tCompCtx.beginPath(); tCompCtx.arc(midX, midY, effectiveR, 0, Math.PI * 2)
+    tCompCtx.stroke(); tCompCtx.setLineDash([])
+    tCompCtx.fillStyle = 'rgba(255,200,60,0.7)'; tCompCtx.font = '9px sans-serif'; tCompCtx.textAlign = 'center'
+    tCompCtx.fillText(`${unit.name} reach: ${(attackRange+TROOP_R+PT_RADIUS).toFixed(1)}c`, midX, 11)
+  }
+}
+
+// Trigger compare draw once tower images load (they may still be loading)
+for (const img of Object.values(towerImages)) {
+  if (!img.complete) img.addEventListener('load', drawTowerCompare, { once: true })
+}
+drawTowerCompare()
+
+// ── Mouse hover on unit canvas ────────────────────────────────
+unitCanvas.addEventListener('mousemove', e => {
+  const rect = unitCanvas.getBoundingClientRect()
+  const mx = (e.clientX - rect.left) * (UCW / rect.width)
+  const my = (e.clientY - rect.top)  * (UCH / rect.height)
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit) return
+  const UCELL = computeUCELL(liveRanges[unit.id])
+  const dx = (mx - UCW / 2) / UCELL
+  const dy = (my - UCH / 2) / UCELL
+  const dist = Math.sqrt(dx*dx + dy*dy)
+  document.getElementById('unit-status').textContent =
+    `Cursor: ${dx >= 0 ? '+' : ''}${dx.toFixed(2)}, ${dy >= 0 ? '+' : ''}${dy.toFixed(2)} cells from unit  (${dist.toFixed(2)} cells radius)`
+})
+unitCanvas.addEventListener('mouseleave', () => {
+  document.getElementById('unit-status').textContent = 'Hover to measure distance from unit center'
+})
 </script>
 </body>
 </html>

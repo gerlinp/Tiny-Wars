@@ -71,6 +71,8 @@ Full Idle/Run/Attack (or equivalent) sheets, a clear deck-role gap, and a portra
 
 ~~**Skeleton Army**~~ — done (`skeleton_army` card, shared Skull assets).
 
+**Paddle Shark** — not wired in `CardData` / `AssetManifest` (removed June 2026 after a brief `paddle_shark` prototype). Mapping and portrait notes below are kept for a future Barbarians card.
+
 ---
 
 ## Tier 2 — Good fits (remaining)

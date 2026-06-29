@@ -5,6 +5,7 @@ import { Owner } from '@core/types'
 import {
   clipAnimKey,
   idleSheetKey,
+  GARRISON_CANNON_BALL,
   GARRISON_CANNON_SHEETS,
   getGarrisonExtraSheets,
   garrisonCannonIdleKey,
@@ -88,5 +89,10 @@ describe('tower garrison', () => {
     const muzzle = kingCannonMuzzlePosition(towerX, 0, Owner.PLAYER)
     expect(muzzle.x).toBeCloseTo(towerX, 0)
     expect(muzzle.y).toBeLessThan(kingCannonDeckWorldY(Owner.PLAYER))
+  })
+
+  it('king tower shots use Cannon_Ball.png projectile art', () => {
+    expect(GARRISON_CANNON_BALL.path).toContain('Cannon/Cannon_Ball.png')
+    expect(existsSync(resolve(PUBLIC, GARRISON_CANNON_BALL.path))).toBe(true)
   })
 })

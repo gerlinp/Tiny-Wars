@@ -9,6 +9,8 @@ import {
   GOBLIN_DYNAMITE_SHEET,
   GNOLL_BONE_SHEET,
   TROOP_DEATH_SHEET,
+  PADDLE_SHARK_IDLE_SHEET,
+  PADDLE_SHARK_ROW_SHEET,
   type AnimClip,
   type ClipDef,
   type SideAssets,
@@ -141,6 +143,20 @@ export function registerGnollBoneFx(scene: Phaser.Scene): void {
     frameRate: GNOLL_BONE_SHEET.frameRate,
     repeat: -1,
   })
+}
+
+/** Paddle Shark idle + row — used by AirBoatCrew. */
+export function registerAirBoatCrewFx(scene: Phaser.Scene): void {
+  for (const sheet of [PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET]) {
+    if (scene.anims.exists(sheet.animKey)) continue
+    if (!scene.textures.exists(sheet.key)) continue
+    scene.anims.create({
+      key: sheet.animKey,
+      frames: scene.anims.generateFrameNumbers(sheet.key, { start: sheet.frameStart, end: sheet.frameEnd }),
+      frameRate: sheet.frameRate,
+      repeat: -1,
+    })
+  }
 }
 
 /** Goblin Demolisher dynamite stick — spinning projectile strip. */

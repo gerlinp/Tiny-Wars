@@ -18,6 +18,12 @@ export enum EntityKind { TROOP = 'TROOP', TOWER = 'TOWER', BUILDING = 'BUILDING'
 
 export interface Vec2 { x: number; y: number }
 
+/** Target classes for {@link EntityStats.targetPriority}, ordered most-preferred first. */
+export type TargetClass = 'troop' | 'building' | 'tower' | 'king'
+
+/** Default acquisition order: enemy troops first, then buildings, then towers, then the king. */
+export const DEFAULT_TARGET_PRIORITY: readonly TargetClass[] = ['troop', 'building', 'tower', 'king']
+
 export interface EntityStats {
   maxHp: number
   speed: number       // grid cells per second
@@ -38,66 +44,18 @@ export interface EntityStats {
   deathSlowSpeedMultiplier?: number
   /** How long the death slow lasts (ms). */
   deathSlowDurationMs?: number
-  /** Max tiles away to dash in before each strike when beyond melee range. */
-  dashRangeCells?: number
-  /** Speed multiplier while leaping to the target during a dash. */
-  dashSpeedMultiplier?: number
-  /** Ms to hold idle before each dash leap. */
-  dashWindupMs?: number
-  /** Prince-style charge — tiles walked before charge activates. */
-  chargeDistanceCells?: number
-  /** Speed multiplier while charging (e.g. 2 = double speed). */
-  chargeSpeedMultiplier?: number
-  /** Damage multiplier on the first hit while charging. */
-  chargeDamageMultiplier?: number
   /** Only acquires buildings and towers, never enemy troops. */
   targetsBuildingsOnly?: boolean
+  /**
+   * Acquisition order by target class (most-preferred first). Defaults to
+   * {@link DEFAULT_TARGET_PRIORITY} (troops, then structures). Deviates from Clash Royale,
+   * which always picks the nearest valid target regardless of class.
+   */
+  targetPriority?: readonly TargetClass[]
   /** Dies immediately after dealing attack damage (e.g. wall-breaker dynamite). */
   suicideOnAttack?: boolean
-  /** At or below this HP fraction, enter building-charge mode (Goblin Demolisher). */
-  buildingChargeHpFraction?: number
-  /** Movement speed during building-charge mode (grid cells/sec). */
-  buildingChargeSpeed?: number
-  /** Melee reach while charging buildings (grid cells). */
-  buildingChargeAttackRange?: number
-  /** Battle Healer-style — HP restored per pulse when attacking. */
-  healPerPulse?: number
   /** Extra HP pool absorbed before body HP (per unit) — displayed as Armor. */
   armorHp?: number
-  /** Pulses per attack (default 4). */
-  healPulseCount?: number
-  /** Heal aura radius while attacking (grid cells). */
-  healRadius?: number
-  /** HP restored per pulse on deploy (spawn heal). */
-  spawnHealPerPulse?: number
-  /** Spawn-heal pulses on deploy (default 4). */
-  spawnHealPulseCount?: number
-  /** Spawn-heal radius on deploy (grid cells). */
-  spawnHealRadius?: number
-  /** Bone travels out and returns, damaging twice along the path. */
-  boomerangAttack?: boolean
-  /** Max travel distance for the boomerang (grid cells); defaults to ~7.5 for executioner-style. */
-  boomerangTravelCells?: number
-  /** Fisherman-style — charge then throw a hook to pull ground troops or reel toward buildings. */
-  hookAttack?: boolean
-  /** Minimum distance to throw the hook (grid cells). */
-  hookMinRangeCells?: number
-  /** Maximum hook reach (grid cells). */
-  hookMaxRangeCells?: number
-  /** Ms to charge before the hook flies. */
-  hookWindupMs?: number
-  /** Slow applied to hooked ground troops — speed multiplier (0.65 = 35% slower). */
-  hookSlowSpeedMultiplier?: number
-  /** How long the hook slow lasts (ms). */
-  hookSlowDurationMs?: number
-  /** Witch-style — card id of minions spawned periodically around the unit. */
-  spawnMinionCardId?: string
-  /** Minions per spawn wave (defaults to target card deployCount). */
-  spawnMinionCount?: number
-  /** Ms between minion spawn waves. */
-  spawnMinionIntervalMs?: number
-  /** Ms after deploy before the first minion wave. */
-  spawnMinionInitialDelayMs?: number
 }
 
 export interface SpellStats {

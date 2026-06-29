@@ -221,10 +221,22 @@ export interface CardAssetBundle {
    * visible, slightly smaller on screen. Use 1 for full-frame contain (no crop).
    */
   avatarCropRatio?: number
+  /**
+   * Vertical focus of the portrait crop (0 = top of frame, 0.5 = centre, 1 = bottom). Default 0.5.
+   * Use a higher value to centre on a subject in the lower part of the frame (e.g. the boat hull
+   * at the bottom of the air boat frame, below the balloon).
+   */
+  avatarFocusY?: number
   /** Tall building sprites — fit full frame in the slot instead of portrait crop. */
   avatarBuildingFit?: boolean
   /** Composite portrait — spawn units in the same cluster layout as deploy. */
   avatarSwarmSourceCardId?: string
+  /**
+   * Y origin for the sprite (0 = top, 0.5 = centre, 1 = bottom). Default 0.5.
+   * When set, the entity simulation position aligns to this fraction of the sprite height,
+   * letting the visual body (e.g. a boat at the bottom of an airship frame) sit at ground level.
+   */
+  spriteOriginY?: number
   player: SideAssets
   bot: SideAssets
 }
@@ -454,7 +466,7 @@ export const HEX_SHAMAN_EXPLOSION_SHEET = {
 } as const
 
 const BARREL_PATH = 'assets/Factions/Goblins/Troops/Barrel'
-const BARREL_FRAME = 128
+const BARREL_FRAME = 192
 
 const TNT_PATH = 'assets/Factions/Goblins/Troops/TNT'
 const TNT_FRAME = FRAME_W
@@ -506,8 +518,13 @@ function barrelSheet(side: 'Blue' | 'Red'): SheetDef {
 }
 
 function barrelSide(side: 'Blue' | 'Red'): SideAssets {
-  const frame = clip(barrelSheet(side), 0, 0, 1, -1)
-  return { idle: frame, run: frame, attack: frame }
+  const sheet = barrelSheet(side)
+  // 4×4 sheet: frame 0 rest, 1-7 hop-in, 12-14 crack-open (play once).
+  return {
+    idle: clip(sheet, 0, 0, 1, -1),
+    run: clip(sheet, 1, 7),
+    attack: clip(sheet, 12, 14, 8, 0),
+  }
 }
 
 const BOMB_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Bomb'
@@ -651,6 +668,48 @@ function lizardSide(side: 'blue' | 'red'): SideAssets {
   }
 }
 
+const AIR_BOAT_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Boat'
+const AIR_BOAT_FRAME = 256
+
+function airBoatSide(side: 'blue' | 'red'): SideAssets {
+  const sheet: SheetDef = {
+    key: `air_boat_${side}_idle`,
+    path: `${AIR_BOAT_PATH}/AirBoat_Idle.png`,
+    frameWidth: AIR_BOAT_FRAME,
+    frameHeight: AIR_BOAT_FRAME,
+  }
+  return {
+    idle:   clip(sheet, 0, 7, 8, -1),
+    run:    clip(sheet, 0, 7, 8, -1),
+    attack: clip(sheet, 0, 7, 8, -1),
+  }
+}
+
+const PIG_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Pig'
+const PIG_FRAME = 192
+
+/** Enemy Pack Pig — 192×192 frames (native sheet resolution); no attack sheet — run reused. */
+function pigSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `pig_${side}_idle`,
+    path: `${PIG_PATH}/Pig_Idle.png`,
+    frameWidth: PIG_FRAME,
+    frameHeight: PIG_FRAME,
+  }
+  const run: SheetDef = {
+    key: `pig_${side}_run`,
+    path: `${PIG_PATH}/Pig_Run.png`,
+    frameWidth: PIG_FRAME,
+    frameHeight: PIG_FRAME,
+  }
+  const runAttack = clip(run, 0, 3, 14, 0)
+  return {
+    idle:   clip(idle, 0, 9,  8, -1),
+    run:    clip(run,  0, 3, 14, -1),
+    attack: runAttack,
+  }
+}
+
 const PIG_RIDER_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Pig Rider Spear Goblin'
 const PIG_RIDER_FRAME = 256
 
@@ -745,6 +804,30 @@ const THIEF_PATH = 'assets/Enemy Pack/Enemies/Thief'
 const THIEF_FRAME = 192
 
 const GNOLL_PATH = 'assets/Enemy Pack/Enemies/Gnoll'
+
+const PADDLE_SHARK_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Paddle Shark'
+
+export const PADDLE_SHARK_IDLE_SHEET = {
+  key: 'paddle_shark_idle',
+  path: `${PADDLE_SHARK_PATH}/Paddle Shark_Idle.png`,
+  frameWidth: 192,
+  frameHeight: 192,
+  animKey: 'paddle_shark_idle_anim',
+  frameStart: 0,
+  frameEnd: 7,
+  frameRate: 10,
+}
+
+export const PADDLE_SHARK_ROW_SHEET = {
+  key: 'paddle_shark_row',
+  path: `${PADDLE_SHARK_PATH}/Paddle Shark_Row.png`,
+  frameWidth: 192,
+  frameHeight: 192,
+  animKey: 'paddle_shark_row_anim',
+  frameStart: 0,
+  frameEnd: 6,
+  frameRate: 12,
+}
 
 export const GNOLL_BONE_SHEET = {
   key: 'gnoll_bone',
@@ -842,36 +925,6 @@ function thiefSide(side: 'blue' | 'red'): SideAssets {
   }
 }
 
-const PADDLE_SHARK_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Paddle Shark'
-const PADDLE_SHARK_FRAME = 192
-
-/** Enemy Pack Paddle Shark — oar melee, Barbarians-style horde. */
-function paddleSharkSide(side: 'blue' | 'red'): SideAssets {
-  const idle: SheetDef = {
-    key: `paddle_shark_${side}_idle`,
-    path: `${PADDLE_SHARK_PATH}/Paddle Shark_Idle.png`,
-    frameWidth: PADDLE_SHARK_FRAME,
-    frameHeight: PADDLE_SHARK_FRAME,
-  }
-  const run: SheetDef = {
-    key: `paddle_shark_${side}_run`,
-    path: `${PADDLE_SHARK_PATH}/Paddle Shark_Run.png`,
-    frameWidth: PADDLE_SHARK_FRAME,
-    frameHeight: PADDLE_SHARK_FRAME,
-  }
-  const attack: SheetDef = {
-    key: `paddle_shark_${side}_attack`,
-    path: `${PADDLE_SHARK_PATH}/Paddle Shark_Attack.png`,
-    frameWidth: PADDLE_SHARK_FRAME,
-    frameHeight: PADDLE_SHARK_FRAME,
-  }
-  return {
-    idle:   clip(idle,   0, 7, 10, -1),
-    run:    clip(run,    0, 5, 14, -1),
-    attack: clip(attack, 0, 5, 14,  0),
-  }
-}
-
 const PANDA_PATH = 'assets/Enemy Pack/Enemies/Panda'
 const PANDA_FRAME = 256
 
@@ -929,6 +982,36 @@ function turtleSide(side: 'blue' | 'red'): SideAssets {
     idle:   clip(idle,   0,  9,  8, -1),
     run:    clip(run,    0,  6, 10, -1),
     attack: clip(attack, 0,  9, 12,  0),
+  }
+}
+
+const BEAR_PATH = 'assets/Enemy Pack/Enemies/Caveborn/Bear'
+const BEAR_FRAME = 256
+
+/** Enemy Pack Bear — 256×256 frames (native sheet resolution). */
+function megaMinionSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `mega_minion_${side}_idle`,
+    path: `${BEAR_PATH}/Bear_Idle.png`,
+    frameWidth: BEAR_FRAME,
+    frameHeight: BEAR_FRAME,
+  }
+  const run: SheetDef = {
+    key: `mega_minion_${side}_run`,
+    path: `${BEAR_PATH}/Bear_Run.png`,
+    frameWidth: BEAR_FRAME,
+    frameHeight: BEAR_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `mega_minion_${side}_attack`,
+    path: `${BEAR_PATH}/Bear_Attack.png`,
+    frameWidth: BEAR_FRAME,
+    frameHeight: BEAR_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0, 7,  8, -1),
+    run:    clip(run,    0, 4, 14, -1),
+    attack: clip(attack, 0, 8, 12,  0),
   }
 }
 
@@ -1053,14 +1136,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     bot:    knightSide('Archer', 'Red'),
   },
   {
-    cardId: 'pawn',
-    avatar: humanAvatar('Avatars_05.png'),
-    contentFill: 0.52,
-    attackHitFrame: 2,
-    player: knightSide('Pawn', 'Blue'),
-    bot:    knightSide('Pawn', 'Red'),
-  },
-  {
     cardId: 'lancer',
     avatar: humanAvatar('Avatars_02.png'),
     contentFill: 0.30,
@@ -1152,6 +1227,44 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     bot:    lizardSide('red'),
   },
   {
+    cardId: 'air_boat',
+    avatar: {
+      key: 'avatar_air_boat',
+      path: `${AIR_BOAT_PATH}/AirBoat_Idle.png`,
+      frameWidth: AIR_BOAT_FRAME,
+      frameHeight: AIR_BOAT_FRAME,
+      frame: 0,
+    },
+    avatarBackdrop: AVATAR_BACKDROP_BANNER,
+    avatarCropRatio: 0.70,
+    // Centre the crop on the hull opening.
+    avatarFocusY: 0.82,
+    // Lower fill scales balloon + hull up on-map; crew use standard troop size in AirBoatCrew.
+    contentFill: 0.42,
+    spriteOriginY: 1.28,
+    attackHitFrame: 4,
+    tintBotSide: true,
+    player: airBoatSide('blue'),
+    bot:    airBoatSide('red'),
+  },
+  {
+    cardId: 'mega_minion',
+    avatar: {
+      key: 'avatar_mega_minion',
+      path: `${BEAR_PATH}/Bear_Idle.png`,
+      frameWidth: BEAR_FRAME,
+      frameHeight: BEAR_FRAME,
+      frame: 0,
+    },
+    avatarBackdrop: AVATAR_BACKDROP_BANNER,
+    avatarCropRatio: 0.55,
+    contentFill: 0.50,
+    attackHitFrame: 4,
+    tintBotSide: true,
+    player: megaMinionSide('blue'),
+    bot:    megaMinionSide('red'),
+  },
+  {
     cardId: 'pig_rider',
     avatar: enemyAvatar('Pig Rider.png'),
     avatarCropRatio: 0.62,
@@ -1160,6 +1273,23 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     tintBotSide: true,
     player: pigRiderSide('blue'),
     bot:    pigRiderSide('red'),
+  },
+  {
+    cardId: 'pig',
+    avatar: {
+      key: 'avatar_pig',
+      path: `${PIG_PATH}/Pig_Idle.png`,
+      frameWidth: PIG_FRAME,
+      frameHeight: PIG_FRAME,
+      frame: 0,
+    },
+    avatarBackdrop: AVATAR_BACKDROP_BANNER,
+    avatarCropRatio: 0.55,
+    contentFill: 0.50,
+    attackHitFrame: 2,
+    tintBotSide: true,
+    player: pigSide('blue'),
+    bot:    pigSide('red'),
   },
   {
     cardId: 'bomb_fish',
@@ -1252,16 +1382,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     tintBotSide: true,
     player: harpoonSharkSide('blue'),
     bot:    harpoonSharkSide('red'),
-  },
-  {
-    cardId: 'paddle_shark',
-    avatar: { key: 'avatar_paddle_shark', path: `${ENEMY_AVATARS}/Paddle Shark.png` },
-    avatarCropRatio: 0.55,
-    contentFill: 0.52,
-    attackHitFrame: 3,
-    tintBotSide: true,
-    player: paddleSharkSide('blue'),
-    bot:    paddleSharkSide('red'),
   },
   {
     cardId: 'spider',
@@ -1492,6 +1612,11 @@ export function getCardAvatarCropRatio(cardId: string): number {
   return bundle?.avatarCropRatio ?? AVATAR_CROP_RATIO_DEFAULT
 }
 
+export function getCardAvatarFocusY(cardId: string): number {
+  const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
+  return bundle?.avatarFocusY ?? 0.5
+}
+
 export function getCardAvatarBuildingFit(cardId: string): boolean {
   const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
   return bundle?.avatarBuildingFit === true
@@ -1531,6 +1656,12 @@ export function getUniqueSheets(): SheetDef[] {
 
 const GARRISON_CANNON_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Cannon'
 const GARRISON_CANNON_FRAME = 128
+
+/** King-tower attack projectile — static 128×128 ball from the garrison cannon folder. */
+export const GARRISON_CANNON_BALL = {
+  key: 'garrison_cannon_ball',
+  path: `${GARRISON_CANNON_PATH}/Cannon_Ball.png`,
+} as const satisfies ImageDef
 
 /** King-tower garrison cannon — directional 128×128 sheets. */
 export const GARRISON_CANNON_SHEETS = {

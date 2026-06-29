@@ -1,16 +1,20 @@
 import { Entity, nextEntityId } from './Entity'
-import { EntityKind, TroopState, UnitType, Owner } from '../types'
-import type { EntityStats, Vec2 } from '../types'
+import { EntityKind, TroopState, UnitType, Owner, DEFAULT_TARGET_PRIORITY } from '../types'
+import type { EntityStats, TargetClass, Vec2 } from '../types'
 import type { GameState } from '../GameState'
 import type { Grid } from '../Grid'
 import { Pathfinder } from '../Pathfinder'
 import {
 
   edgeDistBetweenEntities,
+  entityCollisionCenter,
+  entityCombatRadius,
   meleeApproachPoint,
   pushTroopOutOfEntity,
   surfaceDistToEntity,
+  troopCollisionRadius,
 } from '../EntityGeometry'
+import { assignSlotIndex, attackSlotPosition, slotBaseAngle } from '../AttackSlots'
 import { dealAreaDamage, applySlowInRadius, applyHealInRadius } from '../AreaDamage'
 import { launchBoomerang, isBoomerangThrowerBusy } from '../BoomerangSystem'
 import { canHookTarget, isHookThrowerBusy, launchHook } from '../HookSystem'
@@ -27,15 +31,27 @@ import {
   worldRow,
 } from '../Movement'
 import { getLaneMarchGoal } from '../LaneMovement'
+import { towerAttackCenter } from '@rendering/towerRenderPosition'
 import { moveTowardWithAllyAvoidance } from '../TroopAvoidance'
 import { troopDeployPositions } from '../DeploySystem'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import {
-  CELL_SIZE, TROOP_AGGRO_RANGE_CELLS, COMBAT_LEASH_MULTIPLIER, EPSILON_DISTANCE,
+  CELL_SIZE, EPSILON_DISTANCE,
   LEFT_LANE_COL, RIGHT_LANE_COL, RIVER_ROW_START, RIVER_ROW_END,
-  HEAL_PULSE_INTERVAL_MS, THIEF_DASH_WINDUP_MS, HOOK_WINDUP_MS,
+  LEFT_BRIDGE_COLS, RIGHT_BRIDGE_COLS,
+  HEAL_PULSE_INTERVAL_MS, COMBAT_LEASH_MULTIPLIER,
   TROOP_DEPLOY_SPREAD_CELLS, BRIDGE_CENTER_COL,
 } from '@data/GameConstants'
+import {
+  GNOLL_BOOMERANG_TRAVEL_CELLS,
+  THIEF_DASH_RANGE_CELLS, THIEF_DASH_WINDUP_MS, THIEF_DASH_SPEED_MULT,
+  LANCER_CHARGE_DISTANCE_CELLS, LANCER_CHARGE_SPEED_MULT, LANCER_CHARGE_DAMAGE_MULT,
+  HOOK_MIN_RANGE_CELLS, HOOK_MAX_RANGE_CELLS, HOOK_WINDUP_MS, HOOK_SLOW_DURATION_MS, HOOK_SLOW_SPEED_MULT,
+  GOBLIN_DEMOLISHER_CHARGE_HP_FRACTION, GOBLIN_DEMOLISHER_CHARGE_SPEED_CR, GOBLIN_DEMOLISHER_CHARGE_ATTACK_RANGE,
+  SPIDER_MINION_CARD_ID, SPIDER_MINION_SPAWN_COUNT, SPIDER_MINION_SPAWN_INTERVAL_MS, SPIDER_MINION_SPAWN_INITIAL_DELAY_MS,
+  MONK_HEAL_PER_PULSE, MONK_HEAL_PULSE_COUNT, MONK_HEAL_RADIUS,
+  MONK_SPAWN_HEAL_PER_PULSE, MONK_SPAWN_HEAL_PULSE_COUNT, MONK_SPAWN_HEAL_RADIUS,
+} from '@data/CardAbilities'
 
 interface ActiveHealBurst {
   radiusCells: number
@@ -55,6 +71,33 @@ const STUCK_PROGRESS_FRACTION = 0.15
 /** A new structure objective must be at least this much closer before a marching troop switches. */
 const STRUCTURE_SWITCH_MARGIN = CELL_SIZE * 2
 
+/** Map an entity to its target-priority class. */
+function entityTargetClass(entity: Entity): TargetClass {
+  if (entity.kind === EntityKind.TROOP) return 'troop'
+  if (entity.kind === EntityKind.BUILDING) return 'building'
+  return (entity as Tower).isKing ? 'king' : 'tower'
+}
+
+/** Index of a class in the priority list; unranked classes sort last. */
+function targetPriorityIndex(priority: readonly TargetClass[], cls: TargetClass): number {
+  const i = priority.indexOf(cls)
+  return i < 0 ? priority.length : i
+}
+
+/** Bridge column in `band` nearest the unit's current column — spreads crossings across the bridge width. */
+export function nearestBridgeColumn(unitCol: number, band: readonly number[]): number {
+  let best = band[0]!
+  let bestDist = Infinity
+  for (const col of band) {
+    const d = Math.abs(unitCol - col)
+    if (d < bestDist) {
+      bestDist = d
+      best = col
+    }
+  }
+  return best
+}
+
 export class Troop extends Entity {
   readonly stats: EntityStats
   state: TroopState = TroopState.WALKING
@@ -67,12 +110,12 @@ export class Troop extends Entity {
 
   /** Movement speed in grid cells/sec — includes charge boost, dash leap, and slow debuffs. */
   getEffectiveSpeed(): number {
-    let speed = this.buildingChargeRunActive && this.stats.buildingChargeSpeed != null
-      ? this.stats.buildingChargeSpeed
+    let speed = (this.cardId === 'goblin_demolisher' && this.buildingChargeRunActive)
+      ? GOBLIN_DEMOLISHER_CHARGE_SPEED_CR * (1.5 / 60)  // crSpeedToCellsPerSec(veryFast)
       : this.stats.speed
-    if (this.isCharging) speed *= this.stats.chargeSpeedMultiplier ?? 1
-    if (this.isDashing && this.dashWindupMsRemaining <= 0) {
-      speed *= this.stats.dashSpeedMultiplier ?? 1
+    if (this.isCharging && this.cardId === 'lancer') speed *= LANCER_CHARGE_SPEED_MULT
+    if (this.isDashing && this.dashWindupMsRemaining <= 0 && this.cardId === 'thief') {
+      speed *= THIEF_DASH_SPEED_MULT
     }
     speed *= this.slowSpeedMultiplier
     return speed
@@ -106,7 +149,7 @@ export class Troop extends Entity {
 
   /** Gnoll-style thrower — hold position while attacking or until the bone returns. */
   isBoomerangAnchored(state: GameState): boolean {
-    if (!this.stats.boomerangAttack) return false
+    if (this.cardId !== 'gnoll') return false
     if (isBoomerangThrowerBusy(state, this.id)) return true
     return this.state === TroopState.ATTACKING
   }
@@ -162,8 +205,8 @@ export class Troop extends Entity {
     this.pathfinder = new Pathfinder(grid)
     this.lastMarchDir = owner === Owner.PLAYER ? { x: 0, y: -1 } : { x: 0, y: 1 }
     this.spawnLane = position.x < BRIDGE_CENTER_COL * CELL_SIZE ? 'left' : 'right'
-    if (stats.spawnMinionCardId) {
-      this.spawnMinionCooldownMs = stats.spawnMinionInitialDelayMs ?? 1000
+    if (cardId === 'spider') {
+      this.spawnMinionCooldownMs = SPIDER_MINION_SPAWN_INITIAL_DELAY_MS
     }
   }
 
@@ -222,20 +265,23 @@ export class Troop extends Entity {
 
   /** Deploy-time heal aura (e.g. Monk spawn heal). */
   applySpawnHeal(state: GameState): void {
-    const s = this.stats
-    if (!s.spawnHealRadius || !s.spawnHealPerPulse) return
-    this.startHealBurst(state, s.spawnHealRadius, s.spawnHealPerPulse, s.spawnHealPulseCount ?? 4)
+    if (this.cardId !== 'monk') return
+    this.startHealBurst(state, MONK_SPAWN_HEAL_RADIUS, MONK_SPAWN_HEAL_PER_PULSE, MONK_SPAWN_HEAL_PULSE_COUNT)
   }
 
   /** World point the unit is striking toward — for directional attack anims and dash facing. */
   getAttackAimPoint(): Vec2 | null {
-    const aimTarget = this.isDashing
-      ? this.dashTargetEntity
-      : this.isHooking
-        ? this.hookTargetEntity
-        : (this.state === TroopState.ATTACKING ? this.target : null)
+    const aimTarget = this.getAimTarget()
     if (!aimTarget?.isAlive) return null
     return this.moveGoalFor(aimTarget)
+  }
+
+  /** Current strike / dash / hook target — for rendering aim overrides. */
+  getAimTarget(): Entity | null {
+    if (this.isDashing) return this.dashTargetEntity
+    if (this.isHooking) return this.hookTargetEntity
+    if (this.state === TroopState.ATTACKING) return this.target
+    return null
   }
 
   /** Aim vector while Prince-style charge is active — for the lunge attack clip. */
@@ -298,7 +344,7 @@ export class Troop extends Entity {
         return
       }
 
-      if (this.stats.boomerangAttack && isBoomerangThrowerBusy(state, this.id)) {
+      if (this.cardId === 'gnoll' && isBoomerangThrowerBusy(state, this.id)) {
         this.state = TroopState.ATTACKING
         this.clearPath()
         this.trackObjective(this.target)
@@ -338,7 +384,7 @@ export class Troop extends Entity {
       this.state = TroopState.WALKING
       this.trackObjective(this.target)
       this.marchTowerId = this.target.kind === EntityKind.TOWER ? this.target.id : null
-      this.moveFree(deltaMs, this.moveGoalFor(this.target), state)
+      this.moveFree(deltaMs, this.attackGoalFor(this.target, state), state)
       return
     }
 
@@ -360,9 +406,8 @@ export class Troop extends Entity {
 
   private performAttack(state: GameState, primary: Entity): void {
     const damage = this.getAttackDamage()
-    if (this.stats.boomerangAttack) {
-      const travelCells = this.stats.boomerangTravelCells ?? 7.5
-      launchBoomerang(state, this, primary, travelCells, damage)
+    if (this.cardId === 'gnoll') {
+      launchBoomerang(state, this, primary, GNOLL_BOOMERANG_TRAVEL_CELLS, damage)
       this.resetCharge()
       return
     }
@@ -390,9 +435,8 @@ export class Troop extends Entity {
   }
 
   private buildingChargeHpThreshold(): number | null {
-    const threshold = this.stats.buildingChargeHpFraction
-    if (threshold === undefined || this.maxHp <= 0) return null
-    return Math.floor(this.maxHp * threshold)
+    if (this.cardId !== 'goblin_demolisher' || this.maxHp <= 0) return null
+    return Math.floor(this.maxHp * GOBLIN_DEMOLISHER_CHARGE_HP_FRACTION)
   }
 
   private isBuildingChargeMode(): boolean {
@@ -422,8 +466,8 @@ export class Troop extends Entity {
   }
 
   private effectiveAttackRange(): number {
-    if (this.isBuildingChargeMode() && this.stats.buildingChargeAttackRange != null) {
-      return this.stats.buildingChargeAttackRange
+    if (this.cardId === 'goblin_demolisher' && this.isBuildingChargeMode()) {
+      return GOBLIN_DEMOLISHER_CHARGE_ATTACK_RANGE
     }
     return this.stats.attackRange
   }
@@ -433,9 +477,8 @@ export class Troop extends Entity {
   }
 
   private applyActiveHeal(state: GameState): void {
-    const s = this.stats
-    if (!s.healRadius || !s.healPerPulse) return
-    this.startHealBurst(state, s.healRadius, s.healPerPulse, s.healPulseCount ?? 4)
+    if (this.cardId !== 'monk') return
+    this.startHealBurst(state, MONK_HEAL_RADIUS, MONK_HEAL_PER_PULSE, MONK_HEAL_PULSE_COUNT)
   }
 
   /** CR-style heal burst — each pulse heals every injured ally in radius. */
@@ -501,17 +544,16 @@ export class Troop extends Entity {
     if (this.spawnMinionCooldownMs > 0) return
 
     this.spawnMinions(state)
-    this.spawnMinionCooldownMs = this.stats.spawnMinionIntervalMs ?? 7000
+    this.spawnMinionCooldownMs = SPIDER_MINION_SPAWN_INTERVAL_MS
   }
 
   private spawnMinions(state: GameState): void {
-    const cardId = this.stats.spawnMinionCardId
-    if (!cardId) return
+    if (this.cardId !== 'spider') return
 
-    const spawnDef = CARD_DEFINITIONS[cardId]
+    const spawnDef = CARD_DEFINITIONS[SPIDER_MINION_CARD_ID]
     if (!spawnDef?.stats) return
 
-    const count = this.stats.spawnMinionCount ?? spawnDef.deployCount ?? 1
+    const count = SPIDER_MINION_SPAWN_COUNT
     const positions = troopDeployPositions(this.position, count, TROOP_DEPLOY_SPREAD_CELLS)
     for (const pos of positions) {
       const minion = new Troop(this.owner, spawnDef.stats, pos, this.grid, spawnDef.id)
@@ -566,25 +608,25 @@ export class Troop extends Entity {
 
   private getAttackDamage(): number {
     let damage = this.stats.damage
-    if (this.isCharging && this.stats.chargeDamageMultiplier) {
-      damage = Math.round(damage * this.stats.chargeDamageMultiplier)
+    if (this.isCharging && this.cardId === 'lancer') {
+      damage = Math.round(damage * LANCER_CHARGE_DAMAGE_MULT)
     }
     return damage
   }
 
   private hasOpeningDash(): boolean {
-    return (this.stats.dashRangeCells ?? 0) > 0
+    return this.cardId === 'thief'
   }
 
   private canStartOpeningDash(distPx: number): boolean {
     if (!this.hasOpeningDash() || this.attackCooldownMs > 0) return false
-    const dashReachPx = this.stats.dashRangeCells! * CELL_SIZE
+    const dashReachPx = THIEF_DASH_RANGE_CELLS * CELL_SIZE
     return distPx <= dashReachPx && distPx > this.stats.attackRange * CELL_SIZE
   }
 
   private startOpeningDash(target: Entity): void {
     this.isDashing = true
-    this.dashWindupMsRemaining = this.stats.dashWindupMs ?? THIEF_DASH_WINDUP_MS
+    this.dashWindupMsRemaining = THIEF_DASH_WINDUP_MS
     this.dashTargetEntity = target
     this.dashTarget = this.moveGoalFor(target)
     this.clearPath()
@@ -600,19 +642,19 @@ export class Troop extends Entity {
   }
 
   private hasHookAttack(): boolean {
-    return this.stats.hookAttack === true
+    return this.cardId === 'harpoon_shark'
   }
 
   private canStartHook(distPx: number): boolean {
     if (!this.hasHookAttack() || this.attackCooldownMs > 0) return false
-    const minPx = (this.stats.hookMinRangeCells ?? 3.5) * CELL_SIZE
-    const maxPx = (this.stats.hookMaxRangeCells ?? 7) * CELL_SIZE
+    const minPx = HOOK_MIN_RANGE_CELLS * CELL_SIZE
+    const maxPx = HOOK_MAX_RANGE_CELLS * CELL_SIZE
     return distPx >= minPx && distPx <= maxPx
   }
 
   private startHook(target: Entity): void {
     this.isHooking = true
-    this.hookWindupMsRemaining = this.stats.hookWindupMs ?? HOOK_WINDUP_MS
+    this.hookWindupMsRemaining = HOOK_WINDUP_MS
     this.hookTargetEntity = target
     this.clearPath()
     this.trackObjective(target)
@@ -637,8 +679,8 @@ export class Troop extends Entity {
       state,
       this,
       target,
-      this.stats.hookSlowDurationMs ?? 1500,
-      this.stats.hookSlowSpeedMultiplier ?? 0.65,
+      HOOK_SLOW_DURATION_MS,
+      HOOK_SLOW_SPEED_MULT,
     )
     this.attackCooldownMs = 1000 / this.stats.attackRate
   }
@@ -664,14 +706,13 @@ export class Troop extends Entity {
   }
 
   private hasChargeAbility(): boolean {
-    return (this.stats.chargeDistanceCells ?? 0) > 0
+    return this.cardId === 'lancer'
   }
 
   private recordWalkDistance(cellsMoved: number): void {
     if (!this.hasChargeAbility() || cellsMoved <= 0) return
     this.walkDistanceCells += cellsMoved
-    const threshold = this.stats.chargeDistanceCells!
-    if (!this.isCharging && this.walkDistanceCells >= threshold) {
+    if (!this.isCharging && this.walkDistanceCells >= LANCER_CHARGE_DISTANCE_CELLS) {
       this.isCharging = true
     }
   }
@@ -723,8 +764,73 @@ export class Troop extends Entity {
     return this.aggroRangeCells() * CELL_SIZE
   }
 
+  /** Goal while closing on a target: melee swarms fan onto attack slots; everything else uses the standoff point. */
+  private attackGoalFor(target: Entity, state: GameState): Vec2 {
+    if (this.effectiveAttackRange() <= 2) {
+      const slot = this.attackSlotGoalFor(target, state)
+      if (slot) return slot
+    }
+    return this.moveGoalFor(target)
+  }
+
+  /**
+   * Swarm surround: when multiple melee allies share this target, fan them onto a ring of
+   * attack slots so they circle it instead of stacking on one approach point. Returns null for
+   * solo attackers (keeps single-unit approach unchanged) or when the slot is unwalkable.
+   */
+  private attackSlotGoalFor(target: Entity, state: GameState): Vec2 | null {
+    const allyIds: string[] = []
+    for (const entity of state.entities.values()) {
+      if (!entity.isAlive || entity.kind !== EntityKind.TROOP) continue
+      if (entity.owner !== this.owner) continue
+      const ally = entity as Troop
+      if (ally.target?.id !== target.id) continue
+      if (ally.effectiveAttackRange() > 2) continue
+      allyIds.push(ally.id)
+    }
+
+    const { index, total } = assignSlotIndex(this.id, allyIds)
+    if (total <= 1) return null
+
+    const center = entityCollisionCenter(target)
+    const targetRadius = entityCombatRadius(target) ?? troopCollisionRadius(this)
+    const attackerRadius = troopCollisionRadius(this)
+    const rangePx = this.effectiveAttackRange() * CELL_SIZE
+    const baseAngle = slotBaseAngle(this.position, center)
+    const slot = attackSlotPosition(
+      center,
+      targetRadius,
+      attackerRadius,
+      rangePx,
+      index,
+      total,
+      baseAngle,
+      CELL_SIZE * 0.5,
+    )
+
+    if (this.stats.unitType === UnitType.GROUND && !isWorldWalkable(this.grid, slot.x, slot.y)) {
+      return null
+    }
+    return slot
+  }
+
   private moveGoalFor(target: Entity): Vec2 {
     const range = this.effectiveAttackRange()
+    if (target.kind === EntityKind.TOWER && range > 2) {
+      // Ranged vs tower stands off at `range` cells center-to-center from the tower's
+      // attack centre — the same distance combatDistTo measures — so the troop fires from
+      // exactly the range the tower measures back, not the inflated surface standoff.
+      const tower = target as Tower
+      const center = towerAttackCenter(tower.position.x, tower.position.y, tower.owner, tower.isKing)
+      const dx = this.position.x - center.x
+      const dy = this.position.y - center.y
+      const d = Math.hypot(dx, dy)
+      if (d < EPSILON_DISTANCE) return { x: this.position.x, y: this.position.y }
+      // Stop a touch inside range (half a cell) so float rounding never parks the unit
+      // just outside its own attack check.
+      const standoff = Math.max(0, range * CELL_SIZE - CELL_SIZE * 0.5)
+      return { x: center.x + (dx / d) * standoff, y: center.y + (dy / d) * standoff }
+    }
     if (target.kind === EntityKind.BUILDING || target.kind === EntityKind.TOWER) {
       // Always use meleeApproachPoint for structures — it stops the unit at attack range
       // from the surface (not at the surface itself), so ranged units fire from distance.
@@ -978,9 +1084,12 @@ export class Troop extends Entity {
    */
   private buildBridgeCrossingPath(goal: Vec2): Vec2[] {
     const unitCol = this.grid.worldToCell(this.position.x, this.position.y).x
-    const laneCol = Math.abs(unitCol - LEFT_LANE_COL) <= Math.abs(unitCol - RIGHT_LANE_COL)
-      ? LEFT_LANE_COL
-      : RIGHT_LANE_COL
+    // Pick the bridge on the unit's own side, then fan across its 3-cell width by crossing on
+    // the band column nearest the unit's current column. Units approaching at different x spread
+    // over the bridge instead of all snapping to the lane centre (CR-style funneling).
+    const onLeftSide = Math.abs(unitCol - LEFT_LANE_COL) <= Math.abs(unitCol - RIGHT_LANE_COL)
+    const bridgeCols = onLeftSide ? LEFT_BRIDGE_COLS : RIGHT_BRIDGE_COLS
+    const laneCol = nearestBridgeColumn(unitCol, bridgeCols)
 
     const fromBelow = worldRow(this.position.y) > RIVER_ROW_END
     const frontRow = fromBelow ? RIVER_ROW_END + 1 : RIVER_ROW_START - 1
@@ -1043,7 +1152,12 @@ export class Troop extends Entity {
 
   private aggroRangeCells(): number {
     const range = this.effectiveAttackRange()
-    return range > 2 ? range : TROOP_AGGRO_RANGE_CELLS
+    let aggro = range > 2 ? range : Math.max(range * 2, 2)
+    // Special long-reach melee cards must detect targets out to their ability range so the
+    // dash / hook can trigger before the unit is in normal melee range.
+    if (this.cardId === 'thief') aggro = Math.max(aggro, THIEF_DASH_RANGE_CELLS)
+    if (this.cardId === 'harpoon_shark') aggro = Math.max(aggro, HOOK_MAX_RANGE_CELLS)
+    return aggro
   }
 
   private engageDistTo(entity: Entity, state?: GameState): number {
@@ -1064,36 +1178,34 @@ export class Troop extends Entity {
    * Giant-style troops only consider buildings and towers.
    */
   private refreshCombatTarget(state: GameState): void {
-    const attackReach = this.effectiveAttackRange() * CELL_SIZE
     const engagedTarget = this.target?.isAlive ? this.target : null
     const engagedOnTroop = engagedTarget?.kind === EntityKind.TROOP
 
-    // Structures: keep target while within leash range.
-    if (
-      engagedTarget !== null &&
-      !engagedOnTroop &&
-      this.combatDistTo(engagedTarget) <= attackReach * COMBAT_LEASH_MULTIPLIER &&
-      !this.effectiveTargetsBuildingsOnly()
-    ) return
-
     // Troops: keep chasing as long as they're alive and nothing closer has appeared.
     if (engagedOnTroop && !this.effectiveTargetsBuildingsOnly()) {
-      const nearestTroop = findNearestEnemy(state, {
-        owner: this.owner,
-        from: this.position,
-        includeTowers: false,
-        canAttack: (entity) => this.canAttack(entity),
-        distance: (_from, entity) => this.engageDistTo(entity, state),
-        maxDistance: this.aggroRangePx(),
-      })
-      // Keep current troop unless a different one is meaningfully closer.
-      const currentDist = this.engageDistTo(engagedTarget!, state)
-      const nearestDist = nearestTroop ? this.engageDistTo(nearestTroop, state) : Infinity
-      if (!nearestTroop || nearestTroop.id === engagedTarget!.id || nearestDist >= currentDist - CELL_SIZE * 2) {
+      const leashPx = this.aggroRangeCells() * COMBAT_LEASH_MULTIPLIER * CELL_SIZE
+      if (this.engageDistTo(engagedTarget!, state) > leashPx) {
+        // Target fled beyond leash range — drop it and fall through to reacquire/march.
+        // Deviation: Clash Royale never drops a live target by distance (units fight to the death).
+        this.target = null
+      } else {
+        const nearestTroop = findNearestEnemy(state, {
+          owner: this.owner,
+          from: this.position,
+          includeTowers: false,
+          canAttack: (entity) => this.canAttack(entity),
+          distance: (_from, entity) => this.engageDistTo(entity, state),
+          maxDistance: this.aggroRangePx(),
+        })
+        // Keep current troop unless a different one is meaningfully closer.
+        const currentDist = this.engageDistTo(engagedTarget!, state)
+        const nearestDist = nearestTroop ? this.engageDistTo(nearestTroop, state) : Infinity
+        if (!nearestTroop || nearestTroop.id === engagedTarget!.id || nearestDist >= currentDist - CELL_SIZE * 2) {
+          return
+        }
+        this.target = nearestTroop
         return
       }
-      this.target = nearestTroop
-      return
     }
 
     // This unit's tower target just died — redirect using lane-aware selection so we
@@ -1139,7 +1251,31 @@ export class Troop extends Entity {
       distance: (_from, entity) => this.engageDistTo(entity, state),
     })
 
-    this.target = troopTarget ?? this.stickyStructureTarget(structureTarget, state)
+    const structureCandidate = this.stickyStructureTarget(structureTarget, state)
+    this.target = this.pickByPriority(troopTarget, structureCandidate, state)
+  }
+
+  /**
+   * Choose between a troop candidate and a structure candidate by this unit's
+   * {@link EntityStats.targetPriority} (most-preferred class first), tie-broken by distance.
+   * The default order keeps troops preferred over structures (legacy behavior).
+   */
+  private pickByPriority(
+    troopTarget: Entity | null,
+    structureTarget: Entity | null,
+    state: GameState,
+  ): Entity | null {
+    if (!troopTarget) return structureTarget
+    if (!structureTarget) return troopTarget
+
+    const priority = this.stats.targetPriority ?? DEFAULT_TARGET_PRIORITY
+    const troopRank = targetPriorityIndex(priority, entityTargetClass(troopTarget))
+    const structureRank = targetPriorityIndex(priority, entityTargetClass(structureTarget))
+    if (troopRank !== structureRank) return troopRank < structureRank ? troopTarget : structureTarget
+
+    return this.engageDistTo(troopTarget, state) <= this.engageDistTo(structureTarget, state)
+      ? troopTarget
+      : structureTarget
   }
 
   /**
@@ -1204,12 +1340,24 @@ export class Troop extends Entity {
 
   /** Melee uses edge-to-edge gap; ranged uses center-to-center. Building-charge uses edge gap on structures. */
   private combatDistTo(entity: Entity): number {
+    const ranged = this.effectiveAttackRange() > 2
+    if (entity.kind === EntityKind.TOWER && ranged) {
+      // Ranged vs tower: measure center-to-center to the tower's own attack centre — the
+      // exact point the tower measures range from (see Tower.tick). This keeps attackRange
+      // symmetric on both sides of the fight, so CR range values map 1:1 and the tower
+      // always wins its designed range bracket instead of being out-ranged by the
+      // surface-to-surface bonus (tower radius + troop radius ≈ 1.85 cells).
+      const tower = entity as Tower
+      const center = towerAttackCenter(tower.position.x, tower.position.y, tower.owner, tower.isKing)
+      return Math.sqrt(distSq(this.position, center))
+    }
     if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {
-      // Structures: always surface-to-surface so attackRange means "cells from tower edge".
-      // This matches meleeApproachPoint which also stops at range cells from the surface.
+      // Buildings (and melee vs towers): surface-to-surface so attackRange means "cells
+      // from the structure edge". Matches meleeApproachPoint, which stops at range cells
+      // from the surface.
       return edgeDistBetweenEntities(this, entity)
     }
-    if (this.effectiveAttackRange() > 2) {
+    if (ranged) {
       return Math.sqrt(distSq(this.position, entity.position))
     }
     return edgeDistBetweenEntities(this, entity)
@@ -1231,7 +1379,7 @@ export class Troop extends Entity {
   }
 
   /** Dev overlay — current path, goal, and target */
-  getDevInfo(_state: GameState): {
+  getDevInfo(state: GameState): {
     waypoints: readonly Vec2[]
     goal: Vec2 | null
     targetPos: Vec2 | null
@@ -1240,8 +1388,10 @@ export class Troop extends Entity {
     return {
       waypoints: [...this.pathWaypoints],
       goal: this.pathGoal ? { ...this.pathGoal } : null,
-      targetPos: this.target?.isAlive ? this.moveGoalFor(this.target) : null,
-      marchGoal: this.target ? null : this.getMarchGoal(_state),
+      // Mirror the actual movement goal (attackGoalFor) so the dev overlay shows the
+      // attack-slot ring position swarms steer toward, not the bare standoff point.
+      targetPos: this.target?.isAlive ? this.attackGoalFor(this.target, state) : null,
+      marchGoal: this.target ? null : this.getMarchGoal(state),
     }
   }
 }

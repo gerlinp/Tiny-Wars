@@ -208,7 +208,7 @@ export class TntPool {
     bomb.setVisible(true)
     bomb.setAlpha(1)
 
-    if (this.scene.anims.exists(spinKey)) {
+    if (spinKey && this.scene.anims.exists(spinKey)) {
       bomb.anims.timeScale = straight ? 1 : BOMB_SPIN_TIME_SCALE
       bomb.anims.play(spinKey)
     }

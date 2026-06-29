@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
-import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, getHealthBarImageKeys, HEALTH_BAR_ASSETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET } from '@data/AssetManifest'
-import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx } from '@rendering/AnimationRegistry'
-import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET } from '@data/AssetManifest'
+import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, getHealthBarImageKeys, HEALTH_BAR_ASSETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET, PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET } from '@data/AssetManifest'
+import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx, registerAirBoatCrewFx } from '@rendering/AnimationRegistry'
+import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL } from '@data/AssetManifest'
 import { TERRAIN_COLOR1, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_DECK } from '@data/TerrainManifest'
 import { DEFAULT_DECK } from '@data/CardData'
 import { setActiveMapConfig, getActiveMapConfig } from '@data/ActiveMapConfig'
@@ -47,8 +47,10 @@ export class PreloadScene extends Phaser.Scene {
 
     this.barTimer = setInterval(() => this.tickLoadingBar(), 32)
 
-    this.load.on('filecomplete', (key: string) => {
-      if (key === previewSheet.key) this.tryShowLoadingWalker()
+    // Retry on each completed file — the air boat walker also needs its crew sheets, which stream
+    // in after the boat sheet; createLoadingWalker returns null until everything it needs is ready.
+    this.load.on('filecomplete', () => {
+      if (!this.loadingWalkerShown) this.tryShowLoadingWalker()
     })
 
     // Random troop run sheet first so the walker can appear while the rest loads.
@@ -56,6 +58,17 @@ export class PreloadScene extends Phaser.Scene {
       frameWidth: previewSheet.frameWidth,
       frameHeight: previewSheet.frameHeight,
     })
+
+    // Air boat is a composite — load the paddle-shark crew sheets early too so the walker can
+    // appear promptly with its rower rather than waiting for the full bulk load.
+    if (this.loadingUnitId === 'air_boat') {
+      for (const sheet of [PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET]) {
+        this.load.spritesheet(sheet.key, sheet.path, {
+          frameWidth: sheet.frameWidth,
+          frameHeight: sheet.frameHeight,
+        })
+      }
+    }
 
     // Card unit spritesheets (animated)
     for (const sheet of getUniqueSheets()) {
@@ -156,11 +169,19 @@ export class PreloadScene extends Phaser.Scene {
       { frameWidth: HEX_SHAMAN_EXPLOSION_SHEET.frameWidth, frameHeight: HEX_SHAMAN_EXPLOSION_SHEET.frameHeight },
     )
     this.load.image(HARPOON_PROJECTILE_SHEET.key, HARPOON_PROJECTILE_SHEET.path)
+    this.load.image(GARRISON_CANNON_BALL.key, GARRISON_CANNON_BALL.path)
 
     this.load.spritesheet(GNOLL_BONE_SHEET.key, GNOLL_BONE_SHEET.path, {
       frameWidth: GNOLL_BONE_SHEET.frameWidth,
       frameHeight: GNOLL_BONE_SHEET.frameHeight,
     })
+
+    // Air boat pick already queued these early for the loading walker — avoid a duplicate key.
+    if (this.loadingUnitId !== 'air_boat') {
+      for (const sheet of [PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET]) {
+        this.load.spritesheet(sheet.key, sheet.path, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight })
+      }
+    }
 
     this.load.spritesheet(GOBLIN_DYNAMITE_SHEET.key, GOBLIN_DYNAMITE_SHEET.path, {
       frameWidth: GOBLIN_DYNAMITE_SHEET.frameWidth,
@@ -205,8 +226,9 @@ export class PreloadScene extends Phaser.Scene {
 
   private tryShowLoadingWalker(): void {
     if (this.loadingWalkerShown) return
-    this.loadingWalkerShown = true
-    createLoadingWalker(this, this.loadingUnitId, this.scale.width / 2, this.walkerY)
+    const walker = createLoadingWalker(this, this.loadingUnitId, this.scale.width / 2, this.walkerY)
+    // May be null while the (air boat) crew sheets are still streaming — retry on the next file.
+    if (walker) this.loadingWalkerShown = true
   }
 
   private tickLoadingBar(): void {
@@ -289,6 +311,7 @@ export class PreloadScene extends Phaser.Scene {
     registerExplosionFx(this)
     registerGnollBoneFx(this)
     registerGoblinDynamiteFx(this)
+    registerAirBoatCrewFx(this)
 
     this.time.delayedCall(waitMs, () => this.scene.start('MainMenuScene'))
   }

@@ -1,5 +1,4 @@
 import Phaser from 'phaser'
-import { Grid } from '@core/Grid'
 import type { CardDefinition } from '@core/types'
 import { CardType, Owner } from '@core/types'
 import { troopDeployPositions } from '@core/DeploySystem'
@@ -9,6 +8,7 @@ import { getSideAssets } from '@data/AssetManifest'
 import { playCardAnim } from './AnimationRegistry'
 import { resolveTexture } from './renderingUtils'
 import { applyCardDisplaySize } from './assetDisplaySize'
+import { AIR_BOAT_SPRITE_ORIGIN_Y } from './AirBoatCrew'
 
 const VALID_TINT   = 0x88ff88
 const INVALID_TINT = 0xff6666
@@ -16,8 +16,9 @@ const INVALID_TINT = 0xff6666
 export class PlacementGhost {
   private readonly troopSprites: Phaser.GameObjects.Sprite[] = []
   private readonly ring: Phaser.GameObjects.Arc
-  private readonly grid: Grid
   private isSpell = false
+  /** Buildings spawn cell-snapped (footprint aligns to grid), so preview snaps too. */
+  private isBuilding = false
   private spellCardId: string | null = null
   /** Troop sprites shown in the preview (deploy count or spell spawn count). */
   private troopPreviewCount = 1
@@ -25,7 +26,6 @@ export class PlacementGhost {
   private troopPreviewCardId: string | null = null
 
   constructor(private scene: Phaser.Scene) {
-    this.grid = new Grid()
     this.ring = scene.add.circle(0, 0, 40, 0xff6622, 0.12)
       .setStrokeStyle(2, 0xff8844, 0.55)
       .setDepth(6)
@@ -54,6 +54,7 @@ export class PlacementGhost {
       const key = resolveTexture(this.scene, textureKey, 'placeholder_player')
       sprite.setTexture(key, 0)
       applyCardDisplaySize(sprite, this.scene, cardId, key, 0)
+      if (cardId === 'air_boat') sprite.setOrigin(0.5, AIR_BOAT_SPRITE_ORIGIN_Y)
       sprite.setAlpha(0.55)
     }
 
@@ -65,6 +66,7 @@ export class PlacementGhost {
 
   setCard(card: CardDefinition): void {
     this.isSpell = card.cardType === CardType.SPELL
+    this.isBuilding = card.cardType === CardType.BUILDING
     this.spellCardId = this.isSpell ? card.id : null
 
     if (this.isSpell) {
@@ -157,8 +159,16 @@ export class PlacementGhost {
       return
     }
 
-    const cell = this.grid.worldToCell(pointerX, pointerY)
-    const world = this.grid.cellToWorld(cell.x, cell.y)
+    // Follow the exact pointer/finger so the preview matches where the unit actually lands
+    // (deployCard receives this same world position). No grid snapping — that made the ghost
+    // jump to cell centres and feel disconnected from the cursor / touch. Buildings still snap
+    // to the cell centre because their footprint must align to the grid.
+    const world = this.isBuilding
+      ? {
+          x: Math.floor(pointerX / CELL_SIZE) * CELL_SIZE + CELL_SIZE / 2,
+          y: Math.floor(pointerY / CELL_SIZE) * CELL_SIZE + CELL_SIZE / 2,
+        }
+      : { x: pointerX, y: pointerY }
 
     if (this.isSpell) {
       this.ring.setVisible(true)

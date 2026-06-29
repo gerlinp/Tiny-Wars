@@ -108,7 +108,7 @@ export function displaySizeForTexture(
   }
 }
 
-const UNSCALED_CARD_IDS = new Set(['skeleton', 'skeleton_army', 'archer', 'pawn', 'villagers', 'spiderling'])
+const UNSCALED_CARD_IDS = new Set(['skeleton', 'skeleton_army', 'archer', 'villagers', 'spiderling'])
 
 export function displaySizeForCard(
   scene: Phaser.Scene,
@@ -118,6 +118,17 @@ export function displaySizeForCard(
 ): DisplaySize {
   const scale = UNSCALED_CARD_IDS.has(cardId) ? 1 : SPRITE_VISUAL_SCALE
   return displaySizeForTexture(scene, textureKey, frame, targetHeightForCard(cardId) * scale)
+}
+
+/** On-map size for a 192px-native troop sheet at standard Enemy Pack content fill. */
+export function displaySizeForTroopSheet(
+  scene: Phaser.Scene,
+  textureKey: string,
+  frame: string | number = 0,
+  contentFill = 0.55,
+): DisplaySize {
+  const targetH = (MAP_UNIT_TARGET_HEIGHT / contentFill) * SPRITE_VISUAL_SCALE
+  return displaySizeForTexture(scene, textureKey, frame, targetH)
 }
 
 export function displaySizeForTower(scene: Phaser.Scene, isKing: boolean, textureKey: string): DisplaySize {

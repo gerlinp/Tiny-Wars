@@ -3,8 +3,8 @@ import type { CardDefinition } from '@core/types'
 import { CardType, UnitType, AttackType } from '@core/types'
 import { CINZEL_FONT, NUMBER_FONT } from './cardHandLayout'
 import { createCardPortrait, destroyCardPortrait, type CardPortraitNode } from './cardPortrait'
-import { GAME_WIDTH, CANVAS_HEIGHT } from '@data/GameConstants'
-import { CR_SPEED, crSpeedToCellsPerSec } from '@data/GameConstants'
+import { GAME_WIDTH, CANVAS_HEIGHT, CR_SPEED, crSpeedToCellsPerSec } from '@data/GameConstants'
+import { LANCER_CHARGE_DAMAGE_MULT, THIEF_DASH_RANGE_CELLS } from '@data/CardAbilities'
 
 const MODAL_W = GAME_WIDTH - 160
 const MODAL_H = 1520
@@ -157,10 +157,10 @@ export class CardInfoModal {
         rows.push(['Splash',  `${stats.splashRadius} tiles`])
       if (stats.lifetimeMs)
         rows.push(['Life',    `${stats.lifetimeMs / 1000}s`])
-      if (stats.chargeDistanceCells)
-        rows.push(['Charge',  `×${stats.chargeDamageMultiplier} dmg`])
-      if (stats.dashRangeCells)
-        rows.push(['Dash',    `${stats.dashRangeCells} tiles`])
+      if (card.id === 'lancer')
+        rows.push(['Charge',  `×${LANCER_CHARGE_DAMAGE_MULT} dmg`])
+      if (card.id === 'thief')
+        rows.push(['Dash',    `${THIEF_DASH_RANGE_CELLS} tiles`])
     }
 
     if (spell) {

@@ -1,6 +1,6 @@
 import { CardType, UnitType, AttackType } from '@core/types'
 import type { CardDefinition, EntityStats, SpellStats } from '@core/types'
-import { BOMB_TOWER_LIFETIME_MS, CR_SPEED, crSpeedToCellsPerSec, HOOK_MAX_RANGE_CELLS, HOOK_MIN_RANGE_CELLS, HOOK_SLOW_DURATION_MS, HOOK_SLOW_SPEED_MULT, HOOK_WINDUP_MS, LANCER_CHARGE_DAMAGE_MULT, LANCER_CHARGE_DISTANCE_CELLS, LANCER_CHARGE_SPEED_MULT, THIEF_DASH_RANGE_CELLS, THIEF_DASH_SPEED_MULT, THIEF_DASH_WINDUP_MS, WITCH_MINION_SPAWN_COUNT, WITCH_MINION_SPAWN_INITIAL_DELAY_MS, WITCH_MINION_SPAWN_INTERVAL_MS } from '@data/GameConstants'
+import { BOMB_TOWER_LIFETIME_MS, CR_SPEED, crSpeedToCellsPerSec } from '@data/GameConstants'
 
 function troop(
   id: string,
@@ -75,7 +75,6 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   wizard:        AT('2024-07-01T12:00:00.000Z'),
   arrows:        AT('2024-07-08T12:00:00.000Z'),
   elite_archer:  AT('2024-07-15T12:00:00.000Z'),
-  pawn:          AT('2024-08-01T12:00:00.000Z'),
   skeleton_army: AT('2026-05-15T12:00:00.000Z'),
   villagers:     AT('2026-06-24T12:00:00.000Z'),
   spear_goblin:  AT('2026-06-24T15:00:00.000Z'),
@@ -85,7 +84,6 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   pig_rider:     AT('2024-11-01T12:00:00.000Z'),
   bomb_fish:     AT('2024-11-15T12:00:00.000Z'),
   goblin_demolisher: AT('2026-06-29T12:00:00.000Z'),
-  paddle_shark:    AT('2026-06-29T18:00:00.000Z'),
   minotaur:      AT('2025-01-01T12:00:00.000Z'),
   thief:         AT('2025-02-01T12:00:00.000Z'),
   turtle:        AT('2025-03-01T12:00:00.000Z'),
@@ -94,6 +92,9 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   gnoll:         AT('2025-06-01T12:00:00.000Z'),
   monk:          AT('2026-01-01T12:00:00.000Z'),
   harpoon_shark: AT('2026-06-24T18:00:00.000Z'),
+  air_boat:      AT('2026-06-29T18:00:00.000Z'),
+  pig:           AT('2026-06-30T12:00:00.000Z'),
+  mega_minion:   AT('2025-07-01T12:00:00.000Z'),
   tnt:           AT('2026-06-01T12:00:00.000Z'),
   goblin_barrel: AT('2026-06-28T12:00:00.000Z'),
   spider:        AT('2026-06-28T18:00:00.000Z'),
@@ -119,7 +120,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     maxHp: 2332,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
     damage: 267,
-    attackRate: 1 / 1.2,
+    attackRate: 1 / 1.1,
     attackRange: 1.2,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
@@ -151,19 +152,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.AIR_AND_GROUND,
   }, 'archer_blue_idle', 'archer_red_idle'),
 
-  pawn: troop('pawn', 'Pawn',
-    'A basic melee soldier. Cheap and easy to deploy in large numbers.',
-    3, {
-    maxHp: 1406,
-    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
-    damage: 211,
-    attackRate: 1 / 1.2,
-    attackRange: 1.2,
-    unitType: UnitType.GROUND,
-    attackType: AttackType.GROUND_ONLY,
-  }, 'pawn_blue_idle', 'pawn_red_idle'),
-
-  /** ×3 deploy — Skull enemy art. */
+/** ×3 deploy — Skull enemy art. */
   skeleton: troop('skeleton', 'Skeletons',
     'Three fragile but fast skeletons. Cheap distraction that overwhelms through numbers.',
     1, {
@@ -193,11 +182,11 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   spear_goblin: troop('spear_goblin', 'Spear Goblins',
     'Three spear-wielding brutes with armor. Armor absorbs damage before their health does.',
     3, {
-    maxHp: 108,
+    maxHp: 280,
     armorHp: 339,
     speed: crSpeedToCellsPerSec(CR_SPEED.fast),
-    damage: 155,
-    attackRate: 1 / 1.0,
+    damage: 127,
+    attackRate: 1 / 1.1,
     attackRange: 1.6,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
@@ -207,9 +196,9 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   villagers: troop('villagers', 'Villagers',
     'Three fast villagers that rush in with knives. Cheap swarm melee.',
     2, {
-    maxHp: 216,
+    maxHp: 289,
     speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
-    damage: 203,
+    damage: 255,
     attackRate: 1 / 1.1,
     attackRange: 0.5,
     unitType: UnitType.GROUND,
@@ -220,9 +209,9 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   troll: troop('troll', 'Troll',
     'A massive brute who targets only buildings and towers. Extremely high HP.',
     5, {
-    maxHp: 5254,
+    maxHp: 6392,
     speed: crSpeedToCellsPerSec(CR_SPEED.slow),
-    damage: 335,
+    damage: 214,
     attackRate: 1 / 1.5,
     attackRange: 1.2,
     unitType: UnitType.GROUND,
@@ -235,15 +224,12 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     'Builds up a devastating charge over distance, doubling speed and damage on impact.',
     5, {
     maxHp: 2542,
-    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    speed: crSpeedToCellsPerSec(CR_SPEED.fast),
     damage: 518,
     attackRate: 1 / 1.4,
     attackRange: 1.6,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
-    chargeDistanceCells: LANCER_CHARGE_DISTANCE_CELLS,
-    chargeSpeedMultiplier: LANCER_CHARGE_SPEED_MULT,
-    chargeDamageMultiplier: LANCER_CHARGE_DAMAGE_MULT,
   }, 'lancer_blue_idle', 'lancer_red_idle'),
 
   wizard: troop('wizard', 'Wizard',
@@ -264,13 +250,41 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     4, {
     maxHp: 1064,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
-    damage: 133,
+    damage: 152,
     attackRate: 1 / 1.8,
     attackRange: 3.5,
     unitType: UnitType.AIR,
     attackType: AttackType.AIR_AND_GROUND,
     splashRadius: 2.5,
   }, 'lizard_blue_idle', 'lizard_red_idle'),
+
+  air_boat: troop('air_boat', 'Air Boat',
+    'A balloon boat crewed by a paddle shark. Targets buildings only, dropping bombs from above.',
+    5, {
+    maxHp: 3403,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 652,
+    attackRate: 0.5,
+    attackRange: 1.5,
+    unitType: UnitType.AIR,
+    attackType: AttackType.GROUND_ONLY,
+    targetsBuildingsOnly: true,
+    splashRadius: 1.5,
+    deathSplashDamage: 272,
+    deathSplashRadius: 3.0,
+  }, 'air_boat_blue_idle', 'air_boat_red_idle'),
+
+  mega_minion: troop('mega_minion', 'Mega Minion',
+    'A heavy armored flier that hits hard at short range. Strong against air and ground.',
+    3, {
+    maxHp: 1108,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 413,
+    attackRate: 1 / 1.5,
+    attackRange: 1.6,
+    unitType: UnitType.AIR,
+    attackType: AttackType.AIR_AND_GROUND,
+  }, 'mega_minion_blue_idle', 'mega_minion_red_idle'),
 
   torch_goblin: troop('torch_goblin', 'Torch Goblin',
     'A very fast goblin lobbing fire at rapid pace. Effective at range against air and ground.',
@@ -279,7 +293,10 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
     damage: 199,
     attackRate: 1 / 0.7,
-    attackRange: 7.0,
+    // CR distance, map-tuned. Troops now measure tower range center-to-center (same as
+    // the tower measures back — see Troop.combatDistTo), so this 5.0 maps 1:1 and stays
+    // safely under the princess tower's 7.5, letting the tower outrange a goblin on the bridge.
+    attackRange: 5.0,
     unitType: UnitType.GROUND,
     attackType: AttackType.AIR_AND_GROUND,
   }, 'torch_goblin_blue_idle', 'torch_goblin_red_idle'),
@@ -297,6 +314,20 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
     targetsBuildingsOnly: true,
   }, 'pig_rider_blue_idle', 'pig_rider_red_idle'),
+
+  /** ×4 deploy — Pig art. CR Royal Hogs (building-only rush). */
+  pig: troop('pig', 'Pigs',
+    'Four fast hogs that ignore enemy troops and charge straight for buildings.',
+    5, {
+    maxHp: 1108,
+    speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
+    damage: 98,
+    attackRate: 1 / 1.2,
+    attackRange: 0.7,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+    targetsBuildingsOnly: true,
+  }, 'pig_blue_idle', 'pig_red_idle', 4),
 
   /** Ranged ground splash — Bomb Fish enemy art. */
   bomb_fish: troop('bomb_fish', 'Bomb Fish',
@@ -326,9 +357,6 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     splashRadius: 1.5,
     deathSplashRadius: 2.5,
     deathSplashDamage: 614,
-    buildingChargeHpFraction: 0.5,
-    buildingChargeSpeed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
-    buildingChargeAttackRange: 1.0,
   }, 'goblin_demolisher_blue_sheet', 'goblin_demolisher_red_sheet'),
 
   /** Slow heavy melee — Minotaur enemy art. */
@@ -355,9 +383,6 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackRange: 0.75,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
-    dashRangeCells: THIEF_DASH_RANGE_CELLS,
-    dashSpeedMultiplier: THIEF_DASH_SPEED_MULT,
-    dashWindupMs: THIEF_DASH_WINDUP_MS,
   }, 'thief_blue_idle', 'thief_red_idle'),
 
   /** Cheap building tank — slowing death burst on destroy. */
@@ -404,8 +429,6 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     unitType: UnitType.GROUND,
     attackType: AttackType.AIR_AND_GROUND,
     splashRadius: 1.5,
-    boomerangAttack: true,
-    boomerangTravelCells: 7.5,
   }, 'gnoll_blue_idle', 'gnoll_red_idle'),
 
   monk: troop('monk', 'Monk',
@@ -418,12 +441,6 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackRange: 1.6,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
-    healPerPulse: 34,
-    healPulseCount: 4,
-    healRadius: 4,
-    spawnHealPerPulse: 67,
-    spawnHealPulseCount: 4,
-    spawnHealRadius: 2.5,
   }, 'monk_blue_idle', 'monk_red_idle'),
 
   /** Melee + hook — pulls ground troops in or reels toward buildings. */
@@ -437,26 +454,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackRange: 1.2,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
-    hookAttack: true,
-    hookMinRangeCells: HOOK_MIN_RANGE_CELLS,
-    hookMaxRangeCells: HOOK_MAX_RANGE_CELLS,
-    hookWindupMs: HOOK_WINDUP_MS,
-    hookSlowDurationMs: HOOK_SLOW_DURATION_MS,
-    hookSlowSpeedMultiplier: HOOK_SLOW_SPEED_MULT,
   }, 'harpoon_shark_blue_idle', 'harpoon_shark_red_idle'),
-
-  /** ×5 deploy — Paddle Shark art. CR Barbarians. */
-  paddle_shark: troop('paddle_shark', 'Paddle Sharks',
-    'Five oar-wielding raiders charge ground troops in a frenzy.',
-    5, {
-    maxHp: 915,
-    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
-    damage: 254,
-    attackRate: 1 / 1.4,
-    attackRange: 0.7,
-    unitType: UnitType.GROUND,
-    attackType: AttackType.GROUND_ONLY,
-  }, 'paddle_shark_blue_idle', 'paddle_shark_red_idle', 5),
 
   /** Witch-style spawner — Caveborn Spider art, green splash bolts + tiny spiderlings. */
   spider: troop('spider', 'Spider',
@@ -470,10 +468,6 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     unitType: UnitType.GROUND,
     attackType: AttackType.AIR_AND_GROUND,
     splashRadius: 1.5,
-    spawnMinionCardId: 'spiderling',
-    spawnMinionCount: WITCH_MINION_SPAWN_COUNT,
-    spawnMinionIntervalMs: WITCH_MINION_SPAWN_INTERVAL_MS,
-    spawnMinionInitialDelayMs: WITCH_MINION_SPAWN_INITIAL_DELAY_MS,
   }, 'spider_blue_idle', 'spider_red_idle'),
 
   /** Witch minion — skeleton-equivalent stats, not offered in the deck builder. */
@@ -540,7 +534,7 @@ export const DECK_EXCLUDED_CARD_IDS = ['wood_tower'] as const
 export const COLLECTION_HIDDEN_CARD_IDS = ['spiderling'] as const
 
 const ALL_DECK_CARD_IDS: string[] = [
-  'warrior', 'archer', 'skeleton', 'lancer', 'wizard', 'torch_goblin', 'arrows', 'wood_tower', 'tnt', 'goblin_barrel',
+  'warrior', 'archer', 'skeleton', 'lancer', 'wizard', 'torch_goblin', 'arrows', 'wood_tower', 'tnt',
 ]
 
 export const DEFAULT_DECK: string[] = ALL_DECK_CARD_IDS.filter(

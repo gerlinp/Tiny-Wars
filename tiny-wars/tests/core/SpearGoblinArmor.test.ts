@@ -10,9 +10,9 @@ describe('Spear Goblins armor (spear_goblin card)', () => {
   const guardStats = CARD_DEFINITIONS.spear_goblin!.stats!
 
   it('declares armor stats on the card', () => {
-    expect(guardStats.maxHp).toBe(108)
+    expect(guardStats.maxHp).toBe(280)
     expect(guardStats.armorHp).toBe(339)
-    expect(guardStats.damage).toBe(155)
+    expect(guardStats.damage).toBe(127)
     expect(guardStats.attackRange).toBe(1.6)
   })
 
@@ -21,11 +21,11 @@ describe('Spear Goblins armor (spear_goblin card)', () => {
     expect(guard.getHpFraction()).toBe(1)
 
     guard.takeDamage(100)
-    expect(guard.hp).toBe(108)
+    expect(guard.hp).toBe(280)
     expect(guard.getHpFraction()).toBeLessThan(1)
 
     guard.takeDamage(250)
-    expect(guard.hp).toBeLessThan(108)
+    expect(guard.hp).toBeLessThan(280)
     expect(guard.hp).toBeGreaterThan(0)
   })
 

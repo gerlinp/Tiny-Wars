@@ -21,7 +21,7 @@ import { Troop } from '@core/entities/Troop'
 import type { Building } from '@core/entities/Building'
 import { Owner, EntityKind, TroopState, BuildingState, CardType } from '@core/types'
 import type { EntityStats } from '@core/types'
-import { getAttackWindupMs, getRunLeapPose, GOBLIN_DYNAMITE_SHEET, type AnimClip } from '@data/AssetManifest'
+import { getAttackWindupMs, getRunLeapPose, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL, type AnimClip } from '@data/AssetManifest'
 import { rocketFlightMs, arrowFlightMs } from '@data/ProjectileConstants'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { loadPlayerDeck } from '@data/PlayerDeck'
@@ -80,13 +80,16 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (this.pvpNetwork) {
-      this.pvpNetwork.onDeploy = (cardId, gridPos) => {
+      this.pvpNetwork.onDeploy = (cardId, gridPos, pos) => {
         const card = CARD_DEFINITIONS[cardId]
         if (card) {
           // Mirror the opponent's Y coordinate so their bottom-half deploy
           // lands in our top half (bot zone). GRID_ROWS - 1 - y is the reflection.
-          const mirroredPos = { x: gridPos.x, y: GRID_ROWS - 1 - gridPos.y }
-          this.simulator.deployCard(Owner.BOT, card, mirroredPos)
+          const mirroredCell = { x: gridPos.x, y: GRID_ROWS - 1 - gridPos.y }
+          // Mirror the precise world position the same way (GAME_HEIGHT - y) so both clients
+          // spawn the unit at the identical spot and the sim stays deterministic.
+          const mirroredPrecise = pos ? { x: pos.x, y: GAME_HEIGHT - pos.y } : undefined
+          this.simulator.deployCard(Owner.BOT, card, mirroredCell, mirroredPrecise)
         }
       }
       this.pvpNetwork.onDisconnected = () => {
@@ -135,8 +138,8 @@ export class BattleScene extends Phaser.Scene {
     )
 
     if (this.pvpNetwork) {
-      this.deployCtrl.onDeploy = (cardId, gridPos) => {
-        this.pvpNetwork!.sendDeploy(cardId, gridPos)
+      this.deployCtrl.onDeploy = (cardId, gridPos, worldPos) => {
+        this.pvpNetwork!.sendDeploy(cardId, gridPos, worldPos)
       }
     }
 
@@ -265,7 +268,7 @@ export class BattleScene extends Phaser.Scene {
           const flash = () => this.flashTarget(event.targetId)
           const attacker = event.attackerId ? this.findEntity(state, event.attackerId) : null
           let from = event.attackerId ? this.entityPosition(state, event.attackerId) : null
-          const to = this.entityPosition(state, event.targetId)
+          const to = this.visualTargetPoint(state, event.targetId)
           const attackerCardId = event.attackerId
             ? (this.entityCardIds.get(event.attackerId) ?? attacker?.cardId ?? '')
             : ''
@@ -314,7 +317,10 @@ export class BattleScene extends Phaser.Scene {
             this.tntProjectiles.spawn(from, to, attacker.owner, flightMs, () => {
               flash()
               this.effects.spawn(to.x, to.y)
-            }, 'flat')
+            }, 'flat', {
+              projectileKey: GARRISON_CANNON_BALL.key,
+              spinAnimKey: '',
+            })
           } else if (attacker && from && to && isRangedAttacker(attacker) && !event.splash && attackerCardId !== 'gnoll') {
             const attackRate = this.getAttackRate(attacker)
             const cardId = this.entityCardIds.get(attacker.id) ?? attacker.cardId ?? ''
@@ -370,7 +376,7 @@ export class BattleScene extends Phaser.Scene {
           break
         }
         case 'HOOK': {
-          const aim = this.entityPosition(state, event.targetId)
+          const aim = this.visualTargetPoint(state, event.targetId)
           this.sprites.get(event.throwerId)?.onAttackImpact(aim ?? undefined)
           break
         }
@@ -434,7 +440,7 @@ export class BattleScene extends Phaser.Scene {
         if (entity.kind === EntityKind.TROOP) {
           const troop = entity as Troop
           moveSpeed = troop.isBoomerangAnchored(state) ? 0 : troop.getEffectiveSpeed()
-          const aimPoint = troop.getAttackAimPoint() ?? undefined
+          const aimPoint = this.aimPointForTroop(troop) ?? undefined
           const hookPhase = troop.getHookPhase()
           const dashPhase = troop.getDashPhase()
           if (hookPhase) {
@@ -446,22 +452,21 @@ export class BattleScene extends Phaser.Scene {
               leapPose: dashPhase === 'leap' ? getRunLeapPose(cardId, entity.owner) ?? undefined : undefined,
             }
           } else if (troop.isHealBurstActive() && cardId === 'monk' && troop.state === TroopState.WALKING) {
-            healSync = { aimPoint: troop.getAttackAimPoint() ?? undefined }
+            healSync = { aimPoint: this.aimPointForTroop(troop) ?? undefined }
           } else if (troop.state === TroopState.WALKING) {
             anim = 'run'
           } else if (troop.state === TroopState.ATTACKING) {
-            const boomerangCard = CARD_DEFINITIONS[cardId]?.stats?.boomerangAttack === true
             attackSync = {
               cooldownMs: troop.getAttackCooldownMs(),
               // Boomerang throw clip is driven by BOOMERANG event only — not cooldown windup.
-              windupMs: boomerangCard ? 0 : getAttackWindupMs(cardId, entity.owner),
+              windupMs: cardId === 'gnoll' ? 0 : getAttackWindupMs(cardId, entity.owner),
               aimPoint,
             }
           }
         } else if (entity.kind === EntityKind.BUILDING) {
           const building = entity as Building
           if (building.state === BuildingState.ATTACKING) {
-            const aimPoint = building.getAttackAimPoint() ?? undefined
+            const aimPoint = this.aimPointForBuilding(building) ?? undefined
             attackSync = {
               cooldownMs: building.getAttackCooldownMs(),
               windupMs: cardId === 'wood_tower'
@@ -539,6 +544,36 @@ export class BattleScene extends Phaser.Scene {
   private entityPosition(state: GameState, id: string): Vec2 | null {
     const entity = this.findEntity(state, id)
     return entity ? entity.position : null
+  }
+
+  /** Strike / projectile endpoint — hull centre for air boat, sim position otherwise. */
+  private visualTargetPoint(state: GameState, targetId: string): Vec2 | null {
+    const entity = this.findEntity(state, targetId)
+    if (!entity) return null
+    if (entity.cardId === 'air_boat') {
+      return this.sprites.get(targetId)?.getAimPoint() ?? entity.position
+    }
+    return entity.position
+  }
+
+  private aimPointForTroop(troop: Troop): Vec2 | null {
+    const simAim = troop.getAttackAimPoint()
+    if (!simAim) return null
+    const target = troop.getAimTarget()
+    if (target?.cardId === 'air_boat') {
+      return this.sprites.get(target.id)?.getAimPoint() ?? simAim
+    }
+    return simAim
+  }
+
+  private aimPointForBuilding(building: Building): Vec2 | null {
+    const simAim = building.getAttackAimPoint()
+    if (!simAim) return null
+    const target = building.getAimTarget()
+    if (target?.cardId === 'air_boat') {
+      return this.sprites.get(target.id)?.getAimPoint() ?? simAim
+    }
+    return simAim
   }
 
   private flashTarget(targetId: string): void {

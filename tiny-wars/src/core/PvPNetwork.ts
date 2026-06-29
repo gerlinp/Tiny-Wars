@@ -3,7 +3,7 @@ import type { Vec2 } from './types'
 
 export type PvPMessage =
   | { type: 'READY' }
-  | { type: 'DEPLOY'; cardId: string; gridPos: Vec2 }
+  | { type: 'DEPLOY'; cardId: string; gridPos: Vec2; pos?: Vec2 }
   | { type: 'REMATCH' }
   | { type: 'HELLO'; name: string }
 
@@ -30,7 +30,7 @@ export class PvPNetwork {
   opponentName = ''
 
   onConnected: (() => void) | null = null
-  onDeploy: ((cardId: string, gridPos: Vec2) => void) | null = null
+  onDeploy: ((cardId: string, gridPos: Vec2, pos?: Vec2) => void) | null = null
   onDisconnected: (() => void) | null = null
   onRematch: (() => void) | null = null
   onOpponentName: ((name: string) => void) | null = null
@@ -97,8 +97,8 @@ export class PvPNetwork {
     })
   }
 
-  sendDeploy(cardId: string, gridPos: Vec2): void {
-    this.send({ type: 'DEPLOY', cardId, gridPos })
+  sendDeploy(cardId: string, gridPos: Vec2, pos?: Vec2): void {
+    this.send({ type: 'DEPLOY', cardId, gridPos, pos })
   }
 
   sendRematch(): void {
@@ -117,7 +117,7 @@ export class PvPNetwork {
     conn.on('data', (raw) => {
       const msg = raw as PvPMessage
       if (msg.type === 'DEPLOY') {
-        this.onDeploy?.(msg.cardId, msg.gridPos)
+        this.onDeploy?.(msg.cardId, msg.gridPos, msg.pos)
       } else if (msg.type === 'REMATCH') {
         this.onRematch?.()
       } else if (msg.type === 'HELLO') {
