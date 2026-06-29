@@ -13,6 +13,7 @@ export default defineConfig({
       '@input':     resolve(__dirname, 'src/input'),
       '@config':    resolve(__dirname, 'src/config'),
       '@debug':     resolve(__dirname, 'src/debug'),
+      '@audio':     resolve(__dirname, 'src/audio'),
     },
   },
   build: {

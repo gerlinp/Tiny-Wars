@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { assignSlotIndex, attackSlotPosition, slotBaseAngle } from '@core/AttackSlots'
+import { assignSlotIndex, attackSlotPosition, attackSlotPositionFromLayout, slotBaseAngle } from '@core/AttackSlots'
+import { CELL_SIZE, BOT_TOWER_ROW } from '@data/GameConstants'
+import { BOT_PRINCESS_TOWER_MELEE, PLAYER_PRINCESS_TOWER_MELEE } from '@data/PrincessTowerMeleeLayout'
+import { Owner } from '@core/types'
+import { towerSlotOriginCenter } from '@rendering/towerRenderPosition'
 
 describe('AttackSlots', () => {
   it('assigns deterministic slot indices from sorted ids', () => {
@@ -50,5 +54,30 @@ describe('AttackSlots', () => {
     const first = attackSlotPosition(center, 10, 2, 0, 0, 4, angle)
     expect(first.x).toBeGreaterThan(0)
     expect(first.y).toBeCloseTo(0, 5)
+  })
+
+  it('maps custom layout slots from a tower origin in cells', () => {
+    const origin = { x: 100, y: 200 }
+    const p0 = attackSlotPositionFromLayout(origin, 0, BOT_PRINCESS_TOWER_MELEE.slotPositions)
+    expect(p0.x).toBeCloseTo(100, 5)
+    expect(p0.y).toBeCloseTo(200 + 2.9 * CELL_SIZE, 5)
+    const p1 = attackSlotPositionFromLayout(origin, 1, BOT_PRINCESS_TOWER_MELEE.slotPositions)
+    expect(p1.y).toBeCloseTo(200 - 2.9 * CELL_SIZE, 5)
+  })
+
+  it('offsets bot princess slot origin below the logic anchor', () => {
+    const logicY = BOT_TOWER_ROW * CELL_SIZE + CELL_SIZE / 2
+    const logicX = 4 * CELL_SIZE + CELL_SIZE / 2
+    const origin = towerSlotOriginCenter(logicX, logicY, Owner.BOT, false)
+    expect(origin.y).toBeCloseTo(logicY + BOT_PRINCESS_TOWER_MELEE.slotOriginOffsetCells.y * CELL_SIZE, 5)
+  })
+
+  it('offsets player princess slot origin above the logic anchor', () => {
+    const logicY = 31 * CELL_SIZE + CELL_SIZE / 2
+    const logicX = 4 * CELL_SIZE + CELL_SIZE / 2
+    const origin = towerSlotOriginCenter(logicX, logicY, Owner.PLAYER, false)
+    expect(origin.y).toBeCloseTo(logicY + PLAYER_PRINCESS_TOWER_MELEE.slotOriginOffsetCells.y * CELL_SIZE, 5)
+    const p0 = attackSlotPositionFromLayout(origin, 0, PLAYER_PRINCESS_TOWER_MELEE.slotPositions)
+    expect(p0.y).toBeCloseTo(origin.y - 2.9 * CELL_SIZE, 5)
   })
 })

@@ -10,6 +10,7 @@ import type { MapConfig } from '@data/MapConfig'
 import { createLoadingWalker } from '@ui/loadingScreenUnit'
 import { loadingWalkerRunSheet, pickRandomLoadingUnitId } from '@ui/loadingScreenUnitPick'
 import { createLoadingBar, loadingBarProgress, loadingLayoutY, loadingWaitMs, setLoadingProgress } from '@ui/loadingScreenUi'
+import { getCombatSfx } from '@data/AudioManifest'
 
 export class PreloadScene extends Phaser.Scene {
   private loadingUnitId = ''
@@ -221,6 +222,10 @@ export class PreloadScene extends Phaser.Scene {
 
     for (const bar of getHealthBarImageKeys()) {
       this.load.image(bar.key, bar.path)
+    }
+
+    for (const sfx of getCombatSfx()) {
+      this.load.audio(sfx.key, sfx.path)
     }
   }
 

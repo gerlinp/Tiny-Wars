@@ -47,6 +47,10 @@ export const BOT_KING_COL   = 12
 export const BOT_TOWER_ROW  = 12
 export const BOT_TOWER_COLS = [4, 19] as const
 
+/** Even-width grid: logic col centre sits half a cell right of map centre — sprite/health bar nudge. */
+export const KING_SPRITE_CENTER_OFFSET_X = -CELL_SIZE / 2
+export const KING_MAP_CENTER_X = (GRID_COLS * CELL_SIZE) / 2
+
 /** King castle art — visual-only rows (sprites/garrison stay here when hitbox row differs). */
 export const PLAYER_KING_VISUAL_ROW = 37
 export const BOT_KING_VISUAL_ROW    = 6

@@ -26,10 +26,10 @@
   },
   "towerVisualOffsets": {
     "botKing": { "offsetX": 0, "offsetY": -25 },
-    "botLeft": { "offsetX": 0, "offsetY": -54 },
-    "botRight": { "offsetX": 0, "offsetY": -54 },
+    "botLeft": { "offsetX": 0, "offsetY": -130 },
+    "botRight": { "offsetX": 0, "offsetY": -130 },
     "plyKing": { "offsetX": 0, "offsetY": 25 },
-    "plyLeft": { "offsetX": 0, "offsetY": 15 },
-    "plyRight": { "offsetX": 0, "offsetY": 15 }
+    "plyLeft": { "offsetX": 0, "offsetY": 84 },
+    "plyRight": { "offsetX": 0, "offsetY": 84 }
   }
 }

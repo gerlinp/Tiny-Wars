@@ -1,4 +1,11 @@
 import type { Vec2 } from './types'
+import { CELL_SIZE } from '@data/GameConstants'
+
+/** Attack slot offset in cells from a layout origin centre. */
+export interface TowerSlotPoint {
+  x: number
+  y: number
+}
 
 /**
  * Swarm attack slots — distribute melee attackers around a shared target so they surround
@@ -36,11 +43,33 @@ export function attackSlotPosition(
   total: number,
   baseAngle: number,
   slack = 0,
+  minSlots = 1,
 ): Vec2 {
   const radius = Math.max(0, targetRadius + attackerRadius + rangePx - slack)
-  const angle = baseAngle + (Math.PI * 2 * index) / Math.max(1, total)
+  // Use at least minSlots as the angular divisor so a small swarm packs tightly
+  // (no large gaps) rather than spreading evenly around the full 360°.
+  const divisor = Math.max(total, minSlots)
+  const angle = baseAngle + (Math.PI * 2 * index) / Math.max(1, divisor)
   return {
     x: center.x + Math.cos(angle) * radius,
     y: center.y + Math.sin(angle) * radius,
   }
 }
+
+/** World position for a custom slot layout (offsets in cells from layout origin). */
+export function attackSlotPositionFromLayout(
+  originCenter: Vec2,
+  index: number,
+  slots: readonly TowerSlotPoint[],
+): Vec2 {
+  if (slots.length === 0) {
+    return { x: originCenter.x, y: originCenter.y }
+  }
+  const i = ((index % slots.length) + slots.length) % slots.length
+  const p = slots[i]
+  return {
+    x: originCenter.x + p.x * CELL_SIZE,
+    y: originCenter.y + p.y * CELL_SIZE,
+  }
+}
+

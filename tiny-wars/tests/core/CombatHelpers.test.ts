@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isRangedAttacker } from '@core/CombatHelpers'
+import { isRangedAttacker, isMeleeAttacker } from '@core/CombatHelpers'
 import { Troop } from '@core/entities/Troop'
 import { Tower } from '@core/entities/Tower'
 import { Building } from '@core/entities/Building'
@@ -30,5 +30,8 @@ describe('isRangedAttacker', () => {
     expect(isRangedAttacker(tower)).toBe(true)
     expect(isRangedAttacker(building)).toBe(true)
     expect(isRangedAttacker(warrior)).toBe(false)
+    expect(isMeleeAttacker(warrior)).toBe(true)
+    expect(isMeleeAttacker(archer)).toBe(false)
+    expect(isMeleeAttacker(tower)).toBe(false)
   })
 })

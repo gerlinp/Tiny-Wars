@@ -10,3 +10,9 @@ export function isRangedAttacker(entity: Entity): boolean {
   }
   return false
 }
+
+/** Melee troops/buildings — immediate strike, no projectile VFX. */
+export function isMeleeAttacker(entity: Entity): boolean {
+  if (entity.kind !== EntityKind.TROOP && entity.kind !== EntityKind.BUILDING) return false
+  return !isRangedAttacker(entity)
+}

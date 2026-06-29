@@ -87,6 +87,25 @@ table.tower-table th {
 table.tower-table td { padding: 3px 4px; color: #c0c8e0; font-variant-numeric: tabular-nums; }
 table.tower-table tr:nth-child(even) td { background: #16182a; }
 
+.spawn-legend { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+.spawn-legend-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10px; color: #8090b0;
+}
+.spawn-swatch {
+  width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.spawn-legend-group { font-size: 9px; text-transform: uppercase; letter-spacing: 0.6px; color: #6070a0; margin-top: 4px; }
+.spawn-tool-btn {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 5px 6px; margin-bottom: 3px;
+  background: #12142a; border: 1.5px solid #2a2a4a; border-radius: 4px;
+  color: #a0b0d0; font-size: 10px; cursor: pointer; text-align: left;
+}
+.spawn-tool-btn:hover { border-color: #4466aa; }
+.spawn-tool-btn.active { border-color: #80a0ff; background: #1a2040; color: #e0e8ff; }
+
 /* Decoration palette */
 #deco-palette {
   max-height: 268px;
@@ -144,7 +163,7 @@ table.tower-table tr:nth-child(even) td { background: #16182a; }
 .export-btn:hover { background: #224530; }
 .export-copy-row { display: flex; gap: 6px; margin-bottom: 6px; }
 .export-copy-row button { flex: 1; padding: 5px 8px; font-size: 11px; }
-#export-out {
+#export-out, #unit-export-out {
   max-height: 160px; overflow-y: auto; background: #0e0e1a;
   border: 1px solid #2a2a4a; border-radius: 4px; padding: 6px;
   font-size: 10px; color: #80c0a0; white-space: pre;
@@ -265,80 +284,53 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
   <div id="map-sidebar" style="display:contents">
   <div class="section">
     <div class="section-title">Tools</div>
-    <button class="tool-btn active" id="btn-select" title="S">▶ Select / Move</button>
+    <button class="tool-btn active" id="btn-select" title="S">▶ Select / Move anchors</button>
     <button class="tool-btn"       id="btn-water"  title="W">💧 Paint Water</button>
     <button class="tool-btn"       id="btn-grass"  title="G">🌿 Paint Grass</button>
   </div>
 
   <div class="section">
-    <div class="section-title">Decorations — select, then click map to place (outside map ok)</div>
-    <div id="deco-palette"></div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">River</div>
-    <div class="info-row"><span>Start row</span><span class="info-val" id="lbl-river-start">20</span></div>
-    <div class="info-row"><span>End row</span><span class="info-val" id="lbl-river-end">22</span></div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Bridges</div>
-    <div class="info-row"><span>Left cols</span><span class="info-val" id="lbl-left-bridge">[3, 4, 5]</span></div>
-    <div class="info-row"><span>Right cols</span><span class="info-val" id="lbl-right-bridge">[18, 19, 20]</span></div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Towers — solid circle = combat hull (king: sprite width, princess: footprint), transparent art = visual</div>
+    <div class="section-title">Tower anchors — drag to move (left↔right &amp; bot↔player mirrored)</div>
     <table class="tower-table">
-      <thead><tr><th>Tower</th><th>Col</th><th>Row</th></tr></thead>
+      <thead><tr><th>Anchor</th><th>Col</th><th>Row</th></tr></thead>
       <tbody>
         <tr><td>Bot King</td>    <td id="td-bk-col">12</td><td id="td-bk-row">3</td></tr>
-        <tr><td>Bot Left ♟</td> <td id="td-bl-col">4</td> <td id="td-bl-row">12</td></tr>
-        <tr><td>Bot Right ♟</td><td id="td-br-col">19</td><td id="td-br-row">12</td></tr>
-        <tr><td>Ply King</td>   <td id="td-pk-col">12</td><td id="td-pk-row">41</td></tr>
-        <tr><td>Ply Left ♟</td><td id="td-pl-col">4</td> <td id="td-pl-row">31</td></tr>
-        <tr><td>Ply Right ♟</td><td id="td-pr-col">19</td><td id="td-pr-row">31</td></tr>
+        <tr><td>Bot Left</td>    <td id="td-bl-col">4</td> <td id="td-bl-row">12</td></tr>
+        <tr><td>Bot Right</td>   <td id="td-br-col">19</td><td id="td-br-row">12</td></tr>
+        <tr><td>Ply King</td>    <td id="td-pk-col">12</td><td id="td-pk-row">41</td></tr>
+        <tr><td>Ply Left</td>    <td id="td-pl-col">4</td> <td id="td-pl-row">31</td></tr>
+        <tr><td>Ply Right</td>   <td id="td-pr-col">19</td><td id="td-pr-row">31</td></tr>
       </tbody>
     </table>
+    <div style="font-size:10px;color:#6070a0;margin-top:6px">Crosshair on castle centre (hitbox row in table) · princess: logic anchor · drag castles vertically only</div>
   </div>
 
   <div class="section">
-    <div class="section-title">Tower visuals — drag sprite (offsets in game px)</div>
-    <table class="tower-table">
-      <thead><tr><th>Tower</th><th>ΔX</th><th>ΔY</th></tr></thead>
-      <tbody>
-        <tr><td>Bot King</td>    <td id="vis-bk-x">0</td><td id="vis-bk-y">0</td></tr>
-        <tr><td>Bot Left</td>    <td id="vis-bl-x">0</td><td id="vis-bl-y">0</td></tr>
-        <tr><td>Bot Right</td>   <td id="vis-br-x">0</td><td id="vis-br-y">0</td></tr>
-        <tr><td>Ply King</td>    <td id="vis-pk-x">0</td><td id="vis-pk-y">0</td></tr>
-        <tr><td>Ply Left</td>    <td id="vis-pl-x">0</td><td id="vis-pl-y">0</td></tr>
-        <tr><td>Ply Right</td>   <td id="vis-pr-x">0</td><td id="vis-pr-y">0</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Health bars — drag on map (offsets in game px)</div>
-    <div class="toggle-row"><label>Show health bars</label><input type="checkbox" id="tog-healthbars" checked /></div>
-    <table class="tower-table">
-      <thead><tr><th>Bar</th><th>ΔX</th><th>ΔY</th></tr></thead>
-      <tbody>
-        <tr><td>Bot King</td>    <td id="hb-bk-x">0</td><td id="hb-bk-y">0</td></tr>
-        <tr><td>Bot Left</td>    <td id="hb-bl-x">0</td><td id="hb-bl-y">0</td></tr>
-        <tr><td>Bot Right</td>   <td id="hb-br-x">0</td><td id="hb-br-y">0</td></tr>
-        <tr><td>Ply King</td>    <td id="hb-pk-x">0</td><td id="hb-pk-y">0</td></tr>
-        <tr><td>Ply Left</td>    <td id="hb-pl-x">0</td><td id="hb-pl-y">0</td></tr>
-        <tr><td>Ply Right</td>   <td id="hb-pr-x">0</td><td id="hb-pr-y">0</td></tr>
-      </tbody>
-    </table>
+    <div class="section-title">Spawn zones — paint (mirrors ↔ left/right &amp; bot/player)</div>
+    <div class="toggle-row"><label>Show spawn zones</label><input type="checkbox" id="tog-spawn" checked /></div>
+    <button type="button" class="spawn-tool-btn" id="btn-spawn-base" title="1">
+      <span class="spawn-swatch" id="swatch-base"></span>Base — always spawn
+    </button>
+    <button type="button" class="spawn-tool-btn" id="btn-spawn-left" title="2">
+      <span class="spawn-swatch" id="swatch-left"></span>Left unlock — tower down
+    </button>
+    <button type="button" class="spawn-tool-btn" id="btn-spawn-right" title="3">
+      <span class="spawn-swatch" id="swatch-right"></span>Right unlock — tower down
+    </button>
+    <button type="button" class="spawn-tool-btn" id="btn-spawn-erase" title="E">
+      <span class="spawn-swatch" style="background:repeating-linear-gradient(45deg,#333,#333 3px,#555 3px,#555 6px)"></span>Eraser
+    </button>
+    <div style="display:flex;gap:4px;margin-top:6px">
+      <button class="action-btn" id="btn-spawn-fill" style="flex:1">↺ CR default</button>
+      <button class="action-btn" id="btn-spawn-clear" style="flex:1">✕ Clear</button>
+    </div>
+    <div style="font-size:10px;color:#6070a0;margin-top:6px">Blue tints = player half · Red tints = CPU half (auto by row)</div>
   </div>
 
   <div class="section">
     <div class="section-title">Display</div>
     <div class="toggle-row"><label>Grid lines</label><input type="checkbox" id="tog-grid" checked /></div>
-    <div class="toggle-row"><label>Deploy zones</label><input type="checkbox" id="tog-deploy" checked /></div>
-    <div class="toggle-row"><label>Live map ghost (map.json)</label><input type="checkbox" id="tog-livemap" checked /></div>
-    <div class="info-row" style="margin-top:6px"><span id="map-source-label" style="font-size:10px;color:#6070a0">Loading map.json…</span></div>
+    <div class="toggle-row"><label>Tower previews</label><input type="checkbox" id="tog-towers" checked /></div>
   </div>
 
   <div class="section">
@@ -347,7 +339,8 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 
   <div class="section">
     <div class="section-title">Export</div>
-    <button class="export-btn" id="btn-export">⬇ Export map.json</button>
+    <div style="font-size:10px;color:#6070a0;margin-bottom:6px">Only fields changed since load / reset</div>
+    <button class="export-btn" id="btn-export">⬇ Export changes</button>
     <div class="export-copy-row" id="export-copy-row" style="display:none">
       <button class="action-btn" id="btn-copy">Copy</button>
       <a id="btn-download" download="map.json"><button class="action-btn" style="width:100%">Download</button></a>
@@ -362,6 +355,10 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
     <div class="section">
       <div class="section-title">Unit / Tower</div>
       <select class="unit-select" id="unit-picker"></select>
+      <div style="display:flex;gap:4px;margin-top:6px">
+        <button class="action-btn" id="btn-unit-undo" style="flex:1" disabled title="Ctrl+Z">↶ Undo</button>
+        <button class="action-btn" id="btn-unit-redo" style="flex:1" disabled title="Ctrl+Shift+Z">↷ Redo</button>
+      </div>
       <div class="toggle-row"><label>Bot (red) side</label><input type="checkbox" id="tog-unit-bot"></div>
     </div>
 
@@ -377,11 +374,129 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 
     <div class="section">
       <div class="section-title">Overlays</div>
+      <div class="toggle-row"><label>Sprite</label><input type="checkbox" id="tog-sprite" checked></div>
       <div class="toggle-row"><label>Collision circle</label><input type="checkbox" id="tog-collision" checked></div>
       <div class="toggle-row"><label>Attack range ring</label><input type="checkbox" id="tog-range-ring" checked></div>
       <div class="toggle-row"><label>Attack slots</label><input type="checkbox" id="tog-slots" checked></div>
       <div class="toggle-row"><label>Tower comparison</label><input type="checkbox" id="tog-tower-comp" checked></div>
+      <div class="toggle-row"><label>Health bar</label><input type="checkbox" id="tog-hbar" checked></div>
       <div class="toggle-row"><label>Grid lines</label><input type="checkbox" id="tog-unit-grid" checked></div>
+      <div class="toggle-row" id="tog-garrison-row" style="display:none"><label>Castle garrison</label><input type="checkbox" id="tog-garrison" checked></div>
+      <div class="toggle-row" id="tog-map-context-row" style="display:none"><label>Arena map context</label><input type="checkbox" id="tog-map-context" checked></div>
+    </div>
+
+    <div class="section" id="slot-radius-section">
+      <div class="section-title">Melee Hit Zone Radius</div>
+      <div class="range-row">
+        <input type="range" id="slot-radius-slider" min="0.1" max="12" step="0.05">
+        <input type="number" id="slot-radius-val" step="0.05" min="0.1" max="12" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">cells</span>
+      </div>
+      <button class="export-btn" id="btn-copy-slot-radius" style="margin-bottom:0">⎘ Copy slotRadius</button>
+    </div>
+
+    <div class="section" id="slot-origin-section" style="display:none">
+      <div class="section-title">Slot Origin (towers)</div>
+      <div class="toggle-row">
+        <label>Approach side</label>
+        <div style="display:flex;gap:4px;margin-top:4px">
+          <button class="tab-btn" id="btn-approach-player" style="flex:1">Player ↓</button>
+          <button class="tab-btn active" id="btn-approach-cpu" style="flex:1">CPU ↑</button>
+        </div>
+      </div>
+      <div class="range-row" style="margin-top:6px">
+        <label style="width:24px;color:#aaa;font-size:11px">X</label>
+        <input type="number" id="slot-off-x" step="0.05" min="-8" max="8" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">cells</span>
+      </div>
+      <div class="range-row">
+        <label style="width:24px;color:#aaa;font-size:11px">Y</label>
+        <input type="number" id="slot-off-y" step="0.05" min="-12" max="4" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">cells</span>
+      </div>
+      <button class="export-btn" id="btn-copy-slot-off" style="margin-top:6px;margin-bottom:0">⎘ Copy slotOffset</button>
+    </div>
+
+    <div class="section" id="tower-visual-section" style="display:none">
+      <div class="section-title">Sprite Position (towers)</div>
+      <div style="font-size:10px;color:#6070a0;margin-bottom:6px">Drag the tower/castle art on canvas · offsets in game px</div>
+      <div class="range-row">
+        <label style="width:24px;color:#aaa;font-size:11px">X</label>
+        <input type="number" id="tower-vis-x" step="1" min="-200" max="200" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">px</span>
+      </div>
+      <div class="range-row">
+        <label style="width:24px;color:#aaa;font-size:11px">Y</label>
+        <input type="number" id="tower-vis-y" step="1" min="-200" max="200" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">px</span>
+      </div>
+      <button class="export-btn" id="btn-copy-tower-vis" style="margin-top:6px;margin-bottom:0">⎘ Copy towerVisualOffset</button>
+    </div>
+
+    <div class="section" id="king-range-section" style="display:none">
+      <div class="section-title">Range Center (castle)</div>
+      <div style="font-size:10px;color:#6070a0;margin-bottom:6px">Attack range is measured from this point (not the white logic anchor) · cells from anchor</div>
+      <div class="range-row">
+        <label style="width:24px;color:#aaa;font-size:11px">X</label>
+        <input type="number" id="king-range-x" step="0.05" min="-8" max="8" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">cells</span>
+      </div>
+      <div class="range-row">
+        <label style="width:24px;color:#aaa;font-size:11px">Y</label>
+        <input type="number" id="king-range-y" step="0.05" min="-12" max="12" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">cells</span>
+      </div>
+      <button class="export-btn" id="btn-copy-king-range" style="margin-top:6px;margin-bottom:0">⎘ Copy rangeCenterOffset</button>
+    </div>
+
+    <div class="section" id="garrison-section" style="display:none">
+      <div class="section-title">Castle Garrison — <span id="lbl-garrison-side">CPU</span></div>
+      <div style="font-size:10px;color:#6070a0;margin-bottom:6px">Drag cannon &amp; deck units · positions are fractions of castle sprite size</div>
+      <div class="info-row"><span>Selected slot</span><span class="info-val" id="lbl-garrison-slot">—</span></div>
+      <label style="font-size:10px;color:#8090b0;display:block;margin-bottom:4px">Unit on slot</label>
+      <select class="unit-select" id="garrison-unit-picker" style="margin-bottom:6px"></select>
+      <div class="range-row">
+        <label style="width:24px;color:#aaa;font-size:11px">X</label>
+        <input type="number" id="garrison-rel-x" step="0.01" min="-1" max="1" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">rel</span>
+      </div>
+      <div class="range-row">
+        <label style="width:24px;color:#aaa;font-size:11px">Y</label>
+        <input type="number" id="garrison-rel-y" step="0.01" min="-1" max="1" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">rel</span>
+      </div>
+      <button class="export-btn" id="btn-copy-garrison" style="margin-top:6px;margin-bottom:0">⎘ Copy garrisonSlots</button>
+    </div>
+
+    <div class="section" id="slot-points-section">
+      <div class="section-title">Slot Points — <span id="lbl-slot-count">12</span> slots</div>
+      <div class="range-row" style="margin-bottom:6px">
+        <label style="width:52px;color:#aaa;font-size:11px">Facing</label>
+        <input type="range" id="slot-ring-slider" min="-180" max="180" step="1" value="0" style="flex:1">
+        <input type="number" id="slot-ring-val" step="1" min="-180" max="180" value="0" style="width:46px">
+        <span style="color:#6070a0;font-size:11px">°</span>
+      </div>
+      <div style="font-size:10px;color:#6070a0;margin-bottom:6px">Rotates the ring — anchor sits between slot pairs</div>
+      <div style="display:flex;gap:4px;margin-bottom:6px">
+        <button class="action-btn" id="btn-slot-add" style="flex:1">+ Add</button>
+        <button class="action-btn" id="btn-slot-reset" style="flex:1">↺ Reset</button>
+        <button class="export-btn" id="btn-copy-slots" style="flex:1;margin:0">⎘ Copy</button>
+      </div>
+      <button class="export-btn" id="btn-copy-slot-ring" style="margin-top:0;margin-bottom:6px">⎘ Copy slotRingAngle</button>
+      <div class="toggle-row" style="color:#6070a0;font-size:10px"><label>Pairs: even # ↔ odd # (1↔2, 3↔4…) · drag moves both</label></div>
+      <div id="slot-pair-list" style="font-size:10px;color:#8090b0;font-family:monospace;margin-top:2px;line-height:1.55;max-height:72px;overflow-y:auto"></div>
+      <div class="toggle-row"><label>Sync Player ↔ CPU</label><input type="checkbox" id="tog-slot-sync" checked></div>
+      <div style="font-size:10px;color:#6070a0;margin-top:4px">Click any handle to select · Arrow keys nudge · Drag · Right-click delete slot</div>
+    </div>
+
+    <div class="section" id="hbar-unit-section" style="display:none">
+      <div class="section-title">Health Bar Position</div>
+      <div class="range-row">
+        <label style="width:24px;color:#aaa;font-size:11px">Y</label>
+        <input type="number" id="hbar-off-y" step="0.05" min="-20" max="4" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">cells</span>
+      </div>
+      <button class="export-btn" id="btn-copy-hbar-off" style="margin-top:6px;margin-bottom:0">⎘ Copy hbarOffset</button>
     </div>
 
     <div class="section">
@@ -392,6 +507,16 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
       <div class="info-row"><span>vs King Tower (20)</span><span class="info-val" id="lbl-vs-kt">—</span></div>
       <div class="info-row"><span>Display size</span><span class="info-val" id="lbl-sprite-sz">—</span></div>
       <div class="info-row"><span>Canvas scale</span><span class="info-val" id="lbl-ucell">—</span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Export</div>
+      <div style="font-size:10px;color:#6070a0;margin-bottom:6px">Troops, princess towers, and castles — per-side sprite offsets · tier collision radius</div>
+      <button class="export-btn" id="btn-export-unit" style="margin-bottom:0">⬇ Export unit editor JSON</button>
+      <div class="export-copy-row" id="unit-export-copy-row" style="display:none">
+        <button class="action-btn" id="btn-copy-unit-export">Copy JSON</button>
+      </div>
+      <pre id="unit-export-out"></pre>
     </div>
 
     <div class="section">
@@ -413,7 +538,7 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 <!-- ── Unit Editor Canvas ─────────────────────────── -->
 <div id="unit-canvas-wrap" style="display:none; flex:1; min-height:0; min-width:0; overflow:auto; background:#08080e; padding:16px;">
   <div id="unit-canvas-stage" style="display:flex; flex-direction:column; align-items:center; gap:6px; width:fit-content; margin:0 auto;">
-    <canvas id="unit-c" style="display:block; image-rendering:pixelated; border:1px solid #2a2a5a; cursor:crosshair;"></canvas>
+    <canvas id="unit-c" style="display:block; image-rendering:pixelated; border:1px solid #2a2a5a; cursor:default;"></canvas>
     <div id="unit-status">Select a unit to inspect its attack geometry</div>
   </div>
 </div>
@@ -423,47 +548,37 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 const COLS   = 24
 const ROWS   = 43
 const CELL   = 16
-const GAME_CELL = 16   // CELL_SIZE — tower/health-bar offsets export in these px
+const GAME_CELL_SIZE = 64   // GameConstants.ts CELL_SIZE — offsets & tower layout use these px
 const ARENA_FENCE_ROWS = 1
 const ARENA_FENCE_COLS = 1
 const PLAYER_DEPLOY_ROW_MAX = ROWS - 1 - ARENA_FENCE_ROWS  // 41
 const BOT_DEPLOY_ROW_MIN = ARENA_FENCE_ROWS                   // 1
+/** Lane divider for tower-fall deploy unlocks — mirrors GameConstants.ts DEPLOY_LANE_SPLIT_COL */
+const DEPLOY_LANE_SPLIT_COL = 12
+
+/** Three spawn zone types — player half tints blue, CPU half tints red when drawn. */
+const SPAWN_ZONE_TYPES = ['base', 'left', 'right']
+const SPAWN_ZONE_SOLID = {
+  base:  '#4488ff',
+  left:  '#00c8e8',
+  right: '#a855f7',
+}
+const SPAWN_PAINT_TOOLS = ['spawn-base', 'spawn-left', 'spawn-right', 'spawn-erase']
+const TOWER_SPRITE_ALPHA = 0.55
+/** Logic hitbox col — sprite/anchor X uses true map centre on this even-width grid. */
+const KING_LOGIC_COL = 12
 const BRIDGE_SPAN = 3
 const MARGIN = 3             // extra cells around the grid (out-of-map zone)
 const CW     = COLS + 2 * MARGIN   // 30 canvas-cells wide
 const CH     = ROWS + 2 * MARGIN   // 49 canvas-cells tall
 const W      = CW * CELL           // 480px
 const H      = CH * CELL           // 784px
-const EDITOR_TO_GAME = GAME_CELL / CELL
-const GAME_TO_EDITOR = CELL / GAME_CELL
-
-const HEALTH_BAR_PATHS = {
-  base: 'assets/UI Elements/UI Elements/Bars/BigBar_Base.png',
-  fill: 'assets/UI Elements/UI Elements/Bars/BigBar_Fill.png',
-}
-const HB = {
-  displayH: 20,
-  baseFrame: { y: 9, h: 51 },
-  fillFrame: { y: 20, h: 24 },
-  leftCap: { x: 40, w: 24 },
-  mid:     { x: 128, w: 64 },
-  rightCap:{ x: 256, w: 24 },
-  fillInsetX: 0.22,
-  fillHeightRatio: 0.72,
-  width: { king: 96, princess: 110 },
-}
+const EDITOR_TO_GAME = GAME_CELL_SIZE / CELL
+const GAME_PX_TO_CANVAS = CELL / GAME_CELL_SIZE
+/** @deprecated use GAME_PX_TO_CANVAS */
+const GAME_TO_EDITOR = GAME_PX_TO_CANVAS
 
 const HEALTH_BAR_KEYS = ['botKing', 'botLeft', 'botRight', 'plyKing', 'plyLeft', 'plyRight']
-const HB_SIDEBAR_IDS = {
-  botKing: ['hb-bk-x', 'hb-bk-y'], botLeft: ['hb-bl-x', 'hb-bl-y'],
-  botRight: ['hb-br-x', 'hb-br-y'], plyKing: ['hb-pk-x', 'hb-pk-y'],
-  plyLeft: ['hb-pl-x', 'hb-pl-y'], plyRight: ['hb-pr-x', 'hb-pr-y'],
-}
-const VIS_SIDEBAR_IDS = {
-  botKing: ['vis-bk-x', 'vis-bk-y'], botLeft: ['vis-bl-x', 'vis-bl-y'],
-  botRight: ['vis-br-x', 'vis-br-y'], plyKing: ['vis-pk-x', 'vis-pk-y'],
-  plyLeft: ['vis-pl-x', 'vis-pl-y'], plyRight: ['vis-pr-x', 'vis-pr-y'],
-}
 
 // ── Decoration catalog ────────────────────────────────────────
 // fw/fh = dimensions of ONE frame (for spritesheets, frame 0 is shown)
@@ -513,12 +628,6 @@ for (const d of DECO_CATALOG) {
   decoImages[d.id] = img
 }
 
-const hbImages = { base: new Image(), fill: new Image() }
-for (const [k, path] of Object.entries(HEALTH_BAR_PATHS)) {
-  hbImages[k].src = path
-  hbImages[k].onload = () => redraw()
-}
-
 // ── Tower sprites + layout (mirrors towerRenderPosition.ts) ───
 const TOWER_ASSET_PATHS = {
   castle_blue: 'assets/Factions/Knights/Buildings/Castle/Castle_Blue.png',
@@ -534,7 +643,7 @@ for (const [k, path] of Object.entries(TOWER_ASSET_PATHS)) {
   towerImages[k] = img
 }
 
-const MAP_UNIT_TARGET_HEIGHT = GAME_CELL * 2.5
+const MAP_UNIT_TARGET_HEIGHT = GAME_CELL_SIZE * 2.5
 const SPRITE_VISUAL_SCALE = 1.35   // king castles only — mirrors GameConstants.ts
 const MAP_HEIGHT_MULTIPLIER = { tower_princess: 3.5, tower_king: 2.5 }
 const MAP_TOWER_CONTENT_FILL = { tower_princess: 0.90, tower_king: 0.88 }
@@ -542,9 +651,9 @@ const TOWER_NATIVE = {
   princess: { w: 128, h: 256 },
   king:     { w: 320, h: 256 },
 }
-const PRINCESS_NUDGE_GAME = { player: -38, bot: 0 }
+const PRINCESS_TOWER_RENDER_NUDGE_Y = { player: -152, bot: 0 }
+const KING_SPRITE_CENTER_OFFSET_X = -GAME_CELL_SIZE / 2
 const TOWER_HEALTH_BAR_Y = { botGapAboveTop: 3, playerOffsetFromCenter: 6 }
-const TOWER_SPRITE_ALPHA = 0.62
 /** King castle art rows — sprites/garrison stay here when hitbox row differs (GameConstants.ts). */
 const PLAYER_KING_VISUAL_ROW = 37
 const BOT_KING_VISUAL_ROW = 6
@@ -579,9 +688,9 @@ function towerDisplaySizeGame(isKing, img) {
 }
 
 function towerRenderOffsetGame(owner, isKing) {
-  const fpHalf = ((isKing ? 4 : 3) / 2) * GAME_CELL
+  const fpHalf = ((isKing ? 4 : 3) / 2) * GAME_CELL_SIZE
   const halfLogic = targetHeightForTowerGame(isKing) / 2
-  const nudge = isKing ? 0 : PRINCESS_NUDGE_GAME[owner]
+  const nudge = isKing ? 0 : PRINCESS_TOWER_RENDER_NUDGE_Y[owner]
   return owner === 'player'
     ? -fpHalf + halfLogic + nudge
     : fpHalf - halfLogic + nudge
@@ -604,33 +713,62 @@ function defaultTowerVisuals() {
   return vis
 }
 
-const TOWER_FOOTPRINT_W = { princess: 3, king: 4 }
-
-function towerCombatRadiusGame(isKing, img) {
-  if (isKing) return towerDisplaySizeGame(isKing, img).width / 2
-  return (TOWER_FOOTPRINT_W.princess / 2) * GAME_CELL
+function towerLogicGameXY(col, row) {
+  return {
+    logicX: col * GAME_CELL_SIZE + GAME_CELL_SIZE / 2,
+    logicY: row * GAME_CELL_SIZE + GAME_CELL_SIZE / 2,
+  }
 }
 
-function drawTowerCombatCircle(cx, cy, radius, info, selected) {
-  ctx.beginPath()
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2)
-  ctx.fillStyle = info.hitFill
-  ctx.fill()
-  ctx.strokeStyle = selected ? '#ffffff' : info.stroke
-  ctx.lineWidth = selected ? 2.5 : 2
-  ctx.stroke()
-  ctx.fillStyle = '#fff'
-  ctx.font = 'bold 10px sans-serif'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(info.label, cx, cy)
+function gameWorldToCanvas(gameX, gameY) {
+  return {
+    x: canvasX(0) + gameX * GAME_PX_TO_CANVAS,
+    y: canvasY(0) + gameY * GAME_PX_TO_CANVAS,
+  }
 }
 
-function kingRenderAnchorDeltaGame(towerKey, hitboxRow) {
-  const info = TOWER_INFO[towerKey]
-  if (!info?.isKing) return 0
-  const visualRow = info.owner === 'player' ? PLAYER_KING_VISUAL_ROW : BOT_KING_VISUAL_ROW
-  return (visualRow - hitboxRow) * GAME_CELL
+/** Mirrors towerRenderPosition.renderAnchorY / kingVisualAnchorY */
+function renderAnchorYGame(logicY, owner, isKing, hitboxRow) {
+  if (!isKing) return logicY
+  const visualRow = owner === 'player' ? PLAYER_KING_VISUAL_ROW : BOT_KING_VISUAL_ROW
+  return logicY + (visualRow - hitboxRow) * GAME_CELL_SIZE
+}
+
+function towerFootprintRiverEdgeGame(logicY, owner, isKing) {
+  const halfH = ((isKing ? 4 : 3) / 2) * GAME_CELL_SIZE
+  return owner === 'player' ? logicY - halfH : logicY + halfH
+}
+
+/** Mirrors towerRenderPosition.towerRenderY */
+function towerRenderYGame(logicY, owner, isKing, vis, hitboxRow) {
+  const anchorY = renderAnchorYGame(logicY, owner, isKing, hitboxRow)
+  if (vis) return anchorY + (vis.offsetY ?? 0)
+  const riverEdge = towerFootprintRiverEdgeGame(logicY, owner, isKing)
+  const halfDisplay = targetHeightForTowerGame(isKing) / 2
+  const base = owner === 'player' ? riverEdge + halfDisplay : riverEdge - halfDisplay
+  return base + (isKing ? 0 : PRINCESS_TOWER_RENDER_NUDGE_Y[owner])
+}
+
+/** Mirrors towerRenderPosition.towerRenderX */
+function towerRenderXGame(logicX, owner, isKing, vis) {
+  const baseX = isKing ? logicX + KING_SPRITE_CENTER_OFFSET_X : logicX
+  if (vis) return baseX + (vis.offsetX ?? 0)
+  return baseX
+}
+
+/** King castle art rows — fixed visual row; hitbox anchor may differ (GameConstants.ts). */
+function kingVisualRowFor(owner) {
+  return owner === 'player' ? PLAYER_KING_VISUAL_ROW : BOT_KING_VISUAL_ROW
+}
+
+/** Sprite Y for map preview — kings stay on visual row when hitbox anchor moves. */
+function towerPreviewRenderYGame(info, col, hitboxRow, vis) {
+  if (info.isKing) {
+    const logicY = kingVisualRowFor(info.owner) * GAME_CELL_SIZE + GAME_CELL_SIZE / 2
+    return logicY + (vis?.offsetY ?? 0)
+  }
+  const { logicY } = towerLogicGameXY(col, hitboxRow)
+  return towerRenderYGame(logicY, info.owner, false, vis, hitboxRow)
 }
 
 function towerVisualLayout(towerKey, towers = state.towers, visuals = state.towerVisuals) {
@@ -639,18 +777,111 @@ function towerVisualLayout(towerKey, towers = state.towers, visuals = state.towe
   if (!t) return null
   const img = towerImages[info.imgKey]
   const { width: displayW, height: displayH } = towerDisplaySizeGame(info.isKing, img)
-  const cx = canvasX(t.col) + CELL / 2
-  const cy = canvasY(t.row) + CELL / 2
-  const anchorDelta = kingRenderAnchorDeltaGame(towerKey, t.row)
+  const { logicX } = towerLogicGameXY(t.col, t.row)
   const vis = visuals?.[towerKey] ?? defaultTowerVisualOffset(towerKey)
-  const visualX = cx + vis.offsetX * GAME_TO_EDITOR
-  const visualY = cy + (anchorDelta + vis.offsetY) * GAME_TO_EDITOR
+  const renderX = towerRenderXGame(logicX, info.owner, info.isKing, vis)
+  const renderY = towerPreviewRenderYGame(info, t.col, t.row, vis)
+  const sprite = gameWorldToCanvas(renderX, renderY)
+  const anchorCanvasX = info.isKing ? sprite.x : canvasX(t.col) + CELL / 2
+  const anchorCanvasY = info.isKing ? sprite.y : canvasY(t.row) + CELL / 2
   return {
-    cx, cy, visualX, visualY,
-    displayW: displayW * GAME_TO_EDITOR,
-    displayH: displayH * GAME_TO_EDITOR,
+    cx: anchorCanvasX,
+    cy: anchorCanvasY,
+    visualX: sprite.x,
+    visualY: sprite.y,
+    displayW: displayW * GAME_PX_TO_CANVAS,
+    displayH: displayH * GAME_PX_TO_CANVAS,
     imgKey: info.imgKey,
   }
+}
+
+function drawTowerVisuals() {
+  if (!showTowerPreviews) return
+  for (const key of TOWER_KEYS) {
+    const layout = towerVisualLayout(key)
+    if (!layout) continue
+    const img = towerImages[layout.imgKey]
+    if (!img?.complete || !img.naturalWidth) continue
+    const { visualX, visualY, displayW, displayH } = layout
+    ctx.save()
+    ctx.globalAlpha = TOWER_SPRITE_ALPHA
+    ctx.drawImage(img, visualX - displayW / 2, visualY - displayH / 2, displayW, displayH)
+    ctx.restore()
+  }
+}
+
+const TOWER_FOOTPRINT_W = { princess: 3, king: 4 }
+
+function towerCombatRadiusGame(isKing, img) {
+  if (isKing) return towerDisplaySizeGame(isKing, img).width / 2
+  return (TOWER_FOOTPRINT_W.princess / 2) * GAME_CELL_SIZE
+}
+
+function drawTowerAnchor(cx, cy, info, selected) {
+  ctx.beginPath()
+  ctx.arc(cx, cy, 5, 0, Math.PI * 2)
+  ctx.fillStyle = info.hitFill
+  ctx.fill()
+  ctx.strokeStyle = selected ? '#ffffff' : info.stroke
+  ctx.lineWidth = selected ? 2.5 : 1.5
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(cx - 7, cy); ctx.lineTo(cx + 7, cy)
+  ctx.moveTo(cx, cy - 7); ctx.lineTo(cx, cy + 7)
+  ctx.strokeStyle = selected ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.55)'
+  ctx.lineWidth = 1
+  ctx.stroke()
+  ctx.fillStyle = '#fff'
+  ctx.font = 'bold 9px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'bottom'
+  ctx.fillText(info.label, cx, cy - 9)
+}
+
+const ANCHOR_HIT_R = 14
+
+let selectedTowerKey = null
+
+function mirrorMapCol(col) { return COLS - 1 - col }
+function mirrorMapRow(row) { return ROWS - 1 - row }
+
+/** Keep all six anchors symmetric: kings share col + mirrored rows; princesses mirror L↔R and bot↔player. */
+function setTowerAnchorSymmetrical(key, col, row) {
+  col = clamp(col, 0, COLS - 1)
+  row = clamp(row, 0, ROWS - 1)
+  const mc = mirrorMapCol(col)
+
+  if (key === 'botKing' || key === 'plyKing') {
+    col = KING_LOGIC_COL
+    if (key === 'botKing') {
+      state.towers.botKing = { col, row }
+      state.towers.plyKing = { col, row: mirrorMapRow(row) }
+    } else {
+      state.towers.plyKing = { col, row }
+      state.towers.botKing = { col, row: mirrorMapRow(row) }
+    }
+    return
+  }
+
+  const botRow = (key === 'botLeft' || key === 'botRight') ? row : mirrorMapRow(row)
+  const plyRow = (key === 'plyLeft' || key === 'plyRight') ? row : mirrorMapRow(row)
+
+  if (key === 'botLeft' || key === 'plyLeft') {
+    state.towers.botLeft = { col, row: botRow }
+    state.towers.botRight = { col: mc, row: botRow }
+    state.towers.plyLeft = { col, row: plyRow }
+    state.towers.plyRight = { col: mc, row: plyRow }
+    return
+  }
+
+  state.towers.botRight = { col, row: botRow }
+  state.towers.botLeft = { col: mc, row: botRow }
+  state.towers.plyRight = { col, row: plyRow }
+  state.towers.plyLeft = { col: mc, row: plyRow }
+}
+
+function normalizeTowerSymmetry() {
+  setTowerAnchorSymmetrical('botKing', state.towers.botKing.col, state.towers.botKing.row)
 }
 
 // Mirrors towerRenderPosition.ts + TOWER_HEALTH_BAR_Y defaults (game px)
@@ -690,12 +921,16 @@ const DEFAULTS = () => ({
   playerDeployMin: 23,
   botDeployMax: 19,
   overrides: {},
+  spawnZones: {},  // "col,row" → 'base' | 'left' | 'right'
   decorations: [],  // { id, col, row } — col/row may be outside grid bounds
   healthBars: defaultHealthBars(),
   towerVisuals: defaultTowerVisuals(),
 })
 
 let state = DEFAULTS()
+
+/** Snapshot at load / reset — export diffs against this. */
+let mapExportBaseline = null
 
 // undo entries:
 //   { key, prev }                      — terrain override
@@ -705,13 +940,10 @@ let state = DEFAULTS()
 let undoStack = []
 
 let activeTool   = 'select'
-let selectedDeco = null
 
 let showGrid   = true
-let showDeploy = true
-let showHealthBars = true
-let showLiveMap = true
-let liveMap = null       // snapshot of map.json — ghost reference while editing
+let showSpawnZones = true
+let showTowerPreviews = true
 let editorReady = false
 
 const canvas = document.getElementById('c')
@@ -721,6 +953,7 @@ const ctx = canvas.getContext('2d')
 
 let drag       = null
 let isPainting = false
+let spawnPaintBefore = null
 
 // ── Coordinate helpers ────────────────────────────────────────
 // canvas pixel (top-left of cell) for a grid col/row
@@ -760,30 +993,8 @@ function draw() {
     }
   }
 
-  // Deploy zone tints (in-bounds only; fence border excluded like DeploySystem)
-  if (showDeploy) {
-    ctx.fillStyle = 'rgba(100,80,40,0.10)'
-    for (let row = 0; row < ROWS; row++) {
-      for (let col = 0; col < COLS; col++) {
-        if (row < ARENA_FENCE_ROWS || row >= ROWS - ARENA_FENCE_ROWS ||
-            col < ARENA_FENCE_COLS || col >= COLS - ARENA_FENCE_COLS) {
-          ctx.fillRect(canvasX(col), canvasY(row), CELL, CELL)
-        }
-      }
-    }
-    ctx.fillStyle = 'rgba(60,120,255,0.10)'
-    for (let row = state.playerDeployMin; row <= PLAYER_DEPLOY_ROW_MAX; row++) {
-      for (let col = ARENA_FENCE_COLS; col < COLS - ARENA_FENCE_COLS; col++) {
-        ctx.fillRect(canvasX(col), canvasY(row), CELL, CELL)
-      }
-    }
-    ctx.fillStyle = 'rgba(255,60,60,0.10)'
-    for (let row = BOT_DEPLOY_ROW_MIN; row <= state.botDeployMax; row++) {
-      for (let col = ARENA_FENCE_COLS; col < COLS - ARENA_FENCE_COLS; col++) {
-        ctx.fillRect(canvasX(col), canvasY(row), CELL, CELL)
-      }
-    }
-  }
+  drawSpawnZones()
+  drawTowerVisuals()
 
   // Grid lines
   if (showGrid) {
@@ -797,18 +1008,7 @@ function draw() {
     }
   }
 
-  // Playfield border
-  ctx.strokeStyle = 'rgba(80,100,220,0.5)'
-  ctx.lineWidth = 1.5
-  ctx.strokeRect(canvasX(0), canvasY(0), COLS * CELL, ROWS * CELL)
-
-  if (showLiveMap) drawLiveMapReference()
-  drawDecorations()
-  drawRiverHandles()
-  drawBridgeHandles()
-  drawTowerHitboxes()
-  drawTowerVisuals()
-  if (showHealthBars) drawHealthBars()
+  drawTowerAnchors()
 }
 
 function cellBaseColor(col, row) {
@@ -820,45 +1020,95 @@ function cellBaseColor(col, row) {
   return row < state.river.start ? '#4a7c3a' : '#3a6a2a'
 }
 
+function isPlayfieldCell(col, row) {
+  return col >= ARENA_FENCE_COLS && col < COLS - ARENA_FENCE_COLS
+    && row >= ARENA_FENCE_ROWS && row < ROWS - ARENA_FENCE_ROWS
+}
+
+function riverMidRow() { return (state.river.start + state.river.end) / 2 }
+
+function isPlayerHalfRow(row) { return row > riverMidRow() }
+
+function spawnZoneFillColor(zoneType, row) {
+  const playerHalf = isPlayerHalfRow(row)
+  if (zoneType === 'base') {
+    return playerHalf ? 'rgba(50, 120, 255, 0.45)' : 'rgba(255, 60, 50, 0.45)'
+  }
+  if (zoneType === 'left') {
+    return playerHalf ? 'rgba(0, 210, 255, 0.50)' : 'rgba(255, 140, 0, 0.50)'
+  }
+  return playerHalf ? 'rgba(160, 80, 255, 0.50)' : 'rgba(255, 50, 140, 0.50)'
+}
+
+function symmetricSpawnKeys(col, row) {
+  return [...new Set([
+    `${col},${row}`,
+    `${mirrorMapCol(col)},${row}`,
+    `${col},${mirrorMapRow(row)}`,
+    `${mirrorMapCol(col)},${mirrorMapRow(row)}`,
+  ])]
+}
+
+function defaultZoneType(col, row) {
+  if (!isPlayfieldCell(col, row)) return null
+  const playerRows = row >= state.playerDeployMin && row <= PLAYER_DEPLOY_ROW_MAX
+  const cpuRows = row >= BOT_DEPLOY_ROW_MIN && row <= state.botDeployMax
+  const leftLane = col < DEPLOY_LANE_SPLIT_COL
+  const rightLane = col >= DEPLOY_LANE_SPLIT_COL
+  if (cpuRows && leftLane) return 'left'
+  if (cpuRows && rightLane) return 'right'
+  if (playerRows && leftLane) return 'left'
+  if (playerRows && rightLane) return 'right'
+  if (playerRows || cpuRows) return 'base'
+  return null
+}
+
+function buildDefaultSpawnZones() {
+  const zones = {}
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const z = defaultZoneType(col, row)
+      if (z) zones[`${col},${row}`] = z
+    }
+  }
+  return zones
+}
+
+function paintSpawnAt(col, row) {
+  if (!isPlayfieldCell(col, row)) return
+  const zone = activeTool === 'spawn-erase' ? null : activeTool.replace('spawn-', '')
+  for (const k of symmetricSpawnKeys(col, row)) {
+    if (zone) state.spawnZones[k] = zone
+    else delete state.spawnZones[k]
+  }
+  redraw()
+}
+
+function drawSpawnZones() {
+  if (!showSpawnZones) return
+
+  for (const [key, zoneType] of Object.entries(state.spawnZones)) {
+    const [col, row] = key.split(',').map(Number)
+    if (!isInGrid(col, row)) continue
+    ctx.fillStyle = spawnZoneFillColor(zoneType, row)
+    ctx.fillRect(canvasX(col), canvasY(row), CELL, CELL)
+  }
+
+  const splitX = canvasX(DEPLOY_LANE_SPLIT_COL)
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)'
+  ctx.lineWidth = 1
+  ctx.setLineDash([3, 4])
+  ctx.beginPath()
+  ctx.moveTo(splitX, canvasY(ARENA_FENCE_ROWS))
+  ctx.lineTo(splitX, canvasY(ROWS - ARENA_FENCE_ROWS))
+  ctx.stroke()
+  ctx.setLineDash([])
+}
+
 function drawCell(col, row) {
   ctx.fillStyle = cellBaseColor(col, row)
   ctx.fillRect(canvasX(col), canvasY(row), CELL, CELL)
 }
-
-// Returns frame-0 crop info + scaled display size for drawing on canvas
-function decoDrawSize(d) {
-  const img = decoImages[d.id]
-  if (!img || !img.complete || img.naturalWidth === 0) return null
-  const cat = DECO_CATALOG.find(c => c.id === d.id)
-  const fw = cat ? cat.fw : img.naturalWidth   // frame width
-  const fh = cat ? cat.fh : img.naturalHeight  // frame height
-  const maxW = cat?.large ? CELL * 3   : CELL * 2.5
-  const maxH = cat?.large ? CELL * 5   : CELL * 3
-  const scale = Math.min(maxW / fw, maxH / fh, 1)
-  return { img, fw, fh, dw: fw * scale, dh: fh * scale }
-}
-
-function drawDecorations(decorations = state.decorations, alpha = 1) {
-  for (let i = 0; i < decorations.length; i++) {
-    const d = decorations[i]
-    const s = decoDrawSize(d)
-    if (!s) continue
-    const bx = canvasX(d.col) + CELL / 2
-    const by = canvasY(d.row) + CELL
-    ctx.save()
-    if (alpha < 1) ctx.globalAlpha = alpha
-    ctx.drawImage(s.img, 0, 0, s.fw, s.fh, bx - s.dw / 2, by - s.dh, s.dw, s.dh)
-    ctx.restore()
-    if (alpha >= 1 && drag?.type === 'decoration' && drag.decoIdx === i) {
-      ctx.strokeStyle = '#80c0ff'
-      ctx.lineWidth = 1.5
-      ctx.strokeRect(bx - s.dw / 2, by - s.dh, s.dw, s.dh)
-    }
-  }
-}
-
-const LIVE_GHOST_ALPHA = 0.28
-const LIVE_GHOST_STROKE = '#6fd4b0'
 
 function towersFromMapConfig(data) {
   return {
@@ -919,6 +1169,7 @@ function mapConfigFromState(s = state) {
     botTowerCols: [s.towers.botLeft.col, s.towers.botRight.col],
     playerDeployRowMin: s.playerDeployMin,
     botDeployRowMax: s.botDeployMax,
+    spawnZones: { ...s.spawnZones },
     terrainOverrides: { ...s.overrides },
     decorations: s.decorations.map(d => ({ ...d })),
     towerHealthBars: Object.fromEntries(
@@ -930,219 +1181,47 @@ function mapConfigFromState(s = state) {
   }
 }
 
-function drawLiveMapReference() {
-  if (!liveMap) return
-
-  const liveTowers = towersFromMapConfig(liveMap)
-  const liveVis = towerVisualsFromMapConfig(liveMap)
-  const liveHB = healthBarsFromMapConfig(liveMap)
-  const liveDecos = liveMap.decorations ?? []
-
-  drawDecorations(liveDecos, LIVE_GHOST_ALPHA)
-
+function drawTowerAnchors(towers = state.towers) {
   for (const [key, info] of Object.entries(TOWER_INFO)) {
-    const saved = liveTowers[key]
-    const cur = state.towers[key]
-    const moved = cur.col !== saved.col || cur.row !== saved.row
-    const { cx, cy } = towerCanvasCenter(key, liveTowers)
-    const r = towerCombatRadiusGame(info.isKing, towerImages[info.imgKey]) * GAME_TO_EDITOR
-
-    ctx.save()
-    ctx.setLineDash([4, 4])
-    ctx.strokeStyle = moved ? LIVE_GHOST_STROKE : 'rgba(111,212,176,0.45)'
-    ctx.lineWidth = moved ? 2 : 1
-    ctx.beginPath()
-    ctx.arc(cx, cy, r, 0, Math.PI * 2)
-    ctx.stroke()
-    ctx.setLineDash([])
-    ctx.restore()
-  }
-
-  drawTowerVisuals(liveTowers, liveVis, { interactive: false, alpha: LIVE_GHOST_ALPHA })
-
-  if (showHealthBars) {
-    for (const key of HEALTH_BAR_KEYS) {
-      const pos = healthBarCanvasPos(key, liveHB, liveTowers)
-      const curPos = healthBarCanvasPos(key)
-      const moved = Math.round(pos.x) !== Math.round(curPos.x) ||
-        Math.round(pos.y) !== Math.round(curPos.y)
-      ctx.save()
-      ctx.globalAlpha = moved ? 0.45 : 0.22
-      drawHealthBarAt(pos.x, pos.y, healthBarWidth(key), 0.85, false)
-      ctx.restore()
-    }
-  }
-}
-
-function drawRiverHandles() {
-  const gx = canvasX(0)
-  ctx.fillStyle = '#00ffff'
-  ctx.fillRect(gx, canvasY(state.river.start), COLS * CELL, 4)
-  ctx.fillStyle = '#00e0e0'
-  ctx.fillRect(gx, canvasY(state.river.end + 1) - 4, COLS * CELL, 4)
-}
-
-function drawBridgeHandles() {
-  const ry = canvasY(state.river.start)
-  const rh = (state.river.end - state.river.start + 1) * CELL
-  for (const side of ['left', 'right']) {
-    const cols = bridgeCols(side)
-    const x = canvasX(cols[0]), w = BRIDGE_SPAN * CELL
-    ctx.fillStyle   = side === 'left' ? 'rgba(255,200,40,0.55)' : 'rgba(255,140,20,0.55)'
-    ctx.fillRect(x, ry, w, rh)
-    ctx.strokeStyle = side === 'left' ? '#ffd020' : '#ffa020'
-    ctx.lineWidth   = 1.5
-    ctx.strokeRect(x, ry, w, rh)
-  }
-}
-
-function drawCrosshair(x, y, size = 6) {
-  ctx.strokeStyle = 'rgba(255,255,255,0.85)'
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(x - size, y); ctx.lineTo(x + size, y)
-  ctx.moveTo(x, y - size); ctx.lineTo(x, y + size)
-  ctx.stroke()
-}
-
-function drawTowerHitboxes(towers = state.towers) {
-  for (const [key, info] of Object.entries(TOWER_INFO)) {
-    const t = towers[key]
-    if (!t) continue
+    if (!towers[key]) continue
     const { cx, cy } = towerCanvasCenter(key, towers)
-    const r = towerCombatRadiusGame(info.isKing, towerImages[info.imgKey]) * GAME_TO_EDITOR
-    const selected = drag?.type === 'towerHitbox' && drag.towerKey === key
-    drawTowerCombatCircle(cx, cy, r, info, selected)
-  }
-}
-
-function drawTowerVisuals(towers = state.towers, visuals = state.towerVisuals, opts = {}) {
-  const { interactive = true, alpha = null } = opts
-  for (const [key] of Object.entries(TOWER_INFO)) {
-    const layout = towerVisualLayout(key, towers, visuals)
-    if (!layout) continue
-    const { visualX, visualY, displayW, displayH, imgKey } = layout
-    const img = towerImages[imgKey]
-    const selected = interactive && drag?.type === 'towerVisual' && drag.towerKey === key
-
-    if (img?.complete && img.naturalWidth > 0) {
-      ctx.save()
-      ctx.globalAlpha = alpha ?? (selected ? 0.72 : TOWER_SPRITE_ALPHA)
-      ctx.drawImage(img, visualX - displayW / 2, visualY - displayH / 2, displayW, displayH)
-      ctx.restore()
-    }
-
-    if (selected) {
-      ctx.strokeStyle = '#80c0ff'
-      ctx.lineWidth = 1.5
-      ctx.strokeRect(visualX - displayW / 2, visualY - displayH / 2, displayW, displayH)
-      drawCrosshair(visualX, visualY)
-    }
+    const selected = (drag?.type === 'towerAnchor' && drag.towerKey === key) || selectedTowerKey === key
+    drawTowerAnchor(cx, cy, info, selected)
   }
 }
 
 function towerCanvasCenter(towerKey, towers = state.towers) {
-  const t = towers[towerKey]
-  return { cx: canvasX(t.col) + CELL / 2, cy: canvasY(t.row) + CELL / 2 }
-}
-
-function healthBarCanvasPos(towerKey, healthBars = state.healthBars, towers = state.towers) {
-  const t = towers[towerKey]
-  const { cx, cy } = towerCanvasCenter(towerKey, towers)
-  const anchorDelta = kingRenderAnchorDeltaGame(towerKey, t.row)
-  const hb = healthBars[towerKey] ?? { offsetX: 0, offsetY: 0 }
-  return {
-    x: cx + hb.offsetX * GAME_TO_EDITOR,
-    y: cy + (anchorDelta + hb.offsetY) * GAME_TO_EDITOR,
-  }
-}
-
-function texToDisplayW(texW, barH) {
-  return Math.max(1, Math.round(barH * (texW / HB.baseFrame.h)))
-}
-
-function drawHealthBarAt(cx, cy, barW, fillPct, selected) {
-  const base = hbImages.base, fill = hbImages.fill
-  if (!base.complete || !fill.complete) {
-    ctx.fillStyle = selected ? '#80c0ff' : '#553322'
-    ctx.fillRect(cx - barW / 2, cy - 6, barW, 12)
-    return
-  }
-
-  const barH = Math.round(HB.displayH * GAME_TO_EDITOR)
-  const capLW = texToDisplayW(HB.leftCap.w, barH)
-  const capRW = texToDisplayW(HB.rightCap.w, barH)
-  const leftX = cx - barW / 2
-  const cy0 = cy
-
-  function blit(img, sx, sy, sw, sh, dx, dy, dw, dh) {
-    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
-  }
-
-  blit(base, HB.leftCap.x, HB.baseFrame.y, HB.leftCap.w, HB.baseFrame.h,
-    leftX, cy0 - barH / 2, capLW, barH)
-  const centerW = Math.max(0, barW - capLW - capRW)
-  blit(base, HB.mid.x, HB.baseFrame.y, HB.mid.w, HB.baseFrame.h,
-    leftX + capLW, cy0 - barH / 2, centerW, barH)
-  blit(base, HB.rightCap.x, HB.baseFrame.y, HB.rightCap.w, HB.baseFrame.h,
-    leftX + barW - capRW, cy0 - barH / 2, capRW, barH)
-
-  const inset = Math.max(1, Math.round(capLW * HB.fillInsetX))
-  const innerW = Math.max(0, barW - inset * 2)
-  const fillW = Math.max(4, innerW * fillPct)
-  const fillH = barH * HB.fillHeightRatio
-  const cropW = Math.min(64, Math.max(12, Math.round(64 * fillPct)))
-  blit(fill, 0, HB.fillFrame.y, cropW, HB.fillFrame.h,
-    leftX + inset, cy0 - fillH / 2, fillW, fillH)
-
-  if (selected) {
-    ctx.strokeStyle = '#80c0ff'
-    ctx.lineWidth = 1.5
-    ctx.strokeRect(leftX, cy0 - barH / 2, barW, barH)
-  }
-}
-
-function healthBarWidth(towerKey) {
   const info = TOWER_INFO[towerKey]
-  const img = towerImages[info.imgKey]
-  const { width: spriteW } = towerDisplaySizeGame(info.isKing, img)
-  const widthMult = info.isKing ? 0.68 : 0.58
-  const gameW = Math.max(info.isKing ? 96 : 84, Math.round(spriteW * widthMult))
-  return gameW * GAME_TO_EDITOR
-}
-
-function drawHealthBars() {
-  for (const key of HEALTH_BAR_KEYS) {
-    const pos = healthBarCanvasPos(key)
-    const selected = drag?.type === 'healthBar' && drag.towerKey === key
-    drawHealthBarAt(pos.x, pos.y, healthBarWidth(key), 0.85, selected)
+  const t = towers[towerKey]
+  if (!t) return { cx: 0, cy: 0 }
+  if (info?.isKing) {
+    const layout = towerVisualLayout(towerKey, towers)
+    if (layout) return { cx: layout.visualX, cy: layout.visualY }
+    return {
+      cx: canvasX(0) + (COLS * CELL) / 2,
+      cy: canvasY(t.row) + CELL / 2,
+    }
   }
+  return { cx: canvasX(t.col) + CELL / 2, cy: canvasY(t.row) + CELL / 2 }
 }
 
 // ── Sidebar live update ───────────────────────────────────────
 function updateSidebar() {
-  document.getElementById('lbl-river-start').textContent = state.river.start
-  document.getElementById('lbl-river-end').textContent   = state.river.end
-  document.getElementById('lbl-left-bridge').textContent  = `[${bridgeCols('left').join(', ')}]`
-  document.getElementById('lbl-right-bridge').textContent = `[${bridgeCols('right').join(', ')}]`
   const tMap = {
     botKing: ['td-bk-col','td-bk-row'], botLeft: ['td-bl-col','td-bl-row'],
     botRight: ['td-br-col','td-br-row'], plyKing: ['td-pk-col','td-pk-row'],
     plyLeft: ['td-pl-col','td-pl-row'], plyRight: ['td-pr-col','td-pr-row'],
   }
   for (const [k, [cid, rid]] of Object.entries(tMap)) {
-    document.getElementById(cid).textContent = state.towers[k].col
+    document.getElementById(cid).textContent = TOWER_INFO[k]?.isKing ? String(KING_LOGIC_COL) : state.towers[k].col
     document.getElementById(rid).textContent = state.towers[k].row
   }
-  for (const [k, [xid, yid]] of Object.entries(HB_SIDEBAR_IDS)) {
-    const hb = state.healthBars[k] ?? { offsetX: 0, offsetY: 0 }
-    document.getElementById(xid).textContent = Math.round(hb.offsetX)
-    document.getElementById(yid).textContent = Math.round(hb.offsetY)
-  }
-  for (const [k, [xid, yid]] of Object.entries(VIS_SIDEBAR_IDS)) {
-    const vis = state.towerVisuals[k] ?? { offsetX: 0, offsetY: 0 }
-    document.getElementById(xid).textContent = Math.round(vis.offsetX)
-    document.getElementById(yid).textContent = Math.round(vis.offsetY)
+}
+
+function syncSpawnLegendSwatches() {
+  for (const type of SPAWN_ZONE_TYPES) {
+    const el = document.getElementById(`swatch-${type}`)
+    if (el) el.style.background = SPAWN_ZONE_SOLID[type]
   }
 }
 
@@ -1153,91 +1232,31 @@ function redraw() {
 }
 
 // ── Hit-testing ───────────────────────────────────────────────
-function hitTestDecoration(mx, my) {
-  for (let i = state.decorations.length - 1; i >= 0; i--) {
-    const d = state.decorations[i]
-    const s = decoDrawSize(d)
-    if (!s) continue
-    const bx = canvasX(d.col) + CELL / 2
-    const by = canvasY(d.row) + CELL
-    if (mx >= bx - s.dw / 2 && mx <= bx + s.dw / 2 && my >= by - s.dh && my <= by) return i
-  }
-  return -1
-}
-
-function hitTestHealthBar(mx, my) {
-  if (!showHealthBars) return null
-  for (let i = HEALTH_BAR_KEYS.length - 1; i >= 0; i--) {
-    const key = HEALTH_BAR_KEYS[i]
-    const pos = healthBarCanvasPos(key)
-    const barW = healthBarWidth(key)
-    const barH = Math.round(HB.displayH * GAME_TO_EDITOR) + 4
-    if (mx >= pos.x - barW / 2 && mx <= pos.x + barW / 2 &&
-        my >= pos.y - barH / 2 && my <= pos.y + barH / 2) return key
-  }
-  return null
-}
-
-function hitTestTowerVisual(mx, my) {
+function hitTestTowerAnchor(mx, my) {
   for (let i = TOWER_KEYS.length - 1; i >= 0; i--) {
     const key = TOWER_KEYS[i]
-    const layout = towerVisualLayout(key)
-    if (!layout) continue
-    const { visualX, visualY, displayW, displayH } = layout
-    if (mx >= visualX - displayW / 2 && mx <= visualX + displayW / 2 &&
-        my >= visualY - displayH / 2 && my <= visualY + displayH / 2) return key
-  }
-  return null
-}
-
-function hitTestTowerHitbox(mx, my) {
-  for (let i = TOWER_KEYS.length - 1; i >= 0; i--) {
-    const key = TOWER_KEYS[i]
-    const info = TOWER_INFO[key]
     const { cx, cy } = towerCanvasCenter(key)
-    const r = towerCombatRadiusGame(info.isKing, towerImages[info.imgKey]) * GAME_TO_EDITOR
-    const dx = mx - cx, dy = my - cy
-    if (dx * dx + dy * dy <= r * r) return key
+    if (Math.hypot(mx - cx, my - cy) <= ANCHOR_HIT_R) return key
   }
   return null
 }
-
-const EDGE_TOL = 5
 
 function hitTest(mx, my) {
-  const hbKey = hitTestHealthBar(mx, my)
-  if (hbKey) return { type: 'healthBar', towerKey: hbKey }
-
-  const visual = hitTestTowerVisual(mx, my)
-  if (visual) return { type: 'towerVisual', towerKey: visual }
-
-  const hitbox = hitTestTowerHitbox(mx, my)
-  if (hitbox) return { type: 'towerHitbox', towerKey: hitbox }
-
-  const decoIdx = hitTestDecoration(mx, my)
-  if (decoIdx !== -1) return { type: 'decoration', decoIdx }
-
-  const topY = canvasY(state.river.start), botY = canvasY(state.river.end + 1)
-  if (Math.abs(my - topY) <= EDGE_TOL) return { type: 'riverTop' }
-  if (Math.abs(my - botY) <= EDGE_TOL) return { type: 'riverBottom' }
-
-  const { col, row } = mouseToCell(mx, my)
-  if (isRiverRow(row) && isInGrid(col, row)) {
-    const leftCols = bridgeCols('left'), rightCols = bridgeCols('right')
-    const leftEnd = leftCols[leftCols.length - 1], rightEnd = rightCols[rightCols.length - 1]
-    if (mx >= canvasX(leftCols[0]) && mx < canvasX(leftEnd) + CELL) return { type: 'bridgeLeft' }
-    if (mx >= canvasX(rightCols[0]) && mx < canvasX(rightEnd) + CELL) return { type: 'bridgeRight' }
-    return { type: 'river' }
-  }
+  const anchor = hitTestTowerAnchor(mx, my)
+  if (anchor) return { type: 'towerAnchor', towerKey: anchor }
   return { type: 'cell' }
 }
 
 function getCursorFor(mx, my) {
+  const anchor = hitTestTowerAnchor(mx, my)
+  if (anchor) {
+    if (drag?.type === 'towerAnchor') {
+      return TOWER_INFO[drag.towerKey]?.isKing ? 'ns-resize' : 'grabbing'
+    }
+    return TOWER_INFO[anchor]?.isKing ? 'ns-resize' : 'grab'
+  }
   if (activeTool === 'water' || activeTool === 'grass') return 'crosshair'
-  if (activeTool === 'deco' && selectedDeco) return 'copy'
-  const hit = hitTest(mx, my)
-  if (['towerHitbox','towerVisual','decoration','river','bridgeLeft','bridgeRight','healthBar'].includes(hit.type)) return 'grab'
-  if (hit.type === 'riverTop' || hit.type === 'riverBottom') return 'ns-resize'
+  if (SPAWN_PAINT_TOOLS.includes(activeTool)) return 'crosshair'
   return 'default'
 }
 
@@ -1256,15 +1275,16 @@ canvas.addEventListener('contextmenu', e => {
   e.preventDefault()
   const { mx, my } = getCanvasMouse(e)
   const { col, row } = mouseToCell(mx, my)
-
-  const decoIdx = hitTestDecoration(mx, my)
-  if (decoIdx !== -1) {
-    const removed = state.decorations.splice(decoIdx, 1)[0]
-    undoStack.push({ type: 'deco-remove', deco: removed, idx: decoIdx })
-    redraw(); return
-  }
-
   const key = `${col},${row}`
+  const spawnKeys = symmetricSpawnKeys(col, row)
+  const hadSpawn = spawnKeys.some(k => state.spawnZones[k])
+  if (hadSpawn) {
+    const before = { ...state.spawnZones }
+    for (const k of spawnKeys) delete state.spawnZones[k]
+    undoStack.push({ type: 'spawn-snap', before })
+    redraw()
+    return
+  }
   if (state.overrides[key] !== undefined) {
     const prev = state.overrides[key]
     delete state.overrides[key]
@@ -1278,57 +1298,30 @@ canvas.addEventListener('mousedown', e => {
   const { mx, my } = getCanvasMouse(e)
   const { col, row } = mouseToCell(mx, my)
 
-  if (activeTool === 'deco' && selectedDeco) {
-    const idx = state.decorations.length
-    state.decorations.push({ id: selectedDeco, col, row })
-    undoStack.push({ type: 'deco-add', idx })
-    redraw(); return
+  const anchor = hitTestTowerAnchor(mx, my)
+  if (anchor) {
+    selectedTowerKey = anchor
+    drag = {
+      type: 'towerAnchor', towerKey: anchor,
+      startX: mx, startY: my,
+      origTowers: deepClone(state.towers),
+    }
+    return
   }
 
   if (activeTool === 'water' || activeTool === 'grass') {
+    selectedTowerKey = null
     isPainting = true; paintCell(col, row); return
   }
-
-  const hit = hitTest(mx, my)
-  if (!hit || hit.type === 'cell') return
-
-  if (hit.type === 'decoration') {
-    drag = {
-      type: 'decoration', decoIdx: hit.decoIdx,
-      startX: mx, startY: my,
-      origDeco: { ...state.decorations[hit.decoIdx] },
-    }; return
+  if (SPAWN_PAINT_TOOLS.includes(activeTool)) {
+    selectedTowerKey = null
+    spawnPaintBefore = { ...state.spawnZones }
+    isPainting = true
+    paintSpawnAt(col, row)
+    return
   }
 
-  if (hit.type === 'healthBar') {
-    drag = {
-      type: 'healthBar', towerKey: hit.towerKey,
-      startX: mx, startY: my,
-      origHealthBar: { ...state.healthBars[hit.towerKey] },
-    }; return
-  }
-
-  if (hit.type === 'towerHitbox') {
-    drag = {
-      type: 'towerHitbox', towerKey: hit.towerKey,
-      startX: mx, startY: my,
-      origTower: { ...state.towers[hit.towerKey] },
-    }; return
-  }
-
-  if (hit.type === 'towerVisual') {
-    drag = {
-      type: 'towerVisual', towerKey: hit.towerKey,
-      startX: mx, startY: my,
-      origVisual: { ...state.towerVisuals[hit.towerKey] },
-    }; return
-  }
-
-  drag = {
-    type: hit.type,
-    startX: mx, startY: my,
-    origState: deepClone(state),
-  }
+  selectedTowerKey = null
 })
 
 canvas.addEventListener('mousemove', e => {
@@ -1342,112 +1335,50 @@ canvas.addEventListener('mousemove', e => {
     (ov ? ` [${ov}]` : '')
   canvas.style.cursor = getCursorFor(mx, my)
 
-  if (isPainting) { paintCell(col, row); return }
+  if (isPainting) {
+    if (SPAWN_PAINT_TOOLS.includes(activeTool)) paintSpawnAt(col, row)
+    else paintCell(col, row)
+    return
+  }
   if (!drag) return
 
-  const dCol = Math.round((mx - drag.startX) / CELL)
-  const dRow = Math.round((my - drag.startY) / CELL)
-
-  if (drag.type === 'towerHitbox') {
-    state.towers[drag.towerKey] = {
-      col: clamp(drag.origTower.col + dCol, 0, COLS - 1),
-      row: clamp(drag.origTower.row + dRow, 0, ROWS - 1),
-    }
-  } else if (drag.type === 'towerVisual') {
-    const dxGame = (mx - drag.startX) * EDITOR_TO_GAME
-    const dyGame = (my - drag.startY) * EDITOR_TO_GAME
-    state.towerVisuals[drag.towerKey] = {
-      offsetX: Math.round(drag.origVisual.offsetX + dxGame),
-      offsetY: Math.round(drag.origVisual.offsetY + dyGame),
-    }
-  } else if (drag.type === 'healthBar') {
-    const { cx, cy } = towerCanvasCenter(drag.towerKey)
-    const dxGame = (mx - drag.startX) * EDITOR_TO_GAME
-    const dyGame = (my - drag.startY) * EDITOR_TO_GAME
-    state.healthBars[drag.towerKey] = {
-      offsetX: Math.round(drag.origHealthBar.offsetX + dxGame),
-      offsetY: Math.round(drag.origHealthBar.offsetY + dyGame),
-    }
-  } else if (drag.type === 'decoration') {
-    state.decorations[drag.decoIdx] = {
-      ...drag.origDeco,
-      col: drag.origDeco.col + dCol,
-      row: drag.origDeco.row + dRow,
-    }
-  } else if (drag.type === 'riverTop') {
-    const o = drag.origState
-    state.river.start = clamp(o.river.start + dRow, 0, o.river.end - 1)
-  } else if (drag.type === 'riverBottom') {
-    const o = drag.origState
-    state.river.end   = clamp(o.river.end + dRow, o.river.start + 1, ROWS - 1)
-  } else if (drag.type === 'river') {
-    const o = drag.origState
-    const h = o.river.end - o.river.start
-    const ns = clamp(o.river.start + dRow, 0, ROWS - 1 - h)
-    state.river.start = ns; state.river.end = ns + h
-  } else if (drag.type === 'bridgeLeft') {
-    const o = drag.origState
-    state.leftBridge  = clamp(o.leftBridge  + dCol, 0, COLS - 3)
-  } else if (drag.type === 'bridgeRight') {
-    const o = drag.origState
-    state.rightBridge = clamp(o.rightBridge + dCol, 0, COLS - 3)
+  if (drag.type === 'towerAnchor') {
+    const info = TOWER_INFO[drag.towerKey]
+    const dCol = info?.isKing ? 0 : Math.round((mx - drag.startX) / CELL)
+    const dRow = Math.round((my - drag.startY) / CELL)
+    const orig = drag.origTowers[drag.towerKey]
+    setTowerAnchorSymmetrical(
+      drag.towerKey,
+      orig.col + dCol,
+      orig.row + dRow,
+    )
   }
   redraw()
 })
 
+function finishSpawnPaintUndo() {
+  if (spawnPaintBefore === null) return
+  if (JSON.stringify(spawnPaintBefore) !== JSON.stringify(state.spawnZones)) {
+    undoStack.push({ type: 'spawn-snap', before: spawnPaintBefore })
+  }
+  spawnPaintBefore = null
+}
+
 canvas.addEventListener('mouseup', () => {
-  if (drag?.type === 'decoration') {
-    const orig = drag.origDeco, curr = state.decorations[drag.decoIdx]
-    if (curr && (orig.col !== curr.col || orig.row !== curr.row)) {
-      undoStack.push({ type: 'deco-move', idx: drag.decoIdx, orig })
-    }
+  if (drag?.type === 'towerAnchor') {
+    const same = JSON.stringify(drag.origTowers) === JSON.stringify(state.towers)
+    if (!same) undoStack.push({ type: 'towers-snap', orig: drag.origTowers })
   }
-  if (drag?.type === 'healthBar') {
-    const orig = drag.origHealthBar, curr = state.healthBars[drag.towerKey]
-    if (curr && (orig.offsetX !== curr.offsetX || orig.offsetY !== curr.offsetY)) {
-      undoStack.push({ type: 'hb-move', towerKey: drag.towerKey, orig })
-    }
-  }
-  if (drag?.type === 'towerHitbox') {
-    const orig = drag.origTower, curr = state.towers[drag.towerKey]
-    if (curr && (orig.col !== curr.col || orig.row !== curr.row)) {
-      undoStack.push({ type: 'tower-move', towerKey: drag.towerKey, orig })
-    }
-  }
-  if (drag?.type === 'towerVisual') {
-    const orig = drag.origVisual, curr = state.towerVisuals[drag.towerKey]
-    if (curr && (orig.offsetX !== curr.offsetX || orig.offsetY !== curr.offsetY)) {
-      undoStack.push({ type: 'vis-move', towerKey: drag.towerKey, orig })
-    }
-  }
+  finishSpawnPaintUndo()
   drag = null; isPainting = false
 })
 
 canvas.addEventListener('mouseleave', () => {
-  if (drag?.type === 'decoration') {
-    const orig = drag.origDeco, curr = state.decorations[drag.decoIdx]
-    if (curr && (orig.col !== curr.col || orig.row !== curr.row)) {
-      undoStack.push({ type: 'deco-move', idx: drag.decoIdx, orig })
-    }
+  if (drag?.type === 'towerAnchor') {
+    const same = JSON.stringify(drag.origTowers) === JSON.stringify(state.towers)
+    if (!same) undoStack.push({ type: 'towers-snap', orig: drag.origTowers })
   }
-  if (drag?.type === 'healthBar') {
-    const orig = drag.origHealthBar, curr = state.healthBars[drag.towerKey]
-    if (curr && (orig.offsetX !== curr.offsetX || orig.offsetY !== curr.offsetY)) {
-      undoStack.push({ type: 'hb-move', towerKey: drag.towerKey, orig })
-    }
-  }
-  if (drag?.type === 'towerHitbox') {
-    const orig = drag.origTower, curr = state.towers[drag.towerKey]
-    if (curr && (orig.col !== curr.col || orig.row !== curr.row)) {
-      undoStack.push({ type: 'tower-move', towerKey: drag.towerKey, orig })
-    }
-  }
-  if (drag?.type === 'towerVisual') {
-    const orig = drag.origVisual, curr = state.towerVisuals[drag.towerKey]
-    if (curr && (orig.offsetX !== curr.offsetX || orig.offsetY !== curr.offsetY)) {
-      undoStack.push({ type: 'vis-move', towerKey: drag.towerKey, orig })
-    }
-  }
+  finishSpawnPaintUndo()
   drag = null; isPainting = false
   document.getElementById('status').textContent = 'Hover over the map — gray margin area is outside the playfield'
 })
@@ -1465,68 +1396,110 @@ function paintCell(col, row) {
 }
 
 // ── Tool selection ────────────────────────────────────────────
-function clearDecoSelection() {
-  selectedDeco = null
-  document.querySelectorAll('.deco-item').forEach(el => el.classList.remove('selected'))
-}
-
 function setTool(t) {
   activeTool = t
-  if (t !== 'deco') clearDecoSelection()
   document.getElementById('btn-select').classList.toggle('active', t === 'select')
   document.getElementById('btn-water').classList.toggle('active',  t === 'water')
   document.getElementById('btn-grass').classList.toggle('active',  t === 'grass')
+  for (const st of SPAWN_PAINT_TOOLS) {
+    const el = document.getElementById(`btn-${st}`)
+    if (el) el.classList.toggle('active', t === st)
+  }
 }
 
 document.getElementById('btn-select').addEventListener('click', () => setTool('select'))
 document.getElementById('btn-water').addEventListener('click',  () => setTool('water'))
 document.getElementById('btn-grass').addEventListener('click',  () => setTool('grass'))
+for (const st of SPAWN_PAINT_TOOLS) {
+  document.getElementById(`btn-${st}`).addEventListener('click', () => setTool(st))
+}
+document.getElementById('btn-spawn-fill').addEventListener('click', () => {
+  const before = { ...state.spawnZones }
+  state.spawnZones = buildDefaultSpawnZones()
+  undoStack.push({ type: 'spawn-snap', before })
+  redraw()
+})
+document.getElementById('btn-spawn-clear').addEventListener('click', () => {
+  if (!Object.keys(state.spawnZones).length) return
+  const before = { ...state.spawnZones }
+  state.spawnZones = {}
+  undoStack.push({ type: 'spawn-snap', before })
+  redraw()
+})
 
-document.getElementById('tog-grid').addEventListener('change',   e => { showGrid   = e.target.checked; redraw() })
-document.getElementById('tog-deploy').addEventListener('change', e => { showDeploy = e.target.checked; redraw() })
-document.getElementById('tog-healthbars').addEventListener('change', e => { showHealthBars = e.target.checked; redraw() })
-document.getElementById('tog-livemap').addEventListener('change', e => { showLiveMap = e.target.checked; redraw() })
+document.getElementById('tog-grid').addEventListener('change', e => { showGrid = e.target.checked; redraw() })
+document.getElementById('tog-spawn').addEventListener('change', e => { showSpawnZones = e.target.checked; redraw() })
+document.getElementById('tog-towers').addEventListener('change', e => { showTowerPreviews = e.target.checked; redraw() })
 
 document.getElementById('btn-reset').addEventListener('click', () => {
-  state = DEFAULTS(); undoStack = []; clearDecoSelection(); setTool('select'); redraw()
+  state = DEFAULTS()
+  normalizeTowerSymmetry()
+  state.spawnZones = buildDefaultSpawnZones()
+  undoStack = []
+  setTool('select')
+  captureMapBaseline()
+  redraw()
 })
 
 // ── Export ────────────────────────────────────────────────────
-function buildExport() {
-  return {
-    version: 1,
-    riverRowStart:      state.river.start,
-    riverRowEnd:        state.river.end,
-    leftBridgeCols:     bridgeCols('left'),
-    rightBridgeCols:    bridgeCols('right'),
-    playerKingRow:      state.towers.plyKing.row,
-    playerKingCol:      state.towers.plyKing.col,
-    playerTowerRow:     state.towers.plyLeft.row,
-    playerTowerCols:    [state.towers.plyLeft.col, state.towers.plyRight.col],
-    botKingRow:         state.towers.botKing.row,
-    botKingCol:         state.towers.botKing.col,
-    botTowerRow:        state.towers.botLeft.row,
-    botTowerCols:       [state.towers.botLeft.col, state.towers.botRight.col],
-    playerDeployRowMin: state.playerDeployMin,
-    botDeployRowMax:    state.botDeployMax,
-    terrainOverrides:   state.overrides,
-    decorations:        state.decorations.map(d => ({ id: d.id, col: d.col, row: d.row })),
-    towerHealthBars:    Object.fromEntries(
-      HEALTH_BAR_KEYS.map(k => [k, { ...state.healthBars[k] }]),
-    ),
-    towerVisualOffsets: Object.fromEntries(
-      TOWER_KEYS.map(k => [k, { ...state.towerVisuals[k] }]),
-    ),
+const MAP_EXPORT_RECORD_KEYS = new Set([
+  'terrainOverrides', 'spawnZones', 'towerHealthBars', 'towerVisualOffsets',
+])
+
+function buildExport(s = state) {
+  return { version: 1, ...mapConfigFromState(s) }
+}
+
+function captureMapBaseline() {
+  mapExportBaseline = deepClone(buildExport())
+}
+
+function isPlainRecord(v) {
+  return v !== null && typeof v === 'object' && !Array.isArray(v)
+}
+
+function diffRecord(cur, base) {
+  const out = {}
+  const keys = new Set([...Object.keys(cur ?? {}), ...Object.keys(base ?? {})])
+  for (const k of keys) {
+    const cv = cur?.[k]
+    const bv = base?.[k]
+    if (JSON.stringify(cv) !== JSON.stringify(bv)) {
+      if (cv !== undefined) out[k] = cv
+    }
   }
+  return Object.keys(out).length ? out : undefined
+}
+
+function diffExportValue(cur, base, key) {
+  if (JSON.stringify(cur) === JSON.stringify(base)) return undefined
+  if (MAP_EXPORT_RECORD_KEYS.has(key) && isPlainRecord(cur)) {
+    return diffRecord(cur, isPlainRecord(base) ? base : {})
+  }
+  return cur
+}
+
+function buildExportDiff(s = state) {
+  const current = buildExport(s)
+  const baseline = mapExportBaseline ?? current
+  const out = {}
+  for (const key of Object.keys(current)) {
+    if (key === 'version') continue
+    const part = diffExportValue(current[key], baseline[key], key)
+    if (part !== undefined) out[key] = part
+  }
+  return out
 }
 
 document.getElementById('btn-export').addEventListener('click', () => {
-  const json = JSON.stringify(buildExport(), null, 2)
+  const diff = buildExportDiff()
+  const json = JSON.stringify(diff, null, 2)
   document.getElementById('export-out').textContent = json
   document.getElementById('export-out').style.display = 'block'
   document.getElementById('export-copy-row').style.display = 'flex'
   const blob = new Blob([json], { type: 'application/json' })
   document.getElementById('btn-download').href = URL.createObjectURL(blob)
+  document.getElementById('btn-download').download = 'map-changes.json'
 })
 
 document.getElementById('btn-copy').addEventListener('click', () => {
@@ -1538,74 +1511,38 @@ document.getElementById('btn-copy').addEventListener('click', () => {
   })
 })
 
-// ── Decoration palette ────────────────────────────────────────
-// Draw frame 0 of a decoration into a thumbnail canvas
-function drawThumb(thumbCanvas, cat, img) {
-  const tc  = thumbCanvas.getContext('2d')
-  const tw  = thumbCanvas.width, th = thumbCanvas.height
-  tc.clearRect(0, 0, tw, th)
-  if (!img.complete || img.naturalWidth === 0) return
-  const fw = cat.fw, fh = cat.fh
-  const scale = Math.min(tw / fw, th / fh)
-  const dw = fw * scale, dh = fh * scale
-  const ox = (tw - dw) / 2, oy = (th - dh) / 2
-  tc.drawImage(img, 0, 0, fw, fh, ox, oy, dw, dh)
+async function initEditor() {
+  syncSpawnLegendSwatches()
+  normalizeTowerSymmetry()
+  await loadMapJson()
+  captureMapBaseline()
+  editorReady = true
+  redraw()
 }
-
-function buildPalette() {
-  const palette = document.getElementById('deco-palette')
-  const groups = [
-    { title: 'Trees & Stumps', ids: ['tree1','tree2','tree3','tree4','stump1','stump2','stump3','stump4'] },
-    { title: 'Bushes & Rocks', ids: ['bush1','bush2','bush3','bush4','rock1','rock2','rock3','rock4'] },
-    { title: 'Water',          ids: ['wrock1','wrock2','wrock3','wrock4','wrock_in1','wrock_in2','wrock_in3','wrock_in4'] },
-    { title: 'Resources',      ids: ['gold','wood','duck'] },
-  ]
-  for (const group of groups) {
-    const hdr = document.createElement('div')
-    hdr.className = 'deco-cat'; hdr.textContent = group.title
-    palette.appendChild(hdr)
-
-    const grid = document.createElement('div')
-    grid.className = 'deco-grid'
-
-    for (const id of group.ids) {
-      const cat = DECO_CATALOG.find(c => c.id === id); if (!cat) continue
-      const item = document.createElement('div')
-      item.className = 'deco-item'; item.dataset.id = id; item.title = cat.label
-
-      // Use canvas so we can crop to frame 0
-      const thumb = document.createElement('canvas')
-      thumb.width = 44; thumb.height = 40
-      const img = decoImages[id]
-      if (img.complete && img.naturalWidth > 0) {
-        drawThumb(thumb, cat, img)
-      } else {
-        img.addEventListener('load', () => drawThumb(thumb, cat, img), { once: true })
-      }
-
-      const span = document.createElement('span'); span.textContent = cat.label
-      item.appendChild(thumb); item.appendChild(span)
-      item.addEventListener('click', () => {
-        selectedDeco = id; activeTool = 'deco'
-        document.getElementById('btn-select').classList.remove('active')
-        document.getElementById('btn-water').classList.remove('active')
-        document.getElementById('btn-grass').classList.remove('active')
-        document.querySelectorAll('.deco-item').forEach(el =>
-          el.classList.toggle('selected', el.dataset.id === id))
-      })
-      grid.appendChild(item)
-    }
-    palette.appendChild(grid)
-  }
-}
-
-// ── Keyboard shortcuts ────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+  if (document.getElementById('unit-canvas-wrap').style.display !== 'none') return
   if (e.key === 's' || e.key === 'S') { setTool('select'); return }
   if (e.key === 'w' || e.key === 'W') { setTool('water');  return }
   if (e.key === 'g' || e.key === 'G') { setTool('grass');  return }
-  if (e.key === 'Escape') { setTool('select'); return }
+  if (e.key === '1') { setTool('spawn-base'); return }
+  if (e.key === '2') { setTool('spawn-left'); return }
+  if (e.key === '3') { setTool('spawn-right'); return }
+  if (e.key === 'e' || e.key === 'E') { setTool('spawn-erase'); return }
+  if (e.key === 'Escape') { selectedTowerKey = null; setTool('select'); return }
+  if (selectedTowerKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    e.preventDefault()
+    const t = state.towers[selectedTowerKey]
+    const isKing = TOWER_INFO[selectedTowerKey]?.isKing
+    const dx = isKing ? 0 : (e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0)
+    const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0
+    if (dx === 0 && dy === 0) return
+    const before = deepClone(state.towers)
+    setTowerAnchorSymmetrical(selectedTowerKey, t.col + dx, t.row + dy)
+    undoStack.push({ type: 'towers-snap', orig: before })
+    redraw()
+    return
+  }
   if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
     e.preventDefault()
     if (!undoStack.length) return
@@ -1613,18 +1550,16 @@ document.addEventListener('keydown', e => {
     if (entry.key !== undefined) {
       if (entry.prev === undefined) delete state.overrides[entry.key]
       else state.overrides[entry.key] = entry.prev
-    } else if (entry.type === 'deco-add') {
-      state.decorations.splice(entry.idx, 1)
-    } else if (entry.type === 'deco-remove') {
-      state.decorations.splice(entry.idx, 0, entry.deco)
-    } else if (entry.type === 'deco-move') {
-      state.decorations[entry.idx] = entry.orig
-    } else if (entry.type === 'hb-move') {
-      state.healthBars[entry.towerKey] = entry.orig
+    } else if (entry.type === 'towers-snap') {
+      state.towers = deepClone(entry.orig)
+    } else if (entry.type === 'deploy-snap') {
+      state.playerDeployMin = entry.orig.playerDeployMin
+      state.botDeployMax = entry.orig.botDeployMax
+    } else if (entry.type === 'spawn-snap') {
+      state.spawnZones = { ...entry.before }
     } else if (entry.type === 'tower-move') {
       state.towers[entry.towerKey] = entry.orig
-    } else if (entry.type === 'vis-move') {
-      state.towerVisuals[entry.towerKey] = entry.orig
+      normalizeTowerSymmetry()
     }
     redraw()
   }
@@ -1636,38 +1571,25 @@ function applyMapConfig(data) {
   if (data.leftBridgeCols?.[0] != null) state.leftBridge = data.leftBridgeCols[0]
   if (data.rightBridgeCols?.[0] != null) state.rightBridge = data.rightBridgeCols[0]
   state.towers = towersFromMapConfig(data)
-  if (data.playerDeployRowMin != null) state.playerDeployMin = data.playerDeployRowMin
-  if (data.botDeployRowMax != null) state.botDeployMax = data.botDeployRowMax
+  if (data.playerDeployRowMin != null) state.playerDeployMin = data.playerDeployMin
+  if (data.botDeployRowMax != null) state.botDeployMax = data.botDeployMax
+  if (data.spawnZones) state.spawnZones = { ...data.spawnZones }
+  else state.spawnZones = buildDefaultSpawnZones()
   if (data.terrainOverrides) state.overrides = { ...data.terrainOverrides }
   if (data.decorations) state.decorations = data.decorations.map(d => ({ ...d }))
   state.healthBars = healthBarsFromMapConfig(data)
   state.towerVisuals = towerVisualsFromMapConfig(data)
+  normalizeTowerSymmetry()
 }
 
 async function loadMapJson() {
   try {
     const res = await fetch('./map.json', { cache: 'no-store' })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    liveMap = deepClone(data)
-    applyMapConfig(data)
-    setMapSourceLabel('Live map loaded from map.json (green ghost = saved placement)')
+    applyMapConfig(await res.json())
   } catch {
-    liveMap = deepClone(mapConfigFromState())
-    setMapSourceLabel('map.json not found — ghost matches built-in defaults')
+    /* built-in defaults already in state */
   }
-}
-
-function setMapSourceLabel(text) {
-  const el = document.getElementById('map-source-label')
-  if (el) el.textContent = text
-}
-
-async function initEditor() {
-  buildPalette()
-  await loadMapJson()
-  editorReady = true
-  redraw()
 }
 
 // ── Init ──────────────────────────────────────────────────────
@@ -1693,7 +1615,17 @@ document.getElementById('tab-map-btn').addEventListener('click', () => switchTab
 document.getElementById('tab-units-btn').addEventListener('click', () => switchTab('units'))
 
 // ── Unit catalog ──────────────────────────────────────────────
-// Mirrors CardData.ts + AssetManifest.ts.  path = player (blue) idle spritesheet.
+// Mirrors CardData.ts + AssetManifest.ts.  Troops = player idle; towers swap by approach side.
+const TOWER_EDITOR_PATHS = {
+  player: {
+    princess: 'assets/Factions/Knights/Buildings/Tower/Tower_Blue.png',
+    king:     'assets/Factions/Knights/Buildings/Castle/Castle_Blue.png',
+  },
+  bot: {
+    princess: 'assets/Factions/Knights/Buildings/Tower/Tower_Red.png',
+    king:     'assets/Factions/Knights/Buildings/Castle/Castle_Red.png',
+  },
+}
 const UNIT_CATALOG = [
   // Troops
   { id:'warrior',           name:'Warrior',           attackRange:1.2,  fw:192, fh:192, path:'assets/Units/Blue Units/Warrior/Warrior_Idle.png',                                                    contentFill:0.52 },
@@ -1723,9 +1655,9 @@ const UNIT_CATALOG = [
   { id:'harpoon_shark',     name:'Harpoon Shark',      attackRange:5.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Harpoon Shark/Harpoon Shark_Idle.png',                        contentFill:0.52 },
   { id:'spider',            name:'Spider',             attackRange:5.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png',                                          contentFill:0.52 },
   { id:'spiderling',        name:'Spiderling',         attackRange:5.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png',                                          contentFill:0.52 },
-  // Towers (isKing / isTower flags used for sizing)
-  { id:'princess_tower',    name:'Princess Tower',     attackRange:7.5,  fw:128, fh:256, path:'assets/Factions/Knights/Buildings/Tower/Tower_Blue.png',                                             contentFill:0.90, isTower:true, isKing:false },
-  { id:'king_tower',        name:'King Tower',         attackRange:20,   fw:320, fh:256, path:'assets/Factions/Knights/Buildings/Castle/Castle_Blue.png',                                           contentFill:0.88, isTower:true, isKing:true  },
+  // Towers — sprite follows Player ↓ / CPU ↑ approach side
+  { id:'princess_tower',    name:'Princess Tower',     attackRange:7.5,  fw:128, fh:256, path:TOWER_EDITOR_PATHS.bot.princess, contentFill:0.90, isTower:true, isKing:false, slotOffsetX: 0, slotOffsetY: 0 },
+  { id:'king_tower',        name:'King Tower',         attackRange:20,   fw:320, fh:256, path:TOWER_EDITOR_PATHS.bot.king,     contentFill:0.88, isTower:true, isKing:true,  slotOffsetX: 0, slotOffsetY: 0 },
 ]
 
 // Live-editable ranges (user can tweak without touching source)
@@ -1734,23 +1666,347 @@ for (const u of UNIT_CATALOG) liveRanges[u.id] = u.attackRange
 
 // ── Preload sprites ───────────────────────────────────────────
 const unitSpriteCache = {}
-for (const u of UNIT_CATALOG) {
-  if (unitSpriteCache[u.path]) continue
+function preloadUnitSprite(path) {
+  if (unitSpriteCache[path]) return
   const img = new Image()
-  img.src = u.path
+  img.src = path
   img.onload = () => { if (activeUnitId) drawUnit() }
   img.onerror = () => {}
-  unitSpriteCache[u.path] = img
+  unitSpriteCache[path] = img
+}
+for (const u of UNIT_CATALOG) preloadUnitSprite(u.path)
+for (const owner of Object.keys(TOWER_EDITOR_PATHS)) {
+  preloadUnitSprite(TOWER_EDITOR_PATHS[owner].princess)
+  preloadUnitSprite(TOWER_EDITOR_PATHS[owner].king)
+}
+
+for (const owner of Object.keys(TOWER_EDITOR_PATHS)) {
+  preloadUnitSprite(TOWER_EDITOR_PATHS[owner].princess)
+  preloadUnitSprite(TOWER_EDITOR_PATHS[owner].king)
+}
+
+// ── King castle garrison (mirrors towerGarrison.ts) ───────────
+const GARRISON_CANNON_PATHS = {
+  player: 'assets/Enemy Pack/Enemies/Pirate Fish/Cannon/Cannon_Up.png',
+  cpu:    'assets/Enemy Pack/Enemies/Pirate Fish/Cannon/Cannon_Down.png',
+}
+const GARRISON_ARCHER_FEET_Y = 136 / 192
+const GARRISON_CANNON_FEET_Y = 0.88
+const GARRISON_CANNON_SIZE_MULT = 1.25
+const GARRISON_DECK_SINK = 0.04
+preloadUnitSprite(GARRISON_CANNON_PATHS.player)
+preloadUnitSprite(GARRISON_CANNON_PATHS.cpu)
+
+function garrisonDeckRelY(nativeRow) {
+  return nativeRow / 256 - 0.5 + GARRISON_DECK_SINK
+}
+
+function defaultKingGarrisonSlots() {
+  return [
+    { label: 'Left deck',  relX: -0.28, relY: garrisonDeckRelY(101), unitId: 'elite_archer', flipX: false },
+    { label: 'Cannon',     relX: 0,     relY: 0,                     unitId: 'cannon',       flipX: false },
+    { label: 'Right deck', relX: 0.28,  relY: garrisonDeckRelY(101), unitId: 'elite_archer', flipX: true  },
+  ]
+}
+
+const liveKingGarrison = {
+  king_tower: {
+    player: defaultKingGarrisonSlots().map(s => ({ ...s })),
+    cpu:    defaultKingGarrisonSlots().map(s => ({ ...s })),
+  },
+}
+
+function garrisonAssignableUnits() {
+  const troops = UNIT_CATALOG.filter(u => !u.isTower).map(u => ({ id: u.id, label: u.name }))
+  return [{ id: 'cannon', label: 'Cannon' }, ...troops]
+}
+
+function buildGarrisonUnitPicker() {
+  const sel = document.getElementById('garrison-unit-picker')
+  if (!sel) return
+  sel.innerHTML = ''
+  for (const u of garrisonAssignableUnits()) {
+    const o = document.createElement('option')
+    o.value = u.id
+    o.textContent = u.label
+    sel.appendChild(o)
+  }
+}
+
+function getKingGarrisonSlots(unit, side) {
+  if (!unit?.isKing) return []
+  return liveKingGarrison[unit.id]?.[side ?? unitApproachSide] ?? []
+}
+
+function garrisonUnitSpritePath(unitId, side) {
+  if (unitId === 'cannon') return GARRISON_CANNON_PATHS[side]
+  const u = UNIT_CATALOG.find(x => x.id === unitId)
+  return u?.path ?? null
+}
+
+function garrisonUnitFeetY(unitId) {
+  return unitId === 'cannon' ? GARRISON_CANNON_FEET_Y : GARRISON_ARCHER_FEET_Y
+}
+
+function garrisonUnitSizeMult(unitId) {
+  return unitId === 'cannon' ? GARRISON_CANNON_SIZE_MULT : 1
+}
+
+function garrisonUnitCatalogEntry(unitId) {
+  if (unitId === 'cannon') {
+    return { id: 'cannon', fw: 128, fh: 128, contentFill: 1, isTower: false }
+  }
+  return UNIT_CATALOG.find(u => u.id === unitId) ?? UNIT_CATALOG.find(u => u.id === 'elite_archer')
+}
+
+function getGarrisonSlotScreenPos(slot, towerLayout) {
+  const { centerX, centerY, dispW, dispH } = towerLayout
+  return {
+    x: centerX + slot.relX * dispW,
+    y: centerY + slot.relY * dispH,
+  }
+}
+
+function exportGarrisonSlotsArray(unit, side) {
+  return getKingGarrisonSlots(unit, side).map(s => ({
+    label: s.label,
+    relX: +s.relX.toFixed(4),
+    relY: +s.relY.toFixed(4),
+    unitId: s.unitId,
+    flipX: !!s.flipX,
+  }))
+}
+
+function syncGarrisonSection() {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  const sec = document.getElementById('garrison-section')
+  const row = document.getElementById('tog-garrison-row')
+  const show = !!unit?.isKing
+  if (sec) sec.style.display = show ? '' : 'none'
+  if (row) row.style.display = show ? '' : 'none'
+  const lbl = document.getElementById('lbl-garrison-side')
+  if (lbl) lbl.textContent = unitApproachSide === 'player' ? 'Player ↓' : 'CPU ↑'
+  syncGarrisonInputs()
+}
+
+function syncGarrisonInputs() {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit?.isKing) return
+  const idx = unitEditSelection?.type === 'garrison' ? unitEditSelection.index : -1
+  const slots = getKingGarrisonSlots(unit, unitApproachSide)
+  const slotLbl = document.getElementById('lbl-garrison-slot')
+  if (slotLbl) {
+    slotLbl.textContent = idx >= 0 && slots[idx] ? `${slots[idx].label} (#${idx + 1})` : '—'
+  }
+  const slot = idx >= 0 ? slots[idx] : null
+  const picker = document.getElementById('garrison-unit-picker')
+  if (!picker) return
+  if (slot) {
+    picker.value = slot.unitId
+    document.getElementById('garrison-rel-x').value = slot.relX.toFixed(3)
+    document.getElementById('garrison-rel-y').value = slot.relY.toFixed(3)
+    picker.disabled = false
+    document.getElementById('garrison-rel-x').disabled = false
+    document.getElementById('garrison-rel-y').disabled = false
+  } else {
+    picker.disabled = true
+    document.getElementById('garrison-rel-x').disabled = true
+    document.getElementById('garrison-rel-y').disabled = true
+  }
+}
+
+function hitTestGarrisonSlot(mx, my, unit, UCELL) {
+  if (!unit?.isKing || !unitShowGarrison) return -1
+  const layout = getUnitTowerSpriteLayout(unit, UCW / 2, UCH / 2, UCELL)
+  if (!layout) return -1
+  const slots = getKingGarrisonSlots(unit, unitApproachSide)
+  for (let i = slots.length - 1; i >= 0; i--) {
+    const pos = getGarrisonSlotScreenPos(slots[i], layout)
+    if (Math.hypot(mx - pos.x, my - pos.y) <= 14) return i
+  }
+  return -1
+}
+
+function drawKingGarrison(unit, cx, cy, UCELL) {
+  if (!unit.isKing || !unitShowGarrison) return
+  const layout = getUnitTowerSpriteLayout(unit, cx, cy, UCELL)
+  if (!layout) return
+  const slots = getKingGarrisonSlots(unit, unitApproachSide)
+  const side = unitApproachSide
+
+  for (let i = 0; i < slots.length; i++) {
+    const slot = slots[i]
+    const path = garrisonUnitSpritePath(slot.unitId, side)
+    if (!path) continue
+    preloadUnitSprite(path)
+    const img = unitSpriteCache[path]
+    if (!img?.complete || !img.naturalWidth) continue
+
+    const meta = garrisonUnitCatalogEntry(slot.unitId)
+    const dispH = unitDisplayHGame(meta) * garrisonUnitSizeMult(slot.unitId) * (UCELL / GCS)
+    const dispW = (meta.fw / meta.fh) * dispH
+    const feetY = garrisonUnitFeetY(slot.unitId)
+    const pos = getGarrisonSlotScreenPos(slot, layout)
+    const isSel = isHandleSelected('garrison', i)
+    const isDrag = draggingGarrisonIndex === i
+
+    uctx.save()
+    uctx.globalAlpha = 0.92
+    if (side === 'cpu' && slot.unitId !== 'cannon') {
+      uctx.filter = 'sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.1)'
+    }
+    if (slot.flipX) {
+      uctx.translate(pos.x, pos.y)
+      uctx.scale(-1, 1)
+      uctx.drawImage(img, 0, 0, meta.fw, meta.fh, -dispW / 2, -feetY * dispH, dispW, dispH)
+    } else {
+      uctx.drawImage(img, 0, 0, meta.fw, meta.fh, pos.x - dispW / 2, pos.y - feetY * dispH, dispW, dispH)
+    }
+    uctx.restore()
+
+    uctx.beginPath()
+    uctx.arc(pos.x, pos.y, isDrag || isSel ? 7 : 5, 0, Math.PI * 2)
+    uctx.fillStyle = slot.unitId === 'cannon' ? 'rgba(255,180,60,0.95)' : 'rgba(120,220,255,0.90)'
+    uctx.fill()
+    uctx.strokeStyle = isSel ? '#fff' : 'rgba(255,255,255,0.55)'
+    uctx.lineWidth = isSel ? 2 : 1
+    uctx.stroke()
+
+    if (isSel) {
+      uctx.strokeStyle = 'rgba(255,255,100,0.85)'; uctx.lineWidth = 1.5; uctx.setLineDash([3, 2])
+      uctx.strokeRect(pos.x - dispW / 2 - 2, pos.y - feetY * dispH - 2, dispW + 4, dispH + 4)
+      uctx.setLineDash([])
+      uctx.fillStyle = 'rgba(255,255,100,0.9)'; uctx.font = '9px sans-serif'; uctx.textAlign = 'center'
+      uctx.fillText(slot.label, pos.x, pos.y - feetY * dispH - 6)
+    }
+  }
 }
 
 // ── State ─────────────────────────────────────────────────────
 let activeUnitId = UNIT_CATALOG[0].id
 let unitShowBot    = false
+let unitShowSprite = true
 let unitShowColl   = true
 let unitShowRing   = true
 let unitShowSlots  = true
 let unitShowTower  = true
+let unitShowHbar   = true
 let unitShowGrid   = true
+let unitShowMapContext = true
+let unitShowGarrison = true
+
+// ── Unit editor undo / redo ───────────────────────────────────
+const UNIT_UNDO_MAX = 50
+let unitUndoStack = []
+let unitRedoStack = []
+let unitUndoGesture = false
+
+function cloneUnitEditorData(obj) {
+  return JSON.parse(JSON.stringify(obj))
+}
+
+function snapshotUnitEditorState() {
+  return {
+    liveRanges: cloneUnitEditorData(liveRanges),
+    liveSlotRadii: cloneUnitEditorData(liveSlotRadii),
+    liveSlotOffsets: cloneUnitEditorData(liveSlotOffsets),
+    liveHbarOffsets: cloneUnitEditorData(liveHbarOffsets),
+    liveSlotPositions: cloneUnitEditorData(liveSlotPositions),
+    liveSlotRingAngle: cloneUnitEditorData(liveSlotRingAngle),
+    liveTowerVisualOffsets: cloneUnitEditorData(liveTowerVisualOffsets),
+    liveKingRangeCenterOffsets: cloneUnitEditorData(liveKingRangeCenterOffsets),
+    liveKingGarrison: cloneUnitEditorData(liveKingGarrison),
+    activeUnitId,
+    unitApproachSide,
+    selectedSlotIndex,
+    unitEditSelection: unitEditSelection ? { ...unitEditSelection } : null,
+  }
+}
+
+function replaceObjectContents(target, source) {
+  for (const k of Object.keys(target)) delete target[k]
+  Object.assign(target, cloneUnitEditorData(source))
+}
+
+function restoreUnitEditorState(snap) {
+  replaceObjectContents(liveRanges, snap.liveRanges)
+  replaceObjectContents(liveSlotRadii, snap.liveSlotRadii)
+  replaceObjectContents(liveSlotOffsets, snap.liveSlotOffsets)
+  replaceObjectContents(liveHbarOffsets, snap.liveHbarOffsets)
+  replaceObjectContents(liveSlotPositions, snap.liveSlotPositions)
+  replaceObjectContents(liveSlotRingAngle, snap.liveSlotRingAngle)
+  replaceObjectContents(liveTowerVisualOffsets, snap.liveTowerVisualOffsets)
+  if (snap.liveKingRangeCenterOffsets) {
+    replaceObjectContents(liveKingRangeCenterOffsets, snap.liveKingRangeCenterOffsets)
+  }
+  if (snap.liveKingGarrison) {
+    replaceObjectContents(liveKingGarrison, snap.liveKingGarrison)
+  }
+  activeUnitId = snap.activeUnitId
+  unitApproachSide = snap.unitApproachSide
+  for (const id of Object.keys(liveSlotPositions)) {
+    for (const side of ['player', 'cpu']) {
+      if (liveSlotPositions[id]?.[side]) {
+        liveSlotPositions[id][side] = normalizeSlotStorage(liveSlotPositions[id][side])
+      }
+    }
+  }
+  unitEditSelection = snap.unitEditSelection ? { ...snap.unitEditSelection } : null
+  selectedSlotIndex = unitEditSelection?.type === 'slot' ? unitEditSelection.index : -1
+  clearNewSlotHighlight()
+  document.getElementById('unit-picker').value = activeUnitId
+  document.getElementById('range-slider').value = liveRanges[activeUnitId]
+  document.getElementById('range-val').value    = liveRanges[activeUnitId]
+  document.getElementById('btn-approach-player').classList.toggle('active', unitApproachSide === 'player')
+  document.getElementById('btn-approach-cpu').classList.toggle('active', unitApproachSide === 'cpu')
+  syncSlotRadiusInputs()
+  syncSlotRingAngleInputs()
+  syncKingRangeCenterInputs()
+  syncTowerSections()
+  syncGarrisonSection()
+  updateUnitUndoButtons()
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (unit && unitEditSelection) updateUnitEditSelectionStatus(unit)
+  drawUnit()
+  drawTowerCompare()
+}
+
+function updateUnitUndoButtons() {
+  const u = document.getElementById('btn-unit-undo')
+  const r = document.getElementById('btn-unit-redo')
+  if (!u || !r) return
+  u.disabled = unitUndoStack.length === 0
+  r.disabled = unitRedoStack.length === 0
+}
+
+function pushUnitUndo() {
+  unitUndoStack.push(snapshotUnitEditorState())
+  if (unitUndoStack.length > UNIT_UNDO_MAX) unitUndoStack.shift()
+  unitRedoStack.length = 0
+  updateUnitUndoButtons()
+}
+
+function armUnitUndoOnce() {
+  if (unitUndoGesture) return
+  pushUnitUndo()
+  unitUndoGesture = true
+}
+
+function releaseUnitUndoGesture() {
+  unitUndoGesture = false
+}
+
+function unitUndo() {
+  if (!unitUndoStack.length) return
+  unitRedoStack.push(snapshotUnitEditorState())
+  restoreUnitEditorState(unitUndoStack.pop())
+}
+
+function unitRedo() {
+  if (!unitRedoStack.length) return
+  unitUndoStack.push(snapshotUnitEditorState())
+  restoreUnitEditorState(unitRedoStack.pop())
+}
 
 // ── Constants mirroring game ──────────────────────────────────
 const GCS = 64   // CELL_SIZE (game pixels per cell)
@@ -1760,6 +2016,504 @@ const PT_RANGE = 7.5   // Princess Tower range (cells, center-to-center)
 const KT_RANGE = 20.0  // King Tower range
 const PT_RADIUS = 1.5  // Princess Tower combat radius (3-cell footprint / 2)
 const KT_RADIUS = 2.0  // King Tower (4-cell footprint / 2)
+
+// Per-unit live melee hit zone radius (computed from formula, overridable)
+const MELEE_REF_RANGE = 1.0
+const liveSlotRadii = {}
+for (const u of UNIT_CATALOG) {
+  const combatR = u.isTower ? (u.isKing ? KT_RADIUS : PT_RADIUS) : TROOP_R
+  liveSlotRadii[u.id] = Math.max(0, combatR + TROOP_R + MELEE_REF_RANGE - APPROACH_SLACK)
+}
+
+// Per-tower, per-approach-side slot center offsets (in cells from sprite anchor)
+const liveSlotOffsets = {}
+for (const u of UNIT_CATALOG) {
+  liveSlotOffsets[u.id] = {
+    player: { x: u.slotOffsetX ?? 0, y: u.slotOffsetY ?? 0 },
+    cpu:    { x: u.slotOffsetX ?? 0, y: u.slotOffsetY ?? 0 },
+  }
+}
+let unitApproachSide = 'cpu'  // 'player' | 'cpu' — which side we're editing
+
+function defaultUnitTowerVisualOffset(unit, side) {
+  const owner = side === 'cpu' ? 'bot' : 'player'
+  if (unit.isKing) {
+    const key = side === 'cpu' ? 'botKing' : 'plyKing'
+    return { x: 0, y: KING_VISUAL_OFFSET_DEFAULT[key] }
+  }
+  return { x: 0, y: Math.round(towerRenderOffsetGame(owner, false)) }
+}
+
+function unitTowerMapKey(unit, side) {
+  if (unit.isKing) return side === 'cpu' ? 'botKing' : 'plyKing'
+  return side === 'cpu' ? 'botLeft' : 'plyLeft'
+}
+
+// Per-tower sprite visual offset from anchor (game px) — mirrors map.json towerVisualOffsets
+const liveTowerVisualOffsets = {}
+for (const u of UNIT_CATALOG) {
+  if (!u.isTower) continue
+  liveTowerVisualOffsets[u.id] = {
+    player: defaultUnitTowerVisualOffset(u, 'player'),
+    cpu:    defaultUnitTowerVisualOffset(u, 'cpu'),
+  }
+}
+if (liveTowerVisualOffsets.princess_tower) {
+  liveTowerVisualOffsets.princess_tower.player = { x: 0, y: 84 }
+  liveTowerVisualOffsets.princess_tower.cpu = { x: 0, y: -130 }
+}
+if (liveSlotOffsets.princess_tower) {
+  liveSlotOffsets.princess_tower.player = { x: 0, y: 1.25 }
+  liveSlotOffsets.princess_tower.cpu = { x: 0, y: -1.55 }
+}
+liveSlotRadii.princess_tower = 2.35
+
+/** King castle attack-range origin — cells from logic anchor (matches kingVisualAnchorY row delta). */
+const liveKingRangeCenterOffsets = { king_tower: { player: null, cpu: null } }
+
+function getUnitMapLayout() {
+  return {
+    riverStart: state.river.start,
+    riverEnd: state.river.end,
+    leftBridgeCol: state.leftBridge,
+    rightBridgeCol: state.rightBridge,
+    bridgeSpan: 3,
+    towers: { ...state.towers },
+  }
+}
+
+function defaultKingRangeCenterOffset(side) {
+  const kingKey = side === 'player' ? 'plyKing' : 'botKing'
+  const visualRow = side === 'player' ? PLAYER_KING_VISUAL_ROW : BOT_KING_VISUAL_ROW
+  const hitboxRow = state.towers[kingKey]?.row ?? (side === 'player' ? 41 : 3)
+  return { x: 0, y: visualRow - hitboxRow }
+}
+
+function ensureKingRangeCenterOffset(unit, side) {
+  if (!unit?.isKing) return { x: 0, y: 0 }
+  const store = liveKingRangeCenterOffsets[unit.id]
+  if (!store[side]) store[side] = defaultKingRangeCenterOffset(side)
+  return store[side]
+}
+
+function getKingRangeCenterOffset(unit, side) {
+  if (!unit?.isKing) return { x: 0, y: 0 }
+  return ensureKingRangeCenterOffset(unit, side ?? unitApproachSide)
+}
+
+function getKingRangeCenterPos(unit, cx, cy, UCELL, side) {
+  const off = getKingRangeCenterOffset(unit, side ?? unitApproachSide)
+  return { x: cx + off.x * UCELL, y: cy + off.y * UCELL, off }
+}
+
+function syncKingRangeCenterInputs() {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  const sec = document.getElementById('king-range-section')
+  if (!unit?.isKing) {
+    if (sec) sec.style.display = 'none'
+    return
+  }
+  if (sec) sec.style.display = ''
+  const off = ensureKingRangeCenterOffset(unit, unitApproachSide)
+  document.getElementById('king-range-x').value = parseFloat(off.x.toFixed(3))
+  document.getElementById('king-range-y').value = parseFloat(off.y.toFixed(3))
+}
+const PLAYER_PRINCESS_SLOT_POSITIONS = [
+  { x: 0, y: -2.9 }, { x: 0, y: 2.9 }, { x: -0.85, y: -2.6 }, { x: 0.85, y: 2.6 },
+  { x: -1.6, y: -2.1 }, { x: 1.6, y: 2.1 }, { x: -2, y: 1.35 }, { x: 2, y: -1.35 },
+  { x: -1.55, y: 2 }, { x: 1.55, y: -2 }, { x: -0.85, y: 2.6 }, { x: 0.85, y: -2.6 },
+  { x: -2.1, y: -1.4 }, { x: 2.1, y: 1.4 }, { x: -1.75, y: -0.5 }, { x: 1.75, y: 0.5 },
+  { x: -1.75, y: 0.45 }, { x: 1.75, y: -0.45 },
+]
+const BOT_PRINCESS_SLOT_POSITIONS = [
+  { x: 0, y: 2.9 }, { x: 0, y: -2.9 }, { x: -0.85, y: 2.6 }, { x: 0.85, y: -2.6 },
+  { x: -1.6, y: 2.1 }, { x: 1.6, y: -2.1 }, { x: -2, y: -1.35 }, { x: 2, y: 1.35 },
+  { x: -1.55, y: -2 }, { x: 1.55, y: 2 }, { x: -0.85, y: -2.6 }, { x: 0.85, y: 2.6 },
+  { x: -2.1, y: 1.4 }, { x: 2.1, y: -1.4 }, { x: -1.75, y: 0.5 }, { x: 1.75, y: -0.5 },
+  { x: -1.75, y: -0.45 }, { x: 1.75, y: 0.45 },
+]
+liveSlotPositions.princess_tower = liveSlotPositions.princess_tower || {}
+liveSlotPositions.princess_tower.player = PLAYER_PRINCESS_SLOT_POSITIONS.map(p => ({ ...p }))
+liveSlotPositions.princess_tower.cpu = BOT_PRINCESS_SLOT_POSITIONS.map(p => ({ ...p }))
+
+// Per-unit health bar Y offset (in cells from anchor)
+const liveHbarOffsets = {}
+for (const u of UNIT_CATALOG) {
+  liveHbarOffsets[u.id] = { y: u.hbarOffsetY ?? 0 }
+}
+
+// Per-unit custom slot point positions
+// null = use ring formula; array of {x,y} in cells relative to slot origin
+const liveSlotPositions = {}
+for (const u of UNIT_CATALOG) liveSlotPositions[u.id] = {}
+
+// Ring rotation offset (radians) — rotates entire slot layout around slot origin
+const liveSlotRingAngle = {}
+for (const u of UNIT_CATALOG) {
+  const deg = u.slotRingAngleDeg ?? 0
+  liveSlotRingAngle[u.id] = {
+    player: deg * Math.PI / 180,
+    cpu:    deg * Math.PI / 180,
+    default: deg * Math.PI / 180,
+  }
+}
+
+function slotSideKey(unit) { return (unit.isTower) ? unitApproachSide : 'default' }
+
+function approachAngleFor(unit) {
+  return (unit.isTower && unitApproachSide === 'cpu') ? Math.PI / 2 : -Math.PI / 2
+}
+
+function slotRingAngleRad(unit) {
+  return liveSlotRingAngle[unit.id]?.[slotSideKey(unit)] ?? 0
+}
+
+function slotRingAngleDeg(unit) {
+  return Math.round(slotRingAngleRad(unit) * 180 / Math.PI)
+}
+
+function rotatePoint2D(p, angleRad) {
+  const c = Math.cos(angleRad), s = Math.sin(angleRad)
+  return {
+    x: Math.round((p.x * c - p.y * s) * 20) / 20,
+    y: Math.round((p.x * s + p.y * c) * 20) / 20,
+  }
+}
+
+function setSlotRingAngleDeg(unit, deg) {
+  deg = Math.max(-180, Math.min(180, Math.round(deg)))
+  const key = slotSideKey(unit)
+  const newRad = deg * Math.PI / 180
+  const prevRad = liveSlotRingAngle[unit.id][key] ?? 0
+  const delta = newRad - prevRad
+  liveSlotRingAngle[unit.id][key] = newRad
+
+  const stored = liveSlotPositions[unit.id][key]
+  if (stored) {
+    for (let i = 0; i < stored.length; i++) stored[i] = rotatePoint2D(stored[i], delta)
+  }
+
+  if (slotSyncSides && unit.isTower) {
+    const otherSide = unitApproachSide === 'cpu' ? 'player' : 'cpu'
+    liveSlotRingAngle[unit.id][otherSide] = newRad
+    if (stored) {
+      liveSlotPositions[unit.id][otherSide] = stored.map(p => ({ x: p.x, y: -p.y }))
+    }
+  }
+}
+
+function getActiveSlotPositions(unit, slotR) {
+  const key = slotSideKey(unit)
+  const stored = liveSlotPositions[unit.id][key]
+  if (stored) {
+    ensurePairOrderSlots(unit)
+    return liveSlotPositions[unit.id][key]
+  }
+  const base = approachAngleFor(unit) + slotRingAngleRad(unit)
+  const ring = Array.from({ length: 12 }, (_, i) => {
+    const a = base + (Math.PI * 2 * i) / 12
+    return { x: Math.cos(a) * slotR, y: Math.sin(a) * slotR }
+  })
+  return ringOrderToPairOrder(ring)
+}
+
+function initCustomSlots(unit) {
+  const slotR = liveSlotRadii[unit.id]
+  const key = slotSideKey(unit)
+  if (!liveSlotPositions[unit.id][key]) {
+    const base = approachAngleFor(unit) + slotRingAngleRad(unit)
+    const ring = Array.from({ length: 12 }, (_, i) => {
+      const a = base + (Math.PI * 2 * i) / 12
+      return { x: Math.cos(a) * slotR, y: Math.sin(a) * slotR }
+    })
+    liveSlotPositions[unit.id][key] = ringOrderToPairOrder(ring)
+  } else {
+    ensurePairOrderSlots(unit)
+  }
+}
+
+function areSlotOpposites(a, b, tol = 0.05) {
+  if (!a || !b) return false
+  return Math.abs(roundSlotCoord(a.x + b.x)) <= tol && Math.abs(roundSlotCoord(a.y + b.y)) <= tol
+}
+
+/** Ring layout [0..N/2-1, N/2..N-1] → pair layout [0,N/2, 1,N/2+1, …]. */
+function ringOrderToPairOrder(ring) {
+  const half = ring.length / 2
+  const out = []
+  for (let k = 0; k < half; k++) {
+    out.push({ x: ring[k].x, y: ring[k].y })
+    out.push({ x: ring[k + half].x, y: ring[k + half].y })
+  }
+  return out
+}
+
+function isRingOrderSlots(slots) {
+  if (!slots || slots.length < 4 || slots.length % 2 !== 0) return false
+  const half = slots.length / 2
+  return areSlotOpposites(slots[0], slots[half]) && !areSlotOpposites(slots[0], slots[1])
+}
+
+function normalizeSlotStorage(slots) {
+  if (!slots || !isRingOrderSlots(slots)) return slots
+  return ringOrderToPairOrder(slots)
+}
+
+function ensurePairOrderSlots(unit) {
+  const key = slotSideKey(unit)
+  const arr = liveSlotPositions[unit.id]?.[key]
+  if (!arr) return
+  const norm = normalizeSlotStorage(arr)
+  if (norm !== arr) liveSlotPositions[unit.id][key] = norm
+}
+
+function resetSlots(unit) {
+  pushUnitUndo()
+  const key = slotSideKey(unit)
+  liveSlotPositions[unit.id][key] = null
+  liveSlotRingAngle[unit.id][key] = 0
+  clearNewSlotHighlight()
+  if (slotSyncSides && unit.isTower) {
+    const otherSide = unitApproachSide === 'cpu' ? 'player' : 'cpu'
+    liveSlotPositions[unit.id][otherSide] = null
+    liveSlotRingAngle[unit.id][otherSide] = 0
+  }
+  clearUnitEditSelection()
+  syncSlotRingAngleInputs()
+  updateSlotCountLabel(unit)
+}
+
+function addSlot(unit) {
+  pushUnitUndo()
+  initCustomSlots(unit)
+  const key = slotSideKey(unit)
+  const slots = liveSlotPositions[unit.id][key]
+  const slotR = liveSlotRadii[unit.id]
+  const base = approachAngleFor(unit) + slotRingAngleRad(unit)
+  // Place in a gap between existing pairs — never reuse a 12-div ring angle (collides after reset).
+  const pairCount = slots.length / 2
+  const a = base + (Math.PI * 2 * pairCount) / (2 * pairCount + 2)
+  const p = roundSlotPoint({
+    x: Math.cos(a) * slotR,
+    y: Math.sin(a) * slotR,
+  })
+  const firstIdx = slots.length
+  slots.push(p)
+  slots.push(roundSlotPoint({ x: -p.x, y: -p.y }))
+  markNewSlots(unit, [firstIdx, firstIdx + 1])
+  if (slotSyncSides && unit.isTower) {
+    const otherSide = unitApproachSide === 'cpu' ? 'player' : 'cpu'
+    liveSlotPositions[unit.id][otherSide] = slots.map(pt => ({ x: pt.x, y: -pt.y }))
+  }
+  updateSlotCountLabel(unit)
+}
+
+function removeSlot(unit, index) {
+  pushUnitUndo()
+  const key = slotSideKey(unit)
+  const slots = liveSlotPositions[unit.id][key]
+  if (!slots || slots.length <= 2) return
+  const base = index - (index % 2)
+  const toRemove = new Set([base, base + 1])
+  if (unitEditSelection?.type === 'slot' && toRemove.has(unitEditSelection.index)) clearUnitEditSelection()
+  for (const i of [...toRemove].sort((a, b) => b - a)) slots.splice(i, 1)
+  if (slotSyncSides && unit.isTower) {
+    const otherSide = unitApproachSide === 'cpu' ? 'player' : 'cpu'
+    liveSlotPositions[unit.id][otherSide] = slots.map(pt => ({ x: pt.x, y: -pt.y }))
+  }
+  updateSlotCountLabel(unit)
+}
+
+function updateSlotCountLabel(unit) {
+  const key = slotSideKey(unit)
+  const stored = liveSlotPositions[unit.id]?.[key]
+  document.getElementById('lbl-slot-count').textContent = stored ? stored.length : 12
+}
+
+// Slot symmetry options
+let slotSyncSides = true // mirror cpu↔player by flipping Y
+
+// Brief pulse highlight after + Add (shows the new opposite pair)
+let newSlotHighlight = null
+let newSlotHighlightRaf = 0
+
+function markNewSlots(unit, indices) {
+  newSlotHighlight = {
+    unitId: unit.id,
+    sideKey: slotSideKey(unit),
+    indices: new Set(indices),
+    until: performance.now() + 4500,
+  }
+  setUnitEditSelection(indices[0] != null ? { type: 'slot', index: indices[0] } : null)
+  updateUnitEditSelectionStatus(unit)
+  if (newSlotHighlightRaf) cancelAnimationFrame(newSlotHighlightRaf)
+  tickNewSlotHighlight()
+}
+
+function clearNewSlotHighlight() {
+  newSlotHighlight = null
+  if (newSlotHighlightRaf) {
+    cancelAnimationFrame(newSlotHighlightRaf)
+    newSlotHighlightRaf = 0
+  }
+}
+
+function isNewlyHighlightedSlot(unit, index) {
+  if (!newSlotHighlight) return false
+  if (performance.now() >= newSlotHighlight.until) return false
+  if (newSlotHighlight.unitId !== unit.id) return false
+  if (newSlotHighlight.sideKey !== slotSideKey(unit)) return false
+  return newSlotHighlight.indices.has(index)
+}
+
+function tickNewSlotHighlight() {
+  if (!newSlotHighlight || performance.now() >= newSlotHighlight.until) {
+    clearNewSlotHighlight()
+    drawUnit()
+    return
+  }
+  drawUnit()
+  newSlotHighlightRaf = requestAnimationFrame(tickNewSlotHighlight)
+}
+
+function roundSlotCoord(v) {
+  return Math.round(v * 20) / 20
+}
+
+function roundSlotPoint(p) {
+  return { x: roundSlotCoord(p.x), y: roundSlotCoord(p.y) }
+}
+
+function findOppositeSlotIndex(slots, index) {
+  if (!slots?.[index] || slots.length < 2) return index
+  const mate = index % 2 === 0 ? index + 1 : index - 1
+  return mate >= 0 && mate < slots.length && slots[mate] ? mate : index
+}
+
+const SLOT_PAIR_COLORS = [
+  [255, 120, 180], [120, 200, 255], [255, 200, 80], [160, 255, 120],
+  [200, 160, 255], [255, 140, 100], [100, 220, 220], [220, 180, 255],
+]
+
+function slotPairColor(pairId, alpha = 0.85) {
+  if (pairId < 0) return `rgba(255, 80, 80, ${alpha})`
+  const c = SLOT_PAIR_COLORS[pairId % SLOT_PAIR_COLORS.length]
+  return `rgba(${c[0]},${c[1]},${c[2]},${alpha})`
+}
+
+/** Partner index + stable pair id per slot (same color for both). */
+function analyzeSlotPairs(slots) {
+  const partner = slots.map((_, i) => findOppositeSlotIndex(slots, i))
+  const pairKeyToId = new Map()
+  const pairId = new Array(slots.length).fill(-1)
+  const pairs = []
+  for (let i = 0; i < slots.length; i++) {
+    const j = partner[i]
+    if (j === i) continue
+    const a = Math.min(i, j), b = Math.max(i, j)
+    const key = `${a}:${b}`
+    if (!pairKeyToId.has(key)) {
+      const id = pairKeyToId.size
+      pairKeyToId.set(key, id)
+      pairs.push({ id, a, b, method: 'pair' })
+    }
+    pairId[i] = pairKeyToId.get(key)
+  }
+  return { partner, pairId, pairs, broken: partner.map((j, i) => j === i ? i : -1).filter(i => i >= 0) }
+}
+
+function updateSlotPairList(unit, slots, analysis, focusIndex) {
+  const el = document.getElementById('slot-pair-list')
+  if (!el) return
+  if (!unitShowSlots || !slots?.length || focusIndex < 0) { el.textContent = ''; return }
+  const partner = analysis.partner[focusIndex]
+  if (partner === focusIndex) {
+    el.innerHTML = `<span style="color:#ff6060">#${focusIndex + 1} — no paired opposite</span>`
+    return
+  }
+  const pid = analysis.pairId[focusIndex]
+  el.innerHTML = `<span style="color:${slotPairColor(pid, 1)}">#${focusIndex + 1} ↔ #${partner + 1}</span> · opposite pair`
+}
+
+function drawSlotPairLinks(slotCX, slotCY, UCELL, slots, analysis, focusIndex) {
+  if (focusIndex < 0) return
+  uctx.lineCap = 'round'
+  const partner = analysis.partner[focusIndex]
+  if (partner === focusIndex) {
+    const sx = slotCX + slots[focusIndex].x * UCELL, sy = slotCY + slots[focusIndex].y * UCELL
+    uctx.strokeStyle = 'rgba(255,80,80,0.85)'; uctx.lineWidth = 2
+    uctx.setLineDash([4, 4])
+    uctx.beginPath(); uctx.moveTo(slotCX, slotCY); uctx.lineTo(sx, sy); uctx.stroke()
+    uctx.setLineDash([])
+    return
+  }
+  const ax = slotCX + slots[focusIndex].x * UCELL, ay = slotCY + slots[focusIndex].y * UCELL
+  const bx = slotCX + slots[partner].x * UCELL, by = slotCY + slots[partner].y * UCELL
+  const pid = analysis.pairId[focusIndex]
+  uctx.strokeStyle = slotPairColor(pid, 0.95)
+  uctx.lineWidth = 2.5
+  uctx.setLineDash([])
+  uctx.beginPath()
+  uctx.moveTo(ax, ay)
+  uctx.lineTo(bx, by)
+  uctx.stroke()
+  uctx.setLineDash([])
+}
+
+function applySlotSymmetry(unit, editedIndex) {
+  const key = slotSideKey(unit)
+  const slots = liveSlotPositions[unit.id]?.[key]
+  if (!slots) return
+
+  const idx = editedIndex ?? draggingSlotIndex
+  if (idx >= 0 && slots[idx]) {
+    const opp = findOppositeSlotIndex(slots, idx)
+    if (opp !== idx) {
+      slots[opp].x = roundSlotCoord(-slots[idx].x)
+      slots[opp].y = roundSlotCoord(-slots[idx].y)
+    }
+  }
+
+  if (slotSyncSides && unit.isTower) {
+    const otherSide = unitApproachSide === 'cpu' ? 'player' : 'cpu'
+    liveSlotPositions[unit.id][otherSide] = slots.map(p => ({ x: p.x, y: -p.y }))
+  }
+}
+
+// Drag state for unit canvas handles
+let draggingSlotCenter = false
+let draggingHbar = false
+let draggingTowerVisual = false
+let draggingRangeCenter = false
+let draggingSlotIndex = -1
+let draggingGarrisonIndex = -1
+let selectedSlotIndex = -1
+// null | { type:'slot'|'garrison'|... , index? }
+let unitEditSelection = null
+
+function clearUnitEditSelection() {
+  unitEditSelection = null
+  selectedSlotIndex = -1
+}
+
+function setUnitEditSelection(sel) {
+  unitEditSelection = sel
+  selectedSlotIndex = sel?.type === 'slot' ? sel.index : -1
+  syncGarrisonInputs()
+}
+
+function isHandleSelected(type, index) {
+  if (!unitEditSelection || unitEditSelection.type !== type) return false
+  if (type === 'slot' || type === 'garrison') return unitEditSelection.index === index
+  return true
+}
+let _dragStartMx = 0, _dragStartMy = 0
+let _dragStartOffX = 0, _dragStartOffY = 0
+let _dragStartHbarY = 0
+let _dragStartVisX = 0, _dragStartVisY = 0
+let _dragStartRangeX = 0, _dragStartRangeY = 0
+let _dragStartSlotX = 0, _dragStartSlotY = 0
+let _dragStartGarrisonRelX = 0, _dragStartGarrisonRelY = 0
 
 // ── Canvas setup ──────────────────────────────────────────────
 const unitCanvas = document.getElementById('unit-c')
@@ -1782,13 +2536,17 @@ function buildUnitPicker() {
   sel.value = activeUnitId
   sel.addEventListener('change', () => {
     activeUnitId = sel.value
+    clearUnitEditSelection()
     const r = liveRanges[activeUnitId]
     document.getElementById('range-slider').value = r
     document.getElementById('range-val').value    = r
+    syncSlotRadiusInputs()
+    syncTowerSections()
     drawUnit(); drawTowerCompare()
   })
 }
 buildUnitPicker()
+buildGarrisonUnitPicker()
 
 // ── Range controls ────────────────────────────────────────────
 function setRange(v) {
@@ -1798,8 +2556,12 @@ function setRange(v) {
   document.getElementById('range-val').value    = v
   drawUnit(); drawTowerCompare()
 }
+document.getElementById('range-slider').addEventListener('pointerdown', armUnitUndoOnce)
 document.getElementById('range-slider').addEventListener('input', e => setRange(+e.target.value))
-document.getElementById('range-val').addEventListener('change', e => setRange(+e.target.value))
+document.getElementById('range-val').addEventListener('change', e => {
+  pushUnitUndo()
+  setRange(+e.target.value)
+})
 
 document.getElementById('btn-copy-range').addEventListener('click', () => {
   const v = liveRanges[activeUnitId]
@@ -1814,15 +2576,491 @@ document.getElementById('btn-copy-range').addEventListener('click', () => {
 })
 
 document.getElementById('tog-unit-bot').addEventListener('change', e => { unitShowBot   = e.target.checked; drawUnit(); drawTowerCompare() })
+document.getElementById('tog-sprite').addEventListener('change', e => { unitShowSprite = e.target.checked; drawUnit() })
 document.getElementById('tog-collision').addEventListener('change', e => { unitShowColl  = e.target.checked; drawUnit() })
 document.getElementById('tog-range-ring').addEventListener('change', e => { unitShowRing  = e.target.checked; drawUnit() })
 document.getElementById('tog-slots').addEventListener('change', e => { unitShowSlots = e.target.checked; drawUnit() })
 document.getElementById('tog-tower-comp').addEventListener('change', e => { unitShowTower = e.target.checked; drawUnit() })
+document.getElementById('tog-hbar').addEventListener('change', e => { unitShowHbar  = e.target.checked; drawUnit() })
 document.getElementById('tog-unit-grid').addEventListener('change', e => { unitShowGrid  = e.target.checked; drawUnit() })
+document.getElementById('tog-map-context').addEventListener('change', e => { unitShowMapContext = e.target.checked; drawUnit() })
+document.getElementById('tog-garrison').addEventListener('change', e => { unitShowGarrison = e.target.checked; drawUnit() })
+document.getElementById('tog-slot-sync').addEventListener('change', e => {
+  slotSyncSides = e.target.checked
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (unit && slotSyncSides) applySlotSymmetry(unit)
+  drawUnit()
+})
 
 // seed slider/input with first unit
 document.getElementById('range-slider').value = liveRanges[activeUnitId]
 document.getElementById('range-val').value    = liveRanges[activeUnitId]
+
+// ── Helpers: sync sidebar inputs with live data ───────────────
+function syncSlotRadiusInputs() {
+  const r = liveSlotRadii[activeUnitId]
+  document.getElementById('slot-radius-slider').value = r
+  document.getElementById('slot-radius-val').value    = parseFloat(r.toFixed(3))
+}
+
+function syncSlotRingAngleInputs() {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  const deg = unit ? slotRingAngleDeg(unit) : 0
+  document.getElementById('slot-ring-slider').value = deg
+  document.getElementById('slot-ring-val').value    = deg
+}
+
+function syncSlotOffsetInputs() {
+  const off = liveSlotOffsets[activeUnitId]?.[unitApproachSide]
+  if (!off) return
+  document.getElementById('slot-off-x').value = parseFloat(off.x.toFixed(3))
+  document.getElementById('slot-off-y').value = parseFloat(off.y.toFixed(3))
+}
+
+function syncHbarInputs() {
+  const off = liveHbarOffsets[activeUnitId]
+  if (!off) return
+  document.getElementById('hbar-off-y').value = parseFloat(off.y.toFixed(3))
+}
+
+function syncTowerVisualInputs() {
+  const vis = liveTowerVisualOffsets[activeUnitId]?.[unitApproachSide]
+  if (!vis) return
+  document.getElementById('tower-vis-x').value = vis.x
+  document.getElementById('tower-vis-y').value = vis.y
+}
+
+function syncTowerSections() {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  const isTower = !!unit?.isTower
+  const isKing = !!unit?.isKing
+  document.getElementById('slot-origin-section').style.display = isTower ? '' : 'none'
+  document.getElementById('tower-visual-section').style.display = isTower ? '' : 'none'
+  document.getElementById('king-range-section').style.display = isKing ? '' : 'none'
+  document.getElementById('tog-map-context-row').style.display = isKing ? '' : 'none'
+  document.getElementById('tog-garrison-row').style.display = isKing ? '' : 'none'
+  syncGarrisonSection()
+  document.getElementById('hbar-unit-section').style.display   = ''   // always visible
+  document.getElementById('tog-unit-bot').closest('.toggle-row').style.display = isTower ? 'none' : ''
+  syncHbarInputs()
+  syncSlotRingAngleInputs()
+  syncKingRangeCenterInputs()
+  if (isTower) {
+    syncSlotOffsetInputs()
+    syncTowerVisualInputs()
+  }
+}
+
+function getSlotPositionsForSide(unit, side, slotR) {
+  const key = unit.isTower ? side : 'default'
+  const stored = liveSlotPositions[unit.id]?.[key]
+  if (stored) return stored
+  const savedApproach = unitApproachSide
+  if (unit.isTower) unitApproachSide = side
+  const positions = getActiveSlotPositions(unit, slotR)
+  if (unit.isTower) unitApproachSide = savedApproach
+  return positions
+}
+
+function exportSlotPointsArray(unit, side, slotR) {
+  return getSlotPositionsForSide(unit, side, slotR).map(p => ({
+    x: +roundSlotCoord(p.x).toFixed(3),
+    y: +roundSlotCoord(p.y).toFixed(3),
+  }))
+}
+
+const TOWER_EXPORT_META = {
+  princess_tower: {
+    kind: 'princess_tower',
+    label: 'Princess Tower',
+    collisionRadiusCells: PT_RADIUS,
+    footprintCells: 3,
+    mapKeys: {
+      player: ['plyLeft', 'plyRight'],
+      cpu: ['botLeft', 'botRight'],
+    },
+  },
+  king_tower: {
+    kind: 'king_tower',
+    label: 'King Tower (Castle)',
+    collisionRadiusCells: KT_RADIUS,
+    footprintCells: 4,
+    mapKeys: {
+      player: ['plyKing'],
+      cpu: ['botKing'],
+    },
+  },
+}
+
+const SIDE_EXPORT_LABELS = {
+  player: {
+    side: 'player',
+    label: 'Player (blue)',
+    approach: 'troops deploy from north (↓)',
+    mapOwner: 'player',
+  },
+  cpu: {
+    side: 'cpu',
+    label: 'CPU / bot (red)',
+    approach: 'troops deploy from south (↑)',
+    mapOwner: 'bot',
+  },
+}
+
+function buildTowerSideExport(unit, side, slotR) {
+  const meta = TOWER_EXPORT_META[unit.id]
+  const sideInfo = SIDE_EXPORT_LABELS[side]
+  const mapKeys = meta.mapKeys[side]
+  const vis = liveTowerVisualOffsets[unit.id][side]
+  const slotOff = liveSlotOffsets[unit.id][side]
+  return {
+    ...sideInfo,
+    mapKeys,
+    combatHull: {
+      radiusCells: meta.collisionRadiusCells,
+      footprintCells: meta.footprintCells,
+      note: 'Combat hull is centered on the logic anchor for this side’s approach. Same radius for both sides of this tower tier; map hitboxes are per mapKey (plyLeft, botKing, …).',
+    },
+    towerVisualOffset: {
+      mapKeys,
+      offsetX: vis.x,
+      offsetY: vis.y,
+      units: 'game pixels from logic anchor',
+      note: 'Sprite placement only — not mirrored between Player and CPU. Apply each side to its map.json towerVisualOffsets keys.',
+      mapJsonExample: Object.fromEntries(
+        mapKeys.map(k => [k, { offsetX: vis.x, offsetY: vis.y }]),
+      ),
+    },
+    slotOriginOffset: {
+      x: +slotOff.x.toFixed(3),
+      y: +slotOff.y.toFixed(3),
+      units: 'cells from logic anchor',
+      note: 'Melee hit-zone ring center (orange dot). Separate per side when Sync Player↔CPU is off.',
+    },
+    slotRingAngleDeg: Math.round(((liveSlotRingAngle[unit.id]?.[side] ?? 0) * 180 / Math.PI) * 100) / 100,
+    slotPositions: exportSlotPointsArray(unit, side, slotR),
+    slotPositionsNote: side === 'cpu' && slotSyncSides
+      ? 'When Sync Player↔CPU is on, CPU slots are mirrored Y from Player (same count/pairs).'
+      : 'Attack slot pairs (even↔odd indices); cells from slot origin.',
+    ...(unit.isKing ? {
+      rangeCenterOffset: {
+        x: +ensureKingRangeCenterOffset(unit, side).x.toFixed(3),
+        y: +ensureKingRangeCenterOffset(unit, side).y.toFixed(3),
+        units: 'cells from logic anchor',
+        note: 'Tower attack range measured center-to-center from this point (towerAttackCenter / kingVisualAnchorY). Default Y = visualRow − hitboxRow.',
+      },
+      garrisonSlots: exportGarrisonSlotsArray(unit, side),
+      garrisonNote: 'Deck units + centre cannon — relX/relY are fractions of castle sprite size from centre. unitId from troop catalog or "cannon".',
+    } : {}),
+  }
+}
+
+function buildTroopExport(u) {
+  const slotR = liveSlotRadii[u.id]
+  return {
+    kind: 'troop',
+    label: u.name,
+    id: u.id,
+    attackRange: liveRanges[u.id],
+    hbarOffsetY: +(liveHbarOffsets[u.id]?.y ?? 0).toFixed(3),
+    collisionRadiusCells: TROOP_R,
+    slotRadius: +slotR.toFixed(3),
+    slotRingAngleDeg: Math.round(((liveSlotRingAngle[u.id]?.default ?? 0) * 180 / Math.PI) * 100) / 100,
+    slotPositions: exportSlotPointsArray(u, 'default', slotR),
+    cardDataHint: `CardData / ${u.id}`,
+  }
+}
+
+function buildTowerExport(u) {
+  const meta = TOWER_EXPORT_META[u.id]
+  const slotR = liveSlotRadii[u.id]
+  return {
+    ...meta,
+    id: u.id,
+    attackRange: liveRanges[u.id],
+    hbarOffsetY: +(liveHbarOffsets[u.id]?.y ?? 0).toFixed(3),
+    slotRadius: +slotR.toFixed(3),
+    symmetry: {
+      slotSyncSides,
+      note: slotSyncSides
+        ? 'Attack slots and slot ring angle sync Player↔CPU (CPU Y mirrored). Sprite offsets and slot origins are still edited per side.'
+        : 'Player and CPU sides are independent in the editor.',
+    },
+    player: buildTowerSideExport(u, 'player', slotR),
+    cpu: buildTowerSideExport(u, 'cpu', slotR),
+  }
+}
+
+function buildUnitEditorExportObject() {
+  const troops = {}
+  const towers = {}
+  const mapJsonTowerVisualOffsets = {}
+
+  for (const u of UNIT_CATALOG) {
+    if (u.isTower) {
+      towers[u.id] = buildTowerExport(u)
+      for (const side of ['player', 'cpu']) {
+        const sideExport = towers[u.id][side]
+        for (const [key, val] of Object.entries(sideExport.towerVisualOffset.mapJsonExample)) {
+          mapJsonTowerVisualOffsets[key] = val
+        }
+      }
+    } else {
+      troops[u.id] = buildTroopExport(u)
+    }
+  }
+
+  const active = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  let activeUnit = null
+  if (active) {
+    activeUnit = {
+      id: active.id,
+      label: active.name,
+      kind: active.isTower ? TOWER_EXPORT_META[active.id].kind : 'troop',
+      towerLabel: active.isTower ? TOWER_EXPORT_META[active.id].label : undefined,
+      editingSide: active.isTower ? unitApproachSide : undefined,
+      editingSideLabel: active.isTower ? SIDE_EXPORT_LABELS[unitApproachSide].label : undefined,
+    }
+  }
+
+  return {
+    schema: 'tiny-wars-unit-editor-v2',
+    exportedAt: new Date().toISOString(),
+    activeUnit,
+    _readme: {
+      troops: 'One entry per troop card — attack range, health bar, melee hit-zone slots.',
+      towers: {
+        princess_tower: 'Applies to plyLeft, plyRight (player) and botLeft, botRight (CPU).',
+        king_tower: 'Applies to plyKing (player castle) and botKing (CPU castle).',
+        symmetry: 'Slot layouts can sync Player↔CPU (Y-flip). Sprite placement (towerVisualOffset) is per side and per map key — not mirrored.',
+        collision: 'combatHull.radiusCells is the tier radius (princess 1.5, king 2.0). Map editor hitboxes are placed per tower key on the map.',
+        mapJson: 'Use mapJsonTowerVisualOffsets for map.json towerVisualOffsets block.',
+      },
+    },
+    troops,
+    towers,
+    mapJsonTowerVisualOffsets,
+  }
+}
+
+function copyText(txt, btn, label) {
+  navigator.clipboard.writeText(txt).catch(() => {
+    const ta = document.createElement('textarea')
+    ta.value = txt; document.body.appendChild(ta); ta.select()
+    document.execCommand('copy'); document.body.removeChild(ta)
+  })
+  btn.textContent = '✓ Copied!'
+  setTimeout(() => { btn.textContent = label }, 1400)
+}
+
+// ── Melee hit zone radius controls ───────────────────────────
+document.getElementById('slot-radius-slider').addEventListener('pointerdown', armUnitUndoOnce)
+document.getElementById('slot-radius-slider').addEventListener('input', e => {
+  const v = Math.round(+e.target.value * 20) / 20
+  liveSlotRadii[activeUnitId] = v
+  document.getElementById('slot-radius-val').value = v
+  drawUnit()
+})
+document.getElementById('slot-radius-val').addEventListener('change', e => {
+  pushUnitUndo()
+  const v = Math.round(+e.target.value * 20) / 20
+  liveSlotRadii[activeUnitId] = v
+  document.getElementById('slot-radius-slider').value = v
+  drawUnit()
+})
+document.getElementById('btn-copy-slot-radius').addEventListener('click', () => {
+  const v = liveSlotRadii[activeUnitId]
+  copyText(`slotRadius: ${v},`, document.getElementById('btn-copy-slot-radius'), '⎘ Copy slotRadius')
+})
+
+// ── Slot ring facing rotation ─────────────────────────────────
+function applySlotRingAngleFromUI(deg) {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit) return
+  setSlotRingAngleDeg(unit, deg)
+  syncSlotRingAngleInputs()
+  drawUnit()
+}
+document.getElementById('slot-ring-slider').addEventListener('pointerdown', armUnitUndoOnce)
+document.getElementById('slot-ring-slider').addEventListener('input', e => applySlotRingAngleFromUI(+e.target.value))
+document.getElementById('slot-ring-val').addEventListener('change', e => {
+  pushUnitUndo()
+  applySlotRingAngleFromUI(+e.target.value)
+})
+document.getElementById('btn-copy-slot-ring').addEventListener('click', () => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit) return
+  const deg = slotRingAngleDeg(unit)
+  copyText(`slotRingAngleDeg: ${deg},`, document.getElementById('btn-copy-slot-ring'), '⎘ Copy slotRingAngle')
+})
+
+// ── Approach side buttons ─────────────────────────────────────
+document.getElementById('btn-approach-player').addEventListener('click', () => {
+  unitApproachSide = 'player'
+  document.getElementById('btn-approach-player').classList.add('active')
+  document.getElementById('btn-approach-cpu').classList.remove('active')
+  clearUnitEditSelection()
+  syncSlotOffsetInputs(); syncSlotRingAngleInputs(); syncTowerVisualInputs(); syncKingRangeCenterInputs(); syncGarrisonSection(); drawUnit()
+})
+document.getElementById('btn-approach-cpu').addEventListener('click', () => {
+  unitApproachSide = 'cpu'
+  document.getElementById('btn-approach-cpu').classList.add('active')
+  document.getElementById('btn-approach-player').classList.remove('active')
+  clearUnitEditSelection()
+  syncSlotOffsetInputs(); syncSlotRingAngleInputs(); syncTowerVisualInputs(); syncKingRangeCenterInputs(); syncGarrisonSection(); drawUnit()
+})
+
+// ── Tower sprite visual offset inputs ─────────────────────────
+document.getElementById('tower-vis-x').addEventListener('change', e => {
+  pushUnitUndo()
+  const vis = liveTowerVisualOffsets[activeUnitId]?.[unitApproachSide]
+  if (!vis) return
+  vis.x = Math.round(+e.target.value)
+  drawUnit()
+})
+document.getElementById('tower-vis-y').addEventListener('change', e => {
+  pushUnitUndo()
+  const vis = liveTowerVisualOffsets[activeUnitId]?.[unitApproachSide]
+  if (!vis) return
+  vis.y = Math.round(+e.target.value)
+  drawUnit()
+})
+document.getElementById('btn-copy-tower-vis').addEventListener('click', () => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit?.isTower) return
+  const vis = liveTowerVisualOffsets[unit.id][unitApproachSide]
+  const key = unitTowerMapKey(unit, unitApproachSide)
+  const txt = `${key}: { offsetX: ${vis.x}, offsetY: ${vis.y} },`
+  copyText(txt, document.getElementById('btn-copy-tower-vis'), '⎘ Copy towerVisualOffset')
+})
+
+// ── King range center inputs ──────────────────────────────────
+document.getElementById('king-range-x').addEventListener('change', e => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit?.isKing) return
+  pushUnitUndo()
+  ensureKingRangeCenterOffset(unit, unitApproachSide).x = +e.target.value
+  drawUnit()
+})
+document.getElementById('king-range-y').addEventListener('change', e => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit?.isKing) return
+  pushUnitUndo()
+  ensureKingRangeCenterOffset(unit, unitApproachSide).y = +e.target.value
+  drawUnit()
+})
+document.getElementById('btn-copy-king-range').addEventListener('click', () => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit?.isKing) return
+  const off = ensureKingRangeCenterOffset(unit, unitApproachSide)
+  const txt = `rangeCenterOffset: { x: ${off.x.toFixed(3)}, y: ${off.y.toFixed(3)} },  // cells from logic anchor`
+  copyText(txt, document.getElementById('btn-copy-king-range'), '⎘ Copy rangeCenterOffset')
+})
+
+// ── Castle garrison inputs ────────────────────────────────────
+document.getElementById('garrison-unit-picker').addEventListener('change', e => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit?.isKing || unitEditSelection?.type !== 'garrison') return
+  const slots = getKingGarrisonSlots(unit, unitApproachSide)
+  const slot = slots[unitEditSelection.index]
+  if (!slot) return
+  pushUnitUndo()
+  slot.unitId = e.target.value
+  const path = garrisonUnitSpritePath(slot.unitId, unitApproachSide)
+  if (path) preloadUnitSprite(path)
+  updateUnitEditSelectionStatus(unit)
+  drawUnit()
+})
+document.getElementById('garrison-rel-x').addEventListener('change', e => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit?.isKing || unitEditSelection?.type !== 'garrison') return
+  const slots = getKingGarrisonSlots(unit, unitApproachSide)
+  const slot = slots[unitEditSelection.index]
+  if (!slot) return
+  pushUnitUndo()
+  slot.relX = +e.target.value
+  updateUnitEditSelectionStatus(unit)
+  drawUnit()
+})
+document.getElementById('garrison-rel-y').addEventListener('change', e => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit?.isKing || unitEditSelection?.type !== 'garrison') return
+  const slots = getKingGarrisonSlots(unit, unitApproachSide)
+  const slot = slots[unitEditSelection.index]
+  if (!slot) return
+  pushUnitUndo()
+  slot.relY = +e.target.value
+  updateUnitEditSelectionStatus(unit)
+  drawUnit()
+})
+document.getElementById('btn-copy-garrison').addEventListener('click', () => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit?.isKing) return
+  const arr = exportGarrisonSlotsArray(unit, unitApproachSide)
+  const lines = arr.map(s => {
+    let line = `  { label: '${s.label}', relX: ${s.relX}, relY: ${s.relY}, unitId: '${s.unitId}'`
+    if (s.flipX) line += ', flipX: true'
+    return line + ' },'
+  })
+  const txt = `garrisonSlots: [\n${lines.join('\n')}\n],`
+  copyText(txt, document.getElementById('btn-copy-garrison'), '⎘ Copy garrisonSlots')
+})
+
+// ── Slot offset inputs ────────────────────────────────────────
+document.getElementById('slot-off-x').addEventListener('change', e => {
+  pushUnitUndo()
+  if (!liveSlotOffsets[activeUnitId]) return
+  liveSlotOffsets[activeUnitId][unitApproachSide].x = +e.target.value
+  drawUnit()
+})
+document.getElementById('slot-off-y').addEventListener('change', e => {
+  pushUnitUndo()
+  if (!liveSlotOffsets[activeUnitId]) return
+  liveSlotOffsets[activeUnitId][unitApproachSide].y = +e.target.value
+  drawUnit()
+})
+document.getElementById('btn-copy-slot-off').addEventListener('click', () => {
+  const off = liveSlotOffsets[activeUnitId]
+  if (!off) return
+  const txt = `slotOffsetX: ${off.player.x}, slotOffsetY: ${off.player.y}, // player\n// slotOffsetX: ${off.cpu.x}, slotOffsetY: ${off.cpu.y}, // cpu`
+  copyText(txt, document.getElementById('btn-copy-slot-off'), '⎘ Copy slotOffset')
+})
+
+// ── Health bar offset inputs ──────────────────────────────────
+document.getElementById('hbar-off-y').addEventListener('change', e => {
+  pushUnitUndo()
+  if (!liveHbarOffsets[activeUnitId]) return
+  liveHbarOffsets[activeUnitId].y = +e.target.value
+  drawUnit()
+})
+document.getElementById('btn-copy-hbar-off').addEventListener('click', () => {
+  const off = liveHbarOffsets[activeUnitId]
+  if (!off) return
+  copyText(`hbarOffsetY: ${off.y},`, document.getElementById('btn-copy-hbar-off'), '⎘ Copy hbarOffset')
+})
+
+document.getElementById('btn-export-unit').addEventListener('click', () => {
+  const json = JSON.stringify(buildUnitEditorExportObject(), null, 2)
+  const out = document.getElementById('unit-export-out')
+  out.textContent = json
+  out.style.display = 'block'
+  document.getElementById('unit-export-copy-row').style.display = 'flex'
+})
+document.getElementById('btn-copy-unit-export').addEventListener('click', () => {
+  const json = document.getElementById('unit-export-out').textContent
+  if (!json) return
+  copyText(json, document.getElementById('btn-copy-unit-export'), 'Copy JSON')
+})
+
+// seed new controls with first unit values
+syncSlotRadiusInputs()
+syncTowerSections()
+updateUnitUndoButtons()
+window.addEventListener('mouseup', releaseUnitUndoGesture)
+window.addEventListener('pointerup', releaseUnitUndoGesture)
+
+document.getElementById('btn-unit-undo').addEventListener('click', unitUndo)
+document.getElementById('btn-unit-redo').addEventListener('click', unitRedo)
 
 // ── Helper: compute canvas cell size so range ring + tower comparison fit ──
 function computeUCELL(attackRange) {
@@ -1846,6 +3084,120 @@ function unitDisplayHGame(unit) {
   return GCS * 2.5 / fill * scale
 }
 
+// ── King tower arena context + range center ───────────────────
+function mapOffsetToCanvas(kingCol, kingRow, col, row, cx, cy, UCELL) {
+  return { x: cx + (col - kingCol) * UCELL, y: cy + (row - kingRow) * UCELL }
+}
+
+function drawKingArenaContext(unit, cx, cy, UCELL) {
+  if (!unit.isKing || !unitShowMapContext) return
+  const layout = getUnitMapLayout()
+  const side = unitApproachSide
+  const kingKey = side === 'player' ? 'plyKing' : 'botKing'
+  const king = layout.towers[kingKey]
+  if (!king) return
+
+  const leftPt = layout.towers[side === 'player' ? 'plyLeft' : 'botLeft']
+  const rightPt = layout.towers[side === 'player' ? 'plyRight' : 'botRight']
+  const kingCol = king.col, kingRow = king.row
+  const mapW = COLS * UCELL
+  const mapLeft = cx - kingCol * UCELL
+  const mapRight = mapLeft + mapW
+
+  // River band (rows riverStart..riverEnd)
+  const riverTop = cy + (layout.riverStart - kingRow) * UCELL
+  const riverBot = cy + (layout.riverEnd + 1 - kingRow) * UCELL
+  uctx.fillStyle = 'rgba(60,120,200,0.08)'
+  uctx.fillRect(mapLeft, riverTop, mapW, riverBot - riverTop)
+  uctx.strokeStyle = 'rgba(80,140,220,0.35)'; uctx.lineWidth = 1
+  uctx.setLineDash([8, 6])
+  uctx.beginPath(); uctx.moveTo(mapLeft, riverTop); uctx.lineTo(mapRight, riverTop); uctx.stroke()
+  uctx.beginPath(); uctx.moveTo(mapLeft, riverBot); uctx.lineTo(mapRight, riverBot); uctx.stroke()
+  uctx.setLineDash([])
+  uctx.fillStyle = 'rgba(100,160,240,0.55)'; uctx.font = '9px sans-serif'; uctx.textAlign = 'left'
+  uctx.fillText('river', mapLeft + 4, riverTop + 11)
+
+  // Bridge spans (3 cols each side)
+  const bridgeH = (layout.riverEnd - layout.riverStart + 1) * UCELL
+  const bridgeY = cy + (layout.riverStart - kingRow) * UCELL
+  for (const [label, bridgeCol] of [['L bridge', layout.leftBridgeCol], ['R bridge', layout.rightBridgeCol]]) {
+    const bx = cx + (bridgeCol - kingCol) * UCELL
+    const bw = layout.bridgeSpan * UCELL
+    uctx.fillStyle = 'rgba(180,140,80,0.12)'
+    uctx.fillRect(bx, bridgeY, bw, bridgeH)
+    uctx.strokeStyle = 'rgba(210,170,90,0.55)'; uctx.lineWidth = 1.5
+    uctx.setLineDash([4, 3])
+    uctx.strokeRect(bx, bridgeY, bw, bridgeH)
+    uctx.setLineDash([])
+    uctx.fillStyle = 'rgba(210,170,90,0.85)'; uctx.font = 'bold 9px sans-serif'; uctx.textAlign = 'center'
+    uctx.fillText(label, bx + bw / 2, bridgeY + bridgeH / 2 + 3)
+  }
+
+  // Princess tower markers
+  const ptColor = side === 'player' ? 'rgba(70,120,255,0.85)' : 'rgba(255,80,80,0.85)'
+  const ptFill = side === 'player' ? 'rgba(70,120,255,0.10)' : 'rgba(255,80,80,0.10)'
+  for (const [pt, label] of [[leftPt, 'Princess L'], [rightPt, 'Princess R']]) {
+    if (!pt) continue
+    const pos = mapOffsetToCanvas(kingCol, kingRow, pt.col, pt.row, cx, cy, UCELL)
+    const r = PT_RADIUS * UCELL
+    uctx.beginPath(); uctx.arc(pos.x, pos.y, r, 0, Math.PI * 2)
+    uctx.fillStyle = ptFill; uctx.fill()
+    uctx.strokeStyle = ptColor; uctx.lineWidth = 1.5; uctx.stroke()
+    // Dashed guide from king anchor to princess
+    uctx.strokeStyle = 'rgba(255,255,255,0.12)'; uctx.lineWidth = 1; uctx.setLineDash([3, 4])
+    uctx.beginPath(); uctx.moveTo(cx, cy); uctx.lineTo(pos.x, pos.y); uctx.stroke()
+    uctx.setLineDash([])
+    uctx.fillStyle = ptColor; uctx.font = '9px sans-serif'; uctx.textAlign = 'center'
+    uctx.fillText(label, pos.x, pos.y + r + 11)
+    const dx = pt.col - kingCol, dy = pt.row - kingRow
+    uctx.fillStyle = 'rgba(140,150,180,0.7)'; uctx.font = '8px monospace'
+    uctx.fillText(`Δ${dx >= 0 ? '+' : ''}${dx}, ${dy >= 0 ? '+' : ''}${dy}`, pos.x, pos.y + r + 21)
+  }
+
+  // King anchor label
+  uctx.fillStyle = 'rgba(180,190,210,0.65)'; uctx.font = '9px sans-serif'; uctx.textAlign = 'center'
+  uctx.fillText('logic anchor (you)', cx, cy + (unit.isKing ? KT_RADIUS : PT_RADIUS) * UCELL + 14)
+}
+
+function drawKingRangeCenterHandle(unit, cx, cy, UCELL) {
+  if (!unit.isKing) return
+  const { x: rcx, y: rcy, off } = getKingRangeCenterPos(unit, cx, cy, UCELL)
+  const hasOffset = Math.abs(off.x) > 0.001 || Math.abs(off.y) > 0.001
+
+  if (hasOffset) {
+    uctx.strokeStyle = 'rgba(255,200,60,0.35)'; uctx.lineWidth = 1; uctx.setLineDash([4, 4])
+    uctx.beginPath(); uctx.moveTo(cx, cy); uctx.lineTo(rcx, rcy); uctx.stroke()
+    uctx.setLineDash([])
+  }
+
+  const sel = isHandleSelected('rangeCenter')
+  uctx.beginPath()
+  uctx.moveTo(rcx - 8, rcy); uctx.lineTo(rcx + 8, rcy)
+  uctx.moveTo(rcx, rcy - 8); uctx.lineTo(rcx, rcy + 8)
+  uctx.strokeStyle = draggingRangeCenter || sel ? 'rgba(255,255,100,0.95)' : 'rgba(255,180,50,0.90)'
+  uctx.lineWidth = draggingRangeCenter || sel ? 2.5 : 2
+  uctx.stroke()
+  uctx.beginPath(); uctx.arc(rcx, rcy, 5, 0, Math.PI * 2)
+  uctx.fillStyle = draggingRangeCenter || sel ? 'rgba(255,255,100,0.35)' : 'rgba(255,180,50,0.25)'
+  uctx.fill()
+  uctx.strokeStyle = draggingRangeCenter || sel ? 'rgba(255,255,100,0.95)' : 'rgba(255,180,50,0.90)'
+  uctx.lineWidth = sel ? 2 : 1.5; uctx.stroke()
+  if (sel) {
+    uctx.beginPath(); uctx.arc(rcx, rcy, 11, 0, Math.PI * 2)
+    uctx.strokeStyle = 'rgba(255,255,255,0.75)'; uctx.lineWidth = 1.5
+    uctx.setLineDash([3, 2]); uctx.stroke(); uctx.setLineDash([])
+  }
+  uctx.fillStyle = sel ? 'rgba(255,255,100,0.95)' : 'rgba(255,200,60,0.90)'
+  uctx.font = '9px sans-serif'; uctx.textAlign = 'left'
+  uctx.fillText(`range center (${off.x >= 0 ? '+' : ''}${off.x.toFixed(2)}, ${off.y >= 0 ? '+' : ''}${off.y.toFixed(2)})`, rcx + 10, rcy - 6)
+}
+
+function hitTestKingRangeCenter(mx, my, unit, cx, cy, UCELL) {
+  if (!unit.isKing) return false
+  const { x: rcx, y: rcy } = getKingRangeCenterPos(unit, cx, cy, UCELL)
+  return Math.hypot(mx - rcx, my - rcy) <= 12
+}
+
 // ── Main unit draw ────────────────────────────────────────────
 function drawUnit() {
   const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
@@ -1866,60 +3218,194 @@ function drawUnit() {
   // Grid
   if (unitShowGrid) drawUnitGrid(cx, cy, UCELL)
 
+  // Arena landmarks (princess towers, bridges, river) — king editor only
+  if (unit.isKing) drawKingArenaContext(unit, cx, cy, UCELL)
+
   // Tower comparison (behind sprite)
   if (unitShowTower && !unit.isTower) drawTowerOverlay(unit, cx, cy, UCELL, attackRange)
 
   // Sprite
-  drawUnitSprite(unit, cx, cy, UCELL)
+  if (unitShowSprite) drawUnitSprite(unit, cx, cy, UCELL)
+  if (unit.isTower) drawTowerSpriteHandle(unit, cx, cy, UCELL)
+  if (unit.isKing) drawKingGarrison(unit, cx, cy, UCELL)
 
   // Collision circle
+  // Combat radius — towers use their footprint radius, troops use collision radius
+  const targetCombatR = unit.isTower
+    ? (unit.isKing ? KT_RADIUS : PT_RADIUS)
+    : TROOP_R
+
+  // Collision / footprint circle
   if (unitShowColl) {
-    const cr = TROOP_R * UCELL
+    const cr = targetCombatR * UCELL
     uctx.beginPath(); uctx.arc(cx, cy, cr, 0, Math.PI * 2)
     uctx.fillStyle = 'rgba(100,180,255,0.12)'; uctx.fill()
     uctx.strokeStyle = 'rgba(100,180,255,0.75)'; uctx.lineWidth = 1.5; uctx.stroke()
   }
 
-  // Attack range ring (from unit edge, i.e. center + collisionR + attackRange)
+  // Attack range ring — towers measure center-to-center; troops measure edge-to-edge
   if (unitShowRing) {
-    const ringR = (TROOP_R + attackRange) * UCELL
-    uctx.beginPath(); uctx.arc(cx, cy, ringR, 0, Math.PI * 2)
+    const rangeCX = unit.isKing ? getKingRangeCenterPos(unit, cx, cy, UCELL).x : cx
+    const rangeCY = unit.isKing ? getKingRangeCenterPos(unit, cx, cy, UCELL).y : cy
+    const ringR = unit.isTower
+      ? attackRange * UCELL
+      : (targetCombatR + attackRange) * UCELL
+    uctx.beginPath(); uctx.arc(rangeCX, rangeCY, ringR, 0, Math.PI * 2)
     uctx.fillStyle = 'rgba(255,200,60,0.05)'; uctx.fill()
     uctx.strokeStyle = 'rgba(255,200,60,0.85)'; uctx.lineWidth = 2
     uctx.setLineDash([6, 4]); uctx.stroke(); uctx.setLineDash([])
-    // Label
     uctx.fillStyle = 'rgba(255,200,60,0.9)'; uctx.font = 'bold 11px sans-serif'; uctx.textAlign = 'center'
-    uctx.fillText(`range ${attackRange} cells`, cx, cy - ringR - 7)
+    uctx.fillText(`range ${attackRange} cells`, rangeCX, rangeCY - ringR - 7)
   }
 
-  // Melee hit zone: ring where a typical melee attacker (range ~1.0) parks to hit the selected unit.
-  // Uses a fixed reference range — NOT the selected unit's own range — so this stays
-  // tight around the unit regardless of whether it's a ranged or melee card.
-  if (unitShowSlots && !unit.isTower) {
-    const MELEE_REF_RANGE = 1.0  // representative melee attackRange
-    const slotR = Math.max(0, TROOP_R + TROOP_R + MELEE_REF_RANGE - APPROACH_SLACK) * UCELL
-    uctx.strokeStyle = 'rgba(180,160,255,0.30)'; uctx.lineWidth = 1
+  // Melee hit zone: ring where a typical melee attacker parks to hit this unit / tower.
+  if (!unitShowSlots) {
+    updateSlotPairList(unit, [], { partner: [], pairId: [], pairs: [], broken: [] }, -1)
+  }
+  if (unitShowSlots) {
+    const slotR = liveSlotRadii[unit.id] * UCELL
+
+    // Slot origin center — towers can have per-side offset, troops use anchor
+    let slotCX = cx, slotCY = cy
+    if (unit.isTower) {
+      const off = liveSlotOffsets[unit.id][unitApproachSide]
+      slotCX = cx + off.x * UCELL
+      slotCY = cy + off.y * UCELL
+    }
+
+    // Approach angle: cpu troops come from below (south), player from above (north)
+    const approachAngle = approachAngleFor(unit)
+    const ringBase = approachAngle + slotRingAngleRad(unit)
+
+    // Reference ring (faint guide)
+    uctx.strokeStyle = 'rgba(180,160,255,0.20)'; uctx.lineWidth = 1
     uctx.setLineDash([3,3])
-    uctx.beginPath(); uctx.arc(cx, cy, slotR, 0, Math.PI * 2); uctx.stroke()
+    uctx.beginPath(); uctx.arc(slotCX, slotCY, slotR, 0, Math.PI * 2); uctx.stroke()
     uctx.setLineDash([])
-    // Label
-    uctx.fillStyle = 'rgba(180,160,255,0.55)'; uctx.font = '10px sans-serif'; uctx.textAlign = 'left'
-    uctx.fillText(`melee hit zone`, cx + slotR + 4, cy + 4)
-    // Draw 6 ghost melee attackers surrounding this unit
+
+    // Facing axis — opposite slots face each other across the anchor
+    const axisLen = slotR + 12
+    uctx.strokeStyle = 'rgba(120,255,200,0.50)'; uctx.lineWidth = 1.5
+    uctx.setLineDash([5, 4])
+    uctx.beginPath()
+    uctx.moveTo(slotCX - Math.cos(ringBase) * axisLen, slotCY - Math.sin(ringBase) * axisLen)
+    uctx.lineTo(slotCX + Math.cos(ringBase) * axisLen, slotCY + Math.sin(ringBase) * axisLen)
+    uctx.stroke()
+    uctx.setLineDash([])
+    uctx.fillStyle = 'rgba(120,255,200,0.75)'; uctx.font = '9px sans-serif'; uctx.textAlign = 'center'
+    uctx.fillText(`facing ${slotRingAngleDeg(unit)}°`, slotCX + Math.cos(ringBase) * (axisLen + 16), slotCY + Math.sin(ringBase) * (axisLen + 16))
+
+    uctx.fillStyle = 'rgba(180,160,255,0.45)'; uctx.font = '10px sans-serif'; uctx.textAlign = 'left'
+    uctx.fillText(`melee hit zone`, slotCX + slotR + 4, slotCY + 4)
+
+    // Slot ghost circles — use custom positions if set, otherwise ring formula
+    const slotRcells = liveSlotRadii[unit.id]
+    const slotPositions = getActiveSlotPositions(unit, slotRcells)
+    const slotPairAnalysis = analyzeSlotPairs(slotPositions)
+    updateSlotCountLabel(unit)
     const collR = TROOP_R * UCELL
-    for (let i = 0; i < 6; i++) {
-      const angle = -Math.PI / 2 + (Math.PI * 2 * i) / 6
-      const sx = cx + Math.cos(angle) * slotR
-      const sy = cy + Math.sin(angle) * slotR
+    const selectedSlotIdx = unitEditSelection?.type === 'slot' ? unitEditSelection.index : -1
+    const focusSlotIdx = draggingSlotIndex >= 0 ? draggingSlotIndex : selectedSlotIdx
+    updateSlotPairList(unit, slotPositions, slotPairAnalysis, focusSlotIdx)
+    drawSlotPairLinks(slotCX, slotCY, UCELL, slotPositions, slotPairAnalysis, focusSlotIdx)
+    for (let i = 0; i < slotPositions.length; i++) {
+      const pos = slotPositions[i]
+      const sx = slotCX + pos.x * UCELL
+      const sy = slotCY + pos.y * UCELL
+      // Determine active (approach-side) for formula-based; always active for custom
+      const key = slotSideKey(unit)
+      const isCustom = !!liveSlotPositions[unit.id][key]
+      let isActive = isCustom
+      if (!isCustom) {
+        const angle = Math.atan2(pos.y, pos.x)
+        let dAngle = angle - approachAngle
+        while (dAngle >  Math.PI) dAngle -= Math.PI * 2
+        while (dAngle < -Math.PI) dAngle += Math.PI * 2
+        isActive = Math.abs(dAngle) <= Math.PI / 2
+      }
+      const isDragging = draggingSlotIndex === i
+      const isSelected = isHandleSelected('slot', i) && !isDragging
+      const partnerIdx = slotPairAnalysis.partner[i]
+      const isPartnerOfFocus = focusSlotIdx >= 0 && partnerIdx === focusSlotIdx && i !== focusSlotIdx
+      const isNew = isNewlyHighlightedSlot(unit, i)
       uctx.beginPath(); uctx.arc(sx, sy, collR, 0, Math.PI * 2)
-      uctx.fillStyle = 'rgba(180,160,255,0.15)'; uctx.fill()
-      uctx.strokeStyle = 'rgba(180,160,255,0.45)'; uctx.lineWidth = 1; uctx.stroke()
+      if (isDragging || isSelected) {
+        uctx.fillStyle = 'rgba(255,255,100,0.35)'; uctx.strokeStyle = 'rgba(255,255,100,0.90)'; uctx.lineWidth = 2
+      } else if (isPartnerOfFocus) {
+        uctx.fillStyle = 'rgba(255,255,255,0.18)'
+        uctx.strokeStyle = slotPairColor(slotPairAnalysis.pairId[focusSlotIdx], 0.95)
+        uctx.lineWidth = 2.5
+      } else if (isNew) {
+        const pulse = 0.55 + 0.45 * Math.sin(performance.now() / 140)
+        uctx.fillStyle = `rgba(80,255,160,${0.22 + 0.18 * pulse})`
+        uctx.strokeStyle = `rgba(80,255,160,${0.75 + 0.25 * pulse})`
+        uctx.lineWidth = 2.5
+      } else {
+        uctx.fillStyle = isActive ? 'rgba(255,170,80,0.20)' : 'rgba(180,160,255,0.15)'
+        uctx.strokeStyle = isActive ? 'rgba(255,170,80,0.55)' : 'rgba(180,160,255,0.45)'; uctx.lineWidth = 1
+      }
+      uctx.fill(); uctx.stroke()
+      if (isNew) {
+        uctx.beginPath(); uctx.arc(sx, sy, collR + 5, 0, Math.PI * 2)
+        uctx.strokeStyle = `rgba(120,255,200,${0.35 + 0.35 * Math.sin(performance.now() / 140)})`
+        uctx.lineWidth = 2; uctx.setLineDash([4, 3]); uctx.stroke(); uctx.setLineDash([])
+        uctx.fillStyle = 'rgba(120,255,200,0.95)'; uctx.font = 'bold 9px sans-serif'; uctx.textAlign = 'center'
+        uctx.fillText('NEW', sx, sy - collR - 6)
+      } else if (isSelected) {
+        uctx.beginPath(); uctx.arc(sx, sy, collR + 4, 0, Math.PI * 2)
+        uctx.strokeStyle = 'rgba(255,255,255,0.85)'; uctx.lineWidth = 1.5
+        uctx.setLineDash([3, 2]); uctx.stroke(); uctx.setLineDash([])
+        const ptn = partnerIdx !== i ? partnerIdx + 1 : '?'
+        uctx.fillStyle = 'rgba(255,255,255,0.9)'; uctx.font = 'bold 9px sans-serif'; uctx.textAlign = 'center'
+        uctx.fillText(`#${i + 1}↔#${ptn}`, sx, sy - collR - 6)
+      }
+    }
+
+    // For towers: draw draggable slot-center dot
+    if (unit.isTower) {
+      const originSel = isHandleSelected('slotOrigin')
+      uctx.beginPath(); uctx.arc(slotCX, slotCY, 6, 0, Math.PI * 2)
+      uctx.fillStyle = originSel || draggingSlotCenter ? 'rgba(255,200,80,0.95)' : 'rgba(255,140,40,0.85)'; uctx.fill()
+      uctx.strokeStyle = originSel ? 'rgba(255,255,100,0.95)' : '#fff'
+      uctx.lineWidth = originSel ? 2.5 : 1.5; uctx.stroke()
+      if (originSel) {
+        uctx.beginPath(); uctx.arc(slotCX, slotCY, 10, 0, Math.PI * 2)
+        uctx.strokeStyle = 'rgba(255,255,255,0.75)'; uctx.lineWidth = 1.5
+        uctx.setLineDash([3, 2]); uctx.stroke(); uctx.setLineDash([])
+      }
+    }
+  }
+
+  // Health bar indicator — all units, draggable Y offset
+  if (unitShowHbar) {
+    const hb = getHbarLayout(unit, cx, cy, UCELL)
+    if (hb) {
+      const { hbarCY, barW, barH, hx } = hb
+      uctx.fillStyle = 'rgba(0,0,0,0.55)'
+      uctx.fillRect(cx - barW / 2 - 1, hbarCY - barH / 2 - 1, barW + 2, barH + 2)
+      uctx.fillStyle = 'rgba(60,220,80,0.85)'
+      uctx.fillRect(cx - barW / 2, hbarCY - barH / 2, barW, barH)
+      uctx.strokeStyle = 'rgba(255,255,255,0.35)'; uctx.lineWidth = 1
+      uctx.strokeRect(cx - barW / 2, hbarCY - barH / 2, barW, barH)
+      uctx.fillStyle = 'rgba(120,220,120,0.8)'; uctx.font = '9px sans-serif'; uctx.textAlign = 'left'
+      uctx.fillText('health bar — drag vertically', cx + barW / 2 + 4, hbarCY + 3)
+      const hbarSel = isHandleSelected('hbar')
+      uctx.beginPath()
+      uctx.moveTo(hx - 5, hbarCY); uctx.lineTo(hx, hbarCY - 5)
+      uctx.lineTo(hx + 5, hbarCY); uctx.lineTo(hx, hbarCY + 5)
+      uctx.closePath()
+      uctx.fillStyle = hbarSel || draggingHbar ? 'rgba(255,255,100,0.90)' : 'rgba(100,200,255,0.85)'; uctx.fill()
+      uctx.strokeStyle = hbarSel ? 'rgba(255,255,255,0.95)' : '#fff'
+      uctx.lineWidth = hbarSel ? 2 : 1; uctx.stroke()
     }
   }
 
   // Entity position dot
   uctx.beginPath(); uctx.arc(cx, cy, 3, 0, Math.PI * 2)
   uctx.fillStyle = '#ffffff'; uctx.fill()
+
+  // King range center handle (on top)
+  if (unit.isKing) drawKingRangeCenterHandle(unit, cx, cy, UCELL)
 
   // Cell scale legend
   uctx.fillStyle = '#50607a'; uctx.font = '10px sans-serif'; uctx.textAlign = 'left'
@@ -1947,18 +3433,88 @@ function drawUnitGrid(cx, cy, UCELL) {
   }
 }
 
+function unitTowerOwner(unit) {
+  if (!unit.isTower) return null
+  return unitApproachSide === 'cpu' ? 'bot' : 'player'
+}
+
+function unitTowerSpritePath(unit) {
+  const owner = unitTowerOwner(unit)
+  return TOWER_EDITOR_PATHS[owner][unit.isKing ? 'king' : 'princess']
+}
+
+function getUnitTowerVisualOffset(unit) {
+  return liveTowerVisualOffsets[unit.id]?.[unitApproachSide] ?? { x: 0, y: 0 }
+}
+
+function getUnitTowerSpriteLayout(unit, cx, cy, UCELL) {
+  if (!unit.isTower) return null
+  const spritePath = unitTowerSpritePath(unit)
+  const img = unitSpriteCache[spritePath]
+  if (!img?.complete || !img.naturalWidth) return null
+  const dispHgame = unitDisplayHGame(unit)
+  const dispH = dispHgame * (UCELL / GCS)
+  const dispW = (unit.fw / unit.fh) * dispH
+  const scale = UCELL / GCS
+  const vis = getUnitTowerVisualOffset(unit)
+  const centerX = cx + vis.x * scale
+  const centerY = cy + vis.y * scale
+  return {
+    centerX, centerY,
+    sx: centerX - dispW / 2,
+    sy: centerY - dispH / 2,
+    dispW, dispH,
+  }
+}
+
+function hitTestTowerSprite(mx, my, unit, UCELL) {
+  const layout = getUnitTowerSpriteLayout(unit, UCW / 2, UCH / 2, UCELL)
+  if (!layout) return false
+  return mx >= layout.sx && mx <= layout.sx + layout.dispW
+      && my >= layout.sy && my <= layout.sy + layout.dispH
+}
+
+function drawTowerSpriteHandle(unit, cx, cy, UCELL) {
+  const layout = getUnitTowerSpriteLayout(unit, cx, cy, UCELL)
+  if (!layout) return
+  const show = unitShowSprite || isHandleSelected('sprite') || draggingTowerVisual
+  if (!show) return
+  const isSel = isHandleSelected('sprite')
+  uctx.strokeStyle = draggingTowerVisual ? 'rgba(128,192,255,0.95)'
+    : isSel ? 'rgba(255,255,100,0.90)' : 'rgba(128,192,255,0.45)'
+  uctx.lineWidth = draggingTowerVisual || isSel ? 2 : 1
+  uctx.strokeRect(layout.sx, layout.sy, layout.dispW, layout.dispH)
+  const { centerX, centerY } = layout
+  uctx.beginPath()
+  uctx.moveTo(centerX - 10, centerY); uctx.lineTo(centerX + 10, centerY)
+  uctx.moveTo(centerX, centerY - 10); uctx.lineTo(centerX, centerY + 10)
+  uctx.stroke()
+  uctx.fillStyle = isSel ? 'rgba(255,255,100,0.9)' : 'rgba(128,192,255,0.85)'
+  uctx.font = '9px sans-serif'; uctx.textAlign = 'left'
+  uctx.fillText(unitShowSprite ? 'sprite' : 'sprite (hidden)', layout.sx + 4, layout.sy + 11)
+}
+
 function drawUnitSprite(unit, cx, cy, UCELL) {
-  const img = unitSpriteCache[unit.path]
+  const spritePath = unit.isTower ? unitTowerSpritePath(unit) : unit.path
+  const img = unitSpriteCache[spritePath]
   if (!img || !img.complete || img.naturalWidth === 0) return
   const dispHgame = unitDisplayHGame(unit)
   const dispH = dispHgame * (UCELL / GCS)
   const dispW = (unit.fw / unit.fh) * dispH
-  const originY = unit.spriteOriginY ?? 0.5
-  const sx = cx - dispW / 2
-  const sy = cy - originY * dispH
+  let sx, sy
+  if (unit.isTower) {
+    const layout = getUnitTowerSpriteLayout(unit, cx, cy, UCELL)
+    if (!layout) return
+    sx = layout.sx
+    sy = layout.sy
+  } else {
+    sx = cx - dispW / 2
+    const originY = unit.spriteOriginY ?? 0.5
+    sy = cy - originY * dispH
+  }
   uctx.save(); uctx.globalAlpha = 0.82
-  if (unitShowBot) {
-    // Tint red for bot side (same as BOT_SIDE_TINT 0xff9999)
+  if (unitShowBot && !unit.isTower) {
+    // Tint red for bot troops — towers use native CPU art
     uctx.filter = 'sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.1)'
   }
   uctx.drawImage(img, 0, 0, unit.fw, unit.fh, sx, sy, dispW, dispH)
@@ -2126,23 +3682,513 @@ for (const img of Object.values(towerImages)) {
 }
 drawTowerCompare()
 
-// ── Mouse hover on unit canvas ────────────────────────────────
-unitCanvas.addEventListener('mousemove', e => {
+// ── Unit canvas mouse helpers ─────────────────────────────────
+function unitCanvasCoords(e) {
   const rect = unitCanvas.getBoundingClientRect()
-  const mx = (e.clientX - rect.left) * (UCW / rect.width)
-  const my = (e.clientY - rect.top)  * (UCH / rect.height)
+  return {
+    mx: (e.clientX - rect.left) * (UCW / rect.width),
+    my: (e.clientY - rect.top)  * (UCH / rect.height),
+  }
+}
+
+function getSlotDotPos(unit, UCELL) {
+  if (!unit.isTower) return null
+  const off = liveSlotOffsets[unit.id][unitApproachSide]
+  return { x: UCW / 2 + off.x * UCELL, y: UCH / 2 + off.y * UCELL }
+}
+
+function getHbarLayout(unit, cx, cy, UCELL) {
+  if (!unitShowHbar) return null
+  const hbarOffY = liveHbarOffsets[unit.id]?.y ?? 0
+  const hbarCY = cy + hbarOffY * UCELL
+  const dispHgame = unitDisplayHGame(unit)
+  const dispWgame = (unit.fw / unit.fh) * dispHgame
+  const barWgame = unit.isTower
+    ? (unit.isKing ? 96 : 110)
+    : dispWgame * 0.6
+  const barW = barWgame * (UCELL / GCS)
+  const barH = 8
+  const hx = cx - barW / 2 - 5
+  const padX = 14
+  const padY = 10
+  return {
+    hbarCY, barW, barH, hx,
+    left: Math.min(cx - barW / 2, hx - 10) - padX,
+    right: cx + barW / 2 + padX,
+    top: hbarCY - barH / 2 - padY,
+    bottom: hbarCY + barH / 2 + padY,
+  }
+}
+
+function hitTestHbar(mx, my, unit, UCELL) {
+  const layout = getHbarLayout(unit, UCW / 2, UCH / 2, UCELL)
+  if (!layout) return false
+  if (mx >= layout.left && mx <= layout.right && my >= layout.top && my <= layout.bottom) return true
+  return Math.hypot(mx - layout.hx, my - layout.hbarCY) <= 14
+}
+
+function getHbarHandlePos(unit, UCELL) {
+  const layout = getHbarLayout(unit, UCW / 2, UCH / 2, UCELL)
+  if (!layout) return null
+  return { x: layout.hx, y: layout.hbarCY }
+}
+
+function isUnitEditorVisible() {
+  return document.getElementById('unit-canvas-wrap').style.display !== 'none'
+}
+
+function getSelectedSlotPoint(unit) {
+  if (unitEditSelection?.type !== 'slot') return null
+  initCustomSlots(unit)
+  const key = slotSideKey(unit)
+  const slots = liveSlotPositions[unit.id][key]
+  return slots?.[unitEditSelection.index] ?? null
+}
+
+function arrowNudgeHint(e, units) {
+  if (units === 'px') {
+    const px = e.shiftKey ? 1 : e.ctrlKey || e.metaKey ? 8 : 4
+    return { step: px, label: `${px} game px · Shift 1 · Ctrl 8` }
+  }
+  const step = e.ctrlKey || e.metaKey ? 0.25 : e.shiftKey ? 0.01 : 0.05
+  return { step, label: `${step} cells · Shift 0.01 · Ctrl 0.25` }
+}
+
+function updateUnitEditSelectionStatus(unit) {
+  if (!unit || !unitEditSelection) return
+  const hint = ' · ↑↓←→ nudge · Shift fine · Ctrl coarse'
+  if (unitEditSelection.type === 'slot') {
+    const p = getSelectedSlotPoint(unit)
+    if (!p) return
+    initCustomSlots(unit)
+    const key = slotSideKey(unit)
+    const slots = liveSlotPositions[unit.id][key] ?? getActiveSlotPositions(unit, liveSlotRadii[unit.id])
+    const idx = unitEditSelection.index
+    const partner = findOppositeSlotIndex(slots, idx)
+    const analysis = analyzeSlotPairs(slots)
+    const pid = analysis.pairId[idx]
+    const pairTxt = partner !== idx
+      ? ` · paired #${partner + 1} (P${pid + 1})`
+      : ' · ⚠ no pair'
+    document.getElementById('unit-status').textContent =
+      `Slot #${idx + 1}: (${p.x >= 0 ? '+' : ''}${p.x.toFixed(2)}, ${p.y >= 0 ? '+' : ''}${p.y.toFixed(2)}) cells${pairTxt}${hint}`
+  } else if (unitEditSelection.type === 'slotOrigin') {
+    const off = liveSlotOffsets[unit.id]?.[unitApproachSide]
+    if (!off) return
+    document.getElementById('unit-status').textContent =
+      `Slot origin: (${off.x >= 0 ? '+' : ''}${off.x.toFixed(2)}, ${off.y >= 0 ? '+' : ''}${off.y.toFixed(2)}) cells${hint}`
+  } else if (unitEditSelection.type === 'sprite') {
+    const vis = liveTowerVisualOffsets[unit.id]?.[unitApproachSide]
+    if (!vis) return
+    document.getElementById('unit-status').textContent =
+      `Sprite: (${vis.x >= 0 ? '+' : ''}${vis.x}, ${vis.y >= 0 ? '+' : ''}${vis.y}) game px${hint}`
+  } else if (unitEditSelection.type === 'hbar') {
+    const y = liveHbarOffsets[unit.id]?.y ?? 0
+    document.getElementById('unit-status').textContent =
+      `Health bar Y: ${y >= 0 ? '+' : ''}${y.toFixed(2)} cells · ↑↓ nudge${hint}`
+  } else if (unitEditSelection.type === 'rangeCenter') {
+    const off = getKingRangeCenterOffset(unit, unitApproachSide)
+    document.getElementById('unit-status').textContent =
+      `Range center: (${off.x >= 0 ? '+' : ''}${off.x.toFixed(2)}, ${off.y >= 0 ? '+' : ''}${off.y.toFixed(2)}) cells from logic anchor${hint}`
+  } else if (unitEditSelection.type === 'garrison') {
+    const slots = getKingGarrisonSlots(unit, unitApproachSide)
+    const slot = slots[unitEditSelection.index]
+    if (!slot) return
+    const unitLabel = slot.unitId === 'cannon' ? 'Cannon' : (UNIT_CATALOG.find(u => u.id === slot.unitId)?.name ?? slot.unitId)
+    document.getElementById('unit-status').textContent =
+      `${slot.label}: rel (${slot.relX >= 0 ? '+' : ''}${slot.relX.toFixed(3)}, ${slot.relY >= 0 ? '+' : ''}${slot.relY.toFixed(3)}) · ${unitLabel}${hint}`
+  }
+}
+
+function nudgeUnitEditSelection(signX, signY, e) {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit || !unitEditSelection) return false
+  if (!signX && !signY) return false
+
+  const sel = unitEditSelection
+  if (sel.type === 'slot') {
+    if (!unitShowSlots) return false
+    initCustomSlots(unit)
+    const key = slotSideKey(unit)
+    if (!liveSlotPositions[unit.id][key]?.[sel.index]) return false
+  } else if (sel.type === 'slotOrigin' && !unit.isTower) return false
+  else if (sel.type === 'sprite' && !unit.isTower) return false
+  else if (sel.type === 'rangeCenter' && !unit.isKing) return false
+  else if (sel.type === 'garrison' && !unit.isKing) return false
+  else if (sel.type === 'garrison' && !unitShowGarrison) return false
+  else if (sel.type === 'hbar' && !signY) return false
+
+  pushUnitUndo()
+
+  if (sel.type === 'slot') {
+    const key = slotSideKey(unit)
+    const slots = liveSlotPositions[unit.id][key]
+    const { step } = arrowNudgeHint(e, 'cells')
+    slots[sel.index].x = roundSlotCoord(slots[sel.index].x + signX * step)
+    slots[sel.index].y = roundSlotCoord(slots[sel.index].y + signY * step)
+    clearNewSlotHighlight()
+    applySlotSymmetry(unit, sel.index)
+  } else if (sel.type === 'slotOrigin') {
+    const off = liveSlotOffsets[unit.id][unitApproachSide]
+    const { step } = arrowNudgeHint(e, 'cells')
+    off.x = roundSlotCoord(off.x + signX * step)
+    off.y = roundSlotCoord(off.y + signY * step)
+    syncSlotOffsetInputs()
+  } else if (sel.type === 'sprite') {
+    const vis = liveTowerVisualOffsets[unit.id][unitApproachSide]
+    const { step } = arrowNudgeHint(e, 'px')
+    vis.x = Math.round(vis.x + signX * step)
+    vis.y = Math.round(vis.y + signY * step)
+    syncTowerVisualInputs()
+  } else if (sel.type === 'hbar') {
+    const { step } = arrowNudgeHint(e, 'cells')
+    liveHbarOffsets[unit.id].y = roundSlotCoord((liveHbarOffsets[unit.id]?.y ?? 0) + signY * step)
+    syncHbarInputs()
+  } else if (sel.type === 'rangeCenter') {
+    const off = ensureKingRangeCenterOffset(unit, unitApproachSide)
+    const { step } = arrowNudgeHint(e, 'cells')
+    off.x = roundSlotCoord(off.x + signX * step)
+    off.y = roundSlotCoord(off.y + signY * step)
+    syncKingRangeCenterInputs()
+  } else if (sel.type === 'garrison') {
+    const slots = getKingGarrisonSlots(unit, unitApproachSide)
+    const slot = slots[sel.index]
+    if (!slot) return false
+    const relStep = e.ctrlKey || e.metaKey ? 0.05 : e.shiftKey ? 0.002 : 0.01
+    slot.relX = Math.round((slot.relX + signX * relStep) * 1000) / 1000
+    slot.relY = Math.round((slot.relY + signY * relStep) * 1000) / 1000
+    syncGarrisonInputs()
+  }
+
+  updateUnitEditSelectionStatus(unit)
+  drawUnit()
+  return true
+}
+
+// ── Slot hit-test helper ──────────────────────────────────────
+function hitTestSlotPoint(mx, my, unit, UCELL) {
+  if (!unitShowSlots) return -1
+  const slotRcells = liveSlotRadii[unit.id]
+  const off = unit.isTower ? liveSlotOffsets[unit.id][unitApproachSide] : { x: 0, y: 0 }
+  const slotCX = UCW / 2 + off.x * UCELL
+  const slotCY = UCH / 2 + off.y * UCELL
+  const positions = getActiveSlotPositions(unit, slotRcells)
+  const hitR = TROOP_R * UCELL + 5
+  for (let i = 0; i < positions.length; i++) {
+    const sx = slotCX + positions[i].x * UCELL
+    const sy = slotCY + positions[i].y * UCELL
+    if (Math.hypot(mx - sx, my - sy) <= hitR) return i
+  }
+  return -1
+}
+
+// ── Mouse events on unit canvas ───────────────────────────────
+unitCanvas.addEventListener('mousedown', e => {
+  const { mx, my } = unitCanvasCoords(e)
   const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
   if (!unit) return
   const UCELL = computeUCELL(liveRanges[unit.id])
+
+  // Right-click on a slot point → delete it
+  if (e.button === 2) {
+    const si = hitTestSlotPoint(mx, my, unit, UCELL)
+    if (si >= 0) {
+      initCustomSlots(unit)
+      removeSlot(unit, si)
+      drawUnit()
+    }
+    return
+  }
+
+  // Health bar — before attack slots (slots often overlap the bar)
+  if (hitTestHbar(mx, my, unit, UCELL)) {
+    armUnitUndoOnce()
+    setUnitEditSelection({ type: 'hbar' })
+    updateUnitEditSelectionStatus(unit)
+    draggingHbar = true
+    _dragStartMy = my
+    _dragStartHbarY = liveHbarOffsets[unit.id]?.y ?? 0
+    unitCanvas.style.cursor = 'ns-resize'
+    if (e.pointerId != null && unitCanvas.setPointerCapture) {
+      try { unitCanvas.setPointerCapture(e.pointerId) } catch (_) {}
+    }
+    return
+  }
+
+  // King range center — before slots (gold crosshair)
+  if (unit.isKing && hitTestKingRangeCenter(mx, my, unit, UCW / 2, UCH / 2, UCELL)) {
+    armUnitUndoOnce()
+    setUnitEditSelection({ type: 'rangeCenter' })
+    updateUnitEditSelectionStatus(unit)
+    draggingRangeCenter = true
+    _dragStartMx = mx; _dragStartMy = my
+    const off = ensureKingRangeCenterOffset(unit, unitApproachSide)
+    _dragStartRangeX = off.x; _dragStartRangeY = off.y
+    unitCanvas.style.cursor = 'grabbing'
+    return
+  }
+
+  // Castle garrison — cannon & deck units on king tower art
+  if (unit.isKing && unitShowGarrison) {
+    const gi = hitTestGarrisonSlot(mx, my, unit, UCELL)
+    if (gi >= 0) {
+      const slots = getKingGarrisonSlots(unit, unitApproachSide)
+      armUnitUndoOnce()
+      setUnitEditSelection({ type: 'garrison', index: gi })
+      updateUnitEditSelectionStatus(unit)
+      draggingGarrisonIndex = gi
+      _dragStartMx = mx; _dragStartMy = my
+      _dragStartGarrisonRelX = slots[gi].relX
+      _dragStartGarrisonRelY = slots[gi].relY
+      unitCanvas.style.cursor = 'grabbing'
+      return
+    }
+  }
+
+  // Check individual slot points first (higher priority than origin dot)
+  if (unitShowSlots) {
+    const si = hitTestSlotPoint(mx, my, unit, UCELL)
+    if (si >= 0) {
+      initCustomSlots(unit)
+      const key = slotSideKey(unit)
+      const slots = liveSlotPositions[unit.id][key]
+      armUnitUndoOnce()
+      setUnitEditSelection({ type: 'slot', index: si })
+      draggingSlotIndex = si
+      updateUnitEditSelectionStatus(unit)
+      _dragStartMx = mx; _dragStartMy = my
+      _dragStartSlotX = slots[si].x
+      _dragStartSlotY = slots[si].y
+      unitCanvas.style.cursor = 'grabbing'
+      return
+    }
+  }
+
+  // Check slot origin dot (towers only)
+  const sdot = getSlotDotPos(unit, UCELL)
+  if (sdot) {
+    const d = Math.hypot(mx - sdot.x, my - sdot.y)
+    if (d <= 10) {
+      armUnitUndoOnce()
+      setUnitEditSelection({ type: 'slotOrigin' })
+      updateUnitEditSelectionStatus(unit)
+      draggingSlotCenter = true
+      _dragStartMx = mx; _dragStartMy = my
+      const off = liveSlotOffsets[unit.id][unitApproachSide]
+      _dragStartOffX = off.x; _dragStartOffY = off.y
+      unitCanvas.style.cursor = 'grabbing'
+      return
+    }
+  }
+
+  // Check tower sprite drag (towers only — click/drag the art)
+  if (unit.isTower && hitTestTowerSprite(mx, my, unit, UCELL)) {
+    armUnitUndoOnce()
+    setUnitEditSelection({ type: 'sprite' })
+    updateUnitEditSelectionStatus(unit)
+    draggingTowerVisual = true
+    _dragStartMx = mx; _dragStartMy = my
+    const vis = liveTowerVisualOffsets[unit.id][unitApproachSide]
+    _dragStartVisX = vis.x; _dragStartVisY = vis.y
+    unitCanvas.style.cursor = 'grabbing'
+    return
+  }
+
+  // Click empty canvas → deselect
+  clearUnitEditSelection()
+  drawUnit()
+})
+
+unitCanvas.addEventListener('contextmenu', e => e.preventDefault())
+
+function onUnitCanvasMove(e) {
+  const { mx, my } = unitCanvasCoords(e)
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit) return
+  const UCELL = computeUCELL(liveRanges[unit.id])
+
+  if (draggingTowerVisual) {
+    const scale = UCELL / GCS
+    const vis = liveTowerVisualOffsets[unit.id][unitApproachSide]
+    vis.x = Math.round(_dragStartVisX + (mx - _dragStartMx) / scale)
+    vis.y = Math.round(_dragStartVisY + (my - _dragStartMy) / scale)
+    syncTowerVisualInputs()
+    drawUnit()
+    return
+  }
+
+  if (draggingRangeCenter) {
+    const off = ensureKingRangeCenterOffset(unit, unitApproachSide)
+    off.x = Math.round((_dragStartRangeX + (mx - _dragStartMx) / UCELL) * 20) / 20
+    off.y = Math.round((_dragStartRangeY + (my - _dragStartMy) / UCELL) * 20) / 20
+    syncKingRangeCenterInputs()
+    updateUnitEditSelectionStatus(unit)
+    drawUnit()
+    return
+  }
+
+  if (draggingSlotIndex >= 0) {
+    const key = slotSideKey(unit)
+    const slots = liveSlotPositions[unit.id][key]
+    if (slots && slots[draggingSlotIndex]) {
+      slots[draggingSlotIndex].x = Math.round((_dragStartSlotX + (mx - _dragStartMx) / UCELL) * 20) / 20
+      slots[draggingSlotIndex].y = Math.round((_dragStartSlotY + (my - _dragStartMy) / UCELL) * 20) / 20
+      clearNewSlotHighlight()
+      applySlotSymmetry(unit, draggingSlotIndex)
+    }
+    updateUnitEditSelectionStatus(unit)
+    drawUnit()
+    return
+  }
+
+  if (draggingSlotCenter) {
+    const newX = _dragStartOffX + (mx - _dragStartMx) / UCELL
+    const newY = _dragStartOffY + (my - _dragStartMy) / UCELL
+    liveSlotOffsets[unit.id][unitApproachSide].x = Math.round(newX * 20) / 20
+    liveSlotOffsets[unit.id][unitApproachSide].y = Math.round(newY * 20) / 20
+    syncSlotOffsetInputs()
+    drawUnit()
+    return
+  }
+
+  if (draggingHbar) {
+    const newY = _dragStartHbarY + (my - _dragStartMy) / UCELL
+    liveHbarOffsets[unit.id].y = Math.round(newY * 20) / 20
+    syncHbarInputs()
+    drawUnit()
+    return
+  }
+
+  if (draggingGarrisonIndex >= 0) {
+    const layout = getUnitTowerSpriteLayout(unit, UCW / 2, UCH / 2, UCELL)
+    const slots = getKingGarrisonSlots(unit, unitApproachSide)
+    const slot = slots[draggingGarrisonIndex]
+    if (layout && slot) {
+      slot.relX = Math.round((_dragStartGarrisonRelX + (mx - _dragStartMx) / layout.dispW) * 1000) / 1000
+      slot.relY = Math.round((_dragStartGarrisonRelY + (my - _dragStartMy) / layout.dispH) * 1000) / 1000
+      syncGarrisonInputs()
+    }
+    updateUnitEditSelectionStatus(unit)
+    drawUnit()
+    return
+  }
+
+  // Cursor feedback
+  const si   = hitTestSlotPoint(mx, my, unit, UCELL)
+  const sdot = getSlotDotPos(unit, UCELL)
+  if (hitTestHbar(mx, my, unit, UCELL)) {
+    unitCanvas.style.cursor = 'ns-resize'
+  } else if (unit.isKing && hitTestKingRangeCenter(mx, my, unit, UCW / 2, UCH / 2, UCELL)) {
+    unitCanvas.style.cursor = 'grab'
+  } else if (unit.isKing && unitShowGarrison && hitTestGarrisonSlot(mx, my, unit, UCELL) >= 0) {
+    unitCanvas.style.cursor = 'grab'
+  } else if (si >= 0) {
+    unitCanvas.style.cursor = 'grab'
+  } else if (sdot && Math.hypot(mx - sdot.x, my - sdot.y) <= 10) {
+    unitCanvas.style.cursor = 'grab'
+  } else if (unit.isTower && hitTestTowerSprite(mx, my, unit, UCELL)) {
+    unitCanvas.style.cursor = 'grab'
+  } else {
+    unitCanvas.style.cursor = 'default'
+  }
+
   const dx = (mx - UCW / 2) / UCELL
   const dy = (my - UCH / 2) / UCELL
   const dist = Math.sqrt(dx*dx + dy*dy)
-  document.getElementById('unit-status').textContent =
-    `Cursor: ${dx >= 0 ? '+' : ''}${dx.toFixed(2)}, ${dy >= 0 ? '+' : ''}${dy.toFixed(2)} cells from unit  (${dist.toFixed(2)} cells radius)`
-})
+  if (unitEditSelection) {
+    updateUnitEditSelectionStatus(unit)
+  } else {
+    document.getElementById('unit-status').textContent =
+      `Cursor: ${dx >= 0 ? '+' : ''}${dx.toFixed(2)}, ${dy >= 0 ? '+' : ''}${dy.toFixed(2)} cells from unit  (${dist.toFixed(2)} cells radius)`
+  }
+}
+unitCanvas.addEventListener('mousemove', onUnitCanvasMove)
+unitCanvas.addEventListener('pointermove', onUnitCanvasMove)
+
+function endUnitCanvasDrag(e) {
+  if (e?.pointerId != null && unitCanvas.releasePointerCapture) {
+    try { unitCanvas.releasePointerCapture(e.pointerId) } catch (_) {}
+  }
+  draggingSlotIndex = -1
+  draggingGarrisonIndex = -1
+  draggingSlotCenter = false
+  draggingHbar = false
+  draggingTowerVisual = false
+  draggingRangeCenter = false
+  releaseUnitUndoGesture()
+  unitCanvas.style.cursor = 'default'
+  drawUnit()
+}
+
+unitCanvas.addEventListener('mouseup', endUnitCanvasDrag)
+unitCanvas.addEventListener('pointerup', endUnitCanvasDrag)
+
 unitCanvas.addEventListener('mouseleave', () => {
+  if (draggingSlotIndex >= 0 || draggingGarrisonIndex >= 0 || draggingSlotCenter || draggingHbar || draggingTowerVisual || draggingRangeCenter) return
+  unitCanvas.style.cursor = 'default'
   document.getElementById('unit-status').textContent = 'Hover to measure distance from unit center'
 })
+
+// ── Slot points sidebar buttons ───────────────────────────────
+document.getElementById('btn-slot-add').addEventListener('click', () => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (unit) { addSlot(unit); drawUnit() }
+})
+document.getElementById('btn-slot-reset').addEventListener('click', () => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (unit) { resetSlots(unit); drawUnit() }
+})
+document.getElementById('btn-copy-slots').addEventListener('click', () => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit) return
+  const key = slotSideKey(unit)
+  const positions = getActiveSlotPositions(unit, liveSlotRadii[unit.id])
+  const arr = positions.map(p => `  { x: ${p.x.toFixed(3)}, y: ${p.y.toFixed(3)} }`).join(',\n')
+  const deg = slotRingAngleDeg(unit)
+  const txt = `// slotRingAngleDeg: ${deg}\n[\n${arr}\n]`
+  copyText(txt, document.getElementById('btn-copy-slots'), '⎘ Copy')
+})
+
+// ── Unit editor keyboard: arrow-key slot nudge ─────────────────
+document.addEventListener('keydown', e => {
+  if (!isUnitEditorVisible()) return
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return
+
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    e.preventDefault()
+    unitUndo()
+    return
+  }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+    e.preventDefault()
+    unitRedo()
+    return
+  }
+
+  if (e.key === 'Escape') {
+    if (unitEditSelection) {
+      clearUnitEditSelection()
+      drawUnit()
+      document.getElementById('unit-status').textContent = 'Selection cleared'
+      e.preventDefault()
+    }
+    return
+  }
+
+  if (!unitEditSelection) return
+  let sx = 0, sy = 0
+  if (e.key === 'ArrowLeft')  sx = -1
+  if (e.key === 'ArrowRight') sx =  1
+  if (e.key === 'ArrowUp')    sy = -1
+  if (e.key === 'ArrowDown')  sy =  1
+  if (!sx && !sy) return
+
+  e.preventDefault()
+  nudgeUnitEditSelection(sx, sy, e)
+})
+
+unitCanvas.setAttribute('tabindex', '0')
+unitCanvas.addEventListener('mousedown', () => unitCanvas.focus({ preventScroll: true }))
 </script>
 </body>
 </html>

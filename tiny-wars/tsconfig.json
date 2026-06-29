@@ -28,7 +28,8 @@
       "@ui/*":        ["./src/ui/*"],
       "@input/*":     ["./src/input/*"],
       "@config/*":    ["./src/config/*"],
-      "@debug/*":     ["./src/debug/*"]
+      "@debug/*":     ["./src/debug/*"],
+      "@audio/*":     ["./src/audio/*"]
     }
   },
   "include": ["src", "tests", "vite.config.ts", "capacitor.config.ts"]

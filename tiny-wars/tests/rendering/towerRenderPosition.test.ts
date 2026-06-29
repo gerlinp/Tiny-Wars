@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { Owner } from '@core/types'
-import { CELL_SIZE, BOT_KING_ROW, BOT_KING_VISUAL_ROW, BOT_TOWER_ROW, PLAYER_KING_ROW, PLAYER_KING_VISUAL_ROW, PRINCESS_TOWER_RENDER_NUDGE_Y, TOWER_HEALTH_BAR_Y } from '@data/GameConstants'
+import { CELL_SIZE, BOT_KING_ROW, BOT_KING_VISUAL_ROW, BOT_TOWER_ROW, PLAYER_KING_ROW, PLAYER_KING_VISUAL_ROW, PLAYER_KING_COL, KING_MAP_CENTER_X, PRINCESS_TOWER_RENDER_NUDGE_Y, TOWER_HEALTH_BAR_Y } from '@data/GameConstants'
 import {
   kingVisualAnchorY,
   towerAttackCenter,
   towerFootprintRiverEdge,
   towerHealthBarY,
   towerRenderY,
+  towerRenderX,
   towerVisualBounds,
 } from '@rendering/towerRenderPosition'
 
@@ -66,7 +67,7 @@ describe('towerRenderPosition', () => {
   })
 
   it('keeps king tower attack range centred on visual row when hitbox row differs', () => {
-    const logicX = 12 * CELL_SIZE + CELL_SIZE / 2
+    const logicX = PLAYER_KING_COL * CELL_SIZE + CELL_SIZE / 2
     const botHitboxY = BOT_KING_ROW * CELL_SIZE + CELL_SIZE / 2
     const botVisualY = BOT_KING_VISUAL_ROW * CELL_SIZE + CELL_SIZE / 2
     const botAttack = towerAttackCenter(logicX, botHitboxY, Owner.BOT, true)
@@ -77,5 +78,11 @@ describe('towerRenderPosition', () => {
     const plyVisualY = PLAYER_KING_VISUAL_ROW * CELL_SIZE + CELL_SIZE / 2
     const plyAttack = towerAttackCenter(logicX, plyHitboxY, Owner.PLAYER, true)
     expect(plyAttack.y).toBeCloseTo(plyVisualY, 0)
+  })
+
+  it('centers king castle sprite on true map centre for even-width grid', () => {
+    const logicX = PLAYER_KING_COL * CELL_SIZE + CELL_SIZE / 2
+    expect(towerRenderX(logicX, Owner.PLAYER, true)).toBeCloseTo(KING_MAP_CENTER_X, 0)
+    expect(towerRenderX(logicX, Owner.BOT, true)).toBeCloseTo(KING_MAP_CENTER_X, 0)
   })
 })

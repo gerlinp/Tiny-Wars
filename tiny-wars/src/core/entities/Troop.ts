@@ -14,7 +14,7 @@ import {
   surfaceDistToEntity,
   troopCollisionRadius,
 } from '../EntityGeometry'
-import { assignSlotIndex, attackSlotPosition, slotBaseAngle } from '../AttackSlots'
+import { assignSlotIndex, attackSlotPosition, attackSlotPositionFromLayout, slotBaseAngle } from '../AttackSlots'
 import { dealAreaDamage, applySlowInRadius, applyHealInRadius } from '../AreaDamage'
 import { launchBoomerang, isBoomerangThrowerBusy } from '../BoomerangSystem'
 import { canHookTarget, isHookThrowerBusy, launchHook } from '../HookSystem'
@@ -31,7 +31,8 @@ import {
   worldRow,
 } from '../Movement'
 import { getLaneMarchGoal } from '../LaneMovement'
-import { towerAttackCenter } from '@rendering/towerRenderPosition'
+import { towerAttackCenter, towerSlotOriginCenter } from '@rendering/towerRenderPosition'
+import { princessTowerMeleeLayout } from '@data/PrincessTowerMeleeLayout'
 import { moveTowardWithAllyAvoidance } from '../TroopAvoidance'
 import { troopDeployPositions } from '../DeploySystem'
 import { CARD_DEFINITIONS } from '@data/CardData'
@@ -792,6 +793,24 @@ export class Troop extends Entity {
     const { index, total } = assignSlotIndex(this.id, allyIds)
     if (total <= 1) return null
 
+    if (target.kind === EntityKind.TOWER) {
+      const tower = target as Tower
+      const layout = princessTowerMeleeLayout(tower.owner, tower.isKing)
+      if (layout) {
+        const origin = towerSlotOriginCenter(
+          tower.position.x,
+          tower.position.y,
+          tower.owner,
+          tower.isKing,
+        )
+        const slot = attackSlotPositionFromLayout(origin, index, layout.slotPositions)
+        if (this.stats.unitType === UnitType.GROUND && !isWorldWalkable(this.grid, slot.x, slot.y)) {
+          return null
+        }
+        return slot
+      }
+    }
+
     const center = entityCollisionCenter(target)
     const targetRadius = entityCombatRadius(target) ?? troopCollisionRadius(this)
     const attackerRadius = troopCollisionRadius(this)
@@ -806,6 +825,7 @@ export class Troop extends Entity {
       total,
       baseAngle,
       CELL_SIZE * 0.5,
+      12,
     )
 
     if (this.stats.unitType === UnitType.GROUND && !isWorldWalkable(this.grid, slot.x, slot.y)) {

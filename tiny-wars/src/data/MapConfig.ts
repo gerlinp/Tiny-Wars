@@ -34,6 +34,8 @@ export interface MapConfig {
   botTowerCols: readonly [number, number]
   playerDeployRowMin: number
   botDeployRowMax: number
+  /** Painted deploy cells — editor export; keys are "col,row". */
+  spawnZones?: Record<string, 'base' | 'left' | 'right'>
   terrainOverrides: Record<string, 'water' | 'grass'>
   decorations?: DecorationItem[]
   /** Optional overrides from map-editor — offsets from tower logic centre (px). */

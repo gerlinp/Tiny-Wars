@@ -28,11 +28,12 @@ import { loadPlayerDeck } from '@data/PlayerDeck'
 import { GAME_HEIGHT, CELL_SIZE, GRID_ROWS } from '@data/GameConstants'
 import { DevMode } from '@debug/DevMode'
 import { DevModeOverlay } from '@debug/DevModeOverlay'
-import { isRangedAttacker } from '@core/CombatHelpers'
+import { isRangedAttacker, isMeleeAttacker } from '@core/CombatHelpers'
 import type { GameState } from '@core/GameState'
 import type { Entity } from '@core/entities/Entity'
 import type { Vec2 } from '@core/types'
 import type { PvPNetwork } from '@core/PvPNetwork'
+import { SoundManager } from '@audio/SoundManager'
 
 export class BattleScene extends Phaser.Scene {
   private grid!: Grid
@@ -58,6 +59,7 @@ export class BattleScene extends Phaser.Scene {
   private placementGhost!: PlacementGhost
   private devOverlay!: DevModeOverlay
   private entityCardIds = new Map<string, string>()
+  private sounds!: SoundManager
 
   constructor() {
     super({ key: 'BattleScene' })
@@ -109,6 +111,7 @@ export class BattleScene extends Phaser.Scene {
     this.arrowsSpell = new ArrowsSpellPool(this)
     this.tntProjectiles = new TntPool(this)
     this.barrelProjectiles = new BarrelPool(this)
+    this.sounds = new SoundManager(this)
 
     // Tile map
     new TileMapRenderer(this).draw()
@@ -357,6 +360,9 @@ export class BattleScene extends Phaser.Scene {
             }
           } else {
             flash()
+            if (!event.splash && attacker && isMeleeAttacker(attacker)) {
+              this.sounds.playMeleeHit()
+            }
           }
           break
         }
