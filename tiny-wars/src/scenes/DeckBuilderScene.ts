@@ -20,6 +20,7 @@ import {
   type CollectionSortState,
 } from '@data/PlayerDeck'
 import { GAME_WIDTH, CANVAS_HEIGHT } from '@data/GameConstants'
+import { createWaterBackground } from '../ui/menuBackground'
 
 const COLS = 4
 const SIDE_MARGIN = 64
@@ -67,7 +68,7 @@ export class DeckBuilderScene extends Phaser.Scene {
     this.collection = []
     this.cameras.main.scrollY = 0
 
-    this.add.rectangle(0, 0, GAME_WIDTH, CANVAS_HEIGHT, 0x1a1a2e).setOrigin(0).setScrollFactor(0)
+    createWaterBackground(this, GAME_WIDTH, CANVAS_HEIGHT, { scrollFactor: 0 })
 
     this.add.text(GAME_WIDTH / 2, 160, 'DECK BUILDER', {
       fontSize: '128px', fontFamily: CINZEL_FONT, fontStyle: 'bold',

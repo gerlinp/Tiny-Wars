@@ -7,6 +7,7 @@ import {
   loadingLayoutY,
   setLoadingProgress,
 } from '@ui/loadingScreenUi'
+import { createWaterBackground } from '@ui/menuBackground'
 
 interface TransitionData {
   next: string
@@ -21,7 +22,7 @@ export class TransitionLoadingScene extends Phaser.Scene {
 
   create(data: TransitionData): void {
     const { width, height } = this.scale
-    this.add.rectangle(0, 0, width, height, 0x1a1a2e).setOrigin(0)
+    createWaterBackground(this, width, height)
 
     const layout = loadingLayoutY(height)
     const bars = createLoadingBar(this, width, layout.barY, layout.labelY)

@@ -10,6 +10,7 @@ import type { MapConfig } from '@data/MapConfig'
 import { createLoadingWalker } from '@ui/loadingScreenUnit'
 import { loadingWalkerRunSheet, pickRandomLoadingUnitId } from '@ui/loadingScreenUnitPick'
 import { createLoadingBar, loadingBarProgress, loadingLayoutY, loadingWaitMs, setLoadingProgress } from '@ui/loadingScreenUi'
+import { createWaterBackground } from '@ui/menuBackground'
 import { getCombatSfx } from '@data/AudioManifest'
 
 export class PreloadScene extends Phaser.Scene {
@@ -40,7 +41,7 @@ export class PreloadScene extends Phaser.Scene {
     })
 
     const { width, height } = this.scale
-    this.add.rectangle(0, 0, width, height, 0x1a1a2e).setOrigin(0)
+    createWaterBackground(this, width, height)
 
     const layout = loadingLayoutY(height)
     this.walkerY = layout.walkerY

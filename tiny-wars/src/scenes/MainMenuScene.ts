@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
 import { createMenuButton, menuButtonRowCenters } from '../ui/SceneButton'
 import { startBattleLoading } from '../ui/loadingScreenUi'
+import { createWaterBackground } from '../ui/menuBackground'
 
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -18,7 +19,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     const { width, height } = this.scale
 
-    this.add.rectangle(0, 0, width, height, 0x1a1a2e).setOrigin(0)
+    createWaterBackground(this, width, height)
 
     this.add.text(width / 2, height * 0.28, 'TINY WARS', {
       fontSize: '208px',
