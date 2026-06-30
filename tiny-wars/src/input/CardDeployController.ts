@@ -39,6 +39,11 @@ export class CardDeployController {
     return 'troop'
   }
 
+  refreshDeployOverlay(): void {
+    if (this.state !== 'CARD_SELECTED') return
+    this.overlay.syncExpandedZones(LOCAL_OWNER, enemyLaneUnlocksFor(this.simulator.state, LOCAL_OWNER))
+  }
+
   selectCard(index: number, playerElixir: number): void {
     const card = this.cardSystem.hand[index]
     if (!card) return

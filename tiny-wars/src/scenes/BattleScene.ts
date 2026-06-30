@@ -446,6 +446,7 @@ export class BattleScene extends Phaser.Scene {
           this.effects.spawn(
             ...this.getTowerPos(event.towerId)
           )
+          this.deployCtrl.refreshDeployOverlay()
           break
         }
       }

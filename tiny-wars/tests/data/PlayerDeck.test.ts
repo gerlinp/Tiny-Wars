@@ -3,6 +3,7 @@ import { CARD_ADDED_AT, CARD_DEFINITIONS, getCardAddedAtMs } from '@data/CardDat
 import {
   DEFAULT_COLLECTION_SORT,
   getDeckCandidates,
+  loadPlayerDeck,
   sortDeckCandidateIds,
 } from '@data/PlayerDeck'
 
@@ -78,5 +79,30 @@ describe('getDeckCandidates', () => {
     expect(ids).not.toContain('spiderling')
     expect(sortDeckCandidateIds(ids, { mode: 'name', direction: 'asc' }).length).toBe(ids.length)
     expect(new Set(sortDeckCandidateIds(ids, { mode: 'elixir', direction: 'desc' })).size).toBe(ids.length)
+  })
+
+  it('includes bear in the collection (not the legacy mega_minion id)', () => {
+    const ids = getDeckCandidates(DEFAULT_COLLECTION_SORT)
+    expect(ids).toContain('bear')
+    expect(ids).not.toContain('mega_minion')
+  })
+})
+
+describe('loadPlayerDeck migrations', () => {
+  it('migrates legacy mega_minion id to bear in saved decks', () => {
+    const storage = new Map<string, string>()
+    const deck = ['warrior', 'archer', 'skeleton', 'lancer', 'wizard', 'torch_goblin', 'arrows', 'mega_minion']
+    storage.set('tinywars.playerDeck', JSON.stringify(deck))
+    const ls = {
+      getItem: (k: string) => storage.get(k) ?? null,
+      setItem: (k: string, v: string) => { storage.set(k, v) },
+    }
+    const prev = globalThis.localStorage
+    Object.defineProperty(globalThis, 'localStorage', { value: ls, configurable: true })
+    try {
+      expect(loadPlayerDeck()).toEqual(deck.map(id => id === 'mega_minion' ? 'bear' : id))
+    } finally {
+      Object.defineProperty(globalThis, 'localStorage', { value: prev, configurable: true })
+    }
   })
 })

@@ -7,6 +7,7 @@ const COLLECTION_SORT_KEY = 'tinywars.collectionSort'
 const CARD_ID_MIGRATIONS: Record<string, string> = {
   pawns: 'villagers',
   pawn:  'warrior',
+  mega_minion: 'bear',
 }
 
 function migrateDeckIds(ids: string[]): string[] {

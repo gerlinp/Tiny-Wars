@@ -40,9 +40,14 @@ export class PvPLobbyScene extends Phaser.Scene {
   private dotCount = 0
   private domInput: HTMLInputElement | null = null   // room code input
   private nameInput: HTMLInputElement | null = null  // player name input
+  private autoJoinCode: string | null = null
 
   constructor() {
     super({ key: 'PvPLobbyScene' })
+  }
+
+  init(data?: { autoJoinCode?: string }): void {
+    this.autoJoinCode = data?.autoJoinCode ?? null
   }
 
   create(): void {
@@ -172,6 +177,16 @@ export class PvPLobbyScene extends Phaser.Scene {
       this.nameInput = null
       this.domInput = null
     })
+
+    if (this.autoJoinCode) {
+      // Strip the ?room= param so refreshing doesn't re-trigger
+      const url = new URL(window.location.href)
+      url.searchParams.delete('room')
+      window.history.replaceState({}, '', url.toString())
+
+      if (this.domInput) this.domInput.value = this.autoJoinCode
+      this.time.delayedCall(50, () => this.onJoinRoom())
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -415,14 +430,25 @@ export class PvPLobbyScene extends Phaser.Scene {
   private shareCode(): void {
     const code = this.network?.roomCode ?? ''
     if (!code) return
+    const joinUrl = new URL(window.location.href)
+    joinUrl.searchParams.set('room', code)
     if (navigator.share) {
       navigator.share({
         title: 'Tiny Wars — Join my game!',
-        text: `Join my Tiny Wars match! Room code: ${code}`,
-        url: window.location.href,
+        text: `Join my Tiny Wars match!`,
+        url: joinUrl.toString(),
       }).catch(() => { /* user cancelled */ })
     } else {
-      this.copyCode()
+      navigator.clipboard.writeText(joinUrl.toString()).then(() => {
+        this.copyHint.setText('LINK COPIED!').setColor('#88ffcc')
+        this.time.delayedCall(1500, () => {
+          if (this.lobbyState === 'WAITING_FOR_GUEST') {
+            this.copyHint.setText('TAP TO COPY').setColor('#4477aa')
+          }
+        })
+      }).catch(() => {
+        this.copyHint.setText('COPY MANUALLY').setColor('#ffaa44')
+      })
     }
   }
 }

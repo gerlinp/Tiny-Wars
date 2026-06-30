@@ -15,7 +15,7 @@ export const MAP_EDITOR_UNIT_OVERRIDES: Readonly<Record<string, Record<string, u
 export const MAP_EDITOR_CATALOG_ORDER: readonly string[] = [
   'warrior', 'archer', 'elite_archer', 'lancer', 'skeleton', 'skeleton_army', 'troll',
   'spear_goblin', 'villagers', 'torch_goblin', 'wizard', 'lizard', 'air_boat',
-  'mega_minion', 'pig_rider', 'pig', 'bomb_fish', 'goblin_demolisher', 'minotaur',
+  'bear', 'pig_rider', 'pig', 'bomb_fish', 'goblin_demolisher', 'minotaur',
   'gnoll', 'thief', 'turtle', 'panda', 'monk', 'harpoon_shark', 'spider', 'spiderling',
   'wood_tower', 'princess_tower', 'king_tower',
 ]

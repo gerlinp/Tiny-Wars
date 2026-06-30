@@ -9,6 +9,13 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    const params = new URLSearchParams(window.location.search)
+    const roomCode = params.get('room')?.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5)
+    if (roomCode && roomCode.length === 5) {
+      this.scene.start('PvPLobbyScene', { autoJoinCode: roomCode })
+      return
+    }
+
     const { width, height } = this.scale
 
     this.add.rectangle(0, 0, width, height, 0x1a1a2e).setOrigin(0)

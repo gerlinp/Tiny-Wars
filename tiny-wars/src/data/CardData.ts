@@ -94,7 +94,7 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   harpoon_shark: AT('2026-06-24T18:00:00.000Z'),
   air_boat:      AT('2026-06-29T18:00:00.000Z'),
   pig:           AT('2026-06-30T12:00:00.000Z'),
-  mega_minion:   AT('2025-07-01T12:00:00.000Z'),
+  bear:          AT('2025-07-01T12:00:00.000Z'),
   tnt:           AT('2026-06-01T12:00:00.000Z'),
   goblin_barrel: AT('2026-06-28T12:00:00.000Z'),
   spider:        AT('2026-06-28T18:00:00.000Z'),
@@ -274,7 +274,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     deathSplashRadius: 3.0,
   }, 'air_boat_blue_idle', 'air_boat_red_idle'),
 
-  mega_minion: troop('mega_minion', 'Bear',
+  bear: troop('bear', 'Bear',
     'A heavily armored ground bruiser — slow, tough, and hits hard in melee.',
     7, {
     maxHp: 5288,
@@ -285,7 +285,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
     splashRadius: 1.3,
-  }, 'mega_minion_blue_idle', 'mega_minion_red_idle'),
+  }, 'bear_blue_idle', 'bear_red_idle'),
 
   torch_goblin: troop('torch_goblin', 'Torch Goblin',
     'A very fast goblin lobbing fire at rapid pace. Effective at range against air and ground.',

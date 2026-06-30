@@ -1130,6 +1130,20 @@ function spawnZoneFillColor(zoneType, row) {
   return playerHalf ? 'rgba(160, 80, 255, 0.50)' : 'rgba(255, 50, 140, 0.50)'
 }
 
+function verticalSpawnKeys(col, row) {
+  return [...new Set([
+    `${col},${row}`,
+    `${col},${mirrorMapRow(row)}`,
+  ])]
+}
+
+function horizontalSpawnKeys(col, row) {
+  return [...new Set([
+    `${col},${row}`,
+    `${mirrorMapCol(col)},${row}`,
+  ])]
+}
+
 function symmetricSpawnKeys(col, row) {
   return [...new Set([
     `${col},${row}`,
@@ -1137,6 +1151,35 @@ function symmetricSpawnKeys(col, row) {
     `${col},${mirrorMapRow(row)}`,
     `${mirrorMapCol(col)},${mirrorMapRow(row)}`,
   ])]
+}
+
+function isLeftLaneCol(col) {
+  return col < DEPLOY_LANE_SPLIT_COL
+}
+
+function isRightLaneCol(col) {
+  return col >= DEPLOY_LANE_SPLIT_COL
+}
+
+/** Cells touched by the active spawn paint tool at (col, row). */
+function spawnPaintKeys(col, row, tool) {
+  if (!isPlayfieldCell(col, row)) return []
+  const key = `${col},${row}`
+  if (tool === 'spawn-left') {
+    if (!isLeftLaneCol(col)) return []
+    return verticalSpawnKeys(col, row)
+  }
+  if (tool === 'spawn-right') {
+    if (!isRightLaneCol(col)) return []
+    return verticalSpawnKeys(col, row)
+  }
+  if (tool === 'spawn-base') {
+    return symmetricSpawnKeys(col, row)
+  }
+  if (tool === 'spawn-erase') {
+    return [key]
+  }
+  return [key]
 }
 
 function defaultZoneType(col, row) {
@@ -1165,9 +1208,10 @@ function buildDefaultSpawnZones() {
 }
 
 function paintSpawnAt(col, row) {
-  if (!isPlayfieldCell(col, row)) return
   const zone = activeTool === 'spawn-erase' ? null : activeTool.replace('spawn-', '')
-  for (const k of symmetricSpawnKeys(col, row)) {
+  const keys = spawnPaintKeys(col, row, activeTool)
+  if (!keys.length) return
+  for (const k of keys) {
     if (zone) state.spawnZones[k] = zone
     else delete state.spawnZones[k]
   }
@@ -1366,7 +1410,7 @@ canvas.addEventListener('contextmenu', e => {
   const { mx, my } = getCanvasMouse(e)
   const { col, row } = mouseToCell(mx, my)
   const key = `${col},${row}`
-  const spawnKeys = symmetricSpawnKeys(col, row)
+  const spawnKeys = [`${col},${row}`]
   const hadSpawn = spawnKeys.some(k => state.spawnZones[k])
   if (hadSpawn) {
     const before = { ...state.spawnZones }
@@ -1766,7 +1810,7 @@ const COMPOSITE_AVATAR_LAYOUT_DEFAULTS = {
       },
       "bomber": {
         "x": 0,
-        "y": -390.054054054054,
+        "y": -400.88888888888886,
         "originX": 0.5,
         "originY": 0.7083333333333334
       }
@@ -1832,35 +1876,35 @@ const COMPOSITE_STATIC_AVATAR_META = {
 }
 const UNIT_CATALOG = [
   // Troops
-  { id:'warrior', name:'Warrior', attackRange:1.2, fw:192, fh:192, path:'assets/Units/Blue Units/Warrior/Warrior_Idle.png', contentFill:0.46, elixirCost:3 },
-  { id:'archer', name:'Archers', attackRange:5.5, fw:192, fh:192, path:'assets/Factions/Knights/Troops/Archer/Blue/Archer_Blue.png', contentFill:0.39, elixirCost:3 },
-  { id:'elite_archer', name:'Elite Archer', attackRange:6.5, fw:192, fh:192, path:'assets/Units/Blue Units/Archer/Archer_Idle.png', contentFill:0.46, elixirCost:4 },
-  { id:'lancer', name:'Lancer', attackRange:1.6, fw:320, fh:320, path:'assets/Units/Blue Units/Lancer/Lancer_Idle.png', contentFill:0.47, elixirCost:5 },
-  { id:'skeleton', name:'Skeletons', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.38, elixirCost:1, tintBotSide:true },
-  { id:'skeleton_army', name:'Skeleton Army', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.38, elixirCost:3, tintBotSide:true },
-  { id:'troll', name:'Troll', attackRange:1.2, fw:384, fh:384, path:'assets/Enemy Pack/Enemies/Troll/Troll_Idle.png', contentFill:0.55, elixirCost:5, tintBotSide:true },
-  { id:'spear_goblin', name:'Spear Goblins', attackRange:1.6, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin/Spear Goblin_Idle.png', contentFill:0.49, elixirCost:3, tintBotSide:true },
-  { id:'villagers', name:'Villagers', attackRange:0.5, fw:192, fh:192, path:'assets/Units/Blue Units/Pawn/Pawn_Idle.png', contentFill:0.37, elixirCost:2 },
-  { id:'torch_goblin', name:'Torch Goblin', attackRange:5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin/Torch Goblin_Idle.png', contentFill:0.35, elixirCost:3, tintBotSide:true },
-  { id:'wizard', name:'Wizard', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.43, elixirCost:5, tintBotSide:true },
-  { id:'lizard', name:'Lizard', attackRange:3.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Lizard/Lizard_Idle_Flying.png', contentFill:0.66, elixirCost:4, tintBotSide:true },
-  { id:'air_boat', name:'Air Boat', attackRange:1.5, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Pirate Fish/Boat/AirBoat_Idle.png', contentFill:0.94, elixirCost:5, tintBotSide:true, spriteOriginY:0.25 },
-  { id:'mega_minion', name:'Bear', attackRange:1.2, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Caveborn/Bear/Bear_Idle.png', contentFill:0.36, elixirCost:7, tintBotSide:true },
-  { id:'pig_rider', name:'Pig Rider', attackRange:0.8, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig Rider Spear Goblin/Pig Rider_Idle.png', contentFill:0.57, elixirCost:4, tintBotSide:true },
-  { id:'pig', name:'Pigs', attackRange:0.7, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig/Pig_Idle.png', contentFill:0.27, elixirCost:5, tintBotSide:true },
-  { id:'bomb_fish', name:'Bomb Fish', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Bomb Fish/Bomb Fish_Idle.png', contentFill:0.35, elixirCost:2, tintBotSide:true },
-  { id:'goblin_demolisher', name:'Goblin Demolisher', attackRange:5, fw:192, fh:192, path:'assets/Factions/Goblins/Troops/TNT/Blue/TNT_Blue.png', contentFill:0.35, elixirCost:4 },
-  { id:'minotaur', name:'Minotaur', attackRange:1.2, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Minotaur/Minotaur_Idle.png', contentFill:0.4, elixirCost:7, tintBotSide:true },
-  { id:'gnoll', name:'Gnoll', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Gnoll/Gnoll_Idle.png', contentFill:0.39, elixirCost:5, tintBotSide:true },
-  { id:'thief', name:'Thief', attackRange:0.75, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Thief/Thief_Idle.png', contentFill:0.38, elixirCost:3, tintBotSide:true },
-  { id:'turtle', name:'Turtle', attackRange:0.75, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Caveborn/Turtle/Turtle_Idle.png', contentFill:0.28, elixirCost:2, tintBotSide:true },
+  { id:'warrior', name:'Warrior', attackRange:1.2, fw:192, fh:192, path:'assets/Units/Blue Units/Warrior/Warrior_Idle.png', contentFill:0.52, elixirCost:3 },
+  { id:'archer', name:'Archers', attackRange:5.5, fw:192, fh:192, path:'assets/Factions/Knights/Troops/Archer/Blue/Archer_Blue.png', contentFill:0.5, elixirCost:3 },
+  { id:'elite_archer', name:'Elite Archer', attackRange:6.5, fw:192, fh:192, path:'assets/Units/Blue Units/Archer/Archer_Idle.png', contentFill:0.5, elixirCost:4 },
+  { id:'lancer', name:'Lancer', attackRange:1.6, fw:320, fh:320, path:'assets/Units/Blue Units/Lancer/Lancer_Idle.png', contentFill:0.3, elixirCost:5 },
+  { id:'skeleton', name:'Skeletons', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, elixirCost:1, tintBotSide:true },
+  { id:'skeleton_army', name:'Skeleton Army', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, elixirCost:3, tintBotSide:true },
+  { id:'troll', name:'Troll', attackRange:1.2, fw:384, fh:384, path:'assets/Enemy Pack/Enemies/Troll/Troll_Idle.png', contentFill:0.48, elixirCost:5, tintBotSide:true },
+  { id:'spear_goblin', name:'Spear Goblins', attackRange:1.6, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin/Spear Goblin_Idle.png', contentFill:0.55, elixirCost:3, tintBotSide:true },
+  { id:'villagers', name:'Villagers', attackRange:0.5, fw:192, fh:192, path:'assets/Units/Blue Units/Pawn/Pawn_Idle.png', contentFill:0.52, elixirCost:2 },
+  { id:'torch_goblin', name:'Torch Goblin', attackRange:5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin/Torch Goblin_Idle.png', contentFill:0.55, elixirCost:3, tintBotSide:true },
+  { id:'wizard', name:'Wizard', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.55, elixirCost:5, tintBotSide:true },
+  { id:'lizard', name:'Lizard', attackRange:3.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Lizard/Lizard_Idle_Flying.png', contentFill:0.55, elixirCost:4, tintBotSide:true },
+  { id:'air_boat', name:'Air Boat', attackRange:1.5, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Pirate Fish/Boat/AirBoat_Idle.png', contentFill:0.42, elixirCost:5, tintBotSide:true, spriteOriginY:0.25 },
+  { id:'bear', name:'Bear', attackRange:1.2, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Caveborn/Bear/Bear_Idle.png', contentFill:0.5, elixirCost:7, tintBotSide:true },
+  { id:'pig_rider', name:'Pig Rider', attackRange:0.8, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig Rider Spear Goblin/Pig Rider_Idle.png', contentFill:0.52, elixirCost:4, tintBotSide:true },
+  { id:'pig', name:'Pigs', attackRange:0.7, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig/Pig_Idle.png', contentFill:0.5, elixirCost:5, tintBotSide:true },
+  { id:'bomb_fish', name:'Bomb Fish', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Bomb Fish/Bomb Fish_Idle.png', contentFill:0.55, elixirCost:2, tintBotSide:true },
+  { id:'goblin_demolisher', name:'Goblin Demolisher', attackRange:5, fw:192, fh:192, path:'assets/Factions/Goblins/Troops/TNT/Blue/TNT_Blue.png', contentFill:0.55, elixirCost:4 },
+  { id:'minotaur', name:'Minotaur', attackRange:1.2, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Minotaur/Minotaur_Idle.png', contentFill:0.46, elixirCost:7, tintBotSide:true },
+  { id:'gnoll', name:'Gnoll', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Gnoll/Gnoll_Idle.png', contentFill:0.55, elixirCost:5, tintBotSide:true },
+  { id:'thief', name:'Thief', attackRange:0.75, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Thief/Thief_Idle.png', contentFill:0.55, elixirCost:3, tintBotSide:true },
+  { id:'turtle', name:'Turtle', attackRange:0.75, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Caveborn/Turtle/Turtle_Idle.png', contentFill:0.5, elixirCost:2, tintBotSide:true },
   { id:'panda', name:'Panda', attackRange:1.2, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Panda/Panda_Idle.png', contentFill:0.37, elixirCost:4, tintBotSide:true },
-  { id:'monk', name:'Monk', attackRange:1.6, fw:192, fh:192, path:'assets/Units/Blue Units/Monk/Idle.png', contentFill:0.36, elixirCost:4 },
-  { id:'harpoon_shark', name:'Harpoon Shark', attackRange:1.2, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Harpoon Shark/Harpoon Shark_Idle.png', contentFill:0.41, elixirCost:3, tintBotSide:true },
-  { id:'spider', name:'Spider', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.44, elixirCost:5, tintBotSide:true },
-  { id:'spiderling', name:'Spiderling', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.44, elixirCost:1, tintBotSide:true },
+  { id:'monk', name:'Monk', attackRange:1.6, fw:192, fh:192, path:'assets/Units/Blue Units/Monk/Idle.png', contentFill:0.52, elixirCost:4 },
+  { id:'harpoon_shark', name:'Harpoon Shark', attackRange:1.2, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Harpoon Shark/Harpoon Shark_Idle.png', contentFill:0.52, elixirCost:3, tintBotSide:true },
+  { id:'spider', name:'Spider', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.52, elixirCost:5, tintBotSide:true },
+  { id:'spiderling', name:'Spiderling', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.82, elixirCost:1, tintBotSide:true },
   // Buildings — deployable structures (CardData building cards)
-  { id:'wood_tower', name:'Bomb Tower', attackRange:7, fw:128, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower/Pirate Tower_Ground.png', contentFill:0.74, elixirCost:4, isBuilding:true, tintBotSide:true, spriteOriginY:1, hbarOffsetY:-1.1 },
+  { id:'wood_tower', name:'Bomb Tower', attackRange:7, fw:128, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower/Pirate Tower_Ground.png', contentFill:0.72, elixirCost:4, isBuilding:true, tintBotSide:true, spriteOriginY:1, hbarOffsetY:-1.1 },
   // Towers — sprite follows Player ↓ / CPU ↑ approach side
   { id:'princess_tower', name:'Princess Tower', attackRange:7.5, fw:128, fh:256, path:TOWER_EDITOR_PATHS.bot.princess, contentFill:0.9, isTower:true, slotOffsetX:0, slotOffsetY:0 },
   { id:'king_tower', name:'King Tower', attackRange:20, fw:320, fh:256, path:TOWER_EDITOR_PATHS.bot.king, contentFill:0.88, isTower:true, isKing:true, slotOffsetX:0, slotOffsetY:0 },

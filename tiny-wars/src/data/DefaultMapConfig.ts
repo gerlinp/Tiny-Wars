@@ -1,4 +1,5 @@
 import type { MapConfig } from './MapConfig'
+import { buildClashStyleSpawnZones } from './SpawnZones'
 import {
   RIVER_ROW_START,
   RIVER_ROW_END,
@@ -33,6 +34,7 @@ export const DEFAULT_MAP_CONFIG: MapConfig = {
   botTowerCols: BOT_TOWER_COLS,
   playerDeployRowMin: PLAYER_DEPLOY_ROW_MIN,
   botDeployRowMax: BOT_DEPLOY_ROW_MAX,
+  spawnZones: buildClashStyleSpawnZones(),
   terrainOverrides: {},
   decorations: [],
 }

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
 import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, AVATAR_CROP_RATIO_DEFAULT, EXPLOSION_SHEET, GARRISON_CANNON_BALL, GNOLL_BONE_SHEET, GOBLIN_DYNAMITE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarCropRatio, getCardAvatarDef, getCardAvatarSwarmSource, getUseEditorCompositeAvatar, resolveAttackAnimKey } from '@data/AssetManifest'
-import { DEFAULT_DECK } from '@data/CardData'
+import { DEFAULT_DECK, CARD_DEFINITIONS } from '@data/CardData'
 import { Owner } from '@core/types'
 
 const PUBLIC = resolve(import.meta.dirname, '../../public')
@@ -305,12 +305,12 @@ describe('Card avatars', () => {
     expect(bundle.attackHitFrame).toBe(5)
   })
 
-  it('mega knight (bear) uses native 256×256 Bear sheets with idle portrait', () => {
-    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'mega_minion')!
-    expect(CARD_DEFINITIONS.mega_minion!.displayName).toBe('Bear')
-    expect(cardAvatarKey('mega_minion')).toBe('avatar_mega_minion')
-    expect(getCardAvatarDef('mega_minion').path).toContain('Caveborn/Bear/Bear_Idle.png')
-    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('mega_minion').path))).toBe(true)
+  it('bear uses native 256×256 Bear sheets with idle portrait (Mega Knight rules)', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'bear')!
+    expect(CARD_DEFINITIONS.bear!.displayName).toBe('Bear')
+    expect(cardAvatarKey('bear')).toBe('avatar_bear')
+    expect(getCardAvatarDef('bear').path).toContain('Caveborn/Bear/Bear_Idle.png')
+    expect(existsSync(resolve(PUBLIC, getCardAvatarDef('bear').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
       expect(side.idle.sheet.path).toContain('Caveborn/Bear/Bear_Idle.png')
       expect(side.run.sheet.path).toContain('Bear_Run.png')
@@ -470,6 +470,7 @@ describe('Card avatars', () => {
 
   it('panda uses Panda sheets with dedicated enemy avatar', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'panda')!
+    expect(bundle.contentFill).toBe(0.37)
     expect(cardAvatarKey('panda')).toBe('avatar_enemy_avatars_12')
     expect(getCardAvatarDef('panda').path).toContain('Enemy Avatars_12.png')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('panda').path))).toBe(true)

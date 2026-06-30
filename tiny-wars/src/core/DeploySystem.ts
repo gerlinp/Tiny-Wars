@@ -1,6 +1,14 @@
 import { Owner } from './types'
 import type { GameState } from './GameState'
 import type { Vec2 } from './types'
+import { getActiveMapConfig } from '@data/ActiveMapConfig'
+import {
+  hasSpawnZoneMap,
+  isPaintedEnemyUnlockCell,
+  enemyUnlockOverlayCells,
+  spawnZonesFromConfig,
+  type SpawnZoneMap,
+} from '@data/SpawnZones'
 import {
   CELL_SIZE,
   GAME_WIDTH,
@@ -52,9 +60,14 @@ export interface DeployOverlayRect {
 }
 
 /** Highlight rectangles from the local player's POV (friendly = bottom). */
-export function deployOverlayRects(localOwner: Owner, unlocks: LaneUnlocks): DeployOverlayRect[] {
+export function deployOverlayRects(
+  localOwner: Owner,
+  unlocks: LaneUnlocks,
+  spawnZones?: SpawnZoneMap,
+): DeployOverlayRect[] {
   const friendly = friendlyDeployRows(localOwner)
   const enemy = enemyDeployRows(localOwner)
+  const zones = spawnZones ?? spawnZonesFromConfig(getActiveMapConfig())
 
   const rects: DeployOverlayRect[] = [{
     x: 0,
@@ -63,6 +76,19 @@ export function deployOverlayRects(localOwner: Owner, unlocks: LaneUnlocks): Dep
     h: (friendly.max - friendly.min + 1) * CELL_SIZE,
     kind: 'friendly',
   }]
+
+  if (hasSpawnZoneMap(zones)) {
+    for (const { col, row } of enemyUnlockOverlayCells(zones, enemy.min, enemy.max, unlocks)) {
+      rects.push({
+        x: col * CELL_SIZE,
+        y: row * CELL_SIZE,
+        w: CELL_SIZE,
+        h: CELL_SIZE,
+        kind: 'expanded',
+      })
+    }
+    return rects
+  }
 
   const enemyY = enemy.min * CELL_SIZE
   const enemyH = (enemy.max - enemy.min + 1) * CELL_SIZE
@@ -118,22 +144,43 @@ export function isCellInLane(col: number, lane: TowerLane): boolean {
   return col >= DEPLOY_LANE_SPLIT_COL && col < GRID_COLS
 }
 
+function enemyUnlockAllowsDeploy(
+  col: number,
+  row: number,
+  enemy: { min: number; max: number },
+  unlocks: LaneUnlocks,
+  spawnZones: SpawnZoneMap | undefined,
+): boolean {
+  if (row < enemy.min || row > enemy.max) return false
+  if (hasSpawnZoneMap(spawnZones)) {
+    if (unlocks.left && isPaintedEnemyUnlockCell(spawnZones, col, row, 'left', enemy.min, enemy.max)) {
+      return true
+    }
+    if (unlocks.right && isPaintedEnemyUnlockCell(spawnZones, col, row, 'right', enemy.min, enemy.max)) {
+      return true
+    }
+    return false
+  }
+  if (unlocks.left && isCellInLane(col, 'left')) return true
+  if (unlocks.right && isCellInLane(col, 'right')) return true
+  return false
+}
+
 /** True when a troop/building may be placed on this cell for the given owner. */
 export function isTroopDeployCell(
   owner: Owner,
   gridPos: Vec2,
   enemyLaneDeploy: Record<Owner, LaneUnlocks>,
+  spawnZones?: SpawnZoneMap,
 ): boolean {
   const { x: col, y: row } = gridPos
   const friendly = friendlyDeployRows(owner)
   const enemy = enemyDeployRows(owner)
   const unlocks = enemyLaneDeploy[owner]
+  const zones = spawnZones ?? spawnZonesFromConfig(getActiveMapConfig())
 
   if (row >= friendly.min && row <= friendly.max) return true
-  if (row < enemy.min || row > enemy.max) return false
-  if (unlocks.left && isCellInLane(col, 'left')) return true
-  if (unlocks.right && isCellInLane(col, 'right')) return true
-  return false
+  return enemyUnlockAllowsDeploy(col, row, enemy, unlocks, zones)
 }
 
 /** Enumerate valid deploy cells for troops/buildings (for bot AI). */
