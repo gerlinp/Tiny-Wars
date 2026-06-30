@@ -82,7 +82,14 @@ describe('towerRenderPosition', () => {
 
   it('centers king castle sprite on true map centre for even-width grid', () => {
     const logicX = PLAYER_KING_COL * CELL_SIZE + CELL_SIZE / 2
+    expect(logicX).toBeCloseTo(KING_MAP_CENTER_X, 0)
     expect(towerRenderX(logicX, Owner.PLAYER, true)).toBeCloseTo(KING_MAP_CENTER_X, 0)
     expect(towerRenderX(logicX, Owner.BOT, true)).toBeCloseTo(KING_MAP_CENTER_X, 0)
+  })
+
+  it('places king logic col symmetrically between princess towers', () => {
+    const [left, right] = [4, 19]
+    expect(left - PLAYER_KING_COL).toBeCloseTo(-(right - PLAYER_KING_COL), 5)
+    expect(right - PLAYER_KING_COL).toBeCloseTo(7.5, 5)
   })
 })

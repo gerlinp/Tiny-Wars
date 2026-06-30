@@ -332,10 +332,10 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
     <table class="tower-table">
       <thead><tr><th>Anchor</th><th>Col</th><th>Row</th></tr></thead>
       <tbody>
-        <tr><td>Bot King</td>    <td id="td-bk-col">12</td><td id="td-bk-row">3</td></tr>
+        <tr><td>Bot King</td>    <td id="td-bk-col">11.5</td><td id="td-bk-row">3</td></tr>
         <tr><td>Bot Left</td>    <td id="td-bl-col">4</td> <td id="td-bl-row">12</td></tr>
         <tr><td>Bot Right</td>   <td id="td-br-col">19</td><td id="td-br-row">12</td></tr>
-        <tr><td>Ply King</td>    <td id="td-pk-col">12</td><td id="td-pk-row">41</td></tr>
+        <tr><td>Ply King</td>    <td id="td-pk-col">11.5</td><td id="td-pk-row">41</td></tr>
         <tr><td>Ply Left</td>    <td id="td-pl-col">4</td> <td id="td-pl-row">31</td></tr>
         <tr><td>Ply Right</td>   <td id="td-pr-col">19</td><td id="td-pr-row">31</td></tr>
       </tbody>
@@ -559,11 +559,11 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
         <input type="checkbox" id="tog-use-editor-avatar" checked>
       </div>
       <div class="range-row" style="margin-top:8px">
-        <label style="width:auto;min-width:88px;color:#aaa;font-size:11px">Zoom</label>
+        <label style="width:auto;min-width:88px;color:#aaa;font-size:11px">Deck zoom</label>
         <input type="range" id="avatar-box-scale" min="25" max="400" value="100" step="5" style="flex:1">
         <span id="avatar-box-scale-val" style="color:#6070a0;font-size:11px;min-width:36px;text-align:right">100%</span>
       </div>
-      <div style="font-size:10px;color:#6070a0;margin-top:4px">Drag the circle on canvas to set the avatar focal point · Zoom controls preview magnification</div>
+      <div style="font-size:10px;color:#6070a0;margin-top:4px">Deck zoom → avatarPreviewScale in export · side preview matches in-game card hand</div>
       <div style="font-size:10px;color:#6070a0;margin-top:4px">Toggle off editor composite to compare static PNG avatar on the side panel</div>
       <button class="export-btn" id="btn-copy-use-editor-avatar" style="margin-top:6px;margin-bottom:0">⎘ Copy useEditorCompositeAvatar</button>
     </div>
@@ -613,9 +613,9 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
     </div>
     <div id="avatar-preview-wrap">
       <div class="preview-label">Card avatar preview</div>
-      <div class="preview-hint" id="avatar-preview-mode-hint">Cropped from avatar frame</div>
+      <div class="preview-hint" id="avatar-preview-mode-hint">Same layout math as in-game deck hand</div>
       <canvas id="avatar-preview-c"></canvas>
-      <div class="preview-hint">Deck-hand size · scales with Preview size slider</div>
+      <div class="preview-hint">Exact deck-hand slot proportions · Deck zoom slider = avatarPreviewScale</div>
     </div>
   </div>
 </div>
@@ -626,12 +626,22 @@ const COLS   = 24
 const ROWS   = 43
 const CELL   = 16
 const GAME_CELL_SIZE = 64   // GameConstants.ts CELL_SIZE — offsets & tower layout use these px
+// @generated map-editor-layout-sync-start
+// Mirrors GameConstants.ts tower layout — run: npm run sync:map-editor
+const DEPLOY_LANE_SPLIT_COL = 12
+const KING_LOGIC_COL = 11.5
+const KING_SPRITE_CENTER_OFFSET_X = 0
+const PLAYER_KING_VISUAL_ROW = 37
+const BOT_KING_VISUAL_ROW = 6
+const BRIDGE_CENTER_COL = 12
+const BRIDGE_SPAN = 7
+const LEFT_BRIDGE_START = 1
+const RIGHT_BRIDGE_START = 16
+// @generated map-editor-layout-sync-end
 const ARENA_FENCE_ROWS = 1
 const ARENA_FENCE_COLS = 1
 const PLAYER_DEPLOY_ROW_MAX = ROWS - 1 - ARENA_FENCE_ROWS  // 41
 const BOT_DEPLOY_ROW_MIN = ARENA_FENCE_ROWS                   // 1
-/** Lane divider for tower-fall deploy unlocks — mirrors GameConstants.ts DEPLOY_LANE_SPLIT_COL */
-const DEPLOY_LANE_SPLIT_COL = 12
 
 /** Three spawn zone types — player half tints blue, CPU half tints red when drawn. */
 const SPAWN_ZONE_TYPES = ['base', 'left', 'right']
@@ -642,9 +652,15 @@ const SPAWN_ZONE_SOLID = {
 }
 const SPAWN_PAINT_TOOLS = ['spawn-base', 'spawn-left', 'spawn-right', 'spawn-erase']
 const TOWER_SPRITE_ALPHA = 0.55
-/** Logic hitbox col — sprite/anchor X uses true map centre on this even-width grid. */
-const KING_LOGIC_COL = 12
-const BRIDGE_SPAN = 3
+
+function mirrorBridgeStart(leftStart) {
+  return COLS - 1 - leftStart - (BRIDGE_SPAN - 1)
+}
+
+function syncBridgeSymmetry() {
+  state.rightBridge = mirrorBridgeStart(state.leftBridge)
+}
+
 const MARGIN = 3             // extra cells around the grid (out-of-map zone)
 const CW     = COLS + 2 * MARGIN   // 30 canvas-cells wide
 const CH     = ROWS + 2 * MARGIN   // 49 canvas-cells tall
@@ -729,11 +745,7 @@ const TOWER_NATIVE = {
   king:     { w: 320, h: 256 },
 }
 const PRINCESS_TOWER_RENDER_NUDGE_Y = { player: -152, bot: 0 }
-const KING_SPRITE_CENTER_OFFSET_X = -GAME_CELL_SIZE / 2
 const TOWER_HEALTH_BAR_Y = { botGapAboveTop: 3, playerOffsetFromCenter: 6 }
-/** King castle art rows — sprites/garrison stay here when hitbox row differs (GameConstants.ts). */
-const PLAYER_KING_VISUAL_ROW = 37
-const BOT_KING_VISUAL_ROW = 6
 const KING_VISUAL_OFFSET_DEFAULT = { botKing: -25, plyKing: 25 }
 const KING_HEALTH_BAR_OFFSET_DEFAULT = { botKing: -66, plyKing: 54 }
 
@@ -959,6 +971,7 @@ function setTowerAnchorSymmetrical(key, col, row) {
 
 function normalizeTowerSymmetry() {
   setTowerAnchorSymmetrical('botKing', state.towers.botKing.col, state.towers.botKing.row)
+  syncBridgeSymmetry()
 }
 
 // Mirrors towerRenderPosition.ts + TOWER_HEALTH_BAR_Y defaults (game px)
@@ -985,13 +998,13 @@ function defaultHealthBars() {
 // ── State ─────────────────────────────────────────────────────
 const DEFAULTS = () => ({
   river: { start: 20, end: 22 },
-  leftBridge:  3,
-  rightBridge: 18,
+  leftBridge:  LEFT_BRIDGE_START,
+  rightBridge: RIGHT_BRIDGE_START,
   towers: {
-    botKing:  { row: 3,  col: 12 },
+    botKing:  { row: 3,  col: KING_LOGIC_COL },
     botLeft:  { row: 12, col: 4  },
     botRight: { row: 12, col: 19 },
-    plyKing:  { row: 41, col: 12 },
+    plyKing:  { row: 41, col: KING_LOGIC_COL },
     plyLeft:  { row: 31, col: 4  },
     plyRight: { row: 31, col: 19 },
   },
@@ -1189,10 +1202,10 @@ function drawCell(col, row) {
 
 function towersFromMapConfig(data) {
   return {
-    botKing:  { row: data.botKingRow ?? 3,  col: data.botKingCol ?? 12 },
+    botKing:  { row: data.botKingRow ?? 3,  col: data.botKingCol ?? KING_LOGIC_COL },
     botLeft:  { row: data.botTowerRow ?? 12, col: data.botTowerCols?.[0] ?? 4 },
     botRight: { row: data.botTowerRow ?? 12, col: data.botTowerCols?.[1] ?? 19 },
-    plyKing:  { row: data.playerKingRow ?? 41, col: data.playerKingCol ?? 12 },
+    plyKing:  { row: data.playerKingRow ?? 41, col: data.playerKingCol ?? KING_LOGIC_COL },
     plyLeft:  { row: data.playerTowerRow ?? 31, col: data.playerTowerCols?.[0] ?? 4 },
     plyRight: { row: data.playerTowerRow ?? 31, col: data.playerTowerCols?.[1] ?? 19 },
   }
@@ -1290,7 +1303,7 @@ function updateSidebar() {
     plyLeft: ['td-pl-col','td-pl-row'], plyRight: ['td-pr-col','td-pr-row'],
   }
   for (const [k, [cid, rid]] of Object.entries(tMap)) {
-    document.getElementById(cid).textContent = TOWER_INFO[k]?.isKing ? String(KING_LOGIC_COL) : state.towers[k].col
+    document.getElementById(cid).textContent = String(state.towers[k].col)
     document.getElementById(rid).textContent = state.towers[k].row
   }
 }
@@ -1647,6 +1660,7 @@ function applyMapConfig(data) {
   if (data.riverRowEnd != null) state.river.end = data.riverRowEnd
   if (data.leftBridgeCols?.[0] != null) state.leftBridge = data.leftBridgeCols[0]
   if (data.rightBridgeCols?.[0] != null) state.rightBridge = data.rightBridgeCols[0]
+  syncBridgeSymmetry()
   state.towers = towersFromMapConfig(data)
   if (data.playerDeployRowMin != null) state.playerDeployMin = data.playerDeployMin
   if (data.botDeployRowMax != null) state.botDeployMax = data.botDeployMax
@@ -1752,7 +1766,7 @@ const COMPOSITE_AVATAR_LAYOUT_DEFAULTS = {
       },
       "bomber": {
         "x": 0,
-        "y": -400.88888888888886,
+        "y": -390.054054054054,
         "originX": 0.5,
         "originY": 0.7083333333333334
       }
@@ -1818,35 +1832,35 @@ const COMPOSITE_STATIC_AVATAR_META = {
 }
 const UNIT_CATALOG = [
   // Troops
-  { id:'warrior', name:'Warrior', attackRange:1.2, fw:192, fh:192, path:'assets/Units/Blue Units/Warrior/Warrior_Idle.png', contentFill:0.52 },
-  { id:'archer', name:'Archers', attackRange:5.5, fw:192, fh:192, path:'assets/Factions/Knights/Troops/Archer/Blue/Archer_Blue.png', contentFill:0.5 },
-  { id:'elite_archer', name:'Elite Archer', attackRange:6.5, fw:192, fh:192, path:'assets/Units/Blue Units/Archer/Archer_Idle.png', contentFill:0.5 },
-  { id:'lancer', name:'Lancer', attackRange:1.6, fw:320, fh:320, path:'assets/Units/Blue Units/Lancer/Lancer_Idle.png', contentFill:0.3 },
-  { id:'skeleton', name:'Skeletons', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, tintBotSide:true },
-  { id:'skeleton_army', name:'Skeleton Army', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, tintBotSide:true },
-  { id:'troll', name:'Troll', attackRange:1.2, fw:384, fh:384, path:'assets/Enemy Pack/Enemies/Troll/Troll_Idle.png', contentFill:0.48, tintBotSide:true },
-  { id:'spear_goblin', name:'Spear Goblins', attackRange:1.6, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin/Spear Goblin_Idle.png', contentFill:0.55, tintBotSide:true },
-  { id:'villagers', name:'Villagers', attackRange:0.5, fw:192, fh:192, path:'assets/Units/Blue Units/Pawn/Pawn_Idle.png', contentFill:0.52 },
-  { id:'torch_goblin', name:'Torch Goblin', attackRange:5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin/Torch Goblin_Idle.png', contentFill:0.55, tintBotSide:true },
-  { id:'wizard', name:'Wizard', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.55, tintBotSide:true },
-  { id:'lizard', name:'Lizard', attackRange:3.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Lizard/Lizard_Idle_Flying.png', contentFill:0.55, tintBotSide:true },
-  { id:'air_boat', name:'Air Boat', attackRange:1.5, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Pirate Fish/Boat/AirBoat_Idle.png', contentFill:0.42, tintBotSide:true, spriteOriginY:0.25 },
-  { id:'mega_minion', name:'Mega Minion', attackRange:1.6, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Caveborn/Bear/Bear_Idle.png', contentFill:0.5, tintBotSide:true },
-  { id:'pig_rider', name:'Pig Rider', attackRange:0.8, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig Rider Spear Goblin/Pig Rider_Idle.png', contentFill:0.52, tintBotSide:true },
-  { id:'pig', name:'Pigs', attackRange:0.7, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig/Pig_Idle.png', contentFill:0.5, tintBotSide:true },
-  { id:'bomb_fish', name:'Bomb Fish', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Bomb Fish/Bomb Fish_Idle.png', contentFill:0.55, tintBotSide:true },
-  { id:'goblin_demolisher', name:'Goblin Demolisher', attackRange:5, fw:192, fh:192, path:'assets/Factions/Goblins/Troops/TNT/Blue/TNT_Blue.png', contentFill:0.55 },
-  { id:'minotaur', name:'Minotaur', attackRange:1.2, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Minotaur/Minotaur_Idle.png', contentFill:0.46, tintBotSide:true },
-  { id:'gnoll', name:'Gnoll', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Gnoll/Gnoll_Idle.png', contentFill:0.55, tintBotSide:true },
-  { id:'thief', name:'Thief', attackRange:0.75, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Thief/Thief_Idle.png', contentFill:0.55, tintBotSide:true },
-  { id:'turtle', name:'Turtle', attackRange:0.75, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Caveborn/Turtle/Turtle_Idle.png', contentFill:0.5, tintBotSide:true },
-  { id:'panda', name:'Panda', attackRange:1.2, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Panda/Panda_Idle.png', contentFill:0.52, tintBotSide:true },
-  { id:'monk', name:'Monk', attackRange:1.6, fw:192, fh:192, path:'assets/Units/Blue Units/Monk/Idle.png', contentFill:0.52 },
-  { id:'harpoon_shark', name:'Harpoon Shark', attackRange:1.2, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Harpoon Shark/Harpoon Shark_Idle.png', contentFill:0.52, tintBotSide:true },
-  { id:'spider', name:'Spider', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.52, tintBotSide:true },
-  { id:'spiderling', name:'Spiderling', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.82, tintBotSide:true },
+  { id:'warrior', name:'Warrior', attackRange:1.2, fw:192, fh:192, path:'assets/Units/Blue Units/Warrior/Warrior_Idle.png', contentFill:0.46, elixirCost:3 },
+  { id:'archer', name:'Archers', attackRange:5.5, fw:192, fh:192, path:'assets/Factions/Knights/Troops/Archer/Blue/Archer_Blue.png', contentFill:0.39, elixirCost:3 },
+  { id:'elite_archer', name:'Elite Archer', attackRange:6.5, fw:192, fh:192, path:'assets/Units/Blue Units/Archer/Archer_Idle.png', contentFill:0.46, elixirCost:4 },
+  { id:'lancer', name:'Lancer', attackRange:1.6, fw:320, fh:320, path:'assets/Units/Blue Units/Lancer/Lancer_Idle.png', contentFill:0.47, elixirCost:5 },
+  { id:'skeleton', name:'Skeletons', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.38, elixirCost:1, tintBotSide:true },
+  { id:'skeleton_army', name:'Skeleton Army', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.38, elixirCost:3, tintBotSide:true },
+  { id:'troll', name:'Troll', attackRange:1.2, fw:384, fh:384, path:'assets/Enemy Pack/Enemies/Troll/Troll_Idle.png', contentFill:0.55, elixirCost:5, tintBotSide:true },
+  { id:'spear_goblin', name:'Spear Goblins', attackRange:1.6, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin/Spear Goblin_Idle.png', contentFill:0.49, elixirCost:3, tintBotSide:true },
+  { id:'villagers', name:'Villagers', attackRange:0.5, fw:192, fh:192, path:'assets/Units/Blue Units/Pawn/Pawn_Idle.png', contentFill:0.37, elixirCost:2 },
+  { id:'torch_goblin', name:'Torch Goblin', attackRange:5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin/Torch Goblin_Idle.png', contentFill:0.35, elixirCost:3, tintBotSide:true },
+  { id:'wizard', name:'Wizard', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.43, elixirCost:5, tintBotSide:true },
+  { id:'lizard', name:'Lizard', attackRange:3.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Lizard/Lizard_Idle_Flying.png', contentFill:0.66, elixirCost:4, tintBotSide:true },
+  { id:'air_boat', name:'Air Boat', attackRange:1.5, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Pirate Fish/Boat/AirBoat_Idle.png', contentFill:0.94, elixirCost:5, tintBotSide:true, spriteOriginY:0.25 },
+  { id:'mega_minion', name:'Mega Knight', attackRange:1.6, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Caveborn/Bear/Bear_Idle.png', contentFill:0.36, elixirCost:3, tintBotSide:true },
+  { id:'pig_rider', name:'Pig Rider', attackRange:0.8, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig Rider Spear Goblin/Pig Rider_Idle.png', contentFill:0.57, elixirCost:4, tintBotSide:true },
+  { id:'pig', name:'Pigs', attackRange:0.7, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig/Pig_Idle.png', contentFill:0.27, elixirCost:5, tintBotSide:true },
+  { id:'bomb_fish', name:'Bomb Fish', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Bomb Fish/Bomb Fish_Idle.png', contentFill:0.35, elixirCost:2, tintBotSide:true },
+  { id:'goblin_demolisher', name:'Goblin Demolisher', attackRange:5, fw:192, fh:192, path:'assets/Factions/Goblins/Troops/TNT/Blue/TNT_Blue.png', contentFill:0.35, elixirCost:4 },
+  { id:'minotaur', name:'Minotaur', attackRange:1.2, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Minotaur/Minotaur_Idle.png', contentFill:0.4, elixirCost:7, tintBotSide:true },
+  { id:'gnoll', name:'Gnoll', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Gnoll/Gnoll_Idle.png', contentFill:0.39, elixirCost:5, tintBotSide:true },
+  { id:'thief', name:'Thief', attackRange:0.75, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Thief/Thief_Idle.png', contentFill:0.38, elixirCost:3, tintBotSide:true },
+  { id:'turtle', name:'Turtle', attackRange:0.75, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Caveborn/Turtle/Turtle_Idle.png', contentFill:0.28, elixirCost:2, tintBotSide:true },
+  { id:'panda', name:'Panda', attackRange:1.2, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Panda/Panda_Idle.png', contentFill:0.37, elixirCost:4, tintBotSide:true },
+  { id:'monk', name:'Monk', attackRange:1.6, fw:192, fh:192, path:'assets/Units/Blue Units/Monk/Idle.png', contentFill:0.36, elixirCost:4 },
+  { id:'harpoon_shark', name:'Harpoon Shark', attackRange:1.2, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Harpoon Shark/Harpoon Shark_Idle.png', contentFill:0.41, elixirCost:3, tintBotSide:true },
+  { id:'spider', name:'Spider', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.44, elixirCost:5, tintBotSide:true },
+  { id:'spiderling', name:'Spiderling', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.44, elixirCost:1, tintBotSide:true },
   // Buildings — deployable structures (CardData building cards)
-  { id:'wood_tower', name:'Bomb Tower', attackRange:7, fw:128, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower/Pirate Tower_Ground.png', contentFill:0.72, isBuilding:true, tintBotSide:true, spriteOriginY:1, hbarOffsetY:-1.1 },
+  { id:'wood_tower', name:'Bomb Tower', attackRange:7, fw:128, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower/Pirate Tower_Ground.png', contentFill:0.74, elixirCost:4, isBuilding:true, tintBotSide:true, spriteOriginY:1, hbarOffsetY:-1.1 },
   // Towers — sprite follows Player ↓ / CPU ↑ approach side
   { id:'princess_tower', name:'Princess Tower', attackRange:7.5, fw:128, fh:256, path:TOWER_EDITOR_PATHS.bot.princess, contentFill:0.9, isTower:true, slotOffsetX:0, slotOffsetY:0 },
   { id:'king_tower', name:'King Tower', attackRange:20, fw:320, fh:256, path:TOWER_EDITOR_PATHS.bot.king, contentFill:0.88, isTower:true, isKing:true, slotOffsetX:0, slotOffsetY:0 },
@@ -2367,7 +2381,7 @@ function getUnitMapLayout() {
     riverEnd: state.river.end,
     leftBridgeCol: state.leftBridge,
     rightBridgeCol: state.rightBridge,
-    bridgeSpan: 3,
+    bridgeSpan: BRIDGE_SPAN,
     towers: { ...state.towers },
   }
 }
@@ -3000,7 +3014,7 @@ function layoutCompositeAvatarPreview(unitId, iconW, iconH) {
   }
 
   const handScale = COMPOSITE_AVATAR_HAND_SCALE[unitId] ?? 1
-  const slotScale = COMPOSITE_AVATAR_SLOT_SCALE[unitId] ?? 1
+  const slotScale = getAvatarBoxUserScale(unitId)
   const fit = containAvatarScale(refW, refH, iconW, iconH) * 0.94 * handScale * slotScale
   const anchorX = iconW * avatarLayout.slotAnchor.x
   const anchorY = iconH * avatarLayout.slotAnchor.y
@@ -3135,11 +3149,38 @@ function drawAvatarFrameOnUnitCanvas(unit, cx, cy) {
 
   uctx.fillStyle = color
   uctx.font = 'bold 9px sans-serif'; uctx.textAlign = 'center'
-  uctx.fillText('avatar focus', pos.x, pos.y - AVATAR_CIRCLE_RADIUS - 5)
+  uctx.fillText('deck zoom ref', pos.x, pos.y - AVATAR_CIRCLE_RADIUS - 5)
   uctx.textAlign = 'left'
 }
 
-/** Side panel — deck-hand preview cropped from the main-canvas avatar frame. */
+function drawCardElixirBadge(ctx, slotX, slotY, slotW, slotH, cost, previewScale, slotWGame) {
+  if (cost == null) return
+  const fontSize = Math.max(44, Math.round(slotWGame * 0.13)) * previewScale
+  const padX = 20 * previewScale
+  const padY = 12 * previewScale
+  const margin = 12 * previewScale
+  const label = String(cost)
+  ctx.font = `bold ${fontSize}px "Philosopher", Georgia, serif`
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'bottom'
+  const textW = ctx.measureText(label).width
+  const textH = fontSize * 0.92
+  const badgeLeft = slotX + margin
+  const badgeBottom = slotY + slotH - margin
+  const badgeW = textW + padX * 2
+  const badgeH = textH + padY * 2
+  ctx.fillStyle = '#5500cc'
+  ctx.fillRect(badgeLeft, badgeBottom - badgeH, badgeW, badgeH)
+  const textX = badgeLeft + padX
+  const textY = badgeBottom - padY
+  ctx.lineWidth = Math.max(2, 8 * previewScale)
+  ctx.strokeStyle = '#1a004a'
+  ctx.fillStyle = '#ffffff'
+  ctx.strokeText(label, textX, textY)
+  ctx.fillText(label, textX, textY)
+}
+
+/** Side panel — deck-hand preview using the same layout math as layoutCompositeInSlot. */
 function drawSideAvatarPreview(unit) {
   const wrap = document.getElementById('avatar-preview-wrap')
   if (!isCompositeUnit(unit)) {
@@ -3158,12 +3199,13 @@ function drawSideAvatarPreview(unit) {
 
   const hand = cardHandIconSize()
   const previewScale = AVATAR_PREVIEW_MAX_ICON_H / hand.iconH
-  // Preview is always fixed size — frame size controls zoom, not preview size
+  const slotW = Math.round(hand.slotW * previewScale)
+  const slotH = Math.round(hand.slotH * previewScale)
   const iconW = Math.round(hand.iconW * previewScale)
   const iconH = Math.round(hand.iconH * previewScale)
 
-  const canvasW = iconW + AVATAR_PREVIEW_PAD * 2
-  const canvasH = iconH + AVATAR_PREVIEW_PAD * 2
+  const canvasW = slotW + AVATAR_PREVIEW_PAD * 2
+  const canvasH = slotH + AVATAR_PREVIEW_PAD * 2
   avatarPreviewCanvas.width = canvasW
   avatarPreviewCanvas.height = canvasH
 
@@ -3173,37 +3215,29 @@ function drawSideAvatarPreview(unit) {
 
   const slotX = AVATAR_PREVIEW_PAD
   const slotY = AVATAR_PREVIEW_PAD
+  const iconX = slotX + (slotW - iconW) / 2
+  const iconY = slotY + (slotH - iconH) / 2
 
-  ctx.fillStyle = 'rgba(13, 27, 62, 0.92)'
-  ctx.fillRect(slotX, slotY, iconW, iconH)
-  ctx.strokeStyle = '#334488'
-  ctx.lineWidth = 2
-  ctx.strokeRect(slotX + 0.5, slotY + 0.5, iconW - 1, iconH - 1)
+  ctx.fillStyle = 'rgba(13, 27, 62, 0.9)'
+  ctx.fillRect(slotX, slotY, slotW, slotH)
+  ctx.strokeStyle = '#2e4480'
+  ctx.lineWidth = Math.max(2, 6 * previewScale)
+  ctx.strokeRect(slotX + 0.5, slotY + 0.5, slotW - 1, slotH - 1)
 
   ctx.save()
   ctx.beginPath()
-  ctx.rect(slotX, slotY, iconW, iconH)
+  ctx.rect(iconX, iconY, iconW, iconH)
   ctx.clip()
 
   if (useEditor) {
-    // Sprites at fixed world scale; focal circle sets center, zoom slider sets magnification
-    const refDim = avatarBoxIconDimensions(1.0)
-    const worldLayout = layoutCompositeAvatarPreview(unit.id, refDim.iconW, refDim.iconH)
-    const worldOriginX = UCW / 2 - refDim.iconW / 2
-    const worldOriginY = UCH / 2 - refDim.iconH / 2
-    const circle = liveAvatarBoxPos[unit.id] ?? { x: UCW / 2, y: UCH / 2 }
-    const focalX = circle.x - worldOriginX
-    const focalY = circle.y - worldOriginY
-    const zoom = getAvatarBoxUserScale(unit.id)
-    const tx = slotX + iconW / 2 - focalX * zoom
-    const ty = slotY + iconH / 2 - focalY * zoom
-    ctx.translate(tx, ty)
-    ctx.scale(zoom, zoom)
-    drawCompositeAvatarPreviewLayers(ctx, unit, worldLayout, 0, 0)
+    const layout = layoutCompositeAvatarPreview(unit.id, iconW, iconH)
+    drawCompositeAvatarPreviewLayers(ctx, unit, layout, iconX, iconY)
   } else {
-    drawStaticAvatarPreview(ctx, unit.id, slotX, slotY, iconW, iconH)
+    drawStaticAvatarPreview(ctx, unit.id, iconX, iconY, iconW, iconH)
   }
   ctx.restore()
+
+  drawCardElixirBadge(ctx, slotX, slotY, slotW, slotH, unit.elixirCost, previewScale, hand.slotW)
 }
 
 // ── Unit picker ───────────────────────────────────────────────
@@ -3579,7 +3613,7 @@ function buildUnitEditorApplyPrompt(activeUnit) {
     ? `Focus on "${activeUnit.id}" (${activeUnit.label}, ${activeUnit.kind}). `
     : ''
   const files = activeUnit?.kind === 'building'
-    ? 'compositeOffsets → CompositeLayerOffsets.ts; avatarPreviewScale + avatarFramePos → CompositeAvatarLayout.ts; wood_tower slotPositions → BombTowerMeleeLayout.ts. '
+    ? 'compositeOffsets → CompositeLayerOffsets.ts; avatarPreviewScale → CompositeAvatarLayout.ts (COMPOSITE_AVATAR_SLOT_SCALE); wood_tower slotPositions → BombTowerMeleeLayout.ts. avatarFramePos is editor-canvas only. '
     : activeUnit?.kind === 'princess_tower' || activeUnit?.kind === 'king_tower'
       ? 'slotPositions → PrincessTowerMeleeLayout.ts (or king layout); towerVisualOffset → map.json towerVisualOffsets; garrison → tower rendering. '
       : activeUnit?.kind === 'troop' && COMPOSITE_UNIT_IDS.has(activeUnit.id)
@@ -4169,7 +4203,7 @@ function drawKingArenaContext(unit, cx, cy, UCELL) {
   uctx.fillStyle = 'rgba(100,160,240,0.55)'; uctx.font = '9px sans-serif'; uctx.textAlign = 'left'
   uctx.fillText('river', mapLeft + 4, riverTop + 11)
 
-  // Bridge spans (3 cols each side)
+  // Bridge spans (7 cols each side — mirrors GameConstants.ts)
   const bridgeH = (layout.riverEnd - layout.riverStart + 1) * UCELL
   const bridgeY = cy + (layout.riverStart - kingRow) * UCELL
   for (const [label, bridgeCol] of [['L bridge', layout.leftBridgeCol], ['R bridge', layout.rightBridgeCol]]) {

@@ -13,6 +13,8 @@ import {
   LEFT_LANE_COL,
   RIGHT_LANE_COL,
   PLAYER_TOWER_COLS,
+  BRIDGE_SPAN,
+  GRID_COLS,
   BALANCE_REFERENCE_LEVEL,
 } from '@data/GameConstants'
 import {
@@ -170,12 +172,13 @@ describe('Arena 26 balance (level 14)', () => {
     expect(CARD_DEFINITIONS.spider!.stats!.splashRadius).toBe(1.5)
     expect(SPIDER_MINION_CARD_ID).toBe('spiderling')
     expect(CARD_DEFINITIONS.mega_minion!.elixirCost).toBe(3)
+    expect(CARD_DEFINITIONS.mega_minion!.displayName).toBe('Mega Knight')
     expect(CARD_DEFINITIONS.mega_minion!.stats!.maxHp).toBe(1108)
     expect(CARD_DEFINITIONS.mega_minion!.stats!.damage).toBe(413)
     expect(CARD_DEFINITIONS.mega_minion!.stats!.attackRate).toBeCloseTo(1 / 1.5, 5)
     expect(CARD_DEFINITIONS.mega_minion!.stats!.attackRange).toBe(1.6)
-    expect(CARD_DEFINITIONS.mega_minion!.stats!.unitType).toBe(UnitType.AIR)
-    expect(CARD_DEFINITIONS.mega_minion!.stats!.attackType).toBe(AttackType.AIR_AND_GROUND)
+    expect(CARD_DEFINITIONS.mega_minion!.stats!.unitType).toBe(UnitType.GROUND)
+    expect(CARD_DEFINITIONS.mega_minion!.stats!.attackType).toBe(AttackType.GROUND_ONLY)
     expect(CARD_DEFINITIONS.mega_minion!.stats!.speed).toBe(crSpeedToCellsPerSec(CR_SPEED.medium))
     expect(CARD_DEFINITIONS.wood_tower!.elixirCost).toBe(4)
     expect(CARD_DEFINITIONS.wood_tower!.stats!.attackType).toBe(AttackType.GROUND_ONLY)
@@ -187,13 +190,19 @@ describe('Arena 26 balance (level 14)', () => {
 
 describe('bridge placement', () => {
   it('aligns each 7-wide bridge centred on its princess tower lane', () => {
-    expect(LEFT_BRIDGE_COLS).toEqual([2, 3, 4, 5, 6])
-    expect(RIGHT_BRIDGE_COLS).toEqual([17, 18, 19, 20, 21])
+    expect(LEFT_BRIDGE_COLS).toEqual([1, 2, 3, 4, 5, 6, 7])
+    expect(RIGHT_BRIDGE_COLS).toEqual([16, 17, 18, 19, 20, 21, 22])
     expect(LEFT_LANE_COL).toBe(PLAYER_TOWER_COLS[0])
     expect(RIGHT_LANE_COL).toBe(PLAYER_TOWER_COLS[1])
     // Tower lane column sits at the centre of its bridge
     expect(LEFT_BRIDGE_COLS).toContain(PLAYER_TOWER_COLS[0])
     expect(RIGHT_BRIDGE_COLS).toContain(PLAYER_TOWER_COLS[1])
+  })
+
+  it('mirrors each bridge column across the grid centre', () => {
+    for (let i = 0; i < BRIDGE_SPAN; i++) {
+      expect(RIGHT_BRIDGE_COLS[BRIDGE_SPAN - 1 - i]).toBe(GRID_COLS - 1 - LEFT_BRIDGE_COLS[i]!)
+    }
   })
 })
 

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "sync:map-editor": "vite-node scripts/syncMapEditorCatalog.ts"
+    "sync:map-editor": "vite-node scripts/syncMapEditorCatalog.ts",
+    "measure:content-fill": "vite-node scripts/measureContentFill.ts"
   },
   "devDependencies": {
     "typescript": "~6.0.2",

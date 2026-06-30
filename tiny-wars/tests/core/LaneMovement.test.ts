@@ -51,7 +51,7 @@ describe('LaneMovement', () => {
   })
 
   it('bridge row between lanes still converges toward centre on land', () => {
-    // cols 7–16 are between the two 5-wide bridges and converge toward center col 12
+    // cols 8–15 are between the two 7-wide bridges and converge toward center col 12
     expect(getLaneStep(9, RIVER_BRIDGE_ROW, Owner.PLAYER))
       .toEqual({ x: 10, y: RIVER_BRIDGE_ROW })
     expect(getLaneStep(15, RIVER_BRIDGE_ROW, Owner.PLAYER))

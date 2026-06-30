@@ -38,17 +38,18 @@ export const CANVAS_HEIGHT = GAME_HEIGHT + HUD_HEIGHT  // 3312 — must match Ga
 
 // Tower hitbox anchors (map.json overrides — combat, pathing, targeting)
 export const PLAYER_KING_ROW    = 41
-export const PLAYER_KING_COL    = 12
+/** Half-cell offset on 24-col grid — logic X lands on true map centre (768px). */
+export const PLAYER_KING_COL    = 11.5
 export const PLAYER_TOWER_ROW   = 31
 export const PLAYER_TOWER_COLS  = [4, 19] as const
 
 export const BOT_KING_ROW   = 3
-export const BOT_KING_COL   = 12
+export const BOT_KING_COL   = 11.5
 export const BOT_TOWER_ROW  = 12
 export const BOT_TOWER_COLS = [4, 19] as const
 
-/** Even-width grid: logic col centre sits half a cell right of map centre — sprite/health bar nudge. */
-export const KING_SPRITE_CENTER_OFFSET_X = -CELL_SIZE / 2
+/** King logic anchor is already at map centre — no render nudge. */
+export const KING_SPRITE_CENTER_OFFSET_X = 0
 export const KING_MAP_CENTER_X = (GRID_COLS * CELL_SIZE) / 2
 
 /** King castle art — visual-only rows (sprites/garrison stay here when hitbox row differs). */
@@ -59,29 +60,28 @@ export const BOT_KING_VISUAL_ROW    = 6
 export const PLAYER_KING_CANNON_ROW = 39
 export const BOT_KING_CANNON_ROW = 5
 
-/** Bridge spans 5 cells centred on the tower's lane column — wider than 3 to reduce clogging, proportional to CR on our 24-col grid. */
-function bridgeColsOnLeftTowerLane(towerCol: number): readonly number[] {
-  return [towerCol - 2, towerCol - 1, towerCol, towerCol + 1, towerCol + 2]
-}
+/** Walkable bridge columns through the river — 7-wide, centred on each princess lane. */
+export const BRIDGE_SPAN = 7
+const BRIDGE_RADIUS = Math.floor(BRIDGE_SPAN / 2)
 
-/** Right lane bridge — mirror of left, also 5 cells centred on the tower column. */
-function bridgeColsOnRightTowerLane(towerCol: number): readonly number[] {
-  return [towerCol - 2, towerCol - 1, towerCol, towerCol + 1, towerCol + 2]
+function bridgeColsOnTowerLane(towerCol: number): readonly number[] {
+  return Array.from({ length: BRIDGE_SPAN }, (_, i) => towerCol - BRIDGE_RADIUS + i)
 }
 
 // River runs across rows 20–22 (0-indexed); bridge columns are walkable through it
 export const RIVER_ROW_START = 20
 export const RIVER_ROW_END   = 22
 /** Each bridge sits on its princess tower lane — CPU marches straight to player tower. */
-export const LEFT_BRIDGE_COLS  = bridgeColsOnLeftTowerLane(PLAYER_TOWER_COLS[0])
-export const RIGHT_BRIDGE_COLS = bridgeColsOnRightTowerLane(PLAYER_TOWER_COLS[1])
+export const LEFT_BRIDGE_COLS  = bridgeColsOnTowerLane(PLAYER_TOWER_COLS[0])
+export const RIGHT_BRIDGE_COLS = bridgeColsOnTowerLane(PLAYER_TOWER_COLS[1])
 export const BRIDGE_COLS = [...LEFT_BRIDGE_COLS, ...RIGHT_BRIDGE_COLS] as const
 
 // Lane movement — one vertical lane per princess tower column
 export const LEFT_LANE_COL     = PLAYER_TOWER_COLS[0]
 export const RIGHT_LANE_COL    = PLAYER_TOWER_COLS[1]
 export const RIVER_BRIDGE_ROW  = 21   // middle river row — horizontal bridge crossing
-export const BRIDGE_CENTER_COL = PLAYER_KING_COL
+/** Integer column on bridge row where lanes converge (between cols 11 & 12). */
+export const BRIDGE_CENTER_COL = 12
 
 // Game duration
 export const GAME_DURATION_MS = 180_000  // 3 minutes

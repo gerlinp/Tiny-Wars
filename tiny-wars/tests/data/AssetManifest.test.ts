@@ -305,7 +305,7 @@ describe('Card avatars', () => {
     expect(bundle.attackHitFrame).toBe(5)
   })
 
-  it('mega minion uses native 256×256 Bear sheets with idle portrait', () => {
+  it('mega knight (bear) uses native 256×256 Bear sheets with idle portrait', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'mega_minion')!
     expect(cardAvatarKey('mega_minion')).toBe('avatar_mega_minion')
     expect(getCardAvatarDef('mega_minion').path).toContain('Caveborn/Bear/Bear_Idle.png')

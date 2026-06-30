@@ -274,16 +274,16 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     deathSplashRadius: 3.0,
   }, 'air_boat_blue_idle', 'air_boat_red_idle'),
 
-  mega_minion: troop('mega_minion', 'Mega Minion',
-    'A heavy armored flier that hits hard at short range. Strong against air and ground.',
+  mega_minion: troop('mega_minion', 'Mega Knight',
+    'A heavily armored ground bruiser — slow, tough, and hits hard in melee.',
     3, {
     maxHp: 1108,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
     damage: 413,
     attackRate: 1 / 1.5,
     attackRange: 1.6,
-    unitType: UnitType.AIR,
-    attackType: AttackType.AIR_AND_GROUND,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
   }, 'mega_minion_blue_idle', 'mega_minion_red_idle'),
 
   torch_goblin: troop('torch_goblin', 'Torch Goblin',

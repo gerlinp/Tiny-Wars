@@ -1,29 +1,40 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
+  MAP_EDITOR_LAYOUT_SYNC_END,
+  MAP_EDITOR_LAYOUT_SYNC_START,
   MAP_EDITOR_SYNC_END,
   MAP_EDITOR_SYNC_START,
   buildMapEditorCatalog,
   extractMapEditorGeneratedBlock,
+  extractMapEditorLayoutBlock,
   formatMapEditorGeneratedBlock,
+  formatMapEditorLayoutBlock,
 } from '../src/tools/mapEditorCatalog.ts'
 import { MAP_EDITOR_CATALOG_ORDER } from '../src/tools/mapEditorOverrides.ts'
 
 const ROOT = resolve(import.meta.dirname, '..')
 const MAP_EDITOR_HTML = resolve(ROOT, 'public/map-editor.html')
 
-function main(): void {
-  const html = readFileSync(MAP_EDITOR_HTML, 'utf8')
-  const start = html.indexOf(MAP_EDITOR_SYNC_START)
-  const end = html.indexOf(MAP_EDITOR_SYNC_END)
-
+function replaceBlock(
+  html: string,
+  startMarker: string,
+  endMarker: string,
+  block: string,
+): string {
+  const start = html.indexOf(startMarker)
+  const end = html.indexOf(endMarker)
   if (start < 0 || end < 0) {
-    console.error('map-editor.html is missing sync markers:', MAP_EDITOR_SYNC_START, MAP_EDITOR_SYNC_END)
+    console.error('map-editor.html is missing sync markers:', startMarker, endMarker)
     process.exit(1)
   }
+  return html.slice(0, start) + block + html.slice(end + endMarker.length)
+}
 
-  const block = formatMapEditorGeneratedBlock()
-  const next = html.slice(0, start) + block + html.slice(end + MAP_EDITOR_SYNC_END.length)
+function main(): void {
+  let html = readFileSync(MAP_EDITOR_HTML, 'utf8')
+  const layoutBlock = formatMapEditorLayoutBlock()
+  const catalogBlock = formatMapEditorGeneratedBlock()
 
   const catalogIds = new Set(buildMapEditorCatalog().map(e => e.id))
   const missingFromOrder = [...catalogIds].filter(id => !MAP_EDITOR_CATALOG_ORDER.includes(id))
@@ -31,13 +42,23 @@ function main(): void {
     console.warn('Add to MAP_EDITOR_CATALOG_ORDER in mapEditorOverrides.ts:', missingFromOrder.join(', '))
   }
 
-  if (extractMapEditorGeneratedBlock(html) === block) {
-    console.log('map-editor.html catalog already up to date')
+  const layoutCurrent = extractMapEditorLayoutBlock(html)
+  const catalogCurrent = extractMapEditorGeneratedBlock(html)
+  if (layoutCurrent === layoutBlock && catalogCurrent === catalogBlock) {
+    console.log('map-editor.html already up to date')
     return
   }
 
-  writeFileSync(MAP_EDITOR_HTML, next)
-  console.log('Updated map-editor.html generated catalog block')
+  if (layoutCurrent !== layoutBlock) {
+    html = replaceBlock(html, MAP_EDITOR_LAYOUT_SYNC_START, MAP_EDITOR_LAYOUT_SYNC_END, layoutBlock)
+    console.log('Updated map-editor.html layout constants block')
+  }
+  if (catalogCurrent !== catalogBlock) {
+    html = replaceBlock(html, MAP_EDITOR_SYNC_START, MAP_EDITOR_SYNC_END, catalogBlock)
+    console.log('Updated map-editor.html generated catalog block')
+  }
+
+  writeFileSync(MAP_EDITOR_HTML, html)
 }
 
 main()

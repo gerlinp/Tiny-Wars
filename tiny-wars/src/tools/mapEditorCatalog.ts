@@ -6,7 +6,19 @@ import {
   FRAME_W,
   PIRATE_TOWER_GROUND,
 } from '@data/AssetManifest'
-import { MAP_HEIGHT_MULTIPLIER } from '@data/GameConstants'
+import {
+  BOT_KING_COL,
+  BOT_KING_VISUAL_ROW,
+  BRIDGE_CENTER_COL,
+  BRIDGE_SPAN,
+  DEPLOY_LANE_SPLIT_COL,
+  KING_SPRITE_CENTER_OFFSET_X,
+  LEFT_BRIDGE_COLS,
+  MAP_HEIGHT_MULTIPLIER,
+  PLAYER_KING_COL,
+  PLAYER_KING_VISUAL_ROW,
+  RIGHT_BRIDGE_COLS,
+} from '@data/GameConstants'
 import { COMPOSITE_LAYER_OFFSETS } from '@data/CompositeLayerOffsets'
 import {
   COMPOSITE_AVATAR_FRAME_POS_DEFAULTS,
@@ -27,6 +39,7 @@ export interface MapEditorUnitEntry {
   id: string
   name: string
   attackRange: number
+  elixirCost?: number
   fw: number
   fh: number
   path?: string
@@ -42,6 +55,18 @@ export interface MapEditorUnitEntry {
   hbarOffsetY?: number
   slotOffsetX?: number
   slotOffsetY?: number
+}
+
+export interface MapEditorLayoutConstants {
+  deployLaneSplitCol: number
+  kingLogicCol: number
+  kingSpriteCenterOffsetX: number
+  playerKingVisualRow: number
+  botKingVisualRow: number
+  bridgeCenterCol: number
+  bridgeSpan: number
+  leftBridgeStart: number
+  rightBridgeStart: number
 }
 
 export interface MapEditorGeneratedConstants {
@@ -98,6 +123,23 @@ export function buildCompositeAvatarEditorConstants(): {
   return { useEditorCompositeAvatar, staticAvatarPaths, staticAvatarMeta }
 }
 
+export function buildMapEditorLayoutConstants(): MapEditorLayoutConstants {
+  if (PLAYER_KING_COL !== BOT_KING_COL) {
+    throw new Error(`map editor expects symmetric king cols; got player=${PLAYER_KING_COL} bot=${BOT_KING_COL}`)
+  }
+  return {
+    deployLaneSplitCol: DEPLOY_LANE_SPLIT_COL,
+    kingLogicCol: PLAYER_KING_COL,
+    kingSpriteCenterOffsetX: KING_SPRITE_CENTER_OFFSET_X,
+    playerKingVisualRow: PLAYER_KING_VISUAL_ROW,
+    botKingVisualRow: BOT_KING_VISUAL_ROW,
+    bridgeCenterCol: BRIDGE_CENTER_COL,
+    bridgeSpan: BRIDGE_SPAN,
+    leftBridgeStart: LEFT_BRIDGE_COLS[0]!,
+    rightBridgeStart: RIGHT_BRIDGE_COLS[0]!,
+  }
+}
+
 export function buildMapEditorConstants(): MapEditorGeneratedConstants {
   const crewBundle = CARD_ASSET_BUNDLES.find(b => b.cardId === BOMB_TOWER_CREW_CARD_ID)
   const playerIdle = crewBundle?.player.idle.sheet.path ?? ''
@@ -131,6 +173,7 @@ function buildCardEntry(cardId: string): MapEditorUnitEntry | null {
     id: cardId,
     name: MAP_EDITOR_DISPLAY_NAME_OVERRIDES[cardId] ?? card.displayName,
     attackRange: card.stats.attackRange,
+    elixirCost: card.elixirCost,
     fw: sheet.frameWidth ?? FRAME_W,
     fh: sheet.frameHeight ?? FRAME_H,
     path: sheet.path,
@@ -195,6 +238,7 @@ function formatEntry(entry: MapEditorUnitEntry): string {
 
   parts.push(`contentFill:${entry.contentFill}`)
 
+  if (entry.elixirCost !== undefined) parts.push(`elixirCost:${entry.elixirCost}`)
   if (entry.isBuilding) parts.push('isBuilding:true')
   if (entry.isTower) parts.push('isTower:true')
   if (entry.isKing) parts.push('isKing:true')
@@ -262,8 +306,35 @@ export function formatMapEditorGeneratedBlock(): string {
   return lines.join('\n')
 }
 
+export const MAP_EDITOR_LAYOUT_SYNC_START = '// @generated map-editor-layout-sync-start'
+export const MAP_EDITOR_LAYOUT_SYNC_END = '// @generated map-editor-layout-sync-end'
 export const MAP_EDITOR_SYNC_START = '// @generated map-editor-sync-start'
 export const MAP_EDITOR_SYNC_END = '// @generated map-editor-sync-end'
+
+export function formatMapEditorLayoutBlock(): string {
+  const layout = buildMapEditorLayoutConstants()
+  return [
+    MAP_EDITOR_LAYOUT_SYNC_START,
+    '// Mirrors GameConstants.ts tower layout — run: npm run sync:map-editor',
+    `const DEPLOY_LANE_SPLIT_COL = ${layout.deployLaneSplitCol}`,
+    `const KING_LOGIC_COL = ${layout.kingLogicCol}`,
+    `const KING_SPRITE_CENTER_OFFSET_X = ${layout.kingSpriteCenterOffsetX}`,
+    `const PLAYER_KING_VISUAL_ROW = ${layout.playerKingVisualRow}`,
+    `const BOT_KING_VISUAL_ROW = ${layout.botKingVisualRow}`,
+    `const BRIDGE_CENTER_COL = ${layout.bridgeCenterCol}`,
+    `const BRIDGE_SPAN = ${layout.bridgeSpan}`,
+    `const LEFT_BRIDGE_START = ${layout.leftBridgeStart}`,
+    `const RIGHT_BRIDGE_START = ${layout.rightBridgeStart}`,
+    MAP_EDITOR_LAYOUT_SYNC_END,
+  ].join('\n')
+}
+
+export function extractMapEditorLayoutBlock(html: string): string | null {
+  const start = html.indexOf(MAP_EDITOR_LAYOUT_SYNC_START)
+  const end = html.indexOf(MAP_EDITOR_LAYOUT_SYNC_END)
+  if (start < 0 || end < 0 || end <= start) return null
+  return html.slice(start, end + MAP_EDITOR_LAYOUT_SYNC_END.length).trimEnd()
+}
 
 export function extractMapEditorGeneratedBlock(html: string): string | null {
   const start = html.indexOf(MAP_EDITOR_SYNC_START)
