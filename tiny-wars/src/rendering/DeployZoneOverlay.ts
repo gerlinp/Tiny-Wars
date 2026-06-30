@@ -30,6 +30,8 @@ export class DeployZoneOverlay {
       stroke: '#003322',
       strokeThickness: 8,
     }).setOrigin(0.5).setDepth(3).setVisible(false)
+
+    this.syncExpandedZones(LOCAL_OWNER, EMPTY_LANE_UNLOCKS)
   }
 
   syncExpandedZones(localOwner: Owner, unlocks: LaneUnlocks): void {
