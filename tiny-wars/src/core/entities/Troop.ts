@@ -34,6 +34,7 @@ import {
 import { getLaneMarchGoal } from '../LaneMovement'
 import { towerAttackCenter, towerSlotOriginCenter } from '@rendering/towerRenderPosition'
 import { bombTowerMeleeLayout } from '@data/BombTowerMeleeLayout'
+import { kingTowerMeleeLayout } from '@data/KingTowerMeleeLayout'
 import { princessTowerMeleeLayout } from '@data/PrincessTowerMeleeLayout'
 import { BOMB_TOWER_CARD_ID } from '@data/GameConstants'
 import type { Building } from './Building'
@@ -816,7 +817,9 @@ export class Troop extends Entity {
 
     if (target.kind === EntityKind.TOWER) {
       const tower = target as Tower
-      const layout = princessTowerMeleeLayout(tower.owner, tower.isKing)
+      const layout = tower.isKing
+        ? kingTowerMeleeLayout(tower.owner)
+        : princessTowerMeleeLayout(tower.owner, false)
       if (layout) {
         const origin = towerSlotOriginCenter(
           tower.position.x,

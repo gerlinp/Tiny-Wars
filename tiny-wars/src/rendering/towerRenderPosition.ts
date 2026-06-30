@@ -13,6 +13,7 @@ import {
 import type { TowerHealthBarKey } from '@data/MapConfig'
 import { Owner } from '@core/types'
 import type { Vec2 } from '@core/types'
+import { kingTowerMeleeLayout } from '@data/KingTowerMeleeLayout'
 import { princessTowerMeleeLayout } from '@data/PrincessTowerMeleeLayout'
 import { targetHeightForTower } from '@rendering/assetDisplaySize'
 
@@ -72,19 +73,25 @@ export function towerCollisionCenter(logicX: number, logicY: number): Vec2 {
   return { x: logicX, y: logicY }
 }
 
-/** Melee hit-zone origin — logic anchor plus per-side slot-origin offset (princess towers). */
+/** Melee hit-zone origin — logic anchor plus per-side slot-origin offset. */
 export function towerSlotOriginCenter(
   logicX: number,
   logicY: number,
   owner: Owner,
   isKing: boolean,
 ): Vec2 {
-  const base = towerAttackCenter(logicX, logicY, owner, isKing)
-  const layout = princessTowerMeleeLayout(owner, isKing)
-  if (!layout) return base
+  if (isKing) {
+    const layout = kingTowerMeleeLayout(owner)
+    return {
+      x: logicX + layout.slotOriginOffsetCells.x * CELL_SIZE,
+      y: logicY + layout.slotOriginOffsetCells.y * CELL_SIZE,
+    }
+  }
+  const layout = princessTowerMeleeLayout(owner, false)
+  if (!layout) return { x: logicX, y: logicY }
   return {
-    x: base.x + layout.slotOriginOffsetCells.x * CELL_SIZE,
-    y: base.y + layout.slotOriginOffsetCells.y * CELL_SIZE,
+    x: logicX + layout.slotOriginOffsetCells.x * CELL_SIZE,
+    y: logicY + layout.slotOriginOffsetCells.y * CELL_SIZE,
   }
 }
 
@@ -109,9 +116,16 @@ function renderAnchorY(logicY: number, owner: Owner, isKing: boolean): number {
   return isKing ? kingVisualAnchorY(logicY, owner) : logicY
 }
 
-/** World centre for tower attack range — king castles use visual row when hitbox row differs. */
+/** World centre for tower attack range — king castles use editor rangeCenterOffset from logic anchor. */
 export function towerAttackCenter(logicX: number, logicY: number, owner: Owner, isKing: boolean): Vec2 {
-  return { x: logicX, y: renderAnchorY(logicY, owner, isKing) }
+  if (isKing) {
+    const layout = kingTowerMeleeLayout(owner)
+    return {
+      x: logicX + layout.rangeCenterOffsetCells.x * CELL_SIZE,
+      y: logicY + layout.rangeCenterOffsetCells.y * CELL_SIZE,
+    }
+  }
+  return { x: logicX, y: logicY }
 }
 
 /**

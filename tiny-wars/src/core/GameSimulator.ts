@@ -28,6 +28,7 @@ import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
 import { dist } from './Vector2'
 import { rocketFlightMs, arrowsRainMs } from '@data/ProjectileConstants'
 import { kingCannonMuzzlePosition } from '@rendering/towerGarrison'
+import { towerRenderY } from '@rendering/towerRenderPosition'
 import { resolveTroopCollisions, restoreBoomerangThrowerAnchors } from './TroopCollision'
 import { isTroopDeployCell, troopDeployPositions } from './DeploySystem'
 import { tickBoomerangs } from './BoomerangSystem'
@@ -200,7 +201,11 @@ export class GameSimulator {
       const stats = card.spellStats!
       const kingPos = this.kingTowerPosition(owner)
       const launchFrom = stats.delivery === 'rocket'
-        ? kingCannonMuzzlePosition(kingPos.x, kingPos.y, owner)
+        ? kingCannonMuzzlePosition(
+            kingPos.x,
+            towerRenderY(kingPos.y, owner, true, kingPos.x),
+            owner,
+          )
         : kingPos
       const flightMs = stats.delivery === 'arrows'
         ? arrowsRainMs()

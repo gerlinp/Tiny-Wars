@@ -12,7 +12,6 @@ import {
   PLAYER_KING_CANNON_ROW,
 } from '@data/GameConstants'
 import { targetHeightForCard, targetHeightForTower } from '@rendering/assetDisplaySize'
-import { towerRenderX } from '@rendering/towerRenderPosition'
 
 /** Convert a row in the 256px-tall tower/castle PNG to a Y offset from sprite centre. */
 function deckRelY(nativeRow: number, canvasHeight = 256): number {
@@ -85,11 +84,17 @@ const PRINCESS_GARRISON: GarrisonSlot[] = [
   { relX: 0, deckRelY: deckRelY(101) + GARRISON_DECK_SINK },
 ]
 
-// Knights Castle_Blue.png — side archers; centre cannon Y comes from map rows.
-const KING_GARRISON: GarrisonSlot[] = [
-  { relX: -0.28, deckRelY: deckRelY(97) + GARRISON_DECK_SINK },
-  { relX: 0, deckRelY: 0, unit: 'cannon' },
-  { relX: 0.28, deckRelY: deckRelY(97) + GARRISON_DECK_SINK, flipX: true },
+// Knights Castle_Blue.png — side archers + centre cannon (fractions of sprite size from centre).
+const PLAYER_KING_GARRISON: GarrisonSlot[] = [
+  { relX: -0.28, deckRelY: -0.065 },
+  { relX: -0.005, deckRelY: -0.08, unit: 'cannon' },
+  { relX: 0.28, deckRelY: -0.065, flipX: true },
+]
+
+const BOT_KING_GARRISON: GarrisonSlot[] = [
+  { relX: -0.28, deckRelY: 0.065 },
+  { relX: -0.005, deckRelY: 0.08, unit: 'cannon' },
+  { relX: 0.28, deckRelY: 0.065, flipX: true },
 ]
 
 export function kingCannonMapRow(owner: Owner): number {
@@ -105,8 +110,9 @@ export function isKingCannonSlot(isKing: boolean, slot: GarrisonSlot): boolean {
   return isKing && garrisonSlotUnit(slot) === 'cannon'
 }
 
-export function garrisonSlots(isKing: boolean): readonly GarrisonSlot[] {
-  return isKing ? KING_GARRISON : PRINCESS_GARRISON
+export function garrisonSlots(isKing: boolean, owner: Owner = Owner.PLAYER): readonly GarrisonSlot[] {
+  if (isKing) return owner === Owner.BOT ? BOT_KING_GARRISON : PLAYER_KING_GARRISON
+  return PRINCESS_GARRISON
 }
 
 export function garrisonSlotUnit(slot: GarrisonSlot): GarrisonUnit {
@@ -127,20 +133,43 @@ export function garrisonArcherShootAnimKey(owner: Owner): string {
 
 export { garrisonCannonIdleKey, resolveGarrisonCannonKey }
 
+/** King cannon uses sprite-relative placement when relX/relY are non-zero; else map deck row. */
+function kingCannonUsesSpriteRelative(slot: GarrisonSlot): boolean {
+  return slot.relX !== 0 || slot.deckRelY !== 0
+}
+
+export function kingCannonScreenPosition(
+  towerLogicX: number,
+  towerRenderCenterY: number,
+  towerDisplayWidth: number,
+  towerDisplayHeight: number,
+  owner: Owner,
+): Vec2 {
+  const slot = garrisonSlots(true, owner)[1]
+  if (kingCannonUsesSpriteRelative(slot)) {
+    return {
+      x: towerLogicX + slot.relX * towerDisplayWidth,
+      y: towerRenderCenterY + slot.deckRelY * towerDisplayHeight,
+    }
+  }
+  return {
+    x: towerLogicX + slot.relX * towerDisplayWidth,
+    y: kingCannonDeckWorldY(owner),
+  }
+}
+
 /** Screen-space muzzle for king-tower rocket spells (matches TowerSprite layout). */
 export function kingCannonMuzzlePosition(
   towerLogicX: number,
-  _towerLogicY: number,
+  towerRenderCenterY: number,
   owner: Owner,
 ): Vec2 {
-  const slot = KING_GARRISON[1]
   const towerW = targetHeightForTower(true)
   const cannonH = targetHeightForCard(GARRISON_ARCHER_CARD_ID) * GARRISON_CANNON_SIZE_MULT
-  const rx = towerRenderX(towerLogicX, owner, true)
-  const deckY = kingCannonDeckWorldY(owner)
+  const deck = kingCannonScreenPosition(towerLogicX, towerRenderCenterY, towerW, towerW, owner)
   return {
-    x: rx + slot.relX * towerW,
-    y: deckY - cannonH * GARRISON_CANNON_MUZZLE_LIFT,
+    x: deck.x,
+    y: deck.y - cannonH * GARRISON_CANNON_MUZZLE_LIFT,
   }
 }
 

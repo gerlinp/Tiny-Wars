@@ -8,7 +8,6 @@ import { EMPTY_LANE_UNLOCKS, LOCAL_OWNER, deployOverlayRects, type DeployOverlay
 import type { Owner } from '@core/types'
 
 export class DeployZoneOverlay {
-  private readonly scene: Phaser.Scene
   private readonly baseZone: Phaser.GameObjects.Rectangle
   private readonly expandedGfx: Phaser.GameObjects.Graphics
   private hint: Phaser.GameObjects.Text
@@ -16,7 +15,6 @@ export class DeployZoneOverlay {
   private friendlyRect: DeployOverlayRect = { x: 0, y: 0, w: GAME_WIDTH, h: 0, kind: 'friendly' }
 
   constructor(scene: Phaser.Scene) {
-    this.scene = scene
     this.expandedGfx = scene.add.graphics().setDepth(2).setVisible(false)
     this.syncExpandedZones(LOCAL_OWNER, EMPTY_LANE_UNLOCKS)
 

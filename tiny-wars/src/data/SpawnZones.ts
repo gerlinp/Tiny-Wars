@@ -78,10 +78,8 @@ export function buildClashStyleSpawnZones(): SpawnZoneMap {
 
   for (let row = BOT_DEPLOY_ROW_MIN; row <= BOT_DEPLOY_ROW_MAX; row++) {
     const depth = BOT_DEPLOY_ROW_MAX - row
-    const leftEdge = colMin
     const leftInner = Math.min(9, colMin + 2 + Math.floor(depth * 0.45))
     const rightInner = Math.max(14, colMax - 2 - Math.floor(depth * 0.45))
-    const rightEdge = colMax
 
     for (let col = colMin; col <= colMax; col++) {
       const key = spawnZoneCellKey(col, row)
@@ -89,10 +87,6 @@ export function buildClashStyleSpawnZones(): SpawnZoneMap {
       else if (col >= rightInner) zones[key] = 'right'
       else zones[key] = 'base'
     }
-
-    // Keep outer fence columns aligned with lane unlock on shallow rows
-    void leftEdge
-    void rightEdge
   }
 
   return zones

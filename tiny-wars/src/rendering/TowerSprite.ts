@@ -245,7 +245,7 @@ export class TowerSprite {
     const archerReady = this.scene.textures.exists(archerKey)
     const cannonIdleKey = garrisonCannonIdleKey(this.owner)
     const cannonReady = this.scene.textures.exists(cannonIdleKey)
-    const slots = garrisonSlots(this.isKing)
+    const slots = garrisonSlots(this.isKing, this.owner)
 
     for (let slotIndex = 0; slotIndex < slots.length; slotIndex++) {
       const slot = slots[slotIndex]
@@ -297,7 +297,7 @@ export class TowerSprite {
   }
 
   private garrisonUnitType(index: number) {
-    const slots = garrisonSlots(this.isKing)
+    const slots = garrisonSlots(this.isKing, this.owner)
     const slot = slots[this.garrisonSlotIndex(index)]
     return garrisonSlotUnit(slot ?? { relX: 0, deckRelY: 0 })
   }
@@ -324,6 +324,13 @@ export class TowerSprite {
 
   private garrisonDeckPosition(slot: { relX: number; deckRelY: number }): Vec2 {
     if (isKingCannonSlot(this.isKing, slot)) {
+      const useSpriteRelative = slot.relX !== 0 || slot.deckRelY !== 0
+      if (useSpriteRelative) {
+        return {
+          x: this.towerCx + slot.relX * this.towerSize.width,
+          y: this.towerRy + slot.deckRelY * this.towerSize.height,
+        }
+      }
       return {
         x: this.towerCx + slot.relX * this.towerSize.width,
         y: kingCannonDeckWorldY(this.owner),
@@ -405,7 +412,7 @@ export class TowerSprite {
   }
 
   private cannonRecoilHome(index: number): Vec2 {
-    const slots = garrisonSlots(this.isKing)
+    const slots = garrisonSlots(this.isKing, this.owner)
     const slot = slots[this.garrisonSlotIndex(index)]
     return slot ? this.garrisonDeckPosition(slot) : { x: this.garrison[index]!.x, y: this.garrison[index]!.y }
   }
@@ -472,7 +479,7 @@ export class TowerSprite {
   }
 
   private layoutGarrison(): void {
-    const slots = garrisonSlots(this.isKing)
+    const slots = garrisonSlots(this.isKing, this.owner)
     for (let i = 0; i < this.garrison.length; i++) {
       const unit = this.garrison[i]
       const slot = slots[this.garrisonSlotIndex(i)]

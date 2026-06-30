@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { assignSlotIndex, attackSlotPosition, attackSlotPositionFromLayout, slotBaseAngle } from '@core/AttackSlots'
-import { CELL_SIZE, BOT_TOWER_ROW } from '@data/GameConstants'
+import { CELL_SIZE, BOT_KING_ROW, PLAYER_KING_ROW, BOT_TOWER_ROW } from '@data/GameConstants'
+import { BOT_KING_TOWER_MELEE, PLAYER_KING_TOWER_MELEE } from '@data/KingTowerMeleeLayout'
 import { BOT_PRINCESS_TOWER_MELEE, PLAYER_PRINCESS_TOWER_MELEE } from '@data/PrincessTowerMeleeLayout'
 import { bombTowerMeleeLayout } from '@data/BombTowerMeleeLayout'
 import { Owner } from '@core/types'
@@ -86,5 +87,30 @@ describe('AttackSlots', () => {
     const layout = bombTowerMeleeLayout()
     expect(layout.slotPositions).toHaveLength(18)
     expect(layout.slotPositions).toEqual(PLAYER_PRINCESS_TOWER_MELEE.slotPositions)
+  })
+
+  it('offsets bot king slot origin from logic anchor', () => {
+    const logicY = BOT_KING_ROW * CELL_SIZE + CELL_SIZE / 2
+    const logicX = 11.5 * CELL_SIZE + CELL_SIZE / 2
+    const origin = towerSlotOriginCenter(logicX, logicY, Owner.BOT, true)
+    expect(origin.x).toBeCloseTo(logicX + BOT_KING_TOWER_MELEE.slotOriginOffsetCells.x * CELL_SIZE, 5)
+    expect(origin.y).toBeCloseTo(logicY + BOT_KING_TOWER_MELEE.slotOriginOffsetCells.y * CELL_SIZE, 5)
+    const p0 = attackSlotPositionFromLayout(origin, 0, BOT_KING_TOWER_MELEE.slotPositions)
+    expect(p0.y).toBeCloseTo(origin.y + 3.45 * CELL_SIZE, 5)
+  })
+
+  it('offsets player king slot origin from logic anchor', () => {
+    const logicY = PLAYER_KING_ROW * CELL_SIZE + CELL_SIZE / 2
+    const logicX = 11.5 * CELL_SIZE + CELL_SIZE / 2
+    const origin = towerSlotOriginCenter(logicX, logicY, Owner.PLAYER, true)
+    expect(origin.x).toBeCloseTo(logicX + PLAYER_KING_TOWER_MELEE.slotOriginOffsetCells.x * CELL_SIZE, 5)
+    expect(origin.y).toBeCloseTo(logicY + PLAYER_KING_TOWER_MELEE.slotOriginOffsetCells.y * CELL_SIZE, 5)
+    const p0 = attackSlotPositionFromLayout(origin, 0, PLAYER_KING_TOWER_MELEE.slotPositions)
+    expect(p0.y).toBeCloseTo(origin.y - 3.45 * CELL_SIZE, 5)
+  })
+
+  it('king tower has 30 melee slots per side', () => {
+    expect(PLAYER_KING_TOWER_MELEE.slotPositions).toHaveLength(30)
+    expect(BOT_KING_TOWER_MELEE.slotPositions).toHaveLength(30)
   })
 })

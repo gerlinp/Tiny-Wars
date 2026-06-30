@@ -7,6 +7,8 @@ import {
   buildMapEditorLayoutConstants,
   extractMapEditorGeneratedBlock,
   extractMapEditorLayoutBlock,
+  extractDefaultSpawnZonesBlock,
+  formatDefaultSpawnZonesBlock,
   formatMapEditorGeneratedBlock,
   formatMapEditorLayoutBlock,
 } from '../../src/tools/mapEditorCatalog.ts'
@@ -54,5 +56,14 @@ describe('mapEditorCatalog sync', () => {
     const onDisk = extractMapEditorGeneratedBlock(html)
     expect(onDisk).not.toBeNull()
     expect(onDisk).toBe(formatMapEditorGeneratedBlock())
+  })
+
+  it('map-editor.html default spawn zones match buildClashStyleSpawnZones', () => {
+    const html = readFileSync(MAP_EDITOR_HTML, 'utf8')
+    const onDisk = extractDefaultSpawnZonesBlock(html)
+    expect(onDisk).not.toBeNull()
+    expect(onDisk).toBe(formatDefaultSpawnZonesBlock())
+    expect(onDisk).toContain('"1,13": "left"')
+    expect(onDisk).toContain('"22,13": "right"')
   })
 })

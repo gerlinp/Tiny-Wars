@@ -27,6 +27,7 @@ import {
 } from '@data/CompositeAvatarLayout'
 import { CARD_DISPLAY_VISUAL_SCALE } from '@rendering/assetDisplaySize'
 import { BOMB_TOWER_CREW_CARD_ID, BOMB_TOWER_DECK_Y_FRAC } from '@rendering/towerGarrison'
+import { buildClashStyleSpawnZones } from '@data/SpawnZones'
 import {
   MAP_EDITOR_CATALOG_ORDER,
   MAP_EDITOR_DISPLAY_NAME_OVERRIDES,
@@ -308,8 +309,19 @@ export function formatMapEditorGeneratedBlock(): string {
 
 export const MAP_EDITOR_LAYOUT_SYNC_START = '// @generated map-editor-layout-sync-start'
 export const MAP_EDITOR_LAYOUT_SYNC_END = '// @generated map-editor-layout-sync-end'
+export const MAP_EDITOR_SPAWN_SYNC_START = '// @generated map-editor-spawn-sync-start'
+export const MAP_EDITOR_SPAWN_SYNC_END = '// @generated map-editor-spawn-sync-end'
 export const MAP_EDITOR_SYNC_START = '// @generated map-editor-sync-start'
 export const MAP_EDITOR_SYNC_END = '// @generated map-editor-sync-end'
+
+export function formatDefaultSpawnZonesBlock(): string {
+  return [
+    MAP_EDITOR_SPAWN_SYNC_START,
+    '// Mirrors SpawnZones.ts buildClashStyleSpawnZones() — run: npm run sync:map-editor',
+    `const DEFAULT_SPAWN_ZONES = ${JSON.stringify(buildClashStyleSpawnZones(), null, 2)}`,
+    MAP_EDITOR_SPAWN_SYNC_END,
+  ].join('\n')
+}
 
 export function formatMapEditorLayoutBlock(): string {
   const layout = buildMapEditorLayoutConstants()
@@ -341,4 +353,11 @@ export function extractMapEditorGeneratedBlock(html: string): string | null {
   const end = html.indexOf(MAP_EDITOR_SYNC_END)
   if (start < 0 || end < 0 || end <= start) return null
   return html.slice(start, end + MAP_EDITOR_SYNC_END.length).trimEnd()
+}
+
+export function extractDefaultSpawnZonesBlock(html: string): string | null {
+  const start = html.indexOf(MAP_EDITOR_SPAWN_SYNC_START)
+  const end = html.indexOf(MAP_EDITOR_SPAWN_SYNC_END)
+  if (start < 0 || end < 0 || end <= start) return null
+  return html.slice(start, end + MAP_EDITOR_SPAWN_SYNC_END.length).trimEnd()
 }

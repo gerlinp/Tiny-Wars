@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { Owner } from '@core/types'
-import { CELL_SIZE, BOT_KING_ROW, BOT_KING_VISUAL_ROW, BOT_TOWER_ROW, PLAYER_KING_ROW, PLAYER_KING_VISUAL_ROW, PLAYER_KING_COL, KING_MAP_CENTER_X, PRINCESS_TOWER_RENDER_NUDGE_Y, TOWER_HEALTH_BAR_Y } from '@data/GameConstants'
+import { CELL_SIZE, BOT_KING_ROW, BOT_KING_VISUAL_ROW, BOT_TOWER_ROW, PLAYER_KING_ROW, PLAYER_TOWER_ROW, PLAYER_KING_VISUAL_ROW, PLAYER_KING_COL, KING_MAP_CENTER_X, PRINCESS_TOWER_RENDER_NUDGE_Y, TOWER_HEALTH_BAR_Y } from '@data/GameConstants'
+import { BOT_KING_TOWER_MELEE, PLAYER_KING_TOWER_MELEE } from '@data/KingTowerMeleeLayout'
 import {
   kingVisualAnchorY,
   towerAttackCenter,
@@ -66,18 +67,32 @@ describe('towerRenderPosition', () => {
     expect(kingVisualAnchorY(plyHitboxY, Owner.PLAYER)).toBeCloseTo(plyVisualY, 0)
   })
 
-  it('keeps king tower attack range centred on visual row when hitbox row differs', () => {
+  it('keeps king tower attack range centred on editor rangeCenterOffset from logic anchor', () => {
     const logicX = PLAYER_KING_COL * CELL_SIZE + CELL_SIZE / 2
     const botHitboxY = BOT_KING_ROW * CELL_SIZE + CELL_SIZE / 2
-    const botVisualY = BOT_KING_VISUAL_ROW * CELL_SIZE + CELL_SIZE / 2
     const botAttack = towerAttackCenter(logicX, botHitboxY, Owner.BOT, true)
     expect(botAttack.x).toBe(logicX)
-    expect(botAttack.y).toBeCloseTo(botVisualY, 0)
+    expect(botAttack.y).toBeCloseTo(botHitboxY - 7.7 * CELL_SIZE, 0)
 
     const plyHitboxY = PLAYER_KING_ROW * CELL_SIZE + CELL_SIZE / 2
-    const plyVisualY = PLAYER_KING_VISUAL_ROW * CELL_SIZE + CELL_SIZE / 2
     const plyAttack = towerAttackCenter(logicX, plyHitboxY, Owner.PLAYER, true)
-    expect(plyAttack.y).toBeCloseTo(plyVisualY, 0)
+    expect(plyAttack.y).toBeCloseTo(plyHitboxY + 7.7 * CELL_SIZE, 0)
+  })
+
+  it('mirrors king tower anchors and range centers across the map', () => {
+    const RIVER_ROW = 21
+    const mirrorRow = (r: number) => 42 - r
+
+    expect(PLAYER_KING_ROW).toBe(mirrorRow(BOT_KING_ROW))
+    expect(PLAYER_TOWER_ROW).toBe(mirrorRow(BOT_TOWER_ROW))
+    expect(PLAYER_KING_ROW - RIVER_ROW).toBe(RIVER_ROW - BOT_KING_ROW)
+    expect(PLAYER_KING_ROW - PLAYER_TOWER_ROW).toBe(BOT_TOWER_ROW - BOT_KING_ROW)
+
+    const botCenterRow = BOT_KING_ROW + BOT_KING_TOWER_MELEE.rangeCenterOffsetCells.y
+    const plyCenterRow = PLAYER_KING_ROW + PLAYER_KING_TOWER_MELEE.rangeCenterOffsetCells.y
+    expect(plyCenterRow).toBeCloseTo(mirrorRow(botCenterRow), 5)
+    expect(PLAYER_KING_TOWER_MELEE.rangeCenterOffsetCells.y)
+      .toBeCloseTo(-BOT_KING_TOWER_MELEE.rangeCenterOffsetCells.y, 5)
   })
 
   it('centers king castle sprite on true map centre for even-width grid', () => {

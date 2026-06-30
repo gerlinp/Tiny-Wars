@@ -28,11 +28,19 @@ const PUBLIC = resolve(import.meta.dirname, '../../public')
 
 describe('tower garrison', () => {
   it('king tower centre slot is a cannon', () => {
-    const slots = garrisonSlots(true)
-    expect(slots).toHaveLength(3)
-    expect(garrisonSlotUnit(slots[0])).toBe('archer')
-    expect(garrisonSlotUnit(slots[1])).toBe('cannon')
-    expect(garrisonSlotUnit(slots[2])).toBe('archer')
+    const playerSlots = garrisonSlots(true, Owner.PLAYER)
+    expect(playerSlots).toHaveLength(3)
+    expect(garrisonSlotUnit(playerSlots[0])).toBe('archer')
+    expect(garrisonSlotUnit(playerSlots[1])).toBe('cannon')
+    expect(garrisonSlotUnit(playerSlots[2])).toBe('archer')
+    expect(playerSlots[1].relX).toBeCloseTo(-0.005, 4)
+    expect(playerSlots[1].deckRelY).toBeCloseTo(-0.08, 4)
+    expect(playerSlots[0].deckRelY).toBeCloseTo(-0.065, 4)
+
+    const botSlots = garrisonSlots(true, Owner.BOT)
+    expect(botSlots[1].relX).toBeCloseTo(-0.005, 4)
+    expect(botSlots[1].deckRelY).toBeCloseTo(0.08, 4)
+    expect(botSlots[0].deckRelY).toBeCloseTo(0.065, 4)
   })
 
   it('princess tower keeps a single archer', () => {
@@ -76,7 +84,7 @@ describe('tower garrison', () => {
   })
 
   it('king cannon uses map rows 39 player / 5 bot', () => {
-    expect(PLAYER_KING_CANNON_ROW).toBe(39)
+    expect(PLAYER_KING_CANNON_ROW).toBe(37)
     expect(BOT_KING_CANNON_ROW).toBe(5)
     expect(kingCannonMapRow(Owner.PLAYER)).toBe(39)
     expect(kingCannonMapRow(Owner.BOT)).toBe(5)
@@ -84,11 +92,15 @@ describe('tower garrison', () => {
     expect(kingCannonDeckWorldY(Owner.BOT)).toBe(5 * CELL_SIZE + CELL_SIZE / 2)
   })
 
-  it('kingCannonMuzzlePosition uses map-row deck Y', () => {
+  it('kingCannonMuzzlePosition uses sprite-relative deck for both sides', () => {
     const towerX = 240
-    const muzzle = kingCannonMuzzlePosition(towerX, 0, Owner.PLAYER)
-    expect(muzzle.x).toBeCloseTo(towerX, 0)
-    expect(muzzle.y).toBeLessThan(kingCannonDeckWorldY(Owner.PLAYER))
+    const renderY = 500
+    const playerMuzzle = kingCannonMuzzlePosition(towerX, renderY, Owner.PLAYER)
+    expect(playerMuzzle.x).toBeCloseTo(towerX - 0.005 * 160, 0)
+
+    const botMuzzle = kingCannonMuzzlePosition(towerX, renderY, Owner.BOT)
+    expect(botMuzzle.y).toBeLessThan(renderY + 0.08 * 160)
+    expect(playerMuzzle.y).toBeLessThan(renderY - 0.08 * 160)
   })
 
   it('king tower shots use Cannon_Ball.png projectile art', () => {

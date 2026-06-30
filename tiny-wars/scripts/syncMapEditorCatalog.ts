@@ -3,11 +3,15 @@ import { resolve } from 'node:path'
 import {
   MAP_EDITOR_LAYOUT_SYNC_END,
   MAP_EDITOR_LAYOUT_SYNC_START,
+  MAP_EDITOR_SPAWN_SYNC_END,
+  MAP_EDITOR_SPAWN_SYNC_START,
   MAP_EDITOR_SYNC_END,
   MAP_EDITOR_SYNC_START,
   buildMapEditorCatalog,
+  extractDefaultSpawnZonesBlock,
   extractMapEditorGeneratedBlock,
   extractMapEditorLayoutBlock,
+  formatDefaultSpawnZonesBlock,
   formatMapEditorGeneratedBlock,
   formatMapEditorLayoutBlock,
 } from '../src/tools/mapEditorCatalog.ts'
@@ -34,6 +38,7 @@ function replaceBlock(
 function main(): void {
   let html = readFileSync(MAP_EDITOR_HTML, 'utf8')
   const layoutBlock = formatMapEditorLayoutBlock()
+  const spawnBlock = formatDefaultSpawnZonesBlock()
   const catalogBlock = formatMapEditorGeneratedBlock()
 
   const catalogIds = new Set(buildMapEditorCatalog().map(e => e.id))
@@ -43,8 +48,9 @@ function main(): void {
   }
 
   const layoutCurrent = extractMapEditorLayoutBlock(html)
+  const spawnCurrent = extractDefaultSpawnZonesBlock(html)
   const catalogCurrent = extractMapEditorGeneratedBlock(html)
-  if (layoutCurrent === layoutBlock && catalogCurrent === catalogBlock) {
+  if (layoutCurrent === layoutBlock && spawnCurrent === spawnBlock && catalogCurrent === catalogBlock) {
     console.log('map-editor.html already up to date')
     return
   }
@@ -52,6 +58,10 @@ function main(): void {
   if (layoutCurrent !== layoutBlock) {
     html = replaceBlock(html, MAP_EDITOR_LAYOUT_SYNC_START, MAP_EDITOR_LAYOUT_SYNC_END, layoutBlock)
     console.log('Updated map-editor.html layout constants block')
+  }
+  if (spawnCurrent !== spawnBlock) {
+    html = replaceBlock(html, MAP_EDITOR_SPAWN_SYNC_START, MAP_EDITOR_SPAWN_SYNC_END, spawnBlock)
+    console.log('Updated map-editor.html default spawn zones block')
   }
   if (catalogCurrent !== catalogBlock) {
     html = replaceBlock(html, MAP_EDITOR_SYNC_START, MAP_EDITOR_SYNC_END, catalogBlock)

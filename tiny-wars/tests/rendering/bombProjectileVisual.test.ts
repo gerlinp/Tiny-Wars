@@ -50,7 +50,7 @@ describe('rocketFlightMs', () => {
   it('takes ~6.5s for a king-to-king vertical lob in this arena', () => {
     const kingSpanCells = PLAYER_KING_ROW - BOT_KING_ROW
     const ms = rocketFlightMs(kingSpanCells * CELL_SIZE)
-    expect(ms).toBeGreaterThanOrEqual(6200)
+    expect(ms).toBeGreaterThanOrEqual(6000)
     expect(ms).toBeLessThanOrEqual(6800)
   })
 

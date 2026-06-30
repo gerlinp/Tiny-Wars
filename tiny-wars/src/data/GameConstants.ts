@@ -37,10 +37,10 @@ export const HUD_HEIGHT  = 560
 export const CANVAS_HEIGHT = GAME_HEIGHT + HUD_HEIGHT  // 3312 — must match GameConfig height
 
 // Tower hitbox anchors (map.json overrides — combat, pathing, targeting)
-export const PLAYER_KING_ROW    = 41
+export const PLAYER_KING_ROW    = 39
 /** Half-cell offset on 24-col grid — logic X lands on true map centre (768px). */
 export const PLAYER_KING_COL    = 11.5
-export const PLAYER_TOWER_ROW   = 31
+export const PLAYER_TOWER_ROW   = 30
 export const PLAYER_TOWER_COLS  = [4, 19] as const
 
 export const BOT_KING_ROW   = 3
@@ -53,11 +53,11 @@ export const KING_SPRITE_CENTER_OFFSET_X = 0
 export const KING_MAP_CENTER_X = (GRID_COLS * CELL_SIZE) / 2
 
 /** King castle art — visual-only rows (sprites/garrison stay here when hitbox row differs). */
-export const PLAYER_KING_VISUAL_ROW = 37
+export const PLAYER_KING_VISUAL_ROW = 36
 export const BOT_KING_VISUAL_ROW    = 6
 
 /** King-tower garrison cannon — map grid row on the visible castle deck. */
-export const PLAYER_KING_CANNON_ROW = 39
+export const PLAYER_KING_CANNON_ROW = 37
 export const BOT_KING_CANNON_ROW = 5
 
 /** Walkable bridge columns through the river — 7-wide, centred on each princess lane. */
