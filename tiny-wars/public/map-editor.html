@@ -1712,15 +1712,18 @@ const BOMB_TOWER_BOMBER_PATHS = {
 }
 const BOMB_TOWER_DECK_Y_FRAC = 0.82
 const MAP_HEIGHT_MULTIPLIER_BUILDING = 2.2
+const CARD_DISPLAY_VISUAL_SCALE = {
+  "wood_tower": 1
+}
 const COMPOSITE_LAYER_OFFSETS_DEFAULTS = {
   "wood_tower": {
     "platform": {
-      "x": 4,
-      "y": 323
+      "x": 2,
+      "y": 287
     },
     "bomber": {
-      "x": 6,
-      "y": 533
+      "x": 4,
+      "y": 431
     }
   },
   "air_boat": {
@@ -1749,7 +1752,7 @@ const COMPOSITE_AVATAR_LAYOUT_DEFAULTS = {
       },
       "bomber": {
         "x": 0,
-        "y": -541.2,
+        "y": -400.88888888888886,
         "originX": 0.5,
         "originY": 0.7083333333333334
       }
@@ -1777,12 +1780,12 @@ const COMPOSITE_AVATAR_LAYOUT_DEFAULTS = {
   }
 }
 const COMPOSITE_AVATAR_SLOT_SCALE = {
-  "wood_tower": 1.75
+  "wood_tower": 1.05
 }
 const COMPOSITE_AVATAR_FRAME_POS_DEFAULTS = {
   "wood_tower": {
     "x": 430,
-    "y": 466
+    "y": 490
   }
 }
 const USE_EDITOR_COMPOSITE_AVATAR_DEFAULTS = {
@@ -2918,7 +2921,8 @@ const AIR_BOAT_AVATAR_ORIGIN_Y = 0.25
 function woodTowerPlatformHGame() {
   const unit = UNIT_CATALOG.find(u => u.id === 'wood_tower')
   const fill = unit?.contentFill ?? 0.72
-  return GCS * 2.5 * MAP_HEIGHT_MULTIPLIER_BUILDING / fill * SPRITE_VISUAL_SCALE
+  const vscale = CARD_DISPLAY_VISUAL_SCALE?.[unit?.id ?? 'wood_tower'] ?? SPRITE_VISUAL_SCALE
+  return GCS * 2.5 * MAP_HEIGHT_MULTIPLIER_BUILDING / fill * vscale
 }
 
 function bombFishDisplayHGame() {
@@ -3570,6 +3574,23 @@ function buildTowerExport(u) {
   }
 }
 
+function buildUnitEditorApplyPrompt(activeUnit) {
+  const focus = activeUnit
+    ? `Focus on "${activeUnit.id}" (${activeUnit.label}, ${activeUnit.kind}). `
+    : ''
+  const files = activeUnit?.kind === 'building'
+    ? 'compositeOffsets → CompositeLayerOffsets.ts; avatarPreviewScale + avatarFramePos → CompositeAvatarLayout.ts; wood_tower slotPositions → BombTowerMeleeLayout.ts. '
+    : activeUnit?.kind === 'princess_tower' || activeUnit?.kind === 'king_tower'
+      ? 'slotPositions → PrincessTowerMeleeLayout.ts (or king layout); towerVisualOffset → map.json towerVisualOffsets; garrison → tower rendering. '
+      : activeUnit?.kind === 'troop' && COMPOSITE_UNIT_IDS.has(activeUnit.id)
+        ? 'compositeOffsets → CompositeLayerOffsets.ts; avatar fields → CompositeAvatarLayout.ts; slotPositions → AttackSlots.ts. '
+        : 'slotPositions / ranges → AttackSlots.ts, CardData.ts, or unit layout files as appropriate. '
+  return (
+    `${focus}Apply this tiny-wars-unit-editor-v2 export to the game: ${files}` +
+    'Then run npm run sync:map-editor, npm test, and npm run build.'
+  )
+}
+
 function buildUnitEditorExportObject() {
   const troops = {}
   const buildings = {}
@@ -3606,10 +3627,12 @@ function buildUnitEditorExportObject() {
   }
 
   return {
+    applyPrompt: buildUnitEditorApplyPrompt(activeUnit),
     schema: 'tiny-wars-unit-editor-v2',
     exportedAt: new Date().toISOString(),
     activeUnit,
     _readme: {
+      applyPrompt: 'Copy applyPrompt at the top into Cursor chat to wire this export into source.',
       troops: 'One entry per troop card — attack range, health bar, melee hit-zone slots.',
       buildings: {
         wood_tower: 'Pirate Tower platform + deck bomber (BombTowerCrew.ts / bomb_fish). Bot side uses tintBotSide + flipX.',
@@ -3921,9 +3944,14 @@ function computeUCELL(attackRange) {
 }
 
 // ── Helper: display height for a unit in game px ─────────────
-// Mirrors assetDisplaySize.ts: SPRITE_VISUAL_SCALE applies to all troops
-// except the explicitly unscaled set.  Towers: only king gets scale.
+// Mirrors assetDisplaySize.ts visualScaleForCard(). CARD_DISPLAY_VISUAL_SCALE is synced.
 const UNSCALED_CARD_IDS = new Set(['skeleton', 'skeleton_army', 'archer', 'villagers', 'spiderling'])
+
+function cardVisualScale(unit) {
+  if (CARD_DISPLAY_VISUAL_SCALE?.[unit.id] != null) return CARD_DISPLAY_VISUAL_SCALE[unit.id]
+  if (UNSCALED_CARD_IDS.has(unit.id)) return 1.0
+  return SPRITE_VISUAL_SCALE
+}
 
 function unitDisplayHGame(unit) {
   const fill = unit.contentFill ?? 0.52
@@ -3933,10 +3961,9 @@ function unitDisplayHGame(unit) {
     return GCS * 2.5 * hmult / fill * vscale
   }
   if (unit.isBuilding) {
-    return GCS * 2.5 * MAP_HEIGHT_MULTIPLIER_BUILDING / fill * SPRITE_VISUAL_SCALE
+    return GCS * 2.5 * MAP_HEIGHT_MULTIPLIER_BUILDING / fill * cardVisualScale(unit)
   }
-  const scale = UNSCALED_CARD_IDS.has(unit.id) ? 1.0 : SPRITE_VISUAL_SCALE
-  return GCS * 2.5 / fill * scale
+  return GCS * 2.5 / fill * cardVisualScale(unit)
 }
 
 function unitBuildingFootprintHalfCells(unit) {

@@ -13,6 +13,7 @@ import {
   COMPOSITE_AVATAR_LAYOUT_DEFAULTS,
   COMPOSITE_AVATAR_SLOT_SCALE,
 } from '@data/CompositeAvatarLayout'
+import { CARD_DISPLAY_VISUAL_SCALE } from '@rendering/assetDisplaySize'
 import { BOMB_TOWER_CREW_CARD_ID, BOMB_TOWER_DECK_Y_FRAC } from '@rendering/towerGarrison'
 import {
   MAP_EDITOR_CATALOG_ORDER,
@@ -53,6 +54,7 @@ export interface MapEditorGeneratedConstants {
   compositeAvatarLayoutDefaults: typeof COMPOSITE_AVATAR_LAYOUT_DEFAULTS
   compositeAvatarSlotScale: typeof COMPOSITE_AVATAR_SLOT_SCALE
   compositeAvatarFramePosDefaults: typeof COMPOSITE_AVATAR_FRAME_POS_DEFAULTS
+  cardDisplayVisualScale: typeof CARD_DISPLAY_VISUAL_SCALE
 }
 
 const SPELL_CARD_IDS = new Set(['arrows', 'tnt', 'goblin_barrel'])
@@ -114,6 +116,7 @@ export function buildMapEditorConstants(): MapEditorGeneratedConstants {
     compositeAvatarLayoutDefaults: COMPOSITE_AVATAR_LAYOUT_DEFAULTS,
     compositeAvatarSlotScale: COMPOSITE_AVATAR_SLOT_SCALE,
     compositeAvatarFramePosDefaults: COMPOSITE_AVATAR_FRAME_POS_DEFAULTS,
+    cardDisplayVisualScale: CARD_DISPLAY_VISUAL_SCALE,
   }
 }
 
@@ -232,6 +235,7 @@ export function formatMapEditorGeneratedBlock(): string {
     '}',
     `const BOMB_TOWER_DECK_Y_FRAC = ${constants.bombTowerDeckYFrac}`,
     `const MAP_HEIGHT_MULTIPLIER_BUILDING = ${constants.mapHeightMultiplierBuilding}`,
+    `const CARD_DISPLAY_VISUAL_SCALE = ${JSON.stringify(constants.cardDisplayVisualScale, null, 2)}`,
     `const COMPOSITE_LAYER_OFFSETS_DEFAULTS = ${JSON.stringify(constants.compositeLayerOffsets, null, 2)}`,
     `const COMPOSITE_AVATAR_LAYOUT_DEFAULTS = ${JSON.stringify(constants.compositeAvatarLayoutDefaults, null, 2)}`,
     `const COMPOSITE_AVATAR_SLOT_SCALE = ${JSON.stringify(constants.compositeAvatarSlotScale, null, 2)}`,

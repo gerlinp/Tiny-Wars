@@ -90,13 +90,14 @@ const WARRIOR: CardDefinition = {
 }
 
 describe('PlacementGhost', () => {
-  it('resets troop origin after a building preview (bomb tower feet anchor)', () => {
+  it('resets troop origin after a building preview (center anchor)', () => {
     const sprite = mockSprite()
     const scene = mockScene(sprite)
     const ghost = new PlacementGhost(scene)
 
     ghost.setCard(WOOD_TOWER)
-    expect(sprite.origin.y).toBe(1)
+    expect(sprite.origin.x).toBe(0.5)
+    expect(sprite.origin.y).toBe(0.5)
 
     ghost.setCard(WARRIOR)
     expect(sprite.origin.x).toBe(0.5)

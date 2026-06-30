@@ -1,11 +1,11 @@
 import { COMPOSITE_LAYER_OFFSETS, type CompositeLayerOffset } from '@data/CompositeLayerOffsets'
 import { PIRATE_TOWER_FRAME } from '@data/AssetManifest'
 import {
-  MAP_HEIGHT_MULTIPLIER,
   MAP_UNIT_TARGET_HEIGHT,
   SPRITE_VISUAL_SCALE,
   CELL_SIZE,
 } from '@data/GameConstants'
+import { logicDisplayHeightForCard } from '@rendering/assetDisplaySize'
 import { BOMB_TOWER_BOMBER_FEET_Y, BOMB_TOWER_DECK_Y_FRAC } from '@rendering/towerGarrison'
 
 /**
@@ -28,14 +28,13 @@ export interface CompositeUnitAvatarLayout {
   layers: Record<string, CompositeLayerPlacement>
 }
 
-const WOOD_TOWER_CONTENT_FILL = 0.72
 const BOMB_FISH_CONTENT_FILL = 0.55
 const AIR_BOAT_SPRITE_ORIGIN_Y = 0.25
 const AIR_BOAT_FRAME_SHARK_Y = 0.65
 const AIR_BOAT_SHARK_STERN_X_RATIO = 0.13
 
 function woodTowerPlatformH(): number {
-  return MAP_UNIT_TARGET_HEIGHT * MAP_HEIGHT_MULTIPLIER.building / WOOD_TOWER_CONTENT_FILL * SPRITE_VISUAL_SCALE
+  return logicDisplayHeightForCard('wood_tower')
 }
 
 function bombFishDisplayH(): number {
@@ -49,14 +48,14 @@ function airBoatDisplayH(): number {
 /** Default anchor-relative layout before editor nudges (offsets applied in {@link resolveCompositeAvatarLayout}). */
 /** Extra downscale for composite card-hand portraits (1 = slot fit only). */
 export const COMPOSITE_AVATAR_SLOT_SCALE: Readonly<Partial<Record<string, number>>> = {
-  wood_tower: 1.75,
+  wood_tower: 1.05,
 }
 
 /** Default avatar frame position on unit editor canvas (px). */
 export const COMPOSITE_AVATAR_FRAME_POS_DEFAULTS: Readonly<
   Partial<Record<string, Readonly<{ x: number; y: number }>>>
 > = {
-  wood_tower: { x: 430, y: 466 },
+  wood_tower: { x: 430, y: 490 },
 }
 
 export const COMPOSITE_AVATAR_LAYOUT_DEFAULTS: Readonly<Record<string, CompositeUnitAvatarLayout>> = {

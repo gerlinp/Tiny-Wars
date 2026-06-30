@@ -12,7 +12,7 @@ describe('CompositeAvatarLayout (wood_tower)', () => {
   it('matches map-editor troop vs building height ratio', () => {
     const platform = compositeLayerDisplaySize('wood_tower', 'platform')
     const bomber = compositeLayerDisplaySize('wood_tower', 'bomber')
-    expect(bomber.height / platform.height).toBeCloseTo(0.595, 2)
+    expect(bomber.height / platform.height).toBeCloseTo(0.803, 2)
   })
 
   it('maps editor bomber offset into slot space', () => {
@@ -29,14 +29,14 @@ describe('CompositeAvatarLayout (wood_tower)', () => {
 
   it('applies editor composite offsets in resolved layout', () => {
     const layout = resolveCompositeAvatarLayout('wood_tower')
-    expect(layout!.layers.platform!.x).toBe(4)
-    expect(layout!.layers.platform!.y).toBe(323)
-    expect(layout!.layers.bomber!.x).toBe(6)
-    expect(layout!.layers.bomber!.y).toBeCloseTo(-8, 0)
+    expect(layout!.layers.platform!.x).toBe(2)
+    expect(layout!.layers.platform!.y).toBe(287)
+    expect(layout!.layers.bomber!.x).toBe(4)
+    expect(layout!.layers.bomber!.y).toBeCloseTo(30, 0)
   })
 
   it('uses editor avatar preview scale from unit export', () => {
-    expect(COMPOSITE_AVATAR_SLOT_SCALE.wood_tower).toBe(1.75)
+    expect(COMPOSITE_AVATAR_SLOT_SCALE.wood_tower).toBe(1.05)
   })
 
   it('scales the platform to fill most of the card slot width', () => {

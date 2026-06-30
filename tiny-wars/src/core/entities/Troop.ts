@@ -46,7 +46,7 @@ import {
   LEFT_BRIDGE_COLS, RIGHT_BRIDGE_COLS,
   HEAL_PULSE_INTERVAL_MS, COMBAT_LEASH_MULTIPLIER,
   TROOP_DEPLOY_SPREAD_CELLS, BRIDGE_CENTER_COL,
-  TROOP_SPAWN_DELAY_MS,
+  TROOP_SPAWN_DELAY_MS, TROOP_AGGRO_RANGE_CELLS,
 } from '@data/GameConstants'
 import {
   GNOLL_BOOMERANG_TRAVEL_CELLS,
@@ -1199,7 +1199,7 @@ export class Troop extends Entity {
 
   private aggroRangeCells(): number {
     const range = this.effectiveAttackRange()
-    let aggro = range > 2 ? range : Math.max(range * 2, 2)
+    let aggro = range > 2 ? range : TROOP_AGGRO_RANGE_CELLS
     // Special long-reach melee cards must detect targets out to their ability range so the
     // dash / hook can trigger before the unit is in normal melee range.
     if (this.cardId === 'thief') aggro = Math.max(aggro, THIEF_DASH_RANGE_CELLS)

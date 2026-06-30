@@ -23,8 +23,9 @@ describe('mapEditorCatalog sync', () => {
     const constants = buildMapEditorConstants()
     expect(constants.bombTowerBomberPaths.player).toContain('Bomb Fish_Idle.png')
     expect(constants.bombTowerDeckYFrac).toBe(0.82)
-    expect(constants.compositeLayerOffsets.wood_tower?.platform).toEqual({ x: 4, y: 323 })
-    expect(constants.compositeLayerOffsets.wood_tower?.bomber).toEqual({ x: 6, y: 533 })
+    expect(constants.compositeLayerOffsets.wood_tower?.platform).toEqual({ x: 2, y: 287 })
+    expect(constants.compositeLayerOffsets.wood_tower?.bomber).toEqual({ x: 4, y: 431 })
+    expect(constants.cardDisplayVisualScale.wood_tower).toBe(1)
   })
 
   it('map-editor.html generated block matches source of truth', () => {

@@ -9,8 +9,8 @@ export const COMPOSITE_LAYER_OFFSETS: Readonly<
   Record<string, Readonly<Record<string, CompositeLayerOffset>>>
 > = {
   wood_tower: {
-    platform: { x: 4, y: 323 },
-    bomber: { x: 6, y: 533 },
+    platform: { x: 2, y: 287 },
+    bomber: { x: 4, y: 431 },
   },
   air_boat: {
     hull: { x: 0, y: 0 },

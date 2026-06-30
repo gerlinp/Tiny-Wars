@@ -110,12 +110,14 @@ export class PlacementGhost {
     }
 
     if (this.isBuilding) {
-      const key = resolveTexture(this.scene, card.textureKeyPlayer, 'placeholder_player')
+      const side = getSideAssets(card.id, Owner.PLAYER)
+      const textureKey = side?.idle.sheet.key ?? card.textureKeyPlayer
+      const key = resolveTexture(this.scene, textureKey, 'placeholder_player')
       const sprite = this.ensureTroopSprite(0)
       sprite.anims.stop()
       sprite.setTexture(key, 0)
       applyCardDisplaySize(sprite, this.scene, card.id, key, 0)
-      sprite.setOrigin(0.5, 1)
+      sprite.setOrigin(0.5, 0.5)
       sprite.setAlpha(0.45)
       sprite.clearTint()
       this.ring.setRadius(buildingPlacementCombatRadiusPx(card.id))
@@ -188,16 +190,7 @@ export class PlacementGhost {
       return
     }
 
-    // Follow the exact pointer/finger so the preview matches where the unit actually lands
-    // (deployCard receives this same world position). No grid snapping — that made the ghost
-    // jump to cell centres and feel disconnected from the cursor / touch. Buildings still snap
-    // to the cell centre because their footprint must align to the grid.
-    const world = this.isBuilding
-      ? {
-          x: Math.floor(pointerX / CELL_SIZE) * CELL_SIZE + CELL_SIZE / 2,
-          y: Math.floor(pointerY / CELL_SIZE) * CELL_SIZE + CELL_SIZE / 2,
-        }
-      : { x: pointerX, y: pointerY }
+    const world = { x: pointerX, y: pointerY }
 
     if (this.isSpell) {
       this.ring.setVisible(true)

@@ -118,14 +118,34 @@ export function displaySizeForTexture(
 
 const UNSCALED_CARD_IDS = new Set(['skeleton', 'skeleton_army', 'archer', 'villagers', 'spiderling'])
 
+/** Per-card display height multiplier — synced to map-editor via mapEditorCatalog. */
+export const CARD_DISPLAY_VISUAL_SCALE: Readonly<Partial<Record<string, number>>> = {
+  [BOMB_TOWER_CARD_ID]: 1,
+}
+
+export function visualScaleForCard(cardId: string): number {
+  if (cardId in CARD_DISPLAY_VISUAL_SCALE) return CARD_DISPLAY_VISUAL_SCALE[cardId]!
+  if (UNSCALED_CARD_IDS.has(cardId)) return 1
+  return SPRITE_VISUAL_SCALE
+}
+
+/** Logic-only display height in game pixels (no Phaser). */
+export function logicDisplayHeightForCard(cardId: string): number {
+  return targetHeightForCard(cardId) * visualScaleForCard(cardId)
+}
+
 export function displaySizeForCard(
   scene: Phaser.Scene,
   cardId: string,
   textureKey: string,
   frame: string | number = 0,
 ): DisplaySize {
-  const scale = UNSCALED_CARD_IDS.has(cardId) ? 1 : SPRITE_VISUAL_SCALE
-  return displaySizeForTexture(scene, textureKey, frame, targetHeightForCard(cardId) * scale)
+  return displaySizeForTexture(
+    scene,
+    textureKey,
+    frame,
+    logicDisplayHeightForCard(cardId),
+  )
 }
 
 /** On-map size for a 192px-native troop sheet at standard Enemy Pack content fill. */
