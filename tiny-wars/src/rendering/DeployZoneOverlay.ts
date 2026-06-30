@@ -16,7 +16,6 @@ export class DeployZoneOverlay {
 
   constructor(scene: Phaser.Scene) {
     this.expandedGfx = scene.add.graphics().setDepth(2).setVisible(false)
-    this.syncExpandedZones(LOCAL_OWNER, EMPTY_LANE_UNLOCKS)
 
     this.baseZone = scene.add.rectangle(0, 0, GAME_WIDTH, 0, 0x44cc66, 0.18)
       .setOrigin(0)
