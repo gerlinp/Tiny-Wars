@@ -988,7 +988,7 @@ function turtleSide(side: 'blue' | 'red'): SideAssets {
 const BEAR_PATH = 'assets/Enemy Pack/Enemies/Caveborn/Bear'
 const BEAR_FRAME = 256
 
-/** Caveborn Bear — in-game art for the Mega Knight card (`mega_minion` id). */
+/** Caveborn Bear — Mega Knight rules on the `mega_minion` card id. */
 function bearTroopSide(side: 'blue' | 'red'): SideAssets {
   const idle: SheetDef = {
     key: `mega_minion_${side}_idle`,

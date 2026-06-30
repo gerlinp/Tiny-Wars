@@ -307,6 +307,7 @@ describe('Card avatars', () => {
 
   it('mega knight (bear) uses native 256×256 Bear sheets with idle portrait', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'mega_minion')!
+    expect(CARD_DEFINITIONS.mega_minion!.displayName).toBe('Bear')
     expect(cardAvatarKey('mega_minion')).toBe('avatar_mega_minion')
     expect(getCardAvatarDef('mega_minion').path).toContain('Caveborn/Bear/Bear_Idle.png')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('mega_minion').path))).toBe(true)
