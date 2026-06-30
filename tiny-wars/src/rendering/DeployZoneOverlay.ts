@@ -4,7 +4,7 @@ import { getActiveMapConfig } from '@data/ActiveMapConfig'
 import { spawnZonesFromConfig } from '@data/SpawnZones'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
 import type { LaneUnlocks } from '@core/DeploySystem'
-import { deployOverlayRects, type DeployOverlayRect } from '@core/DeploySystem'
+import { EMPTY_LANE_UNLOCKS, LOCAL_OWNER, deployOverlayRects, type DeployOverlayRect } from '@core/DeploySystem'
 import type { Owner } from '@core/types'
 
 export class DeployZoneOverlay {
