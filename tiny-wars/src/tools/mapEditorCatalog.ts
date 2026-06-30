@@ -8,7 +8,9 @@ import {
 } from '@data/AssetManifest'
 import {
   BOT_KING_COL,
+  BOT_KING_ROW,
   BOT_KING_VISUAL_ROW,
+  BOT_TOWER_ROW,
   BRIDGE_CENTER_COL,
   BRIDGE_SPAN,
   DEPLOY_LANE_SPLIT_COL,
@@ -16,9 +18,22 @@ import {
   LEFT_BRIDGE_COLS,
   MAP_HEIGHT_MULTIPLIER,
   PLAYER_KING_COL,
+  PLAYER_KING_ROW,
   PLAYER_KING_VISUAL_ROW,
+  PLAYER_TOWER_COLS,
+  PLAYER_TOWER_ROW,
   RIGHT_BRIDGE_COLS,
 } from '@data/GameConstants'
+import {
+  BOT_KING_TOWER_MELEE,
+  PLAYER_KING_TOWER_MELEE,
+} from '@data/KingTowerMeleeLayout'
+import {
+  BOMB_TOWER_CREW_CARD_ID,
+  BOMB_TOWER_DECK_Y_FRAC,
+  KING_GARRISON_EDITOR_DEFAULTS,
+  KING_TOWER_VISUAL_OFFSET_DEFAULTS,
+} from '@rendering/towerGarrison'
 import { COMPOSITE_LAYER_OFFSETS } from '@data/CompositeLayerOffsets'
 import {
   COMPOSITE_AVATAR_FRAME_POS_DEFAULTS,
@@ -26,7 +41,6 @@ import {
   COMPOSITE_AVATAR_SLOT_SCALE,
 } from '@data/CompositeAvatarLayout'
 import { CARD_DISPLAY_VISUAL_SCALE } from '@rendering/assetDisplaySize'
-import { BOMB_TOWER_CREW_CARD_ID, BOMB_TOWER_DECK_Y_FRAC } from '@rendering/towerGarrison'
 import { buildClashStyleSpawnZones } from '@data/SpawnZones'
 import {
   MAP_EDITOR_CATALOG_ORDER,
@@ -62,6 +76,12 @@ export interface MapEditorLayoutConstants {
   deployLaneSplitCol: number
   kingLogicCol: number
   kingSpriteCenterOffsetX: number
+  playerKingRow: number
+  botKingRow: number
+  playerTowerRow: number
+  botTowerRow: number
+  playerTowerColLeft: number
+  playerTowerColRight: number
   playerKingVisualRow: number
   botKingVisualRow: number
   bridgeCenterCol: number
@@ -132,6 +152,12 @@ export function buildMapEditorLayoutConstants(): MapEditorLayoutConstants {
     deployLaneSplitCol: DEPLOY_LANE_SPLIT_COL,
     kingLogicCol: PLAYER_KING_COL,
     kingSpriteCenterOffsetX: KING_SPRITE_CENTER_OFFSET_X,
+    playerKingRow: PLAYER_KING_ROW,
+    botKingRow: BOT_KING_ROW,
+    playerTowerRow: PLAYER_TOWER_ROW,
+    botTowerRow: BOT_TOWER_ROW,
+    playerTowerColLeft: PLAYER_TOWER_COLS[0]!,
+    playerTowerColRight: PLAYER_TOWER_COLS[1]!,
     playerKingVisualRow: PLAYER_KING_VISUAL_ROW,
     botKingVisualRow: BOT_KING_VISUAL_ROW,
     bridgeCenterCol: BRIDGE_CENTER_COL,
@@ -309,6 +335,12 @@ export function formatMapEditorGeneratedBlock(): string {
 
 export const MAP_EDITOR_LAYOUT_SYNC_START = '// @generated map-editor-layout-sync-start'
 export const MAP_EDITOR_LAYOUT_SYNC_END = '// @generated map-editor-layout-sync-end'
+export const MAP_EDITOR_KING_VISUAL_SYNC_START = '// @generated map-editor-king-visual-sync-start'
+export const MAP_EDITOR_KING_VISUAL_SYNC_END = '// @generated map-editor-king-visual-sync-end'
+export const MAP_EDITOR_KING_GARRISON_SYNC_START = '// @generated map-editor-king-garrison-sync-start'
+export const MAP_EDITOR_KING_GARRISON_SYNC_END = '// @generated map-editor-king-garrison-sync-end'
+export const MAP_EDITOR_KING_UNIT_SYNC_START = '// @generated map-editor-king-unit-sync-start'
+export const MAP_EDITOR_KING_UNIT_SYNC_END = '// @generated map-editor-king-unit-sync-end'
 export const MAP_EDITOR_SPAWN_SYNC_START = '// @generated map-editor-spawn-sync-start'
 export const MAP_EDITOR_SPAWN_SYNC_END = '// @generated map-editor-spawn-sync-end'
 export const MAP_EDITOR_SYNC_START = '// @generated map-editor-sync-start'
@@ -331,6 +363,12 @@ export function formatMapEditorLayoutBlock(): string {
     `const DEPLOY_LANE_SPLIT_COL = ${layout.deployLaneSplitCol}`,
     `const KING_LOGIC_COL = ${layout.kingLogicCol}`,
     `const KING_SPRITE_CENTER_OFFSET_X = ${layout.kingSpriteCenterOffsetX}`,
+    `const PLAYER_KING_ROW = ${layout.playerKingRow}`,
+    `const BOT_KING_ROW = ${layout.botKingRow}`,
+    `const PLAYER_TOWER_ROW = ${layout.playerTowerRow}`,
+    `const BOT_TOWER_ROW = ${layout.botTowerRow}`,
+    `const PLAYER_TOWER_COL_LEFT = ${layout.playerTowerColLeft}`,
+    `const PLAYER_TOWER_COL_RIGHT = ${layout.playerTowerColRight}`,
     `const PLAYER_KING_VISUAL_ROW = ${layout.playerKingVisualRow}`,
     `const BOT_KING_VISUAL_ROW = ${layout.botKingVisualRow}`,
     `const BRIDGE_CENTER_COL = ${layout.bridgeCenterCol}`,
@@ -341,23 +379,100 @@ export function formatMapEditorLayoutBlock(): string {
   ].join('\n')
 }
 
-export function extractMapEditorLayoutBlock(html: string): string | null {
-  const start = html.indexOf(MAP_EDITOR_LAYOUT_SYNC_START)
-  const end = html.indexOf(MAP_EDITOR_LAYOUT_SYNC_END)
+export function formatMapEditorKingVisualBlock(): string {
+  const visual = KING_TOWER_VISUAL_OFFSET_DEFAULTS
+  return [
+    MAP_EDITOR_KING_VISUAL_SYNC_START,
+    '// Mirrors towerGarrison.ts KING_TOWER_VISUAL_OFFSET_DEFAULTS — run: npm run sync:map-editor',
+    `const KING_VISUAL_OFFSET_DEFAULT = { botKing: ${visual.botKing}, plyKing: ${visual.plyKing} }`,
+    MAP_EDITOR_KING_VISUAL_SYNC_END,
+  ].join('\n')
+}
+
+export function formatMapEditorKingGarrisonBlock(): string {
+  const g = KING_GARRISON_EDITOR_DEFAULTS
+  return [
+    MAP_EDITOR_KING_GARRISON_SYNC_START,
+    '// Mirrors towerGarrison.ts king garrison deck offsets — run: npm run sync:map-editor',
+    `const KING_GARRISON_ARCHER_REL_Y = { player: ${g.player.archerRelY}, cpu: ${g.cpu.archerRelY} }`,
+    `const KING_GARRISON_CANNON_REL = { relX: ${g.player.cannonRelX}, relY: { player: ${g.player.cannonRelY}, cpu: ${g.cpu.cannonRelY} } }`,
+    '',
+    'function defaultKingGarrisonSlots(side) {',
+    '  const archerRelY = side === \'cpu\' ? KING_GARRISON_ARCHER_REL_Y.cpu : KING_GARRISON_ARCHER_REL_Y.player',
+    '  const cannonRelY = side === \'cpu\' ? KING_GARRISON_CANNON_REL.relY.cpu : KING_GARRISON_CANNON_REL.relY.player',
+    '  return [',
+    '    { label: \'Left deck\',  relX: -0.28, relY: archerRelY, unitId: \'elite_archer\', flipX: false },',
+    '    { label: \'Cannon\',     relX: KING_GARRISON_CANNON_REL.relX, relY: cannonRelY, unitId: \'cannon\',       flipX: false },',
+    '    { label: \'Right deck\', relX: 0.28,  relY: archerRelY, unitId: \'elite_archer\', flipX: true  },',
+    '  ]',
+    '}',
+    '',
+    'const liveKingGarrison = {',
+    '  king_tower: {',
+    '    player: defaultKingGarrisonSlots(\'player\'),',
+    '    cpu:    defaultKingGarrisonSlots(\'cpu\'),',
+    '  },',
+    '}',
+    MAP_EDITOR_KING_GARRISON_SYNC_END,
+  ].join('\n')
+}
+
+export function formatMapEditorKingUnitEditorBlock(): string {
+  const player = PLAYER_KING_TOWER_MELEE
+  const bot = BOT_KING_TOWER_MELEE
+  const visual = KING_TOWER_VISUAL_OFFSET_DEFAULTS
+  return [
+    MAP_EDITOR_KING_UNIT_SYNC_START,
+    '// Mirrors KingTowerMeleeLayout.ts + towerGarrison.ts — run: npm run sync:map-editor',
+    `const PLAYER_KING_SLOT_POSITIONS = ${JSON.stringify(player.slotPositions, null, 2)}`,
+    `const BOT_KING_SLOT_POSITIONS = ${JSON.stringify(bot.slotPositions, null, 2)}`,
+    'liveSlotPositions.king_tower = {',
+    '  player: PLAYER_KING_SLOT_POSITIONS.map(p => ({ ...p })),',
+    '  cpu: BOT_KING_SLOT_POSITIONS.map(p => ({ ...p })),',
+    '}',
+    'liveSlotRadii.king_tower = 2.85',
+    'liveHbarOffsets.king_tower = { y: -2.7 }',
+    'if (liveSlotOffsets.king_tower) {',
+    `  liveSlotOffsets.king_tower.player = { x: ${player.slotOriginOffsetCells.x}, y: ${player.slotOriginOffsetCells.y} }`,
+    `  liveSlotOffsets.king_tower.cpu = { x: ${bot.slotOriginOffsetCells.x}, y: ${bot.slotOriginOffsetCells.y} }`,
+    '}',
+    'if (liveTowerVisualOffsets.king_tower) {',
+    `  liveTowerVisualOffsets.king_tower.player = { x: 0, y: ${visual.plyKing} }`,
+    `  liveTowerVisualOffsets.king_tower.cpu = { x: 0, y: ${visual.botKing} }`,
+    '}',
+    `liveKingRangeCenterOffsets.king_tower.player = { x: ${player.rangeCenterOffsetCells.x}, y: ${player.rangeCenterOffsetCells.y} }`,
+    `liveKingRangeCenterOffsets.king_tower.cpu = { x: ${bot.rangeCenterOffsetCells.x}, y: ${bot.rangeCenterOffsetCells.y} }`,
+    MAP_EDITOR_KING_UNIT_SYNC_END,
+  ].join('\n')
+}
+
+function extractBlock(html: string, startMarker: string, endMarker: string): string | null {
+  const start = html.indexOf(startMarker)
+  const end = html.indexOf(endMarker)
   if (start < 0 || end < 0 || end <= start) return null
-  return html.slice(start, end + MAP_EDITOR_LAYOUT_SYNC_END.length).trimEnd()
+  return html.slice(start, end + endMarker.length).trimEnd()
+}
+
+export function extractMapEditorLayoutBlock(html: string): string | null {
+  return extractBlock(html, MAP_EDITOR_LAYOUT_SYNC_START, MAP_EDITOR_LAYOUT_SYNC_END)
+}
+
+export function extractMapEditorKingVisualBlock(html: string): string | null {
+  return extractBlock(html, MAP_EDITOR_KING_VISUAL_SYNC_START, MAP_EDITOR_KING_VISUAL_SYNC_END)
+}
+
+export function extractMapEditorKingGarrisonBlock(html: string): string | null {
+  return extractBlock(html, MAP_EDITOR_KING_GARRISON_SYNC_START, MAP_EDITOR_KING_GARRISON_SYNC_END)
+}
+
+export function extractMapEditorKingUnitEditorBlock(html: string): string | null {
+  return extractBlock(html, MAP_EDITOR_KING_UNIT_SYNC_START, MAP_EDITOR_KING_UNIT_SYNC_END)
 }
 
 export function extractMapEditorGeneratedBlock(html: string): string | null {
-  const start = html.indexOf(MAP_EDITOR_SYNC_START)
-  const end = html.indexOf(MAP_EDITOR_SYNC_END)
-  if (start < 0 || end < 0 || end <= start) return null
-  return html.slice(start, end + MAP_EDITOR_SYNC_END.length).trimEnd()
+  return extractBlock(html, MAP_EDITOR_SYNC_START, MAP_EDITOR_SYNC_END)
 }
 
 export function extractDefaultSpawnZonesBlock(html: string): string | null {
-  const start = html.indexOf(MAP_EDITOR_SPAWN_SYNC_START)
-  const end = html.indexOf(MAP_EDITOR_SPAWN_SYNC_END)
-  if (start < 0 || end < 0 || end <= start) return null
-  return html.slice(start, end + MAP_EDITOR_SPAWN_SYNC_END.length).trimEnd()
+  return extractBlock(html, MAP_EDITOR_SPAWN_SYNC_START, MAP_EDITOR_SPAWN_SYNC_END)
 }

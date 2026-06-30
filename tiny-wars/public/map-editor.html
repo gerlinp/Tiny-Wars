@@ -631,6 +631,12 @@ const GAME_CELL_SIZE = 64   // GameConstants.ts CELL_SIZE — offsets & tower la
 const DEPLOY_LANE_SPLIT_COL = 12
 const KING_LOGIC_COL = 11.5
 const KING_SPRITE_CENTER_OFFSET_X = 0
+const PLAYER_KING_ROW = 39
+const BOT_KING_ROW = 3
+const PLAYER_TOWER_ROW = 30
+const BOT_TOWER_ROW = 12
+const PLAYER_TOWER_COL_LEFT = 4
+const PLAYER_TOWER_COL_RIGHT = 19
 const PLAYER_KING_VISUAL_ROW = 36
 const BOT_KING_VISUAL_ROW = 6
 const BRIDGE_CENTER_COL = 12
@@ -1592,7 +1598,10 @@ const TOWER_NATIVE = {
 }
 const PRINCESS_TOWER_RENDER_NUDGE_Y = { player: -152, bot: 0 }
 const TOWER_HEALTH_BAR_Y = { botGapAboveTop: 3, playerOffsetFromCenter: 6 }
+// @generated map-editor-king-visual-sync-start
+// Mirrors towerGarrison.ts KING_TOWER_VISUAL_OFFSET_DEFAULTS — run: npm run sync:map-editor
 const KING_VISUAL_OFFSET_DEFAULT = { botKing: -25, plyKing: -39 }
+// @generated map-editor-king-visual-sync-end
 const KING_HEALTH_BAR_OFFSET_DEFAULT = { botKing: -66, plyKing: 54 }
 
 const TOWER_INFO = {
@@ -1847,12 +1856,12 @@ const DEFAULTS = () => ({
   leftBridge:  LEFT_BRIDGE_START,
   rightBridge: RIGHT_BRIDGE_START,
   towers: {
-    botKing:  { row: 3,  col: KING_LOGIC_COL },
-    botLeft:  { row: 12, col: 4  },
-    botRight: { row: 12, col: 19 },
-    plyKing:  { row: 39, col: KING_LOGIC_COL },
-    plyLeft:  { row: 30, col: 4  },
-    plyRight: { row: 30, col: 19 },
+    botKing:  { row: BOT_KING_ROW,  col: KING_LOGIC_COL },
+    botLeft:  { row: BOT_TOWER_ROW, col: PLAYER_TOWER_COL_LEFT },
+    botRight: { row: BOT_TOWER_ROW, col: PLAYER_TOWER_COL_RIGHT },
+    plyKing:  { row: PLAYER_KING_ROW, col: KING_LOGIC_COL },
+    plyLeft:  { row: PLAYER_TOWER_ROW, col: PLAYER_TOWER_COL_LEFT },
+    plyRight: { row: PLAYER_TOWER_ROW, col: PLAYER_TOWER_COL_RIGHT },
   },
   playerDeployMin: 23,
   botDeployMax: 19,
@@ -2067,12 +2076,12 @@ function drawCell(col, row) {
 
 function towersFromMapConfig(data) {
   return {
-    botKing:  { row: data.botKingRow ?? 3,  col: data.botKingCol ?? KING_LOGIC_COL },
-    botLeft:  { row: data.botTowerRow ?? 12, col: data.botTowerCols?.[0] ?? 4 },
-    botRight: { row: data.botTowerRow ?? 12, col: data.botTowerCols?.[1] ?? 19 },
-    plyKing:  { row: data.playerKingRow ?? 39, col: data.playerKingCol ?? KING_LOGIC_COL },
-    plyLeft:  { row: data.playerTowerRow ?? 30, col: data.playerTowerCols?.[0] ?? 4 },
-    plyRight: { row: data.playerTowerRow ?? 30, col: data.playerTowerCols?.[1] ?? 19 },
+    botKing:  { row: data.botKingRow ?? BOT_KING_ROW,  col: data.botKingCol ?? KING_LOGIC_COL },
+    botLeft:  { row: data.botTowerRow ?? BOT_TOWER_ROW, col: data.botTowerCols?.[0] ?? PLAYER_TOWER_COL_LEFT },
+    botRight: { row: data.botTowerRow ?? BOT_TOWER_ROW, col: data.botTowerCols?.[1] ?? PLAYER_TOWER_COL_RIGHT },
+    plyKing:  { row: data.playerKingRow ?? PLAYER_KING_ROW, col: data.playerKingCol ?? KING_LOGIC_COL },
+    plyLeft:  { row: data.playerTowerRow ?? PLAYER_TOWER_ROW, col: data.playerTowerCols?.[0] ?? PLAYER_TOWER_COL_LEFT },
+    plyRight: { row: data.playerTowerRow ?? PLAYER_TOWER_ROW, col: data.playerTowerCols?.[1] ?? PLAYER_TOWER_COL_RIGHT },
   }
 }
 
@@ -2843,12 +2852,17 @@ function garrisonDeckRelY(nativeRow) {
   return nativeRow / 256 - 0.5 + GARRISON_DECK_SINK
 }
 
+// @generated map-editor-king-garrison-sync-start
+// Mirrors towerGarrison.ts king garrison deck offsets — run: npm run sync:map-editor
+const KING_GARRISON_ARCHER_REL_Y = { player: -0.065, cpu: 0.065 }
+const KING_GARRISON_CANNON_REL = { relX: -0.005, relY: { player: -0.08, cpu: 0.08 } }
+
 function defaultKingGarrisonSlots(side) {
-  const archerRelY = side === 'cpu' ? 0.065 : -0.065
-  const cannonRelY = side === 'cpu' ? 0.08 : -0.08
+  const archerRelY = side === 'cpu' ? KING_GARRISON_ARCHER_REL_Y.cpu : KING_GARRISON_ARCHER_REL_Y.player
+  const cannonRelY = side === 'cpu' ? KING_GARRISON_CANNON_REL.relY.cpu : KING_GARRISON_CANNON_REL.relY.player
   return [
     { label: 'Left deck',  relX: -0.28, relY: archerRelY, unitId: 'elite_archer', flipX: false },
-    { label: 'Cannon',     relX: -0.005, relY: cannonRelY, unitId: 'cannon',       flipX: false },
+    { label: 'Cannon',     relX: KING_GARRISON_CANNON_REL.relX, relY: cannonRelY, unitId: 'cannon',       flipX: false },
     { label: 'Right deck', relX: 0.28,  relY: archerRelY, unitId: 'elite_archer', flipX: true  },
   ]
 }
@@ -2859,6 +2873,7 @@ const liveKingGarrison = {
     cpu:    defaultKingGarrisonSlots('cpu'),
   },
 }
+// @generated map-editor-king-garrison-sync-end
 
 function garrisonAssignableUnits() {
   const troops = UNIT_CATALOG.filter(u => !u.isTower && !u.isBuilding).map(u => ({ id: u.id, label: u.name }))
@@ -3256,7 +3271,7 @@ function getUnitMapLayout() {
 function defaultKingRangeCenterOffset(side) {
   const kingKey = side === 'player' ? 'plyKing' : 'botKing'
   const visualRow = side === 'player' ? PLAYER_KING_VISUAL_ROW : BOT_KING_VISUAL_ROW
-  const hitboxRow = state.towers[kingKey]?.row ?? (side === 'player' ? 39 : 3)
+  const hitboxRow = state.towers[kingKey]?.row ?? (side === 'player' ? PLAYER_KING_ROW : BOT_KING_ROW)
   return { x: 0, y: visualRow - hitboxRow }
 }
 
@@ -3318,25 +3333,251 @@ for (const u of UNIT_CATALOG) liveSlotPositions[u.id] = {}
 liveSlotPositions.princess_tower.player = PLAYER_PRINCESS_SLOT_POSITIONS.map(p => ({ ...p }))
 liveSlotPositions.princess_tower.cpu = BOT_PRINCESS_SLOT_POSITIONS.map(p => ({ ...p }))
 
+// @generated map-editor-king-unit-sync-start
+// Mirrors KingTowerMeleeLayout.ts + towerGarrison.ts — run: npm run sync:map-editor
 const PLAYER_KING_SLOT_POSITIONS = [
-  { x: 0, y: -3.45 }, { x: 0, y: 3.45 }, { x: -4.7, y: 2.5 }, { x: 4.7, y: -2.5 },
-  { x: -3.85, y: 2.95 }, { x: 3.85, y: -2.95 }, { x: -3.05, y: 3.4 }, { x: 3.05, y: -3.4 },
-  { x: -2.05, y: 3.45 }, { x: 2.05, y: -3.45 }, { x: -1, y: 3.45 }, { x: 1, y: -3.45 },
-  { x: -5.1, y: 1.7 }, { x: 5.1, y: -1.7 }, { x: -5, y: 0.75 }, { x: 5, y: -0.75 },
-  { x: -4.8, y: -0.25 }, { x: 4.8, y: 0.25 }, { x: -4.9, y: -1.2 }, { x: 4.9, y: 1.2 },
-  { x: -4.8, y: -2.2 }, { x: 4.8, y: 2.2 }, { x: -4.05, y: -2.85 }, { x: 4.05, y: 2.85 },
-  { x: -3.05, y: -3.3 }, { x: 3.05, y: 3.3 }, { x: 2, y: 3.4 }, { x: -2, y: -3.4 },
-  { x: 1, y: 3.45 }, { x: -1, y: -3.45 },
+  {
+    "x": 0,
+    "y": -3.45
+  },
+  {
+    "x": 0,
+    "y": 3.45
+  },
+  {
+    "x": -4.7,
+    "y": 2.5
+  },
+  {
+    "x": 4.7,
+    "y": -2.5
+  },
+  {
+    "x": -3.85,
+    "y": 2.95
+  },
+  {
+    "x": 3.85,
+    "y": -2.95
+  },
+  {
+    "x": -3.05,
+    "y": 3.4
+  },
+  {
+    "x": 3.05,
+    "y": -3.4
+  },
+  {
+    "x": -2.05,
+    "y": 3.45
+  },
+  {
+    "x": 2.05,
+    "y": -3.45
+  },
+  {
+    "x": -1,
+    "y": 3.45
+  },
+  {
+    "x": 1,
+    "y": -3.45
+  },
+  {
+    "x": -5.1,
+    "y": 1.7
+  },
+  {
+    "x": 5.1,
+    "y": -1.7
+  },
+  {
+    "x": -5,
+    "y": 0.75
+  },
+  {
+    "x": 5,
+    "y": -0.75
+  },
+  {
+    "x": -4.8,
+    "y": -0.25
+  },
+  {
+    "x": 4.8,
+    "y": 0.25
+  },
+  {
+    "x": -4.9,
+    "y": -1.2
+  },
+  {
+    "x": 4.9,
+    "y": 1.2
+  },
+  {
+    "x": -4.8,
+    "y": -2.2
+  },
+  {
+    "x": 4.8,
+    "y": 2.2
+  },
+  {
+    "x": -4.05,
+    "y": -2.85
+  },
+  {
+    "x": 4.05,
+    "y": 2.85
+  },
+  {
+    "x": -3.05,
+    "y": -3.3
+  },
+  {
+    "x": 3.05,
+    "y": 3.3
+  },
+  {
+    "x": 2,
+    "y": 3.4
+  },
+  {
+    "x": -2,
+    "y": -3.4
+  },
+  {
+    "x": 1,
+    "y": 3.45
+  },
+  {
+    "x": -1,
+    "y": -3.45
+  }
 ]
 const BOT_KING_SLOT_POSITIONS = [
-  { x: 0, y: 3.45 }, { x: 0, y: -3.45 }, { x: -4.7, y: -2.5 }, { x: 4.7, y: 2.5 },
-  { x: -3.85, y: -2.95 }, { x: 3.85, y: 2.95 }, { x: -3.05, y: -3.4 }, { x: 3.05, y: 3.4 },
-  { x: -2.05, y: -3.45 }, { x: 2.05, y: 3.45 }, { x: -1, y: -3.45 }, { x: 1, y: 3.45 },
-  { x: -5.1, y: -1.7 }, { x: 5.1, y: 1.7 }, { x: -5, y: -0.75 }, { x: 5, y: 0.75 },
-  { x: -4.8, y: 0.25 }, { x: 4.8, y: -0.25 }, { x: -4.9, y: 1.2 }, { x: 4.9, y: -1.2 },
-  { x: -4.8, y: 2.2 }, { x: 4.8, y: -2.2 }, { x: -4.05, y: 2.85 }, { x: 4.05, y: -2.85 },
-  { x: -3.05, y: 3.3 }, { x: 3.05, y: -3.3 }, { x: 2, y: -3.4 }, { x: -2, y: 3.4 },
-  { x: 1, y: -3.45 }, { x: -1, y: 3.45 },
+  {
+    "x": 0,
+    "y": 3.45
+  },
+  {
+    "x": 0,
+    "y": -3.45
+  },
+  {
+    "x": -4.7,
+    "y": -2.5
+  },
+  {
+    "x": 4.7,
+    "y": 2.5
+  },
+  {
+    "x": -3.85,
+    "y": -2.95
+  },
+  {
+    "x": 3.85,
+    "y": 2.95
+  },
+  {
+    "x": -3.05,
+    "y": -3.4
+  },
+  {
+    "x": 3.05,
+    "y": 3.4
+  },
+  {
+    "x": -2.05,
+    "y": -3.45
+  },
+  {
+    "x": 2.05,
+    "y": 3.45
+  },
+  {
+    "x": -1,
+    "y": -3.45
+  },
+  {
+    "x": 1,
+    "y": 3.45
+  },
+  {
+    "x": -5.1,
+    "y": -1.7
+  },
+  {
+    "x": 5.1,
+    "y": 1.7
+  },
+  {
+    "x": -5,
+    "y": -0.75
+  },
+  {
+    "x": 5,
+    "y": 0.75
+  },
+  {
+    "x": -4.8,
+    "y": 0.25
+  },
+  {
+    "x": 4.8,
+    "y": -0.25
+  },
+  {
+    "x": -4.9,
+    "y": 1.2
+  },
+  {
+    "x": 4.9,
+    "y": -1.2
+  },
+  {
+    "x": -4.8,
+    "y": 2.2
+  },
+  {
+    "x": 4.8,
+    "y": -2.2
+  },
+  {
+    "x": -4.05,
+    "y": 2.85
+  },
+  {
+    "x": 4.05,
+    "y": -2.85
+  },
+  {
+    "x": -3.05,
+    "y": 3.3
+  },
+  {
+    "x": 3.05,
+    "y": -3.3
+  },
+  {
+    "x": 2,
+    "y": -3.4
+  },
+  {
+    "x": -2,
+    "y": 3.4
+  },
+  {
+    "x": 1,
+    "y": -3.45
+  },
+  {
+    "x": -1,
+    "y": 3.45
+  }
 ]
 liveSlotPositions.king_tower = {
   player: PLAYER_KING_SLOT_POSITIONS.map(p => ({ ...p })),
@@ -3354,6 +3595,7 @@ if (liveTowerVisualOffsets.king_tower) {
 }
 liveKingRangeCenterOffsets.king_tower.player = { x: 0, y: 7.7 }
 liveKingRangeCenterOffsets.king_tower.cpu = { x: 0, y: -7.7 }
+// @generated map-editor-king-unit-sync-end
 
 const BOMB_TOWER_SLOT_POSITIONS = PLAYER_PRINCESS_SLOT_POSITIONS.map(p => ({ ...p }))
 liveSlotPositions.wood_tower.default = BOMB_TOWER_SLOT_POSITIONS

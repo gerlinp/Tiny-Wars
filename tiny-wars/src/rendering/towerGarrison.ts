@@ -97,6 +97,26 @@ const BOT_KING_GARRISON: GarrisonSlot[] = [
   { relX: 0.28, deckRelY: 0.065, flipX: true },
 ]
 
+/** Map-editor / export defaults — mirrors liveKingGarrison in map-editor.html. */
+export const KING_GARRISON_EDITOR_DEFAULTS = {
+  player: {
+    archerRelY: PLAYER_KING_GARRISON[0].deckRelY,
+    cannonRelX: PLAYER_KING_GARRISON[1].relX,
+    cannonRelY: PLAYER_KING_GARRISON[1].deckRelY,
+  },
+  cpu: {
+    archerRelY: BOT_KING_GARRISON[0].deckRelY,
+    cannonRelX: BOT_KING_GARRISON[1].relX,
+    cannonRelY: BOT_KING_GARRISON[1].deckRelY,
+  },
+} as const
+
+/** map.json towerVisualOffsets defaults for king castles. */
+export const KING_TOWER_VISUAL_OFFSET_DEFAULTS = {
+  plyKing: -39,
+  botKing: -25,
+} as const
+
 export function kingCannonMapRow(owner: Owner): number {
   return owner === Owner.PLAYER ? PLAYER_KING_CANNON_ROW : BOT_KING_CANNON_ROW
 }

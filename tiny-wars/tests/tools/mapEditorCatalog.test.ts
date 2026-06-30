@@ -5,13 +5,21 @@ import {
   buildMapEditorCatalog,
   buildMapEditorConstants,
   buildMapEditorLayoutConstants,
-  extractMapEditorGeneratedBlock,
-  extractMapEditorLayoutBlock,
   extractDefaultSpawnZonesBlock,
+  extractMapEditorGeneratedBlock,
+  extractMapEditorKingGarrisonBlock,
+  extractMapEditorKingUnitEditorBlock,
+  extractMapEditorKingVisualBlock,
+  extractMapEditorLayoutBlock,
   formatDefaultSpawnZonesBlock,
   formatMapEditorGeneratedBlock,
+  formatMapEditorKingGarrisonBlock,
+  formatMapEditorKingUnitEditorBlock,
+  formatMapEditorKingVisualBlock,
   formatMapEditorLayoutBlock,
 } from '../../src/tools/mapEditorCatalog.ts'
+import { PLAYER_KING_TOWER_MELEE, BOT_KING_TOWER_MELEE } from '../../src/data/KingTowerMeleeLayout.ts'
+import { KING_GARRISON_EDITOR_DEFAULTS, KING_TOWER_VISUAL_OFFSET_DEFAULTS } from '../../src/rendering/towerGarrison.ts'
 
 const MAP_EDITOR_HTML = resolve(import.meta.dirname, '../../public/map-editor.html')
 
@@ -37,11 +45,26 @@ describe('mapEditorCatalog sync', () => {
   it('exports king tower layout from GameConstants', () => {
     const layout = buildMapEditorLayoutConstants()
     expect(layout.kingLogicCol).toBe(11.5)
+    expect(layout.playerKingRow).toBe(39)
+    expect(layout.botKingRow).toBe(3)
+    expect(layout.playerTowerRow).toBe(30)
+    expect(layout.botTowerRow).toBe(12)
     expect(layout.kingSpriteCenterOffsetX).toBe(0)
     expect(layout.bridgeCenterCol).toBe(12)
     expect(layout.bridgeSpan).toBe(7)
     expect(layout.leftBridgeStart).toBe(1)
     expect(layout.rightBridgeStart).toBe(16)
+  })
+
+  it('map-editor.html king tower blocks match source of truth', () => {
+    const html = readFileSync(MAP_EDITOR_HTML, 'utf8')
+    expect(extractMapEditorKingVisualBlock(html)).toBe(formatMapEditorKingVisualBlock())
+    expect(extractMapEditorKingGarrisonBlock(html)).toBe(formatMapEditorKingGarrisonBlock())
+    expect(extractMapEditorKingUnitEditorBlock(html)).toBe(formatMapEditorKingUnitEditorBlock())
+    expect(formatMapEditorKingUnitEditorBlock()).toContain(`y: ${PLAYER_KING_TOWER_MELEE.rangeCenterOffsetCells.y}`)
+    expect(formatMapEditorKingUnitEditorBlock()).toContain(`y: ${BOT_KING_TOWER_MELEE.rangeCenterOffsetCells.y}`)
+    expect(formatMapEditorKingVisualBlock()).toContain(`plyKing: ${KING_TOWER_VISUAL_OFFSET_DEFAULTS.plyKing}`)
+    expect(formatMapEditorKingGarrisonBlock()).toContain(`player: ${KING_GARRISON_EDITOR_DEFAULTS.player.archerRelY}`)
   })
 
   it('map-editor.html layout block matches GameConstants', () => {
