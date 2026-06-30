@@ -9,7 +9,7 @@ import { CELL_SIZE } from '@data/GameConstants'
 import { towerTextureKey } from '@rendering/renderingUtils'
 import { displaySizeForCard, displaySizeForTower } from '@rendering/assetDisplaySize'
 import { towerAttackCenter, towerRenderX, towerRenderY } from '@rendering/towerRenderPosition'
-import { entityCollisionCenter, entityCombatRadius, troopCollisionRadius, buildingCombatCenter, buildingCombatRadius } from '@core/EntityGeometry'
+import { entityCollisionCenter, entityCombatRadius, troopCollisionRadius, buildingCombatCenter } from '@core/EntityGeometry'
 import { idleSheetKey } from '@data/AssetManifest'
 import { resolveTexture } from '@rendering/renderingUtils'
 
@@ -80,7 +80,7 @@ export class DevModeOverlay {
       } else if (entity.kind === EntityKind.BUILDING) {
         const building = entity as Building
         const combatCenter = buildingCombatCenter(building)
-        const combatR = buildingCombatRadius()
+        const combatR = building.combatRadiusPx
         g.lineStyle(6, COL.building, 0.9)
         g.strokeCircle(combatCenter.x, combatCenter.y, combatR)
         g.lineStyle(4, COL.building, 0.45)

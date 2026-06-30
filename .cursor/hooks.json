@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/sync-map-editor.sh",
+        "matcher": "Write|StrReplace|EditNotebook"
+      }
+    ]
+  }
+}

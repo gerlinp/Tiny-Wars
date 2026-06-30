@@ -9,11 +9,13 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "sync:map-editor": "vite-node scripts/syncMapEditorCatalog.ts"
   },
   "devDependencies": {
     "typescript": "~6.0.2",
     "vite": "^8.0.12",
+    "vite-node": "^6.0.0",
     "vitest": "^4.1.9"
   },
   "dependencies": {

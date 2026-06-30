@@ -186,9 +186,9 @@ describe('Arena 26 balance (level 14)', () => {
 })
 
 describe('bridge placement', () => {
-  it('aligns each 3-wide bridge centred on its princess tower lane', () => {
-    expect(LEFT_BRIDGE_COLS).toEqual([3, 4, 5])
-    expect(RIGHT_BRIDGE_COLS).toEqual([18, 19, 20])
+  it('aligns each 7-wide bridge centred on its princess tower lane', () => {
+    expect(LEFT_BRIDGE_COLS).toEqual([2, 3, 4, 5, 6])
+    expect(RIGHT_BRIDGE_COLS).toEqual([17, 18, 19, 20, 21])
     expect(LEFT_LANE_COL).toBe(PLAYER_TOWER_COLS[0])
     expect(RIGHT_LANE_COL).toBe(PLAYER_TOWER_COLS[1])
     // Tower lane column sits at the centre of its bridge

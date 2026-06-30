@@ -7,7 +7,7 @@ import { GAME_HEIGHT, CELL_SIZE, TROOP_DEPLOY_SPREAD_CELLS } from '@data/GameCon
 import { getSideAssets } from '@data/AssetManifest'
 import { playCardAnim } from './AnimationRegistry'
 import { resolveTexture } from './renderingUtils'
-import { applyCardDisplaySize } from './assetDisplaySize'
+import { applyCardDisplaySize, buildingPlacementCombatRadiusPx } from './assetDisplaySize'
 import { AIR_BOAT_SPRITE_ORIGIN_Y } from './AirBoatCrew'
 
 const VALID_TINT   = 0x88ff88
@@ -51,11 +51,13 @@ export class PlacementGhost {
     for (let i = 0; i < count; i++) {
       const sprite = this.ensureTroopSprite(i)
       sprite.anims.stop()
+      sprite.setOrigin(0.5, 0.5)
       const key = resolveTexture(this.scene, textureKey, 'placeholder_player')
       sprite.setTexture(key, 0)
       applyCardDisplaySize(sprite, this.scene, cardId, key, 0)
       if (cardId === 'air_boat') sprite.setOrigin(0.5, AIR_BOAT_SPRITE_ORIGIN_Y)
       sprite.setAlpha(0.55)
+      sprite.clearTint()
     }
 
     for (let i = count; i < this.troopSprites.length; i++) {
@@ -77,10 +79,12 @@ export class PlacementGhost {
         const side = getSideAssets('tnt', Owner.PLAYER)!
         const key = resolveTexture(this.scene, side.idle.sheet.key, 'placeholder_player')
         const sprite = this.ensureTroopSprite(0)
+        sprite.setOrigin(0.5, 0.5)
         sprite.setTexture(key, 0)
         applyCardDisplaySize(sprite, this.scene, 'tnt', key, 0)
         sprite.setScale(sprite.scaleX * 0.5, sprite.scaleY * 0.5)
         sprite.setAlpha(0.75)
+        sprite.clearTint()
         playCardAnim(sprite, this.scene, 'tnt', Owner.PLAYER, 'idle', -1)
         this.troopPreviewCount = 1
         this.troopPreviewCardId = 'tnt'
@@ -105,6 +109,25 @@ export class PlacementGhost {
       return
     }
 
+    if (this.isBuilding) {
+      const key = resolveTexture(this.scene, card.textureKeyPlayer, 'placeholder_player')
+      const sprite = this.ensureTroopSprite(0)
+      sprite.anims.stop()
+      sprite.setTexture(key, 0)
+      applyCardDisplaySize(sprite, this.scene, card.id, key, 0)
+      sprite.setOrigin(0.5, 1)
+      sprite.setAlpha(0.45)
+      sprite.clearTint()
+      this.ring.setRadius(buildingPlacementCombatRadiusPx(card.id))
+      this.troopPreviewCount = 0
+      this.troopPreviewCardId = null
+      for (let i = 1; i < this.troopSprites.length; i++) {
+        this.troopSprites[i].setVisible(false)
+        this.troopSprites[i].anims.stop()
+      }
+      return
+    }
+
     const count = card.deployCount ?? 1
     this.configureTroopSprites(card.id, card.textureKeyPlayer, count)
   }
@@ -119,6 +142,12 @@ export class PlacementGhost {
           this.ensureTroopSprite(i).setVisible(true)
         }
       }
+      return
+    }
+
+    if (this.isBuilding) {
+      this.ring.setVisible(true)
+      this.ensureTroopSprite(0).setVisible(true)
       return
     }
 
@@ -186,6 +215,18 @@ export class PlacementGhost {
       } else if (this.troopPreviewCount > 0) {
         this.positionTroopCluster(world.x, world.y, valid)
       }
+      return
+    }
+
+    if (this.isBuilding) {
+      this.ring.setVisible(true)
+      this.ring.setPosition(world.x, world.y)
+      this.ring.setFillStyle(valid ? VALID_TINT : INVALID_TINT, valid ? 0.14 : 0.1)
+      this.ring.setStrokeStyle(2, valid ? VALID_TINT : INVALID_TINT, valid ? 0.6 : 0.45)
+      const sprite = this.ensureTroopSprite(0)
+      sprite.setVisible(true)
+      sprite.setPosition(world.x, world.y)
+      sprite.clearTint()
       return
     }
 

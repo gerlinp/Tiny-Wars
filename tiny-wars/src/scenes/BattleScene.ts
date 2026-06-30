@@ -21,8 +21,9 @@ import { Troop } from '@core/entities/Troop'
 import type { Building } from '@core/entities/Building'
 import { Owner, EntityKind, TroopState, BuildingState, CardType } from '@core/types'
 import type { EntityStats } from '@core/types'
+import { usesArrowProjectile, usesCannonHit } from '@data/AudioManifest'
 import { getAttackWindupMs, getRunLeapPose, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL, type AnimClip } from '@data/AssetManifest'
-import { rocketFlightMs, arrowFlightMs } from '@data/ProjectileConstants'
+import { arrowFlightMs, rocketFlightMs } from '@data/ProjectileConstants'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { loadPlayerDeck } from '@data/PlayerDeck'
 import { GAME_HEIGHT, CELL_SIZE, GRID_ROWS } from '@data/GameConstants'
@@ -235,7 +236,13 @@ export class BattleScene extends Phaser.Scene {
           if (event.cardId === 'arrows') {
             const def = CARD_DEFINITIONS.arrows!
             const radiusPx = def.spellStats!.radius * CELL_SIZE
-            this.arrowsSpell.spawn(event.to, event.owner, radiusPx, event.flightMs)
+            this.arrowsSpell.spawn(
+              event.to,
+              event.owner,
+              radiusPx,
+              event.flightMs,
+              () => this.sounds.playArrowHit(),
+            )
           } else if (event.cardId === 'goblin_barrel') {
             const kingSprite = this.getKingTowerSprite(event.owner)
             const from = kingSprite?.fireCannonAt(event.to)
@@ -291,21 +298,29 @@ export class BattleScene extends Phaser.Scene {
             this.sprites.get(event.attackerId)?.onAttackImpact(aimPoint)
           }
 
-          if (attackerCardId === 'wood_tower' && to) {
+          if (attackerCardId === 'wood_tower' && to && !event.splash) {
             const splashR = (attacker?.stats as EntityStats | undefined)?.splashRadius ?? 1.5
-            const crewOrigin = event.attackerId
-              ? this.sprites.get(event.attackerId)?.getBombCrewOrigin()
-              : null
-            const bombFrom = crewOrigin ?? from
-            if (bombFrom) {
-              const flightMs = rocketFlightMs(Math.hypot(to.x - bombFrom.x, to.y - bombFrom.y))
-              this.tntProjectiles.spawn(bombFrom, to, attacker!.owner, flightMs, () => {
-                this.effects.spawn(to.x, to.y, splashR * CELL_SIZE)
+            const attackerId = event.attackerId
+            const owner = attacker!.owner
+            const sprite = attackerId ? this.sprites.get(attackerId) : null
+            const lobDelayMs = sprite?.getBombTowerLobDelayMs() ?? getAttackWindupMs('bomb_fish', owner)
+            const target = { x: to.x, y: to.y }
+            const targetId = event.targetId
+
+            this.time.delayedCall(lobDelayMs, () => {
+              const launchFrom = (attackerId ? this.sprites.get(attackerId)?.getBombLaunchPoint() : null)
+                ?? (attackerId ? this.sprites.get(attackerId)?.getBombCrewOrigin() : null)
+              if (!launchFrom) {
                 flash()
+                return
+              }
+              const flightMs = rocketFlightMs(Math.hypot(target.x - launchFrom.x, target.y - launchFrom.y))
+              this.tntProjectiles.spawn(launchFrom, target, owner, flightMs, () => {
+                this.sounds.playCannonHit()
+                this.effects.spawn(target.x, target.y, splashR * CELL_SIZE)
+                this.flashTarget(targetId)
               })
-            } else {
-              flash()
-            }
+            })
           } else if (
             attacker?.kind === EntityKind.TOWER
             && (attacker as Tower).isKing
@@ -318,6 +333,7 @@ export class BattleScene extends Phaser.Scene {
               this.getAttackRate(attacker),
             )
             this.tntProjectiles.spawn(from, to, attacker.owner, flightMs, () => {
+              this.sounds.playCannonHit()
               flash()
               this.effects.spawn(to.x, to.y)
             }, 'flat', {
@@ -337,6 +353,7 @@ export class BattleScene extends Phaser.Scene {
                 attackRate,
               )
               this.tntProjectiles.spawn(launchFrom, to, attacker.owner, flightMs, () => {
+                this.sounds.playCannonHit()
                 this.effects.spawn(to.x, to.y, splashR * CELL_SIZE)
                 flash()
               }, 'straight', {
@@ -355,13 +372,30 @@ export class BattleScene extends Phaser.Scene {
                 cardId === 'torch_goblin' ? { projectileTint: 0xffcc22, explosionTint: 0xff8800 } :
                 undefined,
               )
+            } else if (
+              attacker
+              && from
+              && to
+              && !event.splash
+              && usesArrowProjectile(
+                cardId,
+                attacker.kind,
+                attacker.kind === EntityKind.TOWER ? (attacker as Tower).isKing : false,
+              )
+            ) {
+              this.spawnArrowHit(from, to, attacker.owner, attackRate, flash)
             } else {
-              this.arrows.spawn(from, to, attacker.owner, attackRate, flash)
+              flash()
             }
           } else {
             flash()
             if (!event.splash && attacker && isMeleeAttacker(attacker)) {
-              this.sounds.playMeleeHit()
+              const cardId = this.entityCardIds.get(attacker.id) ?? attacker.cardId ?? ''
+              if (usesCannonHit(cardId)) {
+                this.sounds.playCannonHit()
+              } else {
+                this.sounds.playMeleeStrike(cardId)
+              }
             }
           }
           break
@@ -457,6 +491,8 @@ export class BattleScene extends Phaser.Scene {
               aimPoint,
               leapPose: dashPhase === 'leap' ? getRunLeapPose(cardId, entity.owner) ?? undefined : undefined,
             }
+          } else if (troop.state === TroopState.SPAWNING) {
+            anim = 'idle'
           } else if (troop.isHealBurstActive() && cardId === 'monk' && troop.state === TroopState.WALKING) {
             healSync = { aimPoint: this.aimPointForTroop(troop) ?? undefined }
           } else if (troop.state === TroopState.WALKING) {
@@ -533,6 +569,19 @@ export class BattleScene extends Phaser.Scene {
   private getAttackRate(entity: Entity): number {
     if (entity.kind === EntityKind.TOWER) return (entity as Tower).stats.attackRate
     return (entity as Troop | Building).stats.attackRate
+  }
+
+  private spawnArrowHit(
+    from: Vec2,
+    to: Vec2,
+    owner: Owner,
+    attackRate: number,
+    onImpact?: () => void,
+  ): void {
+    this.arrows.spawn(from, to, owner, attackRate, () => {
+      this.sounds.playArrowHit()
+      onImpact?.()
+    })
   }
 
   /** Troops/towers: after combat hit. Buildings: any HP loss (decay or combat). */

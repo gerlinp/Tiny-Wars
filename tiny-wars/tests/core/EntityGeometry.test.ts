@@ -8,7 +8,6 @@ import type { EntityStats } from '@core/types'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import {
   approachPointOnSurface,
-  buildingCombatRadius,
   edgeDistBetweenEntities,
   entityCollisionCenter,
   entityHalfExtents,
@@ -18,9 +17,8 @@ import {
   troopCollisionRadius,
 } from '@core/EntityGeometry'
 import {
-  BUILDING_COMBAT_RADIUS_CELLS,
-  BUILDING_FOOTPRINT_CELLS,
   CELL_SIZE,
+  BUILDING_FOOTPRINT_CELLS,
   TOWER_FOOTPRINT_CELLS,
   BOT_TOWER_ROW,
   TROOP_COLLISION_RADIUS_CELLS,
@@ -55,13 +53,13 @@ describe('EntityGeometry', () => {
     expect(troopCollisionRadius(troop)).toBeLessThan(CELL_SIZE)
   })
 
-  it('wood tower blocks a fixed 2x2 path footprint', () => {
+  it('wood tower uses standard building footprint with princess combat circle', () => {
     const pos = { x: 11 * CELL_SIZE + CELL_SIZE / 2, y: 25 * CELL_SIZE + CELL_SIZE / 2 }
     const building = new Building(Owner.PLAYER, WOOD_TOWER_STATS, pos, 'wood_tower')
 
-    expect(building.blockedCells.length).toBe(BUILDING_FOOTPRINT_CELLS.w * BUILDING_FOOTPRINT_CELLS.h)
+    expect(building.blockedCells.length).toBe(4)
     expect(building.pathHalfW).toBe((BUILDING_FOOTPRINT_CELLS.w / 2) * CELL_SIZE)
-    expect(building.combatRadiusPx).toBe(BUILDING_COMBAT_RADIUS_CELLS * CELL_SIZE)
+    expect(building.combatRadiusPx).toBe(towerCombatRadius(false))
   })
 
   it('surface distance is zero on combat hull and positive outside', () => {
@@ -70,7 +68,7 @@ describe('EntityGeometry', () => {
     const center = entityCollisionCenter(building)
 
     expect(surfaceDistToEntity(center, building)).toBeCloseTo(0, 0)
-    expect(surfaceDistToEntity({ x: center.x + buildingCombatRadius() + 20, y: center.y }, building))
+    expect(surfaceDistToEntity({ x: center.x + building.combatRadiusPx + 20, y: center.y }, building))
       .toBeCloseTo(20, 0)
   })
 
@@ -82,8 +80,8 @@ describe('EntityGeometry', () => {
     const center = entityCollisionCenter(building)
 
     const distToCenter = Math.hypot(approach.x - center.x, approach.y - center.y)
-    expect(distToCenter).toBeGreaterThanOrEqual(buildingCombatRadius() - 1)
-    expect(distToCenter).toBeLessThan(buildingCombatRadius() + 10)
+    expect(distToCenter).toBeGreaterThanOrEqual(building.combatRadiusPx - 1)
+    expect(distToCenter).toBeLessThan(building.combatRadiusPx + 10)
   })
 
   it('gridCellsForFootprint covers cells intersecting the box', () => {
@@ -119,7 +117,7 @@ describe('EntityGeometry', () => {
     const pos = { x: 200, y: 500 }
     const building = new Building(Owner.PLAYER, WOOD_TOWER_STATS, pos, 'wood_tower')
     const center = entityCollisionCenter(building)
-    const far = { x: center.x + buildingCombatRadius() + 32, y: center.y }
+    const far = { x: center.x + building.combatRadiusPx + 32, y: center.y }
 
     expect(edgeDistBetweenEntities(building, building)).toBe(0)
     expect(surfaceDistToEntity(far, building)).toBeCloseTo(32, 0)

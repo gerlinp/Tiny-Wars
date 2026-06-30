@@ -71,6 +71,15 @@ export const GARRISON_CANNON_ROCKET_BURST_SCALE = 1.14
 /** Kick distance (px) opposite the shot direction. */
 export const GARRISON_CANNON_ROCKET_KICK_PX = 5
 
+/** Pirate-tower deck row for bomb-tower crew (fraction of building height from base). */
+export const BOMB_TOWER_DECK_Y_FRAC = 0.82
+
+/** Bomb fish feet row in idle frame — matches map-editor garrison archer feet. */
+export const BOMB_TOWER_BOMBER_FEET_Y = 136 / 192
+
+/** Troop card whose sprites animate the bomb-tower deck bomber. */
+export const BOMB_TOWER_CREW_CARD_ID = 'bomb_fish'
+
 // Wood deck on Knights Tower_Blue.png — row 90 was still visually high; use ~101.
 const PRINCESS_GARRISON: GarrisonSlot[] = [
   { relX: 0, deckRelY: deckRelY(101) + GARRISON_DECK_SINK },

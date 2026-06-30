@@ -1,0 +1,43 @@
+---
+description: Keep map-editor.html in sync when changing cards, assets, or editor-related rendering
+globs:
+  - tiny-wars/src/data/CardData.ts
+  - tiny-wars/src/data/AssetManifest.ts
+  - tiny-wars/src/data/GameConstants.ts
+  - tiny-wars/src/rendering/towerGarrison.ts
+  - tiny-wars/src/rendering/BombTowerCannon.ts
+  - tiny-wars/src/tools/mapEditor*.ts
+  - tiny-wars/public/map-editor.html
+alwaysApply: false
+---
+
+# Map editor sync
+
+The unit/map editor (`tiny-wars/public/map-editor.html`) shares data with the game via a **generated catalog block**.
+
+## Source of truth
+
+| Game data | Generator |
+|-----------|-----------|
+| Card stats, types | `src/tools/mapEditorCatalog.ts` ← `CardData.ts` |
+| Sprite paths, contentFill, footprints | `AssetManifest.ts` |
+| Bomb tower deck Y, cannon paths | `towerGarrison.ts`, `AssetManifest.ts` |
+| Editor-only labels / order | `src/tools/mapEditorOverrides.ts` |
+
+## After changing game cards or assets
+
+1. Run **`npm run sync:map-editor`** in `tiny-wars/` (also runs automatically via `.cursor/hooks/sync-map-editor.sh` after edits to tracked files).
+2. Do **not** hand-edit the block between `@generated map-editor-sync-start` and `@generated map-editor-sync-end` in `map-editor.html`.
+3. For editor-only tweaks (display name "Archers", picker order, tower map entries), edit **`mapEditorOverrides.ts`**, then sync again.
+4. **`npm test`** includes `tests/tools/mapEditorCatalog.test.ts` — fails if the HTML block is stale.
+
+## New card checklist
+
+- Wire card in `CardData.ts` + `AssetManifest.ts` (normal game flow).
+- Add card id to `MAP_EDITOR_CATALOG_ORDER` in `mapEditorOverrides.ts` if you care about picker order.
+- Optional: `MAP_EDITOR_DISPLAY_NAME_OVERRIDES` / `MAP_EDITOR_UNIT_OVERRIDES` for editor-only fields.
+- Run `npm run sync:map-editor`.
+
+## Editor-only logic
+
+Garrison slot editing, slot rings, tower visual offsets, and map-tab layout remain hand-maintained in `map-editor.html`. Only the **unit catalog constants** block is generated.

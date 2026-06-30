@@ -32,5 +32,5 @@
       "@audio/*":     ["./src/audio/*"]
     }
   },
-  "include": ["src", "tests", "vite.config.ts", "capacitor.config.ts"]
+  "include": ["src", "tests", "scripts", "vite.config.ts", "capacitor.config.ts"]
 }

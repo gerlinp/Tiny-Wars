@@ -88,7 +88,7 @@ export class ArrowsSpellPool {
     }
   }
 
-  spawn(target: Vec2, owner: Owner, radiusPx: number, flightMs: number): void {
+  spawn(target: Vec2, owner: Owner, radiusPx: number, flightMs: number, onHit?: () => void): void {
     const approach = radiusPx * 2.6
     const spread = radiusPx * 1.7
 
@@ -127,6 +127,7 @@ export class ArrowsSpellPool {
           onComplete: () => {
             img.setAlpha(0)
             img.setData('flying', false)
+            onHit?.()
           },
         })
       })

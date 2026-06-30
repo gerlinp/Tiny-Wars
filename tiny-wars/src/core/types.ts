@@ -8,7 +8,7 @@ export enum AttackType {
   AIR_AND_GROUND = 'AIR_AND_GROUND',
 }
 
-export enum TroopState { WALKING = 'WALKING', ATTACKING = 'ATTACKING', DEAD = 'DEAD' }
+export enum TroopState { SPAWNING = 'SPAWNING', WALKING = 'WALKING', ATTACKING = 'ATTACKING', DEAD = 'DEAD' }
 
 export enum BuildingState { IDLE = 'IDLE', ATTACKING = 'ATTACKING' }
 

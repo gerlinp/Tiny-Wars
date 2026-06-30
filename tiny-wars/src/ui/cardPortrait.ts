@@ -4,26 +4,70 @@ import { Owner } from '@core/types'
 import {
   cardAvatarKey,
   getCardAvatarBackdrop,
-  getCardAvatarFocusY,
   getCardAvatarHandScale,
   getCardAvatarSwarmSource,
+  getUseEditorCompositeAvatar,
   idleSheetKey,
   PADDLE_SHARK_IDLE_SHEET,
 } from '@data/AssetManifest'
+import { BOMB_TOWER_CREW_CARD_ID } from '@rendering/towerGarrison'
 import { applyCardAvatarTexture, applyArrowSprite, ARROW_DISPLAY_W } from '@rendering/renderingUtils'
 import { troopSwarmPortraitLayout } from '@core/DeploySystem'
 import { TROOP_DEPLOY_SPREAD_CELLS } from '@data/GameConstants'
-import { targetHeightForCard, displaySizeForCard, displaySizeForTroopSheet } from '@rendering/assetDisplaySize'
-import { applyBackdropDisplaySize, applyCardAvatarIconSize, applyHandScale } from './cardHandLayout'
-import {
-  AIR_BOAT_AVATAR_CROP_RATIO,
-  layoutAirBoatPortrait,
-} from './airBoatPortraitLayout'
+import { targetHeightForCard } from '@rendering/assetDisplaySize'
+import { layoutCompositeInSlot } from '@rendering/compositeAvatarLayout'
+import { applyBackdropDisplaySize, applyCardAvatarIconSize } from './cardHandLayout'
 
 export type CardPortraitNode = Phaser.GameObjects.Image | Phaser.GameObjects.Container
 
 export function destroyCardPortrait(nodes: CardPortraitNode[]): void {
   for (const node of nodes) node.destroy()
+}
+
+function compositeLayerTextureKey(unitId: string, layerId: string): string {
+  if (unitId === 'wood_tower' && layerId === 'bomber') {
+    return idleSheetKey(BOMB_TOWER_CREW_CARD_ID, Owner.PLAYER)
+  }
+  if (unitId === 'air_boat' && layerId === 'crew') {
+    return PADDLE_SHARK_IDLE_SHEET.key
+  }
+  return idleSheetKey(unitId, Owner.PLAYER)
+}
+
+/** Composite card portrait — layers placed via anchor-relative coords from the unit editor. */
+function createCompositePortrait(
+  scene: Phaser.Scene,
+  card: CardDefinition,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): CardPortraitNode[] {
+  const handScale = getCardAvatarHandScale(card.id)
+  const layout = layoutCompositeInSlot(card.id, w, h, handScale)
+  if (!layout) return []
+
+  const composite = scene.add.container(x, y)
+  const toLocal = (px: number, py: number) => ({ x: px - w / 2, y: py - h / 2 })
+
+  const layerOrder = card.id === 'wood_tower'
+    ? ['platform', 'bomber']
+    : ['hull', 'crew']
+
+  for (const layerId of layerOrder) {
+    const layer = layout.layers[layerId]
+    if (!layer) continue
+
+    const texKey = compositeLayerTextureKey(card.id, layerId)
+    const sprite = scene.add.image(0, 0, texKey, 0)
+    sprite.setOrigin(layer.originX, layer.originY)
+    const pos = toLocal(layer.x, layer.y)
+    sprite.setPosition(pos.x, pos.y)
+    sprite.setDisplaySize(layer.width, layer.height)
+    composite.add(sprite)
+  }
+
+  return [composite]
 }
 
 function createSwarmPortrait(
@@ -72,60 +116,6 @@ function createSwarmPortrait(
 }
 
 /**
- * Air boat portrait — boat hull (focused crop) with the paddle-shark crew seated inside,
- * matching the on-map composite (the boat alone reads as empty otherwise).
- */
-function createAirBoatPortrait(
-  scene: Phaser.Scene,
-  card: CardDefinition,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-): CardPortraitNode[] {
-  const nodes: CardPortraitNode[] = []
-
-  const backdropDef = getCardAvatarBackdrop(card.id)
-  const backdrop = backdropDef ? scene.add.image(x, y, backdropDef.key) : null
-  if (backdrop) {
-    applyBackdropDisplaySize(backdrop, w, h)
-    nodes.push(backdrop)
-  }
-
-  const focusY = getCardAvatarFocusY(card.id)
-  const composite = scene.add.container(x, y)
-
-  const boat = scene.add.image(0, 0, cardAvatarKey(card.id))
-  applyCardAvatarTexture(boat, scene, card.id)
-
-  const fw = boat.frame.width
-  const fh = boat.frame.height
-  const boatOnMap = displaySizeForCard(scene, card.id, cardAvatarKey(card.id), 0)
-  const sharkOnMap = displaySizeForTroopSheet(scene, PADDLE_SHARK_IDLE_SHEET.key, 0)
-  const sharkToBoat = sharkOnMap.height / boatOnMap.height
-
-  const layout = layoutAirBoatPortrait(fw, fh, w, h, AIR_BOAT_AVATAR_CROP_RATIO, focusY, sharkToBoat)
-  boat.setCrop(layout.cropX, layout.cropY, layout.cropW, layout.cropH)
-  boat.setPosition(0, layout.boatY)
-  boat.setScale(layout.scale)
-  applyHandScale(boat, getCardAvatarHandScale(card.id))
-
-  const handScale = getCardAvatarHandScale(card.id)
-  const shark = scene.add.image(
-    layout.shark.x * handScale,
-    layout.shark.y * handScale,
-    PADDLE_SHARK_IDLE_SHEET.key,
-    0,
-  )
-  shark.setDisplaySize(layout.shark.width * handScale, layout.shark.height * handScale)
-
-  composite.add([boat, shark])
-  nodes.push(composite)
-
-  return nodes
-}
-
-/**
  * Create the backdrop + portrait for a card, centred at (x, y) and sized
  * to fill w×h. Returns every created node so callers can destroy them when the
  * displayed card changes.
@@ -142,8 +132,8 @@ export function createCardPortrait(
     return createSwarmPortrait(scene, card, x, y, w, h)
   }
 
-  if (card.id === 'air_boat') {
-    return createAirBoatPortrait(scene, card, x, y, w, h)
+  if (getUseEditorCompositeAvatar(card.id)) {
+    return createCompositePortrait(scene, card, x, y, w, h)
   }
 
   const images: Phaser.GameObjects.Image[] = []

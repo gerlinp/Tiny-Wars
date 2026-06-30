@@ -147,6 +147,12 @@ table.tower-table tr:nth-child(even) td { background: #16182a; }
   margin-bottom: 6px; color: #a0aac0; font-size: 12px;
 }
 .toggle-row input[type=checkbox] { accent-color: #4060cc; }
+.toggle-row label.selectable-overlay {
+  cursor: pointer;
+  padding: 1px 4px; border-radius: 3px;
+  transition: background 0.1s, color 0.1s;
+}
+.toggle-row label.selectable-overlay:hover { background: rgba(80,120,220,0.18); color: #c8d8ff; }
 
 /* Action / export buttons */
 .action-btn {
@@ -263,11 +269,43 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 }
 #unit-canvas-stage {
   display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 20px;
+  width: fit-content;
+  margin: 0 auto;
+}
+#unit-canvas-col {
+  display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  width: fit-content;
-  margin: 0 auto;
+}
+#avatar-preview-wrap {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+}
+#avatar-preview-wrap .preview-label {
+  color: #8090b0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+#avatar-preview-wrap .preview-hint {
+  color: #6070a0;
+  font-size: 10px;
+  max-width: 220px;
+  text-align: center;
+  line-height: 1.35;
+}
+#avatar-preview-c {
+  display: block;
+  image-rendering: pixelated;
+  border: 1px solid #2a2a5a;
 }
 #unit-status { color: #6070a0; font-size: 11px; font-variant-numeric: tabular-nums; min-height: 16px; text-align: center; }
 </style>
@@ -374,15 +412,16 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 
     <div class="section">
       <div class="section-title">Overlays</div>
-      <div class="toggle-row"><label>Sprite</label><input type="checkbox" id="tog-sprite" checked></div>
-      <div class="toggle-row"><label>Collision circle</label><input type="checkbox" id="tog-collision" checked></div>
-      <div class="toggle-row"><label>Attack range ring</label><input type="checkbox" id="tog-range-ring" checked></div>
-      <div class="toggle-row"><label>Attack slots</label><input type="checkbox" id="tog-slots" checked></div>
-      <div class="toggle-row"><label>Tower comparison</label><input type="checkbox" id="tog-tower-comp" checked></div>
-      <div class="toggle-row"><label>Health bar</label><input type="checkbox" id="tog-hbar" checked></div>
-      <div class="toggle-row"><label>Grid lines</label><input type="checkbox" id="tog-unit-grid" checked></div>
-      <div class="toggle-row" id="tog-garrison-row" style="display:none"><label>Castle garrison</label><input type="checkbox" id="tog-garrison" checked></div>
-      <div class="toggle-row" id="tog-map-context-row" style="display:none"><label>Arena map context</label><input type="checkbox" id="tog-map-context" checked></div>
+      <div class="toggle-row"><label for="tog-sprite">Sprite</label><input type="checkbox" id="tog-sprite" checked></div>
+      <div class="toggle-row"><label for="tog-collision">Collision circle</label><input type="checkbox" id="tog-collision" checked></div>
+      <div class="toggle-row"><label for="tog-range-ring">Attack range ring</label><input type="checkbox" id="tog-range-ring" checked></div>
+      <div class="toggle-row"><label for="tog-slots">Attack slots</label><input type="checkbox" id="tog-slots" checked></div>
+      <div class="toggle-row"><label for="tog-tower-comp">Tower comparison</label><input type="checkbox" id="tog-tower-comp" checked></div>
+      <div class="toggle-row"><label class="selectable-overlay" data-sel-type="hbar">Health bar</label><input type="checkbox" id="tog-hbar" checked></div>
+      <div class="toggle-row" id="tog-avatar-frame-row" style="display:none"><label class="selectable-overlay" data-sel-type="avatarBox">Avatar focus circle</label><input type="checkbox" id="tog-avatar-frame" checked></div>
+      <div class="toggle-row"><label for="tog-unit-grid">Grid lines</label><input type="checkbox" id="tog-unit-grid" checked></div>
+      <div class="toggle-row" id="tog-garrison-row" style="display:none"><label class="selectable-overlay" data-sel-type="garrison">Castle garrison</label><input type="checkbox" id="tog-garrison" checked></div>
+      <div class="toggle-row" id="tog-map-context-row" style="display:none"><label for="tog-map-context">Arena map context</label><input type="checkbox" id="tog-map-context" checked></div>
     </div>
 
     <div class="section" id="slot-radius-section">
@@ -499,6 +538,36 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
       <button class="export-btn" id="btn-copy-hbar-off" style="margin-top:6px;margin-bottom:0">⎘ Copy hbarOffset</button>
     </div>
 
+    <div class="section" id="composite-section" style="display:none">
+      <div class="section-title">Composite Layers</div>
+      <div style="font-size:10px;color:#6070a0;margin-bottom:6px">Drag layers on canvas · offsets are game px</div>
+      <div class="info-row"><span>Selected layer</span><span class="info-val" id="lbl-composite-layer">—</span></div>
+      <select class="unit-select" id="composite-layer-picker" style="margin-top:4px"></select>
+      <div class="range-row" style="margin-top:6px">
+        <label style="width:24px;color:#aaa;font-size:11px">X</label>
+        <input type="number" id="composite-off-x" step="1" min="-200" max="200" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">px</span>
+      </div>
+      <div class="range-row">
+        <label style="width:24px;color:#aaa;font-size:11px">Y</label>
+        <input type="number" id="composite-off-y" step="1" min="-200" max="200" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">px</span>
+      </div>
+      <button class="export-btn" id="btn-copy-composite" style="margin-top:6px;margin-bottom:0">⎘ Copy compositeOffsets</button>
+      <div class="toggle-row" style="margin-top:10px">
+        <label>Use editor composite avatar</label>
+        <input type="checkbox" id="tog-use-editor-avatar" checked>
+      </div>
+      <div class="range-row" style="margin-top:8px">
+        <label style="width:auto;min-width:88px;color:#aaa;font-size:11px">Zoom</label>
+        <input type="range" id="avatar-box-scale" min="25" max="400" value="100" step="5" style="flex:1">
+        <span id="avatar-box-scale-val" style="color:#6070a0;font-size:11px;min-width:36px;text-align:right">100%</span>
+      </div>
+      <div style="font-size:10px;color:#6070a0;margin-top:4px">Drag the circle on canvas to set the avatar focal point · Zoom controls preview magnification</div>
+      <div style="font-size:10px;color:#6070a0;margin-top:4px">Toggle off editor composite to compare static PNG avatar on the side panel</div>
+      <button class="export-btn" id="btn-copy-use-editor-avatar" style="margin-top:6px;margin-bottom:0">⎘ Copy useEditorCompositeAvatar</button>
+    </div>
+
     <div class="section">
       <div class="section-title">Info</div>
       <div class="info-row"><span>Collision radius</span><span class="info-val">0.35 cells</span></div>
@@ -537,9 +606,17 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 
 <!-- ── Unit Editor Canvas ─────────────────────────── -->
 <div id="unit-canvas-wrap" style="display:none; flex:1; min-height:0; min-width:0; overflow:auto; background:#08080e; padding:16px;">
-  <div id="unit-canvas-stage" style="display:flex; flex-direction:column; align-items:center; gap:6px; width:fit-content; margin:0 auto;">
-    <canvas id="unit-c" style="display:block; image-rendering:pixelated; border:1px solid #2a2a5a; cursor:default;"></canvas>
-    <div id="unit-status">Select a unit to inspect its attack geometry</div>
+  <div id="unit-canvas-stage">
+    <div id="unit-canvas-col">
+      <canvas id="unit-c" style="display:block; image-rendering:pixelated; border:1px solid #2a2a5a; cursor:default;"></canvas>
+      <div id="unit-status">Select a unit to inspect its attack geometry</div>
+    </div>
+    <div id="avatar-preview-wrap">
+      <div class="preview-label">Card avatar preview</div>
+      <div class="preview-hint" id="avatar-preview-mode-hint">Cropped from avatar frame</div>
+      <canvas id="avatar-preview-c"></canvas>
+      <div class="preview-hint">Deck-hand size · scales with Preview size slider</div>
+    </div>
   </div>
 </div>
 
@@ -1615,7 +1692,8 @@ document.getElementById('tab-map-btn').addEventListener('click', () => switchTab
 document.getElementById('tab-units-btn').addEventListener('click', () => switchTab('units'))
 
 // ── Unit catalog ──────────────────────────────────────────────
-// Mirrors CardData.ts + AssetManifest.ts.  Troops = player idle; towers swap by approach side.
+// @generated map-editor-sync-start — do not edit; run: npm run sync:map-editor
+// Mirrors CardData.ts + AssetManifest.ts + towerGarrison.ts (see src/tools/mapEditorCatalog.ts).
 const TOWER_EDITOR_PATHS = {
   player: {
     princess: 'assets/Factions/Knights/Buildings/Tower/Tower_Blue.png',
@@ -1626,39 +1704,151 @@ const TOWER_EDITOR_PATHS = {
     king:     'assets/Factions/Knights/Buildings/Castle/Castle_Red.png',
   },
 }
+const PIRATE_TOWER_GROUND = 'assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower/Pirate Tower_Ground.png'
+/** Bomb tower deck bomber — mirrors BombTowerCrew.ts (bomb_fish idle sheets). */
+const BOMB_TOWER_BOMBER_PATHS = {
+  player: 'assets/Enemy Pack/Enemies/Pirate Fish/Bomb Fish/Bomb Fish_Idle.png',
+  cpu:    'assets/Enemy Pack/Enemies/Pirate Fish/Bomb Fish/Bomb Fish_Idle.png',
+}
+const BOMB_TOWER_DECK_Y_FRAC = 0.82
+const MAP_HEIGHT_MULTIPLIER_BUILDING = 2.2
+const COMPOSITE_LAYER_OFFSETS_DEFAULTS = {
+  "wood_tower": {
+    "platform": {
+      "x": 4,
+      "y": 323
+    },
+    "bomber": {
+      "x": 6,
+      "y": 533
+    }
+  },
+  "air_boat": {
+    "hull": {
+      "x": 0,
+      "y": 0
+    },
+    "crew": {
+      "x": 0,
+      "y": 0
+    }
+  }
+}
+const COMPOSITE_AVATAR_LAYOUT_DEFAULTS = {
+  "wood_tower": {
+    "slotAnchor": {
+      "x": 0.5,
+      "y": 0.72
+    },
+    "layers": {
+      "platform": {
+        "x": 0,
+        "y": 0,
+        "originX": 0.5,
+        "originY": 1
+      },
+      "bomber": {
+        "x": 0,
+        "y": -541.2,
+        "originX": 0.5,
+        "originY": 0.7083333333333334
+      }
+    }
+  },
+  "air_boat": {
+    "slotAnchor": {
+      "x": 0.5,
+      "y": 0.55
+    },
+    "layers": {
+      "hull": {
+        "x": 0,
+        "y": 0,
+        "originX": 0.5,
+        "originY": 0.25
+      },
+      "crew": {
+        "x": -66.85714285714286,
+        "y": 205.71428571428575,
+        "originX": 0.5,
+        "originY": 0.5
+      }
+    }
+  }
+}
+const COMPOSITE_AVATAR_SLOT_SCALE = {
+  "wood_tower": 1.75
+}
+const COMPOSITE_AVATAR_FRAME_POS_DEFAULTS = {
+  "wood_tower": {
+    "x": 430,
+    "y": 466
+  }
+}
+const USE_EDITOR_COMPOSITE_AVATAR_DEFAULTS = {
+  "wood_tower": true,
+  "air_boat": true
+}
+const COMPOSITE_STATIC_AVATAR_PATHS = {
+  "wood_tower": "assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower/Pirate Tower_Ground.png",
+  "air_boat": "assets/Enemy Pack/Enemies/Pirate Fish/Boat/AirBoat_Idle.png"
+}
+const COMPOSITE_STATIC_AVATAR_META = {
+  "wood_tower": {
+    "frameW": 128,
+    "frameH": 192,
+    "buildingFit": true,
+    "cropRatio": 0.62,
+    "focusY": 0.5,
+    "handScale": 0.92,
+    "hasBackdrop": false
+  },
+  "air_boat": {
+    "frameW": 256,
+    "frameH": 256,
+    "buildingFit": false,
+    "cropRatio": 0.7,
+    "focusY": 0.82,
+    "handScale": 1,
+    "hasBackdrop": true
+  }
+}
 const UNIT_CATALOG = [
   // Troops
-  { id:'warrior',           name:'Warrior',           attackRange:1.2,  fw:192, fh:192, path:'assets/Units/Blue Units/Warrior/Warrior_Idle.png',                                                    contentFill:0.52 },
-  { id:'archer',            name:'Archers',            attackRange:5.5,  fw:192, fh:192, path:'assets/Factions/Knights/Troops/Archer/Blue/Archer_Blue.png',                                          contentFill:0.50 },
-  { id:'elite_archer',      name:'Elite Archer',       attackRange:6.5,  fw:192, fh:192, path:'assets/Units/Blue Units/Archer/Archer_Idle.png',                                                      contentFill:0.50 },
-  { id:'lancer',            name:'Lancer',             attackRange:1.6,  fw:320, fh:320, path:'assets/Units/Blue Units/Lancer/Lancer_Idle.png',                                                      contentFill:0.30 },
-  { id:'skeleton',          name:'Skeletons',          attackRange:0.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png',                                                      contentFill:0.55 },
-  { id:'skeleton_army',     name:'Skeleton Army',      attackRange:0.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png',                                                      contentFill:0.55 },
-  { id:'troll',             name:'Troll',              attackRange:1.2,  fw:384, fh:384, path:'assets/Enemy Pack/Enemies/Troll/Troll_Idle.png',                                                      contentFill:0.48 },
-  { id:'spear_goblin',      name:'Spear Goblin',       attackRange:1.6,  fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin/Spear Goblin_Idle.png',                        contentFill:0.55 },
-  { id:'villagers',         name:'Villagers',          attackRange:0.5,  fw:192, fh:192, path:'assets/Units/Blue Units/Pawn/Pawn_Idle.png',                                                          contentFill:0.52 },
-  { id:'torch_goblin',      name:'Torch Goblin',       attackRange:5.0,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin/Torch Goblin_Idle.png',                        contentFill:0.55 },
-  { id:'wizard',            name:'Wizard',             attackRange:5.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png',                            contentFill:0.55 },
-  { id:'lizard',            name:'Lizard',             attackRange:3.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Lizard/Lizard_Idle_Flying.png',                                   contentFill:0.55 },
-  { id:'air_boat',          name:'Air Boat',           attackRange:1.5,  fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Pirate Fish/Boat/AirBoat_Idle.png',                                        contentFill:0.42, spriteOriginY:0.25 },
-  { id:'mega_minion',       name:'Mega Minion',        attackRange:1.2,  fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Caveborn/Bear/Bear_Idle.png',                                              contentFill:0.50 },
-  { id:'pig_rider',         name:'Pig Rider',          attackRange:1.6,  fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig Rider Spear Goblin/Pig Rider_Idle.png',                contentFill:0.52 },
-  { id:'pig',               name:'Pig',                attackRange:0.8,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig/Pig_Idle.png',                                          contentFill:0.50 },
-  { id:'bomb_fish',         name:'Bomb Fish',          attackRange:5.0,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Bomb Fish/Bomb Fish_Idle.png',                                 contentFill:0.55 },
-  { id:'goblin_demolisher', name:'Goblin Demolisher',  attackRange:4.5,  fw:192, fh:192, path:'assets/Factions/Goblins/Troops/TNT/Blue/TNT_Blue.png',                                               contentFill:0.55 },
-  { id:'minotaur',          name:'Minotaur',           attackRange:1.2,  fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Minotaur/Minotaur_Idle.png',                                               contentFill:0.46 },
-  { id:'gnoll',             name:'Gnoll',              attackRange:4.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Gnoll/Gnoll_Idle.png',                                                     contentFill:0.55 },
-  { id:'thief',             name:'Thief',              attackRange:1.2,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Thief/Thief_Idle.png',                                                     contentFill:0.55 },
-  { id:'turtle',            name:'Turtle',             attackRange:0.75, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Caveborn/Turtle/Turtle_Idle.png',                                          contentFill:0.50 },
-  { id:'panda',             name:'Panda',              attackRange:0.75, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Panda/Panda_Idle.png',                                                     contentFill:0.52 },
-  { id:'monk',              name:'Monk',               attackRange:5.5,  fw:192, fh:192, path:'assets/Units/Blue Units/Monk/Monk_Idle.png',                                                          contentFill:0.52 },
-  { id:'harpoon_shark',     name:'Harpoon Shark',      attackRange:5.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Harpoon Shark/Harpoon Shark_Idle.png',                        contentFill:0.52 },
-  { id:'spider',            name:'Spider',             attackRange:5.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png',                                          contentFill:0.52 },
-  { id:'spiderling',        name:'Spiderling',         attackRange:5.5,  fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png',                                          contentFill:0.52 },
+  { id:'warrior', name:'Warrior', attackRange:1.2, fw:192, fh:192, path:'assets/Units/Blue Units/Warrior/Warrior_Idle.png', contentFill:0.52 },
+  { id:'archer', name:'Archers', attackRange:5.5, fw:192, fh:192, path:'assets/Factions/Knights/Troops/Archer/Blue/Archer_Blue.png', contentFill:0.5 },
+  { id:'elite_archer', name:'Elite Archer', attackRange:6.5, fw:192, fh:192, path:'assets/Units/Blue Units/Archer/Archer_Idle.png', contentFill:0.5 },
+  { id:'lancer', name:'Lancer', attackRange:1.6, fw:320, fh:320, path:'assets/Units/Blue Units/Lancer/Lancer_Idle.png', contentFill:0.3 },
+  { id:'skeleton', name:'Skeletons', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, tintBotSide:true },
+  { id:'skeleton_army', name:'Skeleton Army', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, tintBotSide:true },
+  { id:'troll', name:'Troll', attackRange:1.2, fw:384, fh:384, path:'assets/Enemy Pack/Enemies/Troll/Troll_Idle.png', contentFill:0.48, tintBotSide:true },
+  { id:'spear_goblin', name:'Spear Goblins', attackRange:1.6, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin/Spear Goblin_Idle.png', contentFill:0.55, tintBotSide:true },
+  { id:'villagers', name:'Villagers', attackRange:0.5, fw:192, fh:192, path:'assets/Units/Blue Units/Pawn/Pawn_Idle.png', contentFill:0.52 },
+  { id:'torch_goblin', name:'Torch Goblin', attackRange:5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin/Torch Goblin_Idle.png', contentFill:0.55, tintBotSide:true },
+  { id:'wizard', name:'Wizard', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.55, tintBotSide:true },
+  { id:'lizard', name:'Lizard', attackRange:3.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Lizard/Lizard_Idle_Flying.png', contentFill:0.55, tintBotSide:true },
+  { id:'air_boat', name:'Air Boat', attackRange:1.5, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Pirate Fish/Boat/AirBoat_Idle.png', contentFill:0.42, tintBotSide:true, spriteOriginY:0.25 },
+  { id:'mega_minion', name:'Mega Minion', attackRange:1.6, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Caveborn/Bear/Bear_Idle.png', contentFill:0.5, tintBotSide:true },
+  { id:'pig_rider', name:'Pig Rider', attackRange:0.8, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig Rider Spear Goblin/Pig Rider_Idle.png', contentFill:0.52, tintBotSide:true },
+  { id:'pig', name:'Pigs', attackRange:0.7, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig/Pig_Idle.png', contentFill:0.5, tintBotSide:true },
+  { id:'bomb_fish', name:'Bomb Fish', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Bomb Fish/Bomb Fish_Idle.png', contentFill:0.55, tintBotSide:true },
+  { id:'goblin_demolisher', name:'Goblin Demolisher', attackRange:5, fw:192, fh:192, path:'assets/Factions/Goblins/Troops/TNT/Blue/TNT_Blue.png', contentFill:0.55 },
+  { id:'minotaur', name:'Minotaur', attackRange:1.2, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Minotaur/Minotaur_Idle.png', contentFill:0.46, tintBotSide:true },
+  { id:'gnoll', name:'Gnoll', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Gnoll/Gnoll_Idle.png', contentFill:0.55, tintBotSide:true },
+  { id:'thief', name:'Thief', attackRange:0.75, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Thief/Thief_Idle.png', contentFill:0.55, tintBotSide:true },
+  { id:'turtle', name:'Turtle', attackRange:0.75, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Caveborn/Turtle/Turtle_Idle.png', contentFill:0.5, tintBotSide:true },
+  { id:'panda', name:'Panda', attackRange:1.2, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Panda/Panda_Idle.png', contentFill:0.52, tintBotSide:true },
+  { id:'monk', name:'Monk', attackRange:1.6, fw:192, fh:192, path:'assets/Units/Blue Units/Monk/Idle.png', contentFill:0.52 },
+  { id:'harpoon_shark', name:'Harpoon Shark', attackRange:1.2, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Harpoon Shark/Harpoon Shark_Idle.png', contentFill:0.52, tintBotSide:true },
+  { id:'spider', name:'Spider', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.52, tintBotSide:true },
+  { id:'spiderling', name:'Spiderling', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.82, tintBotSide:true },
+  // Buildings — deployable structures (CardData building cards)
+  { id:'wood_tower', name:'Bomb Tower', attackRange:7, fw:128, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower/Pirate Tower_Ground.png', contentFill:0.72, isBuilding:true, tintBotSide:true, spriteOriginY:1, hbarOffsetY:-1.1 },
   // Towers — sprite follows Player ↓ / CPU ↑ approach side
-  { id:'princess_tower',    name:'Princess Tower',     attackRange:7.5,  fw:128, fh:256, path:TOWER_EDITOR_PATHS.bot.princess, contentFill:0.90, isTower:true, isKing:false, slotOffsetX: 0, slotOffsetY: 0 },
-  { id:'king_tower',        name:'King Tower',         attackRange:20,   fw:320, fh:256, path:TOWER_EDITOR_PATHS.bot.king,     contentFill:0.88, isTower:true, isKing:true,  slotOffsetX: 0, slotOffsetY: 0 },
+  { id:'princess_tower', name:'Princess Tower', attackRange:7.5, fw:128, fh:256, path:TOWER_EDITOR_PATHS.bot.princess, contentFill:0.9, isTower:true, slotOffsetX:0, slotOffsetY:0 },
+  { id:'king_tower', name:'King Tower', attackRange:20, fw:320, fh:256, path:TOWER_EDITOR_PATHS.bot.king, contentFill:0.88, isTower:true, isKing:true, slotOffsetX:0, slotOffsetY:0 },
 ]
+// @generated map-editor-sync-end
 
 // Live-editable ranges (user can tweak without touching source)
 const liveRanges = {}
@@ -1679,10 +1869,80 @@ for (const owner of Object.keys(TOWER_EDITOR_PATHS)) {
   preloadUnitSprite(TOWER_EDITOR_PATHS[owner].princess)
   preloadUnitSprite(TOWER_EDITOR_PATHS[owner].king)
 }
+preloadUnitSprite(PIRATE_TOWER_GROUND)
+preloadUnitSprite(BOMB_TOWER_BOMBER_PATHS.player)
+preloadUnitSprite(BOMB_TOWER_BOMBER_PATHS.cpu)
 
-for (const owner of Object.keys(TOWER_EDITOR_PATHS)) {
-  preloadUnitSprite(TOWER_EDITOR_PATHS[owner].princess)
-  preloadUnitSprite(TOWER_EDITOR_PATHS[owner].king)
+// ── Composite units (multi-sprite cards) ──────────────────────
+const PADDLE_SHARK_IDLE_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Paddle Shark/Paddle Shark_Idle.png'
+const AIR_BOAT_SPRITE_ORIGIN_Y = 1.28
+const AIR_BOAT_FRAME_SHARK_Y = 0.65
+const AIR_BOAT_SHARK_STERN_X_RATIO = 0.13
+const airBoatYFromAnchor = (frameY) => frameY - AIR_BOAT_SPRITE_ORIGIN_Y
+preloadUnitSprite(PADDLE_SHARK_IDLE_PATH)
+
+const COMPOSITE_UNIT_IDS = new Set(['wood_tower', 'air_boat'])
+/** Mirrors cardHandLayout.ts + AssetManifest avatarHandScale for composite cards. */
+const CARD_HAND_LAYOUT = {
+  gameWidth: 1536,
+  hudHeight: 560,
+  handSlots: 4,
+  deckMarginX: 24,
+  slotGap: 16,
+  nextGap: 32,
+  nextScale: 0.65,
+  elixirBandH: 72,
+  deckPadTop: 4,
+  deckPadBottom: 8,
+  avatarSlotFill: 0.94,
+}
+const COMPOSITE_AVATAR_HAND_SCALE = { wood_tower: 0.92, air_boat: 1 }
+/** Scale deck-hand icon to ~200px tall on the unit canvas (avatar frame size). */
+const AVATAR_BOX_CANVAS_SCALE = 200 / (560 - 72 - 4 - 8) / 0.94
+const AVATAR_CIRCLE_RADIUS = 32      // visual radius of focal-point circle on canvas
+const AVATAR_CIRCLE_HIT_RADIUS = 42  // drag hit area (slightly larger than visual)
+const AVATAR_PREVIEW_MAX_ICON_H = 300
+const AVATAR_PREVIEW_PAD = 10
+const COMPOSITE_LAYER_DEFS = {
+  wood_tower: [
+    { id: 'platform', label: 'Platform', originX: 0.5, originY: 1 },
+    { id: 'bomber', label: 'Bomber', originX: 0.5, originY: 136 / 192 },
+  ],
+  air_boat: [
+    { id: 'hull', label: 'Hull', originX: 0.5, originY: 0.25 },
+    { id: 'crew', label: 'Crew', originX: 0.5, originY: 0.5 },
+  ],
+}
+const liveCompositeOffsets = {}
+const liveUseEditorCompositeAvatar = { ...USE_EDITOR_COMPOSITE_AVATAR_DEFAULTS }
+const liveAvatarBoxPos = {}
+const liveAvatarBoxScale = {}
+for (const unitId of COMPOSITE_UNIT_IDS) {
+  liveCompositeOffsets[unitId] = {}
+  for (const layer of COMPOSITE_LAYER_DEFS[unitId]) {
+    const def = COMPOSITE_LAYER_OFFSETS_DEFAULTS[unitId]?.[layer.id] ?? { x: 0, y: 0 }
+    liveCompositeOffsets[unitId][layer.id] = { x: def.x, y: def.y }
+  }
+  liveAvatarBoxScale[unitId] = COMPOSITE_AVATAR_SLOT_SCALE[unitId] ?? 1
+  const framePos = COMPOSITE_AVATAR_FRAME_POS_DEFAULTS?.[unitId]
+  if (framePos) liveAvatarBoxPos[unitId] = { x: framePos.x, y: framePos.y }
+}
+for (const path of Object.values(COMPOSITE_STATIC_AVATAR_PATHS)) preloadUnitSprite(path)
+
+function useEditorCompositeAvatar(unitId) {
+  return liveUseEditorCompositeAvatar[unitId] === true
+}
+
+function isCompositeUnit(unit) {
+  return unit && COMPOSITE_UNIT_IDS.has(unit.id)
+}
+
+function getCompositeLayerOffset(unitId, layerId) {
+  return liveCompositeOffsets[unitId]?.[layerId] ?? { x: 0, y: 0 }
+}
+
+function compositePxScale(UCELL) {
+  return UCELL / GCS
 }
 
 // ── King castle garrison (mirrors towerGarrison.ts) ───────────
@@ -1717,7 +1977,7 @@ const liveKingGarrison = {
 }
 
 function garrisonAssignableUnits() {
-  const troops = UNIT_CATALOG.filter(u => !u.isTower).map(u => ({ id: u.id, label: u.name }))
+  const troops = UNIT_CATALOG.filter(u => !u.isTower && !u.isBuilding).map(u => ({ id: u.id, label: u.name }))
   return [{ id: 'cannon', label: 'Cannon' }, ...troops]
 }
 
@@ -1886,6 +2146,7 @@ function drawKingGarrison(unit, cx, cy, UCELL) {
 let activeUnitId = UNIT_CATALOG[0].id
 let unitShowBot    = false
 let unitShowSprite = true
+let unitShowAvatarFrame = true
 let unitShowColl   = true
 let unitShowRing   = true
 let unitShowSlots  = true
@@ -1916,6 +2177,10 @@ function snapshotUnitEditorState() {
     liveTowerVisualOffsets: cloneUnitEditorData(liveTowerVisualOffsets),
     liveKingRangeCenterOffsets: cloneUnitEditorData(liveKingRangeCenterOffsets),
     liveKingGarrison: cloneUnitEditorData(liveKingGarrison),
+    liveCompositeOffsets: cloneUnitEditorData(liveCompositeOffsets),
+    liveUseEditorCompositeAvatar: cloneUnitEditorData(liveUseEditorCompositeAvatar),
+    liveAvatarBoxPos: cloneUnitEditorData(liveAvatarBoxPos),
+    liveAvatarBoxScale: cloneUnitEditorData(liveAvatarBoxScale),
     activeUnitId,
     unitApproachSide,
     selectedSlotIndex,
@@ -1942,6 +2207,18 @@ function restoreUnitEditorState(snap) {
   if (snap.liveKingGarrison) {
     replaceObjectContents(liveKingGarrison, snap.liveKingGarrison)
   }
+  if (snap.liveCompositeOffsets) {
+    replaceObjectContents(liveCompositeOffsets, snap.liveCompositeOffsets)
+  }
+  if (snap.liveUseEditorCompositeAvatar) {
+    replaceObjectContents(liveUseEditorCompositeAvatar, snap.liveUseEditorCompositeAvatar)
+  }
+  if (snap.liveAvatarBoxPos) {
+    replaceObjectContents(liveAvatarBoxPos, snap.liveAvatarBoxPos)
+  }
+  if (snap.liveAvatarBoxScale) {
+    replaceObjectContents(liveAvatarBoxScale, snap.liveAvatarBoxScale)
+  }
   activeUnitId = snap.activeUnitId
   unitApproachSide = snap.unitApproachSide
   for (const id of Object.keys(liveSlotPositions)) {
@@ -1966,7 +2243,10 @@ function restoreUnitEditorState(snap) {
   syncGarrisonSection()
   updateUnitUndoButtons()
   const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
-  if (unit && unitEditSelection) updateUnitEditSelectionStatus(unit)
+  if (unit && unitEditSelection) {
+    if (!isUnitEditSelectionVisible(unit)) clearUnitEditSelection()
+    else updateUnitEditSelectionStatus(unit)
+  }
   drawUnit()
   drawTowerCompare()
 }
@@ -2017,11 +2297,17 @@ const KT_RANGE = 20.0  // King Tower range
 const PT_RADIUS = 1.5  // Princess Tower combat radius (3-cell footprint / 2)
 const KT_RADIUS = 2.0  // King Tower (4-cell footprint / 2)
 
+function unitCombatRadiusCells(unit) {
+  if (unit.isTower) return unit.isKing ? KT_RADIUS : PT_RADIUS
+  if (unit.isBuilding) return PT_RADIUS  // bomb tower — princess-tower hull
+  return TROOP_R
+}
+
 // Per-unit live melee hit zone radius (computed from formula, overridable)
 const MELEE_REF_RANGE = 1.0
 const liveSlotRadii = {}
 for (const u of UNIT_CATALOG) {
-  const combatR = u.isTower ? (u.isKing ? KT_RADIUS : PT_RADIUS) : TROOP_R
+  const combatR = unitCombatRadiusCells(u)
   liveSlotRadii[u.id] = Math.max(0, combatR + TROOP_R + MELEE_REF_RANGE - APPROACH_SLACK)
 }
 
@@ -2067,6 +2353,7 @@ if (liveSlotOffsets.princess_tower) {
   liveSlotOffsets.princess_tower.cpu = { x: 0, y: -1.55 }
 }
 liveSlotRadii.princess_tower = 2.35
+liveSlotRadii.wood_tower = 2.35
 
 /** King castle attack-range origin — cells from logic anchor (matches kingVisualAnchorY row delta). */
 const liveKingRangeCenterOffsets = { king_tower: { player: null, cpu: null } }
@@ -2132,9 +2419,6 @@ const BOT_PRINCESS_SLOT_POSITIONS = [
   { x: -2.1, y: 1.4 }, { x: 2.1, y: -1.4 }, { x: -1.75, y: 0.5 }, { x: 1.75, y: -0.5 },
   { x: -1.75, y: -0.45 }, { x: 1.75, y: 0.45 },
 ]
-liveSlotPositions.princess_tower = liveSlotPositions.princess_tower || {}
-liveSlotPositions.princess_tower.player = PLAYER_PRINCESS_SLOT_POSITIONS.map(p => ({ ...p }))
-liveSlotPositions.princess_tower.cpu = BOT_PRINCESS_SLOT_POSITIONS.map(p => ({ ...p }))
 
 // Per-unit health bar Y offset (in cells from anchor)
 const liveHbarOffsets = {}
@@ -2146,6 +2430,12 @@ for (const u of UNIT_CATALOG) {
 // null = use ring formula; array of {x,y} in cells relative to slot origin
 const liveSlotPositions = {}
 for (const u of UNIT_CATALOG) liveSlotPositions[u.id] = {}
+
+liveSlotPositions.princess_tower.player = PLAYER_PRINCESS_SLOT_POSITIONS.map(p => ({ ...p }))
+liveSlotPositions.princess_tower.cpu = BOT_PRINCESS_SLOT_POSITIONS.map(p => ({ ...p }))
+
+const BOMB_TOWER_SLOT_POSITIONS = PLAYER_PRINCESS_SLOT_POSITIONS.map(p => ({ ...p }))
+liveSlotPositions.wood_tower.default = BOMB_TOWER_SLOT_POSITIONS
 
 // Ring rotation offset (radians) — rotates entire slot layout around slot origin
 const liveSlotRingAngle = {}
@@ -2487,6 +2777,10 @@ let draggingTowerVisual = false
 let draggingRangeCenter = false
 let draggingSlotIndex = -1
 let draggingGarrisonIndex = -1
+let draggingCompositeLayerId = null
+let draggingAvatarBox = false
+let _dragStartCompositeX = 0, _dragStartCompositeY = 0
+let _dragStartAvatarBoxX = 0, _dragStartAvatarBoxY = 0
 let selectedSlotIndex = -1
 // null | { type:'slot'|'garrison'|... , index? }
 let unitEditSelection = null
@@ -2496,15 +2790,39 @@ function clearUnitEditSelection() {
   selectedSlotIndex = -1
 }
 
+function isUnitEditSelectionVisible(unit, sel = unitEditSelection) {
+  if (!sel || !unit) return false
+  switch (sel.type) {
+    case 'hbar': return unitShowHbar
+    case 'slot': return unitShowSlots
+    case 'slotOrigin': return unitShowSlots && unit.isTower
+    case 'sprite': return unitShowSprite && unit.isTower
+    case 'rangeCenter': return unit.isKing && unitShowRing
+    case 'garrison': return unit.isKing && unitShowGarrison
+    case 'composite': return unitShowSprite && isCompositeUnit(unit)
+    case 'avatarBox': return unitShowAvatarFrame && isCompositeUnit(unit)
+    default: return true
+  }
+}
+
+function clearUnitEditSelectionIfHidden() {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (unitEditSelection && (!unit || !isUnitEditSelectionVisible(unit))) {
+    clearUnitEditSelection()
+  }
+}
+
 function setUnitEditSelection(sel) {
   unitEditSelection = sel
   selectedSlotIndex = sel?.type === 'slot' ? sel.index : -1
   syncGarrisonInputs()
+  syncCompositeSection()
 }
 
 function isHandleSelected(type, index) {
   if (!unitEditSelection || unitEditSelection.type !== type) return false
   if (type === 'slot' || type === 'garrison') return unitEditSelection.index === index
+  if (type === 'composite') return unitEditSelection.layerId === index
   return true
 }
 let _dragStartMx = 0, _dragStartMy = 0
@@ -2523,16 +2841,380 @@ const UCH = 860
 unitCanvas.width  = UCW
 unitCanvas.height = UCH
 
+const avatarPreviewCanvas = document.getElementById('avatar-preview-c')
+const avatarPreviewCtx = avatarPreviewCanvas.getContext('2d')
+
+function getAvatarBoxUserScale(unitId) {
+  return liveAvatarBoxScale[unitId] ?? 1
+}
+
+function avatarBoxIconDimensions(userScale) {
+  const hand = cardHandIconSize()
+  const scale = AVATAR_BOX_CANVAS_SCALE * userScale
+  return {
+    iconW: hand.iconW * scale,
+    iconH: hand.iconH * scale,
+    scale,
+  }
+}
+
+function getAvatarBoxIconSize(unitId) {
+  return avatarBoxIconDimensions(getAvatarBoxUserScale(unitId))
+}
+
+function defaultAvatarBoxPos(cx, cy) {
+  return { x: cx, y: cy }
+}
+
+function ensureAvatarBoxPos(unitId, cx, cy) {
+  if (!liveAvatarBoxPos[unitId]) {
+    liveAvatarBoxPos[unitId] = defaultAvatarBoxPos(cx, cy)
+  }
+  return liveAvatarBoxPos[unitId]
+}
+
+function applyAvatarBoxUserScale(unitId, userScale) {
+  const clamped = Math.max(0.25, Math.min(4, userScale))
+  liveAvatarBoxScale[unitId] = clamped
+}
+
+function getAvatarBoxRect(unit, cx, cy) {
+  const { iconW, iconH } = getAvatarBoxIconSize(unit.id)
+  const pos = ensureAvatarBoxPos(unit.id, cx, cy)
+  return { x: pos.x, y: pos.y, w: iconW, h: iconH, iconW, iconH }
+}
+
+function hitTestAvatarBox(mx, my, unit, cx, cy) {
+  if (!isCompositeUnit(unit) || !unitShowAvatarFrame) return false
+  const pos = ensureAvatarBoxPos(unit.id, cx, cy)
+  return Math.hypot(mx - pos.x, my - pos.y) <= AVATAR_CIRCLE_HIT_RADIUS
+}
+
+function cardHandIconSize() {
+  const slotH = CARD_HAND_LAYOUT.hudHeight - CARD_HAND_LAYOUT.elixirBandH
+    - CARD_HAND_LAYOUT.deckPadTop - CARD_HAND_LAYOUT.deckPadBottom
+  const deckInnerW = CARD_HAND_LAYOUT.gameWidth - CARD_HAND_LAYOUT.deckMarginX * 2
+  const slotW = Math.floor(
+    (deckInnerW - (CARD_HAND_LAYOUT.handSlots - 1) * CARD_HAND_LAYOUT.slotGap - CARD_HAND_LAYOUT.nextGap)
+    / (CARD_HAND_LAYOUT.handSlots + CARD_HAND_LAYOUT.nextScale),
+  )
+  return {
+    slotW,
+    slotH,
+    iconW: slotW * CARD_HAND_LAYOUT.avatarSlotFill,
+    iconH: slotH * CARD_HAND_LAYOUT.avatarSlotFill,
+  }
+}
+
+function containAvatarScale(frameW, frameH, boxW, boxH) {
+  if (frameW <= 0 || frameH <= 0) return 1
+  return Math.min(boxW / frameW, boxH / frameH)
+}
+
+/** Game-pixel layer sizes — mirrors CompositeAvatarLayout.compositeLayerDisplaySize. */
+const BOMB_FISH_CONTENT_FILL = 0.55
+const AIR_BOAT_AVATAR_ORIGIN_Y = 0.25
+
+function woodTowerPlatformHGame() {
+  const unit = UNIT_CATALOG.find(u => u.id === 'wood_tower')
+  const fill = unit?.contentFill ?? 0.72
+  return GCS * 2.5 * MAP_HEIGHT_MULTIPLIER_BUILDING / fill * SPRITE_VISUAL_SCALE
+}
+
+function bombFishDisplayHGame() {
+  return GCS * 2.5 / BOMB_FISH_CONTENT_FILL * SPRITE_VISUAL_SCALE
+}
+
+function airBoatDisplayHGame() {
+  return GCS * 2.5 / 0.42 * SPRITE_VISUAL_SCALE
+}
+
+function compositeAvatarGameLayerSize(unitId, layerId) {
+  if (unitId === 'wood_tower') {
+    const platformH = woodTowerPlatformHGame()
+    if (layerId === 'platform') {
+      const unit = UNIT_CATALOG.find(u => u.id === 'wood_tower')
+      return { w: platformH * (unit.fw / unit.fh), h: platformH }
+    }
+    const h = bombFishDisplayHGame()
+    return { w: h, h: h }
+  }
+  if (unitId === 'air_boat') {
+    const hullH = airBoatDisplayHGame()
+    if (layerId === 'hull') return { w: hullH, h: hullH }
+    const crewH = bombFishDisplayHGame()
+    return { w: crewH, h: crewH }
+  }
+  return { w: GCS, h: GCS }
+}
+
+/** Mirrors CompositeAvatarLayout.compositePlacementFromOffset. */
+function compositePlacementFromOffset(unitId, layerId, offset) {
+  const base = COMPOSITE_AVATAR_LAYOUT_DEFAULTS?.[unitId]?.layers?.[layerId]
+  if (!base) return { x: offset.x, y: offset.y, originX: 0.5, originY: 0.5 }
+
+  if (unitId === 'wood_tower' && layerId === 'bomber') {
+    return {
+      ...base,
+      x: offset.x,
+      y: -woodTowerPlatformHGame() * BOMB_TOWER_DECK_Y_FRAC + offset.y,
+    }
+  }
+
+  if (unitId === 'air_boat' && layerId === 'crew') {
+    const hullH = airBoatDisplayHGame()
+    const sternX = -hullH * AIR_BOAT_SHARK_STERN_X_RATIO
+    const crewY = hullH * (AIR_BOAT_FRAME_SHARK_Y - AIR_BOAT_AVATAR_ORIGIN_Y)
+    return { x: sternX + offset.x, y: crewY + offset.y, originX: base.originX, originY: base.originY }
+  }
+
+  return { x: base.x + offset.x, y: base.y + offset.y, originX: base.originX, originY: base.originY }
+}
+
+function resolveCompositeAvatarLayoutForPreview(unitId) {
+  const defaults = COMPOSITE_AVATAR_LAYOUT_DEFAULTS?.[unitId]
+  if (!defaults) return null
+  const layers = {}
+  for (const layer of COMPOSITE_LAYER_DEFS[unitId] ?? []) {
+    const off = getCompositeLayerOffset(unitId, layer.id)
+    layers[layer.id] = compositePlacementFromOffset(unitId, layer.id, off)
+  }
+  return { slotAnchor: { ...defaults.slotAnchor }, layers }
+}
+
+function layoutCompositeAvatarPreview(unitId, iconW, iconH) {
+  const avatarLayout = resolveCompositeAvatarLayoutForPreview(unitId)
+  const unit = UNIT_CATALOG.find(u => u.id === unitId)
+  if (!avatarLayout || !unit) return null
+
+  let refW = 0
+  let refH = 0
+  for (const layer of COMPOSITE_LAYER_DEFS[unitId] ?? []) {
+    const size = compositeAvatarGameLayerSize(unitId, layer.id)
+    refW = Math.max(refW, size.w)
+    refH = Math.max(refH, size.h)
+  }
+
+  const handScale = COMPOSITE_AVATAR_HAND_SCALE[unitId] ?? 1
+  const slotScale = COMPOSITE_AVATAR_SLOT_SCALE[unitId] ?? 1
+  const fit = containAvatarScale(refW, refH, iconW, iconH) * 0.94 * handScale * slotScale
+  const anchorX = iconW * avatarLayout.slotAnchor.x
+  const anchorY = iconH * avatarLayout.slotAnchor.y
+  const layerOrder = unitId === 'wood_tower' ? ['platform', 'bomber'] : ['hull', 'crew']
+  const layers = []
+
+  for (let zi = 0; zi < layerOrder.length; zi++) {
+    const layerId = layerOrder[zi]
+    const placement = avatarLayout.layers[layerId]
+    const meta = COMPOSITE_LAYER_DEFS[unitId]?.find(l => l.id === layerId)
+    const gameSize = compositeAvatarGameLayerSize(unitId, layerId)
+    if (!placement || !meta) continue
+    const flipX = layerId === 'bomber' || layerId === 'crew'
+      ? !!(unitShowBot && unit.tintBotSide)
+      : false
+    layers.push({
+      id: layerId,
+      originX: placement.originX,
+      originY: placement.originY,
+      px: anchorX + placement.x * fit,
+      py: anchorY + placement.y * fit,
+      w: gameSize.w * fit,
+      h: gameSize.h * fit,
+      flipX,
+      z: zi,
+    })
+  }
+
+  return { layers, iconW, iconH, fit, anchorX, anchorY }
+}
+
+function drawCompositeAvatarPreviewLayers(ctx, unit, layout, originX, originY) {
+  if (!layout) return
+  for (const layer of layout.layers.sort((a, b) => a.z - b.z)) {
+    const img = compositeAvatarLayerImage(unit, layer.id)
+    const frame = compositeAvatarLayerFrame(unit, layer.id)
+    drawImageAtOrigin(
+      ctx, img, frame.fw, frame.fh,
+      originX + layer.px, originY + layer.py,
+      layer.w, layer.h, layer.originX, layer.originY, layer.flipX,
+    )
+  }
+}
+
+function compositeAvatarLayerImage(unit, layerId) {
+  if (layerId === 'platform' || layerId === 'hull') {
+    return unitSpriteCache[unit.path]
+  }
+  if (layerId === 'bomber') {
+    const bomberPath = (unitShowBot && unit.tintBotSide)
+      ? BOMB_TOWER_BOMBER_PATHS.cpu
+      : BOMB_TOWER_BOMBER_PATHS.player
+    return unitSpriteCache[bomberPath]
+  }
+  if (layerId === 'crew') {
+    return unitSpriteCache[PADDLE_SHARK_IDLE_PATH]
+  }
+  return null
+}
+
+function compositeAvatarLayerFrame(unit, layerId) {
+  if (layerId === 'platform' || layerId === 'hull') return { fw: unit.fw, fh: unit.fh }
+  return { fw: 192, fh: 192 }
+}
+
+function drawImageAtOrigin(ctx, img, fw, fh, px, py, w, h, originX, originY, flipX) {
+  if (!img?.complete || !img.naturalWidth) return
+  ctx.save()
+  ctx.translate(px, py)
+  if (flipX) ctx.scale(-1, 1)
+  ctx.drawImage(img, 0, 0, fw, fh, -w * originX, -h * originY, w, h)
+  ctx.restore()
+}
+
+function drawStaticAvatarPreview(ctx, unitId, slotX, slotY, iconW, iconH) {
+  const path = COMPOSITE_STATIC_AVATAR_PATHS[unitId]
+  const meta = COMPOSITE_STATIC_AVATAR_META[unitId]
+  const img = unitSpriteCache[path]
+  if (!meta || !img?.complete || !img.naturalWidth) return
+
+  const fw = meta.frameW ?? img.naturalWidth
+  const fh = meta.frameH ?? img.naturalHeight
+  const handScale = meta.handScale ?? 1
+  const cx = slotX + iconW / 2
+  const cy = slotY + iconH / 2
+
+  if (meta.buildingFit) {
+    const fit = containAvatarScale(fw, fh, iconW, iconH) * 0.94 * handScale
+    const w = fw * fit
+    const h = fh * fit
+    ctx.drawImage(img, 0, 0, fw, fh, cx - w / 2, cy - h / 2, w, h)
+    return
+  }
+
+  const cropRatio = meta.cropRatio ?? 0.62
+  const focusY = meta.focusY ?? 0.5
+  const cropW = fw * cropRatio
+  const cropH = fh * cropRatio
+  const cropX = (fw - cropW) / 2
+  const cropY = (fh - cropH) * Math.max(0, Math.min(1, focusY))
+  const fit = Math.min(iconW / cropW, iconH / cropH) * handScale
+  const w = cropW * fit
+  const h = cropH * fit
+  ctx.drawImage(img, cropX, cropY, cropW, cropH, cx - w / 2, cy - h / 2, w, h)
+}
+
+function drawAvatarFrameOnUnitCanvas(unit, cx, cy) {
+  if (!isCompositeUnit(unit) || !unitShowAvatarFrame) return
+
+  const pos = ensureAvatarBoxPos(unit.id, cx, cy)
+  const isSel = unitEditSelection?.type === 'avatarBox'
+  const isDrag = draggingAvatarBox
+
+  const color = isDrag ? 'rgba(255,255,100,0.95)' : isSel ? 'rgba(160,200,255,0.95)' : 'rgba(120,180,255,0.80)'
+  uctx.strokeStyle = color
+  uctx.lineWidth = isDrag || isSel ? 2.5 : 2
+  uctx.setLineDash(isSel && !isDrag ? [6, 4] : [])
+
+  // Circle
+  uctx.beginPath()
+  uctx.arc(pos.x, pos.y, AVATAR_CIRCLE_RADIUS, 0, Math.PI * 2)
+  uctx.stroke()
+  uctx.setLineDash([])
+
+  // Crosshair
+  const ch = 10
+  uctx.lineWidth = 1.5
+  uctx.beginPath()
+  uctx.moveTo(pos.x - ch, pos.y); uctx.lineTo(pos.x + ch, pos.y)
+  uctx.moveTo(pos.x, pos.y - ch); uctx.lineTo(pos.x, pos.y + ch)
+  uctx.stroke()
+
+  uctx.fillStyle = color
+  uctx.font = 'bold 9px sans-serif'; uctx.textAlign = 'center'
+  uctx.fillText('avatar focus', pos.x, pos.y - AVATAR_CIRCLE_RADIUS - 5)
+  uctx.textAlign = 'left'
+}
+
+/** Side panel — deck-hand preview cropped from the main-canvas avatar frame. */
+function drawSideAvatarPreview(unit) {
+  const wrap = document.getElementById('avatar-preview-wrap')
+  if (!isCompositeUnit(unit)) {
+    wrap.style.display = 'none'
+    return
+  }
+  wrap.style.display = 'flex'
+
+  const useEditor = useEditorCompositeAvatar(unit.id)
+  const modeHint = document.getElementById('avatar-preview-mode-hint')
+  if (modeHint) {
+    modeHint.textContent = useEditor
+      ? 'Composite layout (matches in-game deck hand)'
+      : 'Static PNG avatar (AssetManifest)'
+  }
+
+  const hand = cardHandIconSize()
+  const previewScale = AVATAR_PREVIEW_MAX_ICON_H / hand.iconH
+  // Preview is always fixed size — frame size controls zoom, not preview size
+  const iconW = Math.round(hand.iconW * previewScale)
+  const iconH = Math.round(hand.iconH * previewScale)
+
+  const canvasW = iconW + AVATAR_PREVIEW_PAD * 2
+  const canvasH = iconH + AVATAR_PREVIEW_PAD * 2
+  avatarPreviewCanvas.width = canvasW
+  avatarPreviewCanvas.height = canvasH
+
+  const ctx = avatarPreviewCtx
+  ctx.fillStyle = '#08080e'
+  ctx.fillRect(0, 0, canvasW, canvasH)
+
+  const slotX = AVATAR_PREVIEW_PAD
+  const slotY = AVATAR_PREVIEW_PAD
+
+  ctx.fillStyle = 'rgba(13, 27, 62, 0.92)'
+  ctx.fillRect(slotX, slotY, iconW, iconH)
+  ctx.strokeStyle = '#334488'
+  ctx.lineWidth = 2
+  ctx.strokeRect(slotX + 0.5, slotY + 0.5, iconW - 1, iconH - 1)
+
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(slotX, slotY, iconW, iconH)
+  ctx.clip()
+
+  if (useEditor) {
+    // Sprites at fixed world scale; focal circle sets center, zoom slider sets magnification
+    const refDim = avatarBoxIconDimensions(1.0)
+    const worldLayout = layoutCompositeAvatarPreview(unit.id, refDim.iconW, refDim.iconH)
+    const worldOriginX = UCW / 2 - refDim.iconW / 2
+    const worldOriginY = UCH / 2 - refDim.iconH / 2
+    const circle = liveAvatarBoxPos[unit.id] ?? { x: UCW / 2, y: UCH / 2 }
+    const focalX = circle.x - worldOriginX
+    const focalY = circle.y - worldOriginY
+    const zoom = getAvatarBoxUserScale(unit.id)
+    const tx = slotX + iconW / 2 - focalX * zoom
+    const ty = slotY + iconH / 2 - focalY * zoom
+    ctx.translate(tx, ty)
+    ctx.scale(zoom, zoom)
+    drawCompositeAvatarPreviewLayers(ctx, unit, worldLayout, 0, 0)
+  } else {
+    drawStaticAvatarPreview(ctx, unit.id, slotX, slotY, iconW, iconH)
+  }
+  ctx.restore()
+}
+
 // ── Unit picker ───────────────────────────────────────────────
 function buildUnitPicker() {
   const sel = document.getElementById('unit-picker')
-  const troops = UNIT_CATALOG.filter(u => !u.isTower)
-  const towers = UNIT_CATALOG.filter(u =>  u.isTower)
+  const troops = UNIT_CATALOG.filter(u => !u.isTower && !u.isBuilding)
+  const buildings = UNIT_CATALOG.filter(u => u.isBuilding)
+  const towers = UNIT_CATALOG.filter(u => u.isTower)
   const grpT = document.createElement('optgroup'); grpT.label = 'Troops'
+  const grpB = document.createElement('optgroup'); grpB.label = 'Buildings'
   const grpW = document.createElement('optgroup'); grpW.label = 'Towers'
   for (const u of troops) { const o = document.createElement('option'); o.value = u.id; o.textContent = u.name; grpT.appendChild(o) }
+  for (const u of buildings) { const o = document.createElement('option'); o.value = u.id; o.textContent = u.name; grpB.appendChild(o) }
   for (const u of towers) { const o = document.createElement('option'); o.value = u.id; o.textContent = u.name; grpW.appendChild(o) }
-  sel.appendChild(grpT); sel.appendChild(grpW)
+  sel.appendChild(grpT); sel.appendChild(grpB); sel.appendChild(grpW)
   sel.value = activeUnitId
   sel.addEventListener('change', () => {
     activeUnitId = sel.value
@@ -2576,15 +3258,36 @@ document.getElementById('btn-copy-range').addEventListener('click', () => {
 })
 
 document.getElementById('tog-unit-bot').addEventListener('change', e => { unitShowBot   = e.target.checked; drawUnit(); drawTowerCompare() })
-document.getElementById('tog-sprite').addEventListener('change', e => { unitShowSprite = e.target.checked; drawUnit() })
-document.getElementById('tog-collision').addEventListener('change', e => { unitShowColl  = e.target.checked; drawUnit() })
-document.getElementById('tog-range-ring').addEventListener('change', e => { unitShowRing  = e.target.checked; drawUnit() })
-document.getElementById('tog-slots').addEventListener('change', e => { unitShowSlots = e.target.checked; drawUnit() })
-document.getElementById('tog-tower-comp').addEventListener('change', e => { unitShowTower = e.target.checked; drawUnit() })
-document.getElementById('tog-hbar').addEventListener('change', e => { unitShowHbar  = e.target.checked; drawUnit() })
-document.getElementById('tog-unit-grid').addEventListener('change', e => { unitShowGrid  = e.target.checked; drawUnit() })
-document.getElementById('tog-map-context').addEventListener('change', e => { unitShowMapContext = e.target.checked; drawUnit() })
-document.getElementById('tog-garrison').addEventListener('change', e => { unitShowGarrison = e.target.checked; drawUnit() })
+function onUnitVisibilityToggle() {
+  clearUnitEditSelectionIfHidden()
+  drawUnit()
+}
+document.getElementById('tog-sprite').addEventListener('change', e => { unitShowSprite = e.target.checked; onUnitVisibilityToggle() })
+
+// Clicking a selectable-overlay label selects that component for editing
+document.querySelectorAll('.selectable-overlay').forEach(label => {
+  label.addEventListener('click', () => {
+    const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+    if (!unit) return
+    const type = label.dataset.selType
+    if (type === 'garrison') {
+      setUnitEditSelection({ type: 'garrison', index: 0 })
+    } else {
+      setUnitEditSelection({ type })
+    }
+    updateUnitEditSelectionStatus(unit)
+    drawUnit()
+  })
+})
+document.getElementById('tog-avatar-frame').addEventListener('change', e => { unitShowAvatarFrame = e.target.checked; onUnitVisibilityToggle() })
+document.getElementById('tog-collision').addEventListener('change', e => { unitShowColl  = e.target.checked; onUnitVisibilityToggle() })
+document.getElementById('tog-range-ring').addEventListener('change', e => { unitShowRing  = e.target.checked; onUnitVisibilityToggle() })
+document.getElementById('tog-slots').addEventListener('change', e => { unitShowSlots = e.target.checked; onUnitVisibilityToggle() })
+document.getElementById('tog-tower-comp').addEventListener('change', e => { unitShowTower = e.target.checked; onUnitVisibilityToggle() })
+document.getElementById('tog-hbar').addEventListener('change', e => { unitShowHbar  = e.target.checked; onUnitVisibilityToggle() })
+document.getElementById('tog-unit-grid').addEventListener('change', e => { unitShowGrid  = e.target.checked; onUnitVisibilityToggle() })
+document.getElementById('tog-map-context').addEventListener('change', e => { unitShowMapContext = e.target.checked; onUnitVisibilityToggle() })
+document.getElementById('tog-garrison').addEventListener('change', e => { unitShowGarrison = e.target.checked; onUnitVisibilityToggle() })
 document.getElementById('tog-slot-sync').addEventListener('change', e => {
   slotSyncSides = e.target.checked
   const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
@@ -2630,6 +3333,43 @@ function syncTowerVisualInputs() {
   document.getElementById('tower-vis-y').value = vis.y
 }
 
+function syncCompositeSection() {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  const sec = document.getElementById('composite-section')
+  const show = isCompositeUnit(unit)
+  sec.style.display = show ? '' : 'none'
+  if (!show) return
+  const picker = document.getElementById('composite-layer-picker')
+  const layers = COMPOSITE_LAYER_DEFS[unit.id]
+  const curLayer = unitEditSelection?.type === 'composite' ? unitEditSelection.layerId : layers[0].id
+  picker.innerHTML = ''
+  for (const layer of layers) {
+    const o = document.createElement('option')
+    o.value = layer.id
+    o.textContent = layer.label
+    picker.appendChild(o)
+  }
+  picker.value = curLayer
+  document.getElementById('lbl-composite-layer').textContent = layers.find(l => l.id === curLayer)?.label ?? '—'
+  const tog = document.getElementById('tog-use-editor-avatar')
+  if (tog) tog.checked = useEditorCompositeAvatar(unit.id)
+  const scalePct = Math.round(getAvatarBoxUserScale(unit.id) * 100)
+  const scaleSlider = document.getElementById('avatar-box-scale')
+  const scaleVal = document.getElementById('avatar-box-scale-val')
+  if (scaleSlider) scaleSlider.value = String(scalePct)
+  if (scaleVal) scaleVal.textContent = `${scalePct}%`
+  syncCompositeInputs(curLayer)
+}
+
+function syncCompositeInputs(layerId) {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!isCompositeUnit(unit)) return
+  const id = layerId ?? unitEditSelection?.layerId ?? COMPOSITE_LAYER_DEFS[unit.id][0].id
+  const off = getCompositeLayerOffset(unit.id, id)
+  document.getElementById('composite-off-x').value = off.x
+  document.getElementById('composite-off-y').value = off.y
+}
+
 function syncTowerSections() {
   const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
   const isTower = !!unit?.isTower
@@ -2639,7 +3379,11 @@ function syncTowerSections() {
   document.getElementById('king-range-section').style.display = isKing ? '' : 'none'
   document.getElementById('tog-map-context-row').style.display = isKing ? '' : 'none'
   document.getElementById('tog-garrison-row').style.display = isKing ? '' : 'none'
+  document.getElementById('tog-avatar-frame-row').style.display = isCompositeUnit(unit) ? '' : 'none'
+  const frameTog = document.getElementById('tog-avatar-frame')
+  if (frameTog) frameTog.checked = unitShowAvatarFrame
   syncGarrisonSection()
+  syncCompositeSection()
   document.getElementById('hbar-unit-section').style.display   = ''   // always visible
   document.getElementById('tog-unit-bot').closest('.toggle-row').style.display = isTower ? 'none' : ''
   syncHbarInputs()
@@ -2767,6 +3511,41 @@ function buildTroopExport(u) {
     slotRadius: +slotR.toFixed(3),
     slotRingAngleDeg: Math.round(((liveSlotRingAngle[u.id]?.default ?? 0) * 180 / Math.PI) * 100) / 100,
     slotPositions: exportSlotPointsArray(u, 'default', slotR),
+    ...(isCompositeUnit(u) ? {
+      compositeOffsets: exportCompositeOffsets(u.id),
+      compositeAvatarLayout: exportCompositeAvatarLayout(u.id),
+      useEditorCompositeAvatar: useEditorCompositeAvatar(u.id),
+      avatarPreviewScale: +getAvatarBoxUserScale(u.id).toFixed(3),
+      avatarFramePos: liveAvatarBoxPos[u.id] ?? null,
+    } : {}),
+    cardDataHint: `CardData / ${u.id}`,
+  }
+}
+
+function buildBuildingExport(u) {
+  const slotR = liveSlotRadii[u.id]
+  return {
+    kind: 'building',
+    label: u.name,
+    id: u.id,
+    attackRange: liveRanges[u.id],
+    hbarOffsetY: +(liveHbarOffsets[u.id]?.y ?? 0).toFixed(3),
+    contentFill: u.contentFill,
+    footprintWidthRatio: u.footprintWidthRatio,
+    footprintHeightRatio: u.footprintHeightRatio,
+    slotRadius: +slotR.toFixed(3),
+    slotRingAngleDeg: Math.round(((liveSlotRingAngle[u.id]?.default ?? 0) * 180 / Math.PI) * 100) / 100,
+    slotPositions: exportSlotPointsArray(u, 'default', slotR),
+    deckBomber: u.id === 'wood_tower'
+      ? { deckYFrac: BOMB_TOWER_DECK_Y_FRAC, bomberPaths: BOMB_TOWER_BOMBER_PATHS, crewCardId: 'bomb_fish', platformPath: PIRATE_TOWER_GROUND, code: 'BombTowerCrew.ts' }
+      : undefined,
+    ...(isCompositeUnit(u) ? {
+      compositeOffsets: exportCompositeOffsets(u.id),
+      compositeAvatarLayout: exportCompositeAvatarLayout(u.id),
+      useEditorCompositeAvatar: useEditorCompositeAvatar(u.id),
+      avatarPreviewScale: +getAvatarBoxUserScale(u.id).toFixed(3),
+      avatarFramePos: liveAvatarBoxPos[u.id] ?? null,
+    } : {}),
     cardDataHint: `CardData / ${u.id}`,
   }
 }
@@ -2793,6 +3572,7 @@ function buildTowerExport(u) {
 
 function buildUnitEditorExportObject() {
   const troops = {}
+  const buildings = {}
   const towers = {}
   const mapJsonTowerVisualOffsets = {}
 
@@ -2805,6 +3585,8 @@ function buildUnitEditorExportObject() {
           mapJsonTowerVisualOffsets[key] = val
         }
       }
+    } else if (u.isBuilding) {
+      buildings[u.id] = buildBuildingExport(u)
     } else {
       troops[u.id] = buildTroopExport(u)
     }
@@ -2816,7 +3598,7 @@ function buildUnitEditorExportObject() {
     activeUnit = {
       id: active.id,
       label: active.name,
-      kind: active.isTower ? TOWER_EXPORT_META[active.id].kind : 'troop',
+      kind: active.isTower ? TOWER_EXPORT_META[active.id].kind : active.isBuilding ? 'building' : 'troop',
       towerLabel: active.isTower ? TOWER_EXPORT_META[active.id].label : undefined,
       editingSide: active.isTower ? unitApproachSide : undefined,
       editingSideLabel: active.isTower ? SIDE_EXPORT_LABELS[unitApproachSide].label : undefined,
@@ -2829,6 +3611,9 @@ function buildUnitEditorExportObject() {
     activeUnit,
     _readme: {
       troops: 'One entry per troop card — attack range, health bar, melee hit-zone slots.',
+      buildings: {
+        wood_tower: 'Pirate Tower platform + deck bomber (BombTowerCrew.ts / bomb_fish). Bot side uses tintBotSide + flipX.',
+      },
       towers: {
         princess_tower: 'Applies to plyLeft, plyRight (player) and botLeft, botRight (CPU).',
         king_tower: 'Applies to plyKing (player castle) and botKing (CPU castle).',
@@ -2838,6 +3623,7 @@ function buildUnitEditorExportObject() {
       },
     },
     troops,
+    buildings,
     towers,
     mapJsonTowerVisualOffsets,
   }
@@ -3006,6 +3792,72 @@ document.getElementById('btn-copy-garrison').addEventListener('click', () => {
   copyText(txt, document.getElementById('btn-copy-garrison'), '⎘ Copy garrisonSlots')
 })
 
+// ── Composite layer inputs ────────────────────────────────────
+document.getElementById('composite-layer-picker').addEventListener('change', e => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!isCompositeUnit(unit)) return
+  const layerId = e.target.value
+  setUnitEditSelection({ type: 'composite', layerId })
+  document.getElementById('lbl-composite-layer').textContent =
+    COMPOSITE_LAYER_DEFS[unit.id].find(l => l.id === layerId)?.label ?? '—'
+  syncCompositeInputs(layerId)
+  updateUnitEditSelectionStatus(unit)
+  drawUnit()
+})
+document.getElementById('composite-off-x').addEventListener('change', e => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!isCompositeUnit(unit) || unitEditSelection?.type !== 'composite') return
+  pushUnitUndo()
+  getCompositeLayerOffset(unit.id, unitEditSelection.layerId).x = +e.target.value
+  syncCompositeInputs(unitEditSelection.layerId)
+  updateUnitEditSelectionStatus(unit)
+  drawUnit()
+})
+document.getElementById('composite-off-y').addEventListener('change', e => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!isCompositeUnit(unit) || unitEditSelection?.type !== 'composite') return
+  pushUnitUndo()
+  getCompositeLayerOffset(unit.id, unitEditSelection.layerId).y = +e.target.value
+  syncCompositeInputs(unitEditSelection.layerId)
+  updateUnitEditSelectionStatus(unit)
+  drawUnit()
+})
+document.getElementById('btn-copy-composite').addEventListener('click', () => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!isCompositeUnit(unit)) return
+  const off = exportCompositeOffsets(unit.id)
+  const lines = Object.entries(off).map(([id, v]) => `  ${id}: { x: ${v.x}, y: ${v.y} },`)
+  const txt = `compositeOffsets: {\n${lines.join('\n')}\n},`
+  copyText(txt, document.getElementById('btn-copy-composite'), '⎘ Copy compositeOffsets')
+})
+document.getElementById('tog-use-editor-avatar').addEventListener('change', e => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!isCompositeUnit(unit)) return
+  pushUnitUndo()
+  liveUseEditorCompositeAvatar[unit.id] = e.target.checked
+  drawUnit()
+})
+document.getElementById('avatar-box-scale').addEventListener('pointerdown', () => armUnitUndoOnce())
+document.getElementById('avatar-box-scale').addEventListener('input', e => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!isCompositeUnit(unit)) return
+  const pct = +e.target.value
+  document.getElementById('avatar-box-scale-val').textContent = `${pct}%`
+  applyAvatarBoxUserScale(unit.id, pct / 100)
+  updateUnitEditSelectionStatus(unit)
+  drawUnit()
+})
+document.getElementById('btn-copy-use-editor-avatar').addEventListener('click', () => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!isCompositeUnit(unit)) return
+  const on = useEditorCompositeAvatar(unit.id)
+  copyText(
+    `useEditorCompositeAvatar: ${on},`,
+    document.getElementById('btn-copy-use-editor-avatar'),
+    '⎘ Copy useEditorCompositeAvatar',
+  )
+})
+
 // ── Slot offset inputs ────────────────────────────────────────
 document.getElementById('slot-off-x').addEventListener('change', e => {
   pushUnitUndo()
@@ -3080,8 +3932,181 @@ function unitDisplayHGame(unit) {
     const vscale = unit.isKing ? SPRITE_VISUAL_SCALE : 1.0
     return GCS * 2.5 * hmult / fill * vscale
   }
+  if (unit.isBuilding) {
+    return GCS * 2.5 * MAP_HEIGHT_MULTIPLIER_BUILDING / fill * SPRITE_VISUAL_SCALE
+  }
   const scale = UNSCALED_CARD_IDS.has(unit.id) ? 1.0 : SPRITE_VISUAL_SCALE
   return GCS * 2.5 / fill * scale
+}
+
+function unitBuildingFootprintHalfCells(unit) {
+  const dispHcells = unitDisplayHGame(unit) / GCS
+  return {
+    halfW: (dispHcells / 2) * (unit.footprintWidthRatio ?? 0.42),
+    halfH: (dispHcells / 2) * (unit.footprintHeightRatio ?? 0.36),
+  }
+}
+
+function getBuildingSpriteLayout(unit, cx, cy, UCELL) {
+  const dispHgame = unitDisplayHGame(unit)
+  const dispH = dispHgame * (UCELL / GCS)
+  const dispW = (unit.fw / unit.fh) * dispH
+  const originY = unit.spriteOriginY ?? 1
+  const sx = cx - dispW / 2
+  const sy = cy - originY * dispH
+  return { sx, sy, dispW, dispH, baseX: cx, baseY: cy }
+}
+
+function getWoodTowerLayerLayouts(unit, cx, cy, UCELL) {
+  const scale = compositePxScale(UCELL)
+  const layout = getBuildingSpriteLayout(unit, cx, cy, UCELL)
+  const platformOff = getCompositeLayerOffset(unit.id, 'platform')
+  const bomberOff = getCompositeLayerOffset(unit.id, 'bomber')
+  const platSx = layout.sx + platformOff.x * scale
+  const platSy = layout.sy + platformOff.y * scale
+  const bomberUnit = UNIT_CATALOG.find(u => u.id === 'bomb_fish')
+  const bomberDispH = unitDisplayHGame(bomberUnit) * scale
+  const bomberDispW = (bomberUnit.fw / bomberUnit.fh) * bomberDispH
+  const deckX = layout.baseX
+  const deckY = layout.baseY - layout.dispH * BOMB_TOWER_DECK_Y_FRAC
+  const flipBomber = unitShowBot && unit.tintBotSide
+  const bomberSx = deckX - bomberDispW / 2 + bomberOff.x * scale
+  const bomberSy = deckY - GARRISON_ARCHER_FEET_Y * bomberDispH + bomberOff.y * scale
+  return [
+    { id: 'platform', label: 'Platform', sx: platSx, sy: platSy, w: layout.dispW, h: layout.dispH, z: 0 },
+    { id: 'bomber', label: 'Bomber', sx: bomberSx, sy: bomberSy, w: bomberDispW, h: bomberDispH, z: 1, flipX: flipBomber },
+  ]
+}
+
+function getAirBoatLayerLayouts(unit, cx, cy, UCELL) {
+  const scale = compositePxScale(UCELL)
+  const dispHgame = unitDisplayHGame(unit)
+  const dispH = dispHgame * scale
+  const dispW = (unit.fw / unit.fh) * dispH
+  const originY = unit.spriteOriginY ?? 0.25
+  const hullOff = getCompositeLayerOffset(unit.id, 'hull')
+  const crewOff = getCompositeLayerOffset(unit.id, 'crew')
+  const hullSx = cx - dispW / 2 + hullOff.x * scale
+  const hullSy = cy - originY * dispH + hullOff.y * scale
+  const sharkDispH = (GCS * 2.5 / 0.55 * SPRITE_VISUAL_SCALE) * scale
+  const sharkDispW = sharkDispH
+  const flipCrew = unitShowBot && unit.tintBotSide
+  const sternX = flipCrew ? dispW * AIR_BOAT_SHARK_STERN_X_RATIO : -dispW * AIR_BOAT_SHARK_STERN_X_RATIO
+  const sharkAnchorY = cy + dispH * airBoatYFromAnchor(AIR_BOAT_FRAME_SHARK_Y)
+  const crewCx = cx + sternX + crewOff.x * scale
+  const crewCy = sharkAnchorY + crewOff.y * scale
+  return [
+    { id: 'hull', label: 'Hull', sx: hullSx, sy: hullSy, w: dispW, h: dispH, z: 0 },
+    { id: 'crew', label: 'Crew', sx: crewCx - sharkDispW / 2, sy: crewCy - sharkDispH / 2, w: sharkDispW, h: sharkDispH, z: 1, flipX: flipCrew },
+  ]
+}
+
+function getCompositeLayerLayouts(unit, cx, cy, UCELL) {
+  if (unit.id === 'wood_tower') return getWoodTowerLayerLayouts(unit, cx, cy, UCELL)
+  if (unit.id === 'air_boat') return getAirBoatLayerLayouts(unit, cx, cy, UCELL)
+  return []
+}
+
+function drawCompositeUnit(unit, cx, cy, UCELL) {
+  const layers = getCompositeLayerLayouts(unit, cx, cy, UCELL)
+  for (const layer of layers.sort((a, b) => a.z - b.z)) {
+    if (layer.id === 'platform' || layer.id === 'hull') {
+      const img = unitSpriteCache[unit.path]
+      if (!img?.complete || !img.naturalWidth) continue
+      uctx.save(); uctx.globalAlpha = 0.82
+      if (unitShowBot && unit.tintBotSide) {
+        uctx.filter = 'sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.1)'
+      }
+      uctx.drawImage(img, 0, 0, unit.fw, unit.fh, layer.sx, layer.sy, layer.w, layer.h)
+      uctx.restore()
+    } else if (layer.id === 'bomber') {
+      const bomberPath = (unitShowBot && unit.tintBotSide) ? BOMB_TOWER_BOMBER_PATHS.cpu : BOMB_TOWER_BOMBER_PATHS.player
+      const img = unitSpriteCache[bomberPath]
+      if (!img?.complete || !img.naturalWidth) continue
+      uctx.save(); uctx.globalAlpha = 0.88
+      if (unitShowBot && unit.tintBotSide) {
+        uctx.filter = 'sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.1)'
+      }
+      if (layer.flipX) {
+        uctx.translate(layer.sx + layer.w, layer.sy)
+        uctx.scale(-1, 1)
+        uctx.drawImage(img, 0, 0, 192, 192, 0, 0, layer.w, layer.h)
+      } else {
+        uctx.drawImage(img, 0, 0, 192, 192, layer.sx, layer.sy, layer.w, layer.h)
+      }
+      uctx.restore()
+    } else if (layer.id === 'crew') {
+      const img = unitSpriteCache[PADDLE_SHARK_IDLE_PATH]
+      if (!img?.complete || !img.naturalWidth) continue
+      uctx.save(); uctx.globalAlpha = 0.88
+      if (unitShowBot && unit.tintBotSide) {
+        uctx.filter = 'sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.1)'
+      }
+      if (layer.flipX) {
+        uctx.translate(layer.sx + layer.w, layer.sy)
+        uctx.scale(-1, 1)
+        uctx.drawImage(img, 0, 0, 192, 192, 0, 0, layer.w, layer.h)
+      } else {
+        uctx.drawImage(img, 0, 0, 192, 192, layer.sx, layer.sy, layer.w, layer.h)
+      }
+      uctx.restore()
+    }
+  }
+}
+
+function drawCompositeLayerHandles(unit, cx, cy, UCELL) {
+  if (!unitShowSprite) return
+  const layers = getCompositeLayerLayouts(unit, cx, cy, UCELL)
+  for (const layer of layers) {
+    const isSel = unitEditSelection?.type === 'composite' && unitEditSelection.layerId === layer.id
+    const isDrag = draggingCompositeLayerId === layer.id
+    if (!isSel && !isDrag) continue
+    uctx.strokeStyle = isDrag ? 'rgba(255,255,100,0.95)' : isSel ? 'rgba(128,220,255,0.90)' : 'rgba(128,192,255,0.45)'
+    uctx.lineWidth = isDrag || isSel ? 2 : 1
+    uctx.setLineDash(isSel ? [4, 3] : [])
+    uctx.strokeRect(layer.sx, layer.sy, layer.w, layer.h)
+    uctx.setLineDash([])
+    uctx.fillStyle = isDrag ? 'rgba(255,255,100,0.9)' : 'rgba(128,220,255,0.85)'
+    uctx.font = '9px sans-serif'; uctx.textAlign = 'left'
+    uctx.fillText(layer.label, layer.sx + 4, layer.sy + 11)
+  }
+}
+
+function hitTestCompositeLayer(mx, my, unit, cx, cy, UCELL) {
+  if (!isCompositeUnit(unit) || !unitShowSprite) return null
+  const layers = getCompositeLayerLayouts(unit, cx, cy, UCELL).sort((a, b) => b.z - a.z)
+  for (const layer of layers) {
+    if (mx >= layer.sx && mx <= layer.sx + layer.w && my >= layer.sy && my <= layer.sy + layer.h) {
+      return layer.id
+    }
+  }
+  return null
+}
+
+function exportCompositeOffsets(unitId) {
+  const layers = COMPOSITE_LAYER_DEFS[unitId] ?? []
+  const out = {}
+  for (const layer of layers) {
+    const off = getCompositeLayerOffset(unitId, layer.id)
+    out[layer.id] = { x: off.x, y: off.y }
+  }
+  return out
+}
+
+/** Anchor-relative game-px layout for card avatars — mirrors CompositeAvatarLayout export. */
+function exportCompositeAvatarLayout(unitId) {
+  const resolved = resolveCompositeAvatarLayoutForPreview(unitId)
+  if (!resolved) return null
+  const out = { slotAnchor: resolved.slotAnchor, layers: {} }
+  for (const [layerId, placement] of Object.entries(resolved.layers)) {
+    out.layers[layerId] = {
+      x: Math.round(placement.x),
+      y: Math.round(placement.y),
+      originX: +placement.originX.toFixed(4),
+      originY: +placement.originY.toFixed(4),
+    }
+  }
+  return out
 }
 
 // ── King tower arena context + range center ───────────────────
@@ -3160,7 +4185,7 @@ function drawKingArenaContext(unit, cx, cy, UCELL) {
 }
 
 function drawKingRangeCenterHandle(unit, cx, cy, UCELL) {
-  if (!unit.isKing) return
+  if (!unit.isKing || !unitShowRing) return
   const { x: rcx, y: rcy, off } = getKingRangeCenterPos(unit, cx, cy, UCELL)
   const hasOffset = Math.abs(off.x) > 0.001 || Math.abs(off.y) > 0.001
 
@@ -3193,7 +4218,7 @@ function drawKingRangeCenterHandle(unit, cx, cy, UCELL) {
 }
 
 function hitTestKingRangeCenter(mx, my, unit, cx, cy, UCELL) {
-  if (!unit.isKing) return false
+  if (!unit.isKing || !unitShowRing) return false
   const { x: rcx, y: rcy } = getKingRangeCenterPos(unit, cx, cy, UCELL)
   return Math.hypot(mx - rcx, my - rcy) <= 12
 }
@@ -3225,17 +4250,20 @@ function drawUnit() {
   if (unitShowTower && !unit.isTower) drawTowerOverlay(unit, cx, cy, UCELL, attackRange)
 
   // Sprite
-  if (unitShowSprite) drawUnitSprite(unit, cx, cy, UCELL)
+  if (unitShowSprite) {
+    if (isCompositeUnit(unit)) {
+      drawCompositeUnit(unit, cx, cy, UCELL)
+      drawCompositeLayerHandles(unit, cx, cy, UCELL)
+    } else {
+      drawUnitSprite(unit, cx, cy, UCELL)
+    }
+  }
   if (unit.isTower) drawTowerSpriteHandle(unit, cx, cy, UCELL)
   if (unit.isKing) drawKingGarrison(unit, cx, cy, UCELL)
 
-  // Collision circle
-  // Combat radius — towers use their footprint radius, troops use collision radius
-  const targetCombatR = unit.isTower
-    ? (unit.isKing ? KT_RADIUS : PT_RADIUS)
-    : TROOP_R
+  // Collision circle / building footprint
+  const targetCombatR = unitCombatRadiusCells(unit)
 
-  // Collision / footprint circle
   if (unitShowColl) {
     const cr = targetCombatR * UCELL
     uctx.beginPath(); uctx.arc(cx, cy, cr, 0, Math.PI * 2)
@@ -3243,13 +4271,14 @@ function drawUnit() {
     uctx.strokeStyle = 'rgba(100,180,255,0.75)'; uctx.lineWidth = 1.5; uctx.stroke()
   }
 
-  // Attack range ring — towers measure center-to-center; troops measure edge-to-edge
+  // Attack range ring — towers/buildings measure center-to-center; troops measure edge-to-edge
   if (unitShowRing) {
     const rangeCX = unit.isKing ? getKingRangeCenterPos(unit, cx, cy, UCELL).x : cx
     const rangeCY = unit.isKing ? getKingRangeCenterPos(unit, cx, cy, UCELL).y : cy
-    const ringR = unit.isTower
+    const combatReach = targetCombatR
+    const ringR = (unit.isTower || unit.isBuilding)
       ? attackRange * UCELL
-      : (targetCombatR + attackRange) * UCELL
+      : (combatReach + attackRange) * UCELL
     uctx.beginPath(); uctx.arc(rangeCX, rangeCY, ringR, 0, Math.PI * 2)
     uctx.fillStyle = 'rgba(255,200,60,0.05)'; uctx.fill()
     uctx.strokeStyle = 'rgba(255,200,60,0.85)'; uctx.lineWidth = 2
@@ -3407,6 +4436,12 @@ function drawUnit() {
   // King range center handle (on top)
   if (unit.isKing) drawKingRangeCenterHandle(unit, cx, cy, UCELL)
 
+  // Card avatar — sample scene for side preview, then draw frame overlay
+  if (isCompositeUnit(unit)) {
+    drawSideAvatarPreview(unit)
+    drawAvatarFrameOnUnitCanvas(unit, cx, cy)
+  }
+
   // Cell scale legend
   uctx.fillStyle = '#50607a'; uctx.font = '10px sans-serif'; uctx.textAlign = 'left'
   uctx.fillText(`1 cell = ${UCELL}px  (game: ${GCS}px)`, 8, UCH - 8)
@@ -3468,6 +4503,7 @@ function getUnitTowerSpriteLayout(unit, cx, cy, UCELL) {
 }
 
 function hitTestTowerSprite(mx, my, unit, UCELL) {
+  if (!unitShowSprite || !unit.isTower) return false
   const layout = getUnitTowerSpriteLayout(unit, UCW / 2, UCH / 2, UCELL)
   if (!layout) return false
   return mx >= layout.sx && mx <= layout.sx + layout.dispW
@@ -3509,12 +4545,13 @@ function drawUnitSprite(unit, cx, cy, UCELL) {
     sy = layout.sy
   } else {
     sx = cx - dispW / 2
-    const originY = unit.spriteOriginY ?? 0.5
+    const originY = unit.spriteOriginY ?? (unit.isBuilding ? 1 : 0.5)
     sy = cy - originY * dispH
   }
   uctx.save(); uctx.globalAlpha = 0.82
-  if (unitShowBot && !unit.isTower) {
-    // Tint red for bot troops — towers use native CPU art
+  const useBotTint = unitShowBot && !unit.isTower && (!unit.isBuilding || unit.tintBotSide)
+  if (useBotTint) {
+    // Tint red for bot troops — towers use native CPU art; buildings with tintBotSide use filter
     uctx.filter = 'sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.1)'
   }
   uctx.drawImage(img, 0, 0, unit.fw, unit.fh, sx, sy, dispW, dispH)
@@ -3578,7 +4615,7 @@ function updateUnitInfoPanel(unit, attackRange, UCELL) {
   document.getElementById('lbl-sprite-sz').textContent = `${dispH}px tall (game)`
 
   const vspt = document.getElementById('lbl-vs-pt')
-  if (unit.isTower) {
+  if (unit.isTower || unit.isBuilding) {
     vspt.textContent = '—'; vspt.className = 'info-val'
     document.getElementById('lbl-vs-kt').textContent = '—'
     document.getElementById('lbl-vs-kt').className = 'info-val'
@@ -3721,6 +4758,7 @@ function getHbarLayout(unit, cx, cy, UCELL) {
 }
 
 function hitTestHbar(mx, my, unit, UCELL) {
+  if (!unitShowHbar) return false
   const layout = getHbarLayout(unit, UCW / 2, UCH / 2, UCELL)
   if (!layout) return false
   if (mx >= layout.left && mx <= layout.right && my >= layout.top && my <= layout.bottom) return true
@@ -3797,6 +4835,16 @@ function updateUnitEditSelectionStatus(unit) {
     const unitLabel = slot.unitId === 'cannon' ? 'Cannon' : (UNIT_CATALOG.find(u => u.id === slot.unitId)?.name ?? slot.unitId)
     document.getElementById('unit-status').textContent =
       `${slot.label}: rel (${slot.relX >= 0 ? '+' : ''}${slot.relX.toFixed(3)}, ${slot.relY >= 0 ? '+' : ''}${slot.relY.toFixed(3)}) · ${unitLabel}${hint}`
+  } else if (unitEditSelection.type === 'composite') {
+    const off = getCompositeLayerOffset(unit.id, unitEditSelection.layerId)
+    const layer = COMPOSITE_LAYER_DEFS[unit.id]?.find(l => l.id === unitEditSelection.layerId)
+    document.getElementById('unit-status').textContent =
+      `${layer?.label ?? 'Layer'}: (${off.x >= 0 ? '+' : ''}${off.x}, ${off.y >= 0 ? '+' : ''}${off.y}) game px${hint}`
+  } else if (unitEditSelection.type === 'avatarBox') {
+    const pos = ensureAvatarBoxPos(unit.id, UCW / 2, UCH / 2)
+    const pct = Math.round(getAvatarBoxUserScale(unit.id) * 100)
+    document.getElementById('unit-status').textContent =
+      `Avatar focal point: (${Math.round(pos.x)}, ${Math.round(pos.y)}) canvas px · ${pct}% zoom${hint}`
   }
 }
 
@@ -3811,11 +4859,13 @@ function nudgeUnitEditSelection(signX, signY, e) {
     initCustomSlots(unit)
     const key = slotSideKey(unit)
     if (!liveSlotPositions[unit.id][key]?.[sel.index]) return false
-  } else if (sel.type === 'slotOrigin' && !unit.isTower) return false
-  else if (sel.type === 'sprite' && !unit.isTower) return false
-  else if (sel.type === 'rangeCenter' && !unit.isKing) return false
-  else if (sel.type === 'garrison' && !unit.isKing) return false
-  else if (sel.type === 'garrison' && !unitShowGarrison) return false
+  } else if (sel.type === 'slotOrigin' && (!unitShowSlots || !unit.isTower)) return false
+  else if (sel.type === 'sprite' && (!unitShowSprite || !unit.isTower)) return false
+  else if (sel.type === 'hbar' && !unitShowHbar) return false
+  else if (sel.type === 'rangeCenter' && (!unit.isKing || !unitShowRing)) return false
+  else if (sel.type === 'garrison' && (!unit.isKing || !unitShowGarrison)) return false
+  else if (sel.type === 'composite' && (!isCompositeUnit(unit) || !unitShowSprite)) return false
+  else if (sel.type === 'avatarBox' && (!isCompositeUnit(unit) || !unitShowAvatarFrame)) return false
   else if (sel.type === 'hbar' && !signY) return false
 
   pushUnitUndo()
@@ -3858,6 +4908,17 @@ function nudgeUnitEditSelection(signX, signY, e) {
     slot.relX = Math.round((slot.relX + signX * relStep) * 1000) / 1000
     slot.relY = Math.round((slot.relY + signY * relStep) * 1000) / 1000
     syncGarrisonInputs()
+  } else if (sel.type === 'composite') {
+    const off = getCompositeLayerOffset(unit.id, sel.layerId)
+    const { step } = arrowNudgeHint(e, 'px')
+    off.x = Math.round(off.x + signX * step)
+    off.y = Math.round(off.y + signY * step)
+    syncCompositeInputs(sel.layerId)
+  } else if (sel.type === 'avatarBox') {
+    const pos = ensureAvatarBoxPos(unit.id, UCW / 2, UCH / 2)
+    const { step } = arrowNudgeHint(e, 'px')
+    pos.x = Math.round(pos.x + signX * step)
+    pos.y = Math.round(pos.y + signY * step)
   }
 
   updateUnitEditSelectionStatus(unit)
@@ -3901,7 +4962,7 @@ unitCanvas.addEventListener('mousedown', e => {
   }
 
   // Health bar — before attack slots (slots often overlap the bar)
-  if (hitTestHbar(mx, my, unit, UCELL)) {
+  if (unitShowHbar && hitTestHbar(mx, my, unit, UCELL)) {
     armUnitUndoOnce()
     setUnitEditSelection({ type: 'hbar' })
     updateUnitEditSelectionStatus(unit)
@@ -3945,6 +5006,35 @@ unitCanvas.addEventListener('mousedown', e => {
     }
   }
 
+  // Composite sprite layers (bomb tower platform/bomber, air boat hull/crew)
+  if (isCompositeUnit(unit) && unitShowSprite) {
+    const layerId = hitTestCompositeLayer(mx, my, unit, UCW / 2, UCH / 2, UCELL)
+    if (layerId) {
+      armUnitUndoOnce()
+      setUnitEditSelection({ type: 'composite', layerId })
+      updateUnitEditSelectionStatus(unit)
+      draggingCompositeLayerId = layerId
+      _dragStartMx = mx; _dragStartMy = my
+      const off = getCompositeLayerOffset(unit.id, layerId)
+      _dragStartCompositeX = off.x; _dragStartCompositeY = off.y
+      unitCanvas.style.cursor = 'grabbing'
+      return
+    }
+  }
+
+  // Card avatar frame — drag to crop what appears in the side preview
+  if (isCompositeUnit(unit) && hitTestAvatarBox(mx, my, unit, UCW / 2, UCH / 2)) {
+    armUnitUndoOnce()
+    setUnitEditSelection({ type: 'avatarBox' })
+    updateUnitEditSelectionStatus(unit)
+    draggingAvatarBox = true
+    _dragStartMx = mx; _dragStartMy = my
+    const pos = ensureAvatarBoxPos(unit.id, UCW / 2, UCH / 2)
+    _dragStartAvatarBoxX = pos.x; _dragStartAvatarBoxY = pos.y
+    unitCanvas.style.cursor = 'grabbing'
+    return
+  }
+
   // Check individual slot points first (higher priority than origin dot)
   if (unitShowSlots) {
     const si = hitTestSlotPoint(mx, my, unit, UCELL)
@@ -3965,7 +5055,7 @@ unitCanvas.addEventListener('mousedown', e => {
   }
 
   // Check slot origin dot (towers only)
-  const sdot = getSlotDotPos(unit, UCELL)
+  const sdot = unitShowSlots ? getSlotDotPos(unit, UCELL) : null
   if (sdot) {
     const d = Math.hypot(mx - sdot.x, my - sdot.y)
     if (d <= 10) {
@@ -4013,6 +5103,26 @@ function onUnitCanvasMove(e) {
     vis.x = Math.round(_dragStartVisX + (mx - _dragStartMx) / scale)
     vis.y = Math.round(_dragStartVisY + (my - _dragStartMy) / scale)
     syncTowerVisualInputs()
+    drawUnit()
+    return
+  }
+
+  if (draggingCompositeLayerId) {
+    const scale = UCELL / GCS
+    const off = getCompositeLayerOffset(unit.id, draggingCompositeLayerId)
+    off.x = Math.round(_dragStartCompositeX + (mx - _dragStartMx) / scale)
+    off.y = Math.round(_dragStartCompositeY + (my - _dragStartMy) / scale)
+    syncCompositeInputs(draggingCompositeLayerId)
+    updateUnitEditSelectionStatus(unit)
+    drawUnit()
+    return
+  }
+
+  if (draggingAvatarBox) {
+    const pos = ensureAvatarBoxPos(unit.id, UCW / 2, UCH / 2)
+    pos.x = Math.round(_dragStartAvatarBoxX + (mx - _dragStartMx))
+    pos.y = Math.round(_dragStartAvatarBoxY + (my - _dragStartMy))
+    updateUnitEditSelectionStatus(unit)
     drawUnit()
     return
   }
@@ -4076,17 +5186,21 @@ function onUnitCanvasMove(e) {
   // Cursor feedback
   const si   = hitTestSlotPoint(mx, my, unit, UCELL)
   const sdot = getSlotDotPos(unit, UCELL)
-  if (hitTestHbar(mx, my, unit, UCELL)) {
+  if (unitShowHbar && hitTestHbar(mx, my, unit, UCELL)) {
     unitCanvas.style.cursor = 'ns-resize'
-  } else if (unit.isKing && hitTestKingRangeCenter(mx, my, unit, UCW / 2, UCH / 2, UCELL)) {
+  } else if (unit.isKing && unitShowRing && hitTestKingRangeCenter(mx, my, unit, UCW / 2, UCH / 2, UCELL)) {
     unitCanvas.style.cursor = 'grab'
   } else if (unit.isKing && unitShowGarrison && hitTestGarrisonSlot(mx, my, unit, UCELL) >= 0) {
     unitCanvas.style.cursor = 'grab'
   } else if (si >= 0) {
     unitCanvas.style.cursor = 'grab'
-  } else if (sdot && Math.hypot(mx - sdot.x, my - sdot.y) <= 10) {
+  } else if (unitShowSlots && sdot && Math.hypot(mx - sdot.x, my - sdot.y) <= 10) {
     unitCanvas.style.cursor = 'grab'
-  } else if (unit.isTower && hitTestTowerSprite(mx, my, unit, UCELL)) {
+  } else if (unitShowSprite && unit.isTower && hitTestTowerSprite(mx, my, unit, UCELL)) {
+    unitCanvas.style.cursor = 'grab'
+  } else if (unitShowSprite && isCompositeUnit(unit) && hitTestCompositeLayer(mx, my, unit, UCW / 2, UCH / 2, UCELL)) {
+    unitCanvas.style.cursor = 'grab'
+  } else if (unitShowAvatarFrame && isCompositeUnit(unit) && hitTestAvatarBox(mx, my, unit, UCW / 2, UCH / 2)) {
     unitCanvas.style.cursor = 'grab'
   } else {
     unitCanvas.style.cursor = 'default'
@@ -4096,7 +5210,8 @@ function onUnitCanvasMove(e) {
   const dy = (my - UCH / 2) / UCELL
   const dist = Math.sqrt(dx*dx + dy*dy)
   if (unitEditSelection) {
-    updateUnitEditSelectionStatus(unit)
+    if (!isUnitEditSelectionVisible(unit)) clearUnitEditSelection()
+    else updateUnitEditSelectionStatus(unit)
   } else {
     document.getElementById('unit-status').textContent =
       `Cursor: ${dx >= 0 ? '+' : ''}${dx.toFixed(2)}, ${dy >= 0 ? '+' : ''}${dy.toFixed(2)} cells from unit  (${dist.toFixed(2)} cells radius)`
@@ -4115,6 +5230,8 @@ function endUnitCanvasDrag(e) {
   draggingHbar = false
   draggingTowerVisual = false
   draggingRangeCenter = false
+  draggingCompositeLayerId = null
+  draggingAvatarBox = false
   releaseUnitUndoGesture()
   unitCanvas.style.cursor = 'default'
   drawUnit()
@@ -4124,7 +5241,7 @@ unitCanvas.addEventListener('mouseup', endUnitCanvasDrag)
 unitCanvas.addEventListener('pointerup', endUnitCanvasDrag)
 
 unitCanvas.addEventListener('mouseleave', () => {
-  if (draggingSlotIndex >= 0 || draggingGarrisonIndex >= 0 || draggingSlotCenter || draggingHbar || draggingTowerVisual || draggingRangeCenter) return
+  if (draggingSlotIndex >= 0 || draggingGarrisonIndex >= 0 || draggingSlotCenter || draggingHbar || draggingTowerVisual || draggingRangeCenter || draggingCompositeLayerId || draggingAvatarBox) return
   unitCanvas.style.cursor = 'default'
   document.getElementById('unit-status').textContent = 'Hover to measure distance from unit center'
 })

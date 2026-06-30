@@ -206,8 +206,9 @@ describe('Troop targeting', () => {
     unit.tick(33, state)
 
     const targetPos = unit.getDevInfo(state).targetPos
-    // Approaches the building (standoff ~x=247) rather than the nearer troop (standoff ~x=170).
-    expect(targetPos?.x).toBeGreaterThan(220)
+    // Princess-sized hull — standoff ~x=187 toward building at 350, not the nearer troop (~170).
+    expect(targetPos?.x).toBeGreaterThan(170)
+    expect(targetPos?.x).toBeLessThan(220)
   })
 
   it('building-only troops ignore enemy troops and march toward structures', () => {
@@ -225,11 +226,10 @@ describe('Troop targeting', () => {
 
     troll.tick(33, state)
 
-    // Building-only: must approach the structure (to its right, past the nearer troop),
-    // never lock the closer enemy troop — a troop lock would aim the move goal back left.
+    // Building-only: targets the structure (standoff left of the nearer troop), never damages it.
     const targetPos = troll.getDevInfo(state).targetPos
     expect(targetPos).not.toBeNull()
-    expect(targetPos!.x).toBeGreaterThan(nearerTroop.position.x)
+    expect(targetPos!.x).toBeLessThan(nearerTroop.position.x)
     expect(nearerTroop.hp).toBe(troopStats.maxHp)
   })
 

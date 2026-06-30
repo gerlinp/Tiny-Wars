@@ -6,6 +6,7 @@ import { Owner, CardType } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { CELL_SIZE } from '@data/GameConstants'
+import { COMPOSITE_LAYER_OFFSETS } from '@data/CompositeLayerOffsets'
 import { displaySizeForCard } from './assetDisplaySize'
 import { DamageFireOverlay } from './DamageFireOverlay'
 import { BombTowerCrew } from './BombTowerCrew'
@@ -159,7 +160,12 @@ export class EntitySprite {
     }
 
     this.lastX = x
-    this.sprite.setPosition(x, y)
+    if (this.cardId === 'wood_tower') {
+      const platOff = COMPOSITE_LAYER_OFFSETS.wood_tower!.platform
+      this.sprite.setPosition(x + platOff.x, y + platOff.y)
+    } else {
+      this.sprite.setPosition(x, y)
+    }
     if (this.airBoatCrew) {
       this.airBoatCrew.layout(x, y, this.sprite.displayWidth, this.sprite.displayHeight, this.sprite.flipX)
       this.airBoatCrew.syncMovement(anim === 'run')
@@ -192,9 +198,19 @@ export class EntitySprite {
     }
   }
 
-  /** Bomb Fish crew perch — for tower lobs and VFX origin. */
+  /** Bomb-tower deck bomber — feet anchor on the platform. */
   getBombCrewOrigin(): Vec2 | null {
     return this.bombCrew?.getWorldPosition() ?? null
+  }
+
+  /** Bomb-tower lob release — mouth height during Bomb Fish_Shoot frame 4. */
+  getBombLaunchPoint(): Vec2 | null {
+    return this.bombCrew?.getLaunchPoint() ?? this.getBombCrewOrigin()
+  }
+
+  /** Ms from lob clip start until the visible bomb should leave the bomber. */
+  getBombTowerLobDelayMs(): number {
+    return this.bombCrew?.lobReleaseDelayMs() ?? 0
   }
 
   /** World point attackers should face / strike — hull centre for air boat, feet otherwise. */

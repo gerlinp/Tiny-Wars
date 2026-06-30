@@ -6,6 +6,7 @@ import type { Grid } from '../Grid'
 import { Pathfinder } from '../Pathfinder'
 import {
 
+  buildingCombatCenter,
   edgeDistBetweenEntities,
   entityCollisionCenter,
   entityCombatRadius,
@@ -32,7 +33,10 @@ import {
 } from '../Movement'
 import { getLaneMarchGoal } from '../LaneMovement'
 import { towerAttackCenter, towerSlotOriginCenter } from '@rendering/towerRenderPosition'
+import { bombTowerMeleeLayout } from '@data/BombTowerMeleeLayout'
 import { princessTowerMeleeLayout } from '@data/PrincessTowerMeleeLayout'
+import { BOMB_TOWER_CARD_ID } from '@data/GameConstants'
+import type { Building } from './Building'
 import { moveTowardWithAllyAvoidance } from '../TroopAvoidance'
 import { troopDeployPositions } from '../DeploySystem'
 import { CARD_DEFINITIONS } from '@data/CardData'
@@ -42,6 +46,7 @@ import {
   LEFT_BRIDGE_COLS, RIGHT_BRIDGE_COLS,
   HEAL_PULSE_INTERVAL_MS, COMBAT_LEASH_MULTIPLIER,
   TROOP_DEPLOY_SPREAD_CELLS, BRIDGE_CENTER_COL,
+  TROOP_SPAWN_DELAY_MS,
 } from '@data/GameConstants'
 import {
   GNOLL_BOOMERANG_TRAVEL_CELLS,
@@ -197,6 +202,7 @@ export class Troop extends Entity {
   /** Goblin Demolisher — HP clamped at charge threshold until the suicide run starts. */
   private buildingChargeArmed = false
   private buildingChargeRunActive = false
+  private spawnTimerMs = 0
 
   constructor(owner: Owner, stats: EntityStats, position: Vec2, grid: Grid, cardId: string) {
     super(nextEntityId(), owner, EntityKind.TROOP, position, stats.maxHp, cardId)
@@ -264,6 +270,11 @@ export class Troop extends Entity {
     return this.activeHealBurst !== null
   }
 
+  /** Activate the CR-style spawn freeze so the unit idles before acting. */
+  applySpawnDelay(): void {
+    this.spawnTimerMs = TROOP_SPAWN_DELAY_MS
+  }
+
   /** Deploy-time heal aura (e.g. Monk spawn heal). */
   applySpawnHeal(state: GameState): void {
     if (this.cardId !== 'monk') return
@@ -305,6 +316,12 @@ export class Troop extends Entity {
 
   private runTick(deltaMs: number, state: GameState): void {
     if (!this.isAlive) { this.state = TroopState.DEAD; return }
+
+    if (this.spawnTimerMs > 0) {
+      this.spawnTimerMs -= deltaMs
+      this.state = TroopState.SPAWNING
+      return
+    }
 
     this.tickHealPulses(deltaMs, state)
     this.tickMinionSpawns(deltaMs, state)
@@ -780,6 +797,10 @@ export class Troop extends Entity {
    * solo attackers (keeps single-unit approach unchanged) or when the slot is unwalkable.
    */
   private attackSlotGoalFor(target: Entity, state: GameState): Vec2 | null {
+    // Building-only rush units charge straight at structures — skip swarm slots tuned
+    // for normal melee (princess tower ring positions sit too far for hogs / hog rider).
+    if (this.effectiveTargetsBuildingsOnly()) return null
+
     const allyIds: string[] = []
     for (const entity of state.entities.values()) {
       if (!entity.isAlive || entity.kind !== EntityKind.TROOP) continue
@@ -809,6 +830,17 @@ export class Troop extends Entity {
         }
         return slot
       }
+    }
+
+    if (target.kind === EntityKind.BUILDING && target.cardId === BOMB_TOWER_CARD_ID) {
+      const building = target as Building
+      const layout = bombTowerMeleeLayout()
+      const origin = buildingCombatCenter(building)
+      const slot = attackSlotPositionFromLayout(origin, index, layout.slotPositions)
+      if (this.stats.unitType === UnitType.GROUND && !isWorldWalkable(this.grid, slot.x, slot.y)) {
+        return null
+      }
+      return slot
     }
 
     const center = entityCollisionCenter(target)
@@ -1038,16 +1070,11 @@ export class Troop extends Entity {
   }
 
   private resolveCollisions(state: GameState): void {
-    const attackReach = this.stats.attackRange * CELL_SIZE
     for (const entity of state.entities.values()) {
       if (!entity.isAlive || entity.kind !== EntityKind.BUILDING) continue
       if (entity.owner === this.owner) continue
-      if (
-        this.target?.id === entity.id &&
-        edgeDistBetweenEntities(this, entity) <= attackReach + CELL_SIZE * 0.25
-      ) {
-        continue
-      }
+      // Melee chasers must hug the building hull to reach short attack ranges (e.g. pigs).
+      if (this.target?.id === entity.id && this.effectiveAttackRange() <= 2) continue
       pushTroopOutOfEntity(this.position, this, entity)
     }
     for (const tower of state.towers.values()) {

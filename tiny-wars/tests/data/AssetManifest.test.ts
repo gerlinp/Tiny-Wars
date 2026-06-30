@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
-import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, AVATAR_CROP_RATIO_DEFAULT, EXPLOSION_SHEET, GARRISON_CANNON_BALL, GNOLL_BONE_SHEET, GOBLIN_DYNAMITE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarCropRatio, getCardAvatarDef, getCardAvatarSwarmSource, resolveAttackAnimKey } from '@data/AssetManifest'
+import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, AVATAR_CROP_RATIO_DEFAULT, EXPLOSION_SHEET, GARRISON_CANNON_BALL, GNOLL_BONE_SHEET, GOBLIN_DYNAMITE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarCropRatio, getCardAvatarDef, getCardAvatarSwarmSource, getUseEditorCompositeAvatar, resolveAttackAnimKey } from '@data/AssetManifest'
 import { DEFAULT_DECK } from '@data/CardData'
 import { Owner } from '@core/types'
 
@@ -530,14 +530,21 @@ describe('Card avatars', () => {
     expect(bundle.attackHitFrame).toBe(4)
   })
 
-  it('bomb tower uses the wood tower building sprite in the card hand', () => {
+  it('bomb tower card portrait uses the pirate platform art path', () => {
     expect(cardAvatarKey('wood_tower')).toBe('avatar_bomb_tower')
     const def = getCardAvatarDef('wood_tower')
-    expect(def.path).toContain('Wood_Tower_Blue.png')
-    expect(def.frameWidth).toBe(205)
+    expect(def.path).toContain('Pirate Tower_Ground.png')
+    expect(def.frameWidth).toBe(128)
     expect(getCardAvatarBackdrop('wood_tower')).toBeNull()
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'wood_tower')!
     expect(bundle.avatarBuildingFit).toBe(true)
+    expect(bundle.useEditorCompositeAvatar).toBe(true)
+    expect(getUseEditorCompositeAvatar('wood_tower')).toBe(true)
+    expect(getUseEditorCompositeAvatar('air_boat')).toBe(true)
+    expect(getUseEditorCompositeAvatar('warrior')).toBe(false)
+    expect(bundle.tintBotSide).toBe(true)
+    expect(bundle.player.idle.sheet.path).toContain('Pirate Tower_Ground.png')
+    expect(existsSync(resolve(PUBLIC, def.path))).toBe(true)
   })
 
   it('goblin barrel uses hop and break clips from the 4×4 barrel sheet', () => {

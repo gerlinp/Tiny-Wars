@@ -229,6 +229,11 @@ export interface CardAssetBundle {
   avatarFocusY?: number
   /** Tall building sprites — fit full frame in the slot instead of portrait crop. */
   avatarBuildingFit?: boolean
+  /**
+   * Composite units (platform + crew): use unit-editor layer layout for the card hand
+   * instead of the static {@link avatar} PNG.
+   */
+  useEditorCompositeAvatar?: boolean
   /** Composite portrait — spawn units in the same cluster layout as deploy. */
   avatarSwarmSourceCardId?: string
   /**
@@ -394,31 +399,6 @@ function clipFrames(
   return { sheet, start: frames[0], end: frames[frames.length - 1], frameRate, repeat, frames: [...frames] }
 }
 
-function goblinBuildingSheet(cardId: string, side: 'Blue' | 'Red', folder: string, file: string): SheetDef {
-  const prefix = side === 'Blue' ? 'blue' : 'red'
-  return {
-    key: `${cardId}_${prefix}_sheet`,
-    path: `assets/Factions/Goblins/${folder}/${file}`,
-  }
-}
-
-function goblinBuildingSide(
-  cardId: string,
-  side: 'Blue' | 'Red',
-  folder: string,
-  file: string,
-  rows: { idle: [number, number]; run: [number, number]; attack: [number, number] },
-  frameWidth = FRAME_W,
-  frameHeight = FRAME_H,
-): SideAssets {
-  const sheet: SheetDef = { ...goblinBuildingSheet(cardId, side, folder, file), frameWidth, frameHeight }
-  return {
-    idle:   clip(sheet, rows.idle[0],   rows.idle[1],   10, -1),
-    run:    clip(sheet, rows.run[0],    rows.run[1],    14, -1),
-    attack: clip(sheet, rows.attack[0], rows.attack[1], 14, -1),
-  }
-}
-
 const HUMAN_AVATARS = 'assets/UI Elements/UI Elements/Human Avatars'
 const ENEMY_AVATARS = 'assets/Enemy Pack/Enemy Avatars'
 /** Tan parchment tile behind enemy-style card portraits (Banner_Slots.png). */
@@ -439,12 +419,31 @@ function enemyAvatar(file: string): ImageDef {
 
 /** Reserved enemy portraits (no card wired yet): _07 snake, _11 spider, _14, _15 gnome. */
 
+export const PIRATE_TOWER_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower'
+export const PIRATE_TOWER_GROUND = `${PIRATE_TOWER_PATH}/Pirate Tower_Ground.png`
+export const PIRATE_TOWER_FRAME = { width: 128, height: 192 } as const
+
 const ICON_FRAME = 64
 
 function iconOnlySide(key: string, path: string): SideAssets {
   const sheet: SheetDef = { key, path, frameWidth: ICON_FRAME, frameHeight: ICON_FRAME }
   const frame = clip(sheet, 0, 0, 1, -1)
   return { idle: frame, run: frame, attack: frame }
+}
+
+function staticImageSide(key: string, path: string, frameWidth: number, frameHeight: number): SideAssets {
+  const sheet: SheetDef = { key, path, frameWidth, frameHeight }
+  const frame = clip(sheet, 0, 0, 1, -1)
+  return { idle: frame, run: frame, attack: frame }
+}
+
+function pirateTowerSide(cardId: string, side: 'blue' | 'red'): SideAssets {
+  return staticImageSide(
+    `${cardId}_${side}_idle`,
+    PIRATE_TOWER_GROUND,
+    PIRATE_TOWER_FRAME.width,
+    PIRATE_TOWER_FRAME.height,
+  )
 }
 
 const TORCH_GOBLIN_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin'
@@ -1241,6 +1240,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarFocusY: 0.82,
     // Lower fill scales balloon + hull up on-map; crew use standard troop size in AirBoatCrew.
     contentFill: 0.42,
+    useEditorCompositeAvatar: true,
     spriteOriginY: 1.28,
     attackHitFrame: 4,
     tintBotSide: true,
@@ -1420,19 +1420,19 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'wood_tower',
     avatar: {
       key: 'avatar_bomb_tower',
-      path: 'assets/Factions/Goblins/Buildings/Wood_Tower/Wood_Tower_Blue.png',
-      frameWidth: 205,
-      frameHeight: 192,
+      path: PIRATE_TOWER_GROUND,
+      frameWidth: PIRATE_TOWER_FRAME.width,
+      frameHeight: PIRATE_TOWER_FRAME.height,
       frame: 0,
     },
     avatarBuildingFit: true,
     avatarHandScale: 0.92,
+    useEditorCompositeAvatar: true,
     animated: false,
     contentFill: 0.72,
-    footprintWidthRatio: 0.42,
-    footprintHeightRatio: 0.36,
-    player: goblinBuildingSide('wood_tower', 'Blue', 'Buildings/Wood_Tower', 'Wood_Tower_Blue.png', { idle: [0, 4], run: [0, 4], attack: [0, 4] }, 205, 192),
-    bot:    goblinBuildingSide('wood_tower', 'Red',  'Buildings/Wood_Tower', 'Wood_Tower_Red.png',  { idle: [0, 4], run: [0, 4], attack: [0, 4] }, 205, 192),
+    tintBotSide: true,
+    player: pirateTowerSide('wood_tower', 'blue'),
+    bot:    pirateTowerSide('wood_tower', 'red'),
   },
   {
     cardId: 'tnt',
@@ -1620,6 +1620,12 @@ export function getCardAvatarFocusY(cardId: string): number {
 export function getCardAvatarBuildingFit(cardId: string): boolean {
   const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
   return bundle?.avatarBuildingFit === true
+}
+
+/** Composite card hand — layered sprites from unit editor vs static avatar PNG. */
+export function getUseEditorCompositeAvatar(cardId: string): boolean {
+  const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)
+  return bundle?.useEditorCompositeAvatar === true
 }
 
 export function getCardAvatarSwarmSource(cardId: string): string | null {

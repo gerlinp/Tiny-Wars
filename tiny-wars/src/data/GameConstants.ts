@@ -59,14 +59,14 @@ export const BOT_KING_VISUAL_ROW    = 6
 export const PLAYER_KING_CANNON_ROW = 39
 export const BOT_KING_CANNON_ROW = 5
 
-/** Bridge spans 3 cells centred on the tower's lane column (wider crossing reduces clogging). */
+/** Bridge spans 5 cells centred on the tower's lane column — wider than 3 to reduce clogging, proportional to CR on our 24-col grid. */
 function bridgeColsOnLeftTowerLane(towerCol: number): readonly number[] {
-  return [towerCol - 1, towerCol, towerCol + 1]
+  return [towerCol - 2, towerCol - 1, towerCol, towerCol + 1, towerCol + 2]
 }
 
-/** Right lane bridge — mirror of left, also 3 cells centred on the tower column. */
+/** Right lane bridge — mirror of left, also 5 cells centred on the tower column. */
 function bridgeColsOnRightTowerLane(towerCol: number): readonly number[] {
-  return [towerCol - 1, towerCol, towerCol + 1]
+  return [towerCol - 2, towerCol - 1, towerCol, towerCol + 1, towerCol + 2]
 }
 
 // River runs across rows 20–22 (0-indexed); bridge columns are walkable through it
@@ -169,6 +169,9 @@ export function crSpeedToCellsPerSec(crSpeed: number): number {
   return crSpeed * (CR_MEDIUM_SPEED_CELLS_PER_SEC / CR_SPEED.medium)
 }
 
+/** Clash Royale-style spawn freeze — unit idles this long before moving or attacking. */
+export const TROOP_SPAWN_DELAY_MS = 500
+
 /** Horizontal spacing between multi-deploy troops (e.g. Archers). */
 export const TROOP_DEPLOY_SPREAD_CELLS = 0.9
 
@@ -193,6 +196,9 @@ export const BUILDING_COMBAT_RADIUS_CELLS = 0.6
 
 /** Grid cells blocked for pathfinding (separate from combat circle). */
 export const BUILDING_FOOTPRINT_CELLS = { w: 2, h: 2 } as const
+
+/** Deployable bomb tower — same path/combat hull as a princess tower. */
+export const BOMB_TOWER_CARD_ID = 'wood_tower'
 
 /** @deprecated Used only for building footprint sizing in assetDisplaySize. */
 export const TROOP_COLLISION_WIDTH_RATIO = 0.38

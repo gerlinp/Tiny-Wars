@@ -4,7 +4,7 @@ import { Tower } from './entities/Tower'
 import { EntityKind } from './types'
 import type { Vec2 } from './types'
 import { dist } from './Vector2'
-import { CELL_SIZE, GRID_COLS, GRID_ROWS, EPSILON_DISTANCE, TROOP_COLLISION_RADIUS_CELLS, BUILDING_COMBAT_RADIUS_CELLS, BUILDING_FOOTPRINT_CELLS } from '@data/GameConstants'
+import { CELL_SIZE, GRID_COLS, GRID_ROWS, EPSILON_DISTANCE, TROOP_COLLISION_RADIUS_CELLS, BUILDING_COMBAT_RADIUS_CELLS, BUILDING_FOOTPRINT_CELLS, BOMB_TOWER_CARD_ID } from '@data/GameConstants'
 import { collisionHalfExtentsForTower, towerCombatRadius } from '@rendering/assetDisplaySize'
 import { towerCollisionCenter } from '@rendering/towerRenderPosition'
 
@@ -21,7 +21,7 @@ export function troopCollisionHalf(): HalfExtents {
 /** Combat circle radius for entities that use circular hulls (world pixels). */
 export function entityCombatRadius(entity: Entity): number | null {
   if (entity.kind === EntityKind.TROOP) return troopCollisionRadius(entity)
-  if (entity.kind === EntityKind.BUILDING) return buildingCombatRadius()
+  if (entity.kind === EntityKind.BUILDING) return (entity as Building).combatRadiusPx
   if (entity.kind === EntityKind.TOWER) return towerCombatRadius((entity as Tower).isKing)
   return null
 }
@@ -36,14 +36,18 @@ export function troopCollisionRadius(_entity?: Entity): number {
   return TROOP_COLLISION_RADIUS_CELLS * CELL_SIZE
 }
 
-/** CR-style fixed combat radius for deployed buildings (world pixels). */
-export function buildingCombatRadius(): number {
+/** CR-style fixed combat radius for generic deployed buildings (world pixels). */
+export function buildingCombatRadius(building?: Building): number {
+  if (building) return building.combatRadiusPx
   return BUILDING_COMBAT_RADIUS_CELLS * CELL_SIZE
 }
 
-/** Combat circle centre for a building — anchored at its deploy base. */
+/** Combat circle centre for a building — anchored at deploy base (bomb tower matches towers). */
 export function buildingCombatCenter(building: Building): Vec2 {
-  const r = buildingCombatRadius()
+  if (building.cardId === BOMB_TOWER_CARD_ID) {
+    return { x: building.position.x, y: building.position.y }
+  }
+  const r = building.combatRadiusPx
   return { x: building.position.x, y: building.position.y - r }
 }
 
@@ -101,7 +105,7 @@ export function entityCollisionCenter(entity: Entity): Vec2 {
 
 export function entityHalfExtents(entity: Entity): HalfExtents {
   if (entity.kind === EntityKind.BUILDING) {
-    const r = buildingCombatRadius()
+    const r = (entity as Building).combatRadiusPx
     return { halfW: r, halfH: r }
   }
   if (entity.kind === EntityKind.TOWER) {

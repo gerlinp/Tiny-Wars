@@ -6,7 +6,14 @@ import type { GameState } from '../GameState'
 import { surfaceDistToEntity, buildingBlockedCells } from '../EntityGeometry'
 import { refreshStickyTarget, isAttackableTower } from '../TargetSelection'
 import { dealAreaDamage } from '../AreaDamage'
-import { BUILDING_COMBAT_RADIUS_CELLS, BUILDING_FOOTPRINT_CELLS, BUILDING_LIFETIME_MS, CELL_SIZE } from '@data/GameConstants'
+import {
+  BOMB_TOWER_CARD_ID,
+  BUILDING_COMBAT_RADIUS_CELLS,
+  BUILDING_FOOTPRINT_CELLS,
+  BUILDING_LIFETIME_MS,
+  CELL_SIZE,
+} from '@data/GameConstants'
+import { towerCombatRadius } from '@rendering/assetDisplaySize'
 
 export class Building extends Entity {
   readonly stats: EntityStats
@@ -40,10 +47,17 @@ export class Building extends Entity {
   constructor(owner: Owner, stats: EntityStats, position: Vec2, cardId: string) {
     super(nextEntityId(), owner, EntityKind.BUILDING, position, stats.maxHp, cardId)
     this.stats = stats
-    this.combatRadiusPx = BUILDING_COMBAT_RADIUS_CELLS * CELL_SIZE
-    this.pathHalfW = (BUILDING_FOOTPRINT_CELLS.w / 2) * CELL_SIZE
-    this.pathHalfH = (BUILDING_FOOTPRINT_CELLS.h / 2) * CELL_SIZE
-    this.blockedCells = buildingBlockedCells(position)
+    if (cardId === BOMB_TOWER_CARD_ID) {
+      this.combatRadiusPx = towerCombatRadius(false)
+      this.pathHalfW = (BUILDING_FOOTPRINT_CELLS.w / 2) * CELL_SIZE
+      this.pathHalfH = (BUILDING_FOOTPRINT_CELLS.h / 2) * CELL_SIZE
+      this.blockedCells = buildingBlockedCells(position)
+    } else {
+      this.combatRadiusPx = BUILDING_COMBAT_RADIUS_CELLS * CELL_SIZE
+      this.pathHalfW = (BUILDING_FOOTPRINT_CELLS.w / 2) * CELL_SIZE
+      this.pathHalfH = (BUILDING_FOOTPRINT_CELLS.h / 2) * CELL_SIZE
+      this.blockedCells = buildingBlockedCells(position)
+    }
     this.totalLifetimeMs = stats.lifetimeMs ?? BUILDING_LIFETIME_MS
     this.remainingLifetimeMs = this.totalLifetimeMs
   }

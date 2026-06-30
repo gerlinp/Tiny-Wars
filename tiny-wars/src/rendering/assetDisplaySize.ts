@@ -10,6 +10,8 @@ import {
   TROOP_COLLISION_WIDTH_RATIO,
   TOWER_FOOTPRINT_CELLS,
   CELL_SIZE,
+  BOMB_TOWER_CARD_ID,
+  BUILDING_COMBAT_RADIUS_CELLS,
 } from '@data/GameConstants'
 
 const DEFAULT_CONTENT_FILL = 0.55
@@ -63,6 +65,12 @@ export function towerDisplaySizeForNative(isKing: boolean): DisplaySize {
 export function towerCombatRadius(isKing: boolean): number {
   if (isKing) return towerDisplaySizeForNative(true).width / 2
   return (TOWER_FOOTPRINT_CELLS.princess.w / 2) * CELL_SIZE
+}
+
+/** Deploy preview ring — matches in-game combat hull, not sprite bounds. */
+export function buildingPlacementCombatRadiusPx(cardId: string): number {
+  if (cardId === BOMB_TOWER_CARD_ID) return towerCombatRadius(false)
+  return BUILDING_COMBAT_RADIUS_CELLS * CELL_SIZE
 }
 
 /** Collision half-extents matching on-map sprite size (logic-only, no Phaser). */

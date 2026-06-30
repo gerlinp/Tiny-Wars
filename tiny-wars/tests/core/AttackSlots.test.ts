@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { assignSlotIndex, attackSlotPosition, attackSlotPositionFromLayout, slotBaseAngle } from '@core/AttackSlots'
 import { CELL_SIZE, BOT_TOWER_ROW } from '@data/GameConstants'
 import { BOT_PRINCESS_TOWER_MELEE, PLAYER_PRINCESS_TOWER_MELEE } from '@data/PrincessTowerMeleeLayout'
+import { bombTowerMeleeLayout } from '@data/BombTowerMeleeLayout'
 import { Owner } from '@core/types'
 import { towerSlotOriginCenter } from '@rendering/towerRenderPosition'
 
@@ -79,5 +80,11 @@ describe('AttackSlots', () => {
     expect(origin.y).toBeCloseTo(logicY + PLAYER_PRINCESS_TOWER_MELEE.slotOriginOffsetCells.y * CELL_SIZE, 5)
     const p0 = attackSlotPositionFromLayout(origin, 0, PLAYER_PRINCESS_TOWER_MELEE.slotPositions)
     expect(p0.y).toBeCloseTo(origin.y - 2.9 * CELL_SIZE, 5)
+  })
+
+  it('bomb tower uses editor-tuned dense slot ring (18 positions)', () => {
+    const layout = bombTowerMeleeLayout()
+    expect(layout.slotPositions).toHaveLength(18)
+    expect(layout.slotPositions).toEqual(PLAYER_PRINCESS_TOWER_MELEE.slotPositions)
   })
 })

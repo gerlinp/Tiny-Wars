@@ -5,8 +5,8 @@ import { Grid } from '@core/Grid'
 import { Owner, UnitType, AttackType } from '@core/types'
 import type { EntityStats } from '@core/types'
 import {
-  buildingCombatRadius,
   edgeDistBetweenEntities,
+  entityCollisionCenter,
   entityHalfExtents,
   meleeApproachPoint,
   surfaceDistToEntity,
@@ -14,10 +14,10 @@ import {
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { GameSimulator } from '@core/GameSimulator'
 import {
-  BUILDING_COMBAT_RADIUS_CELLS,
-  BUILDING_FOOTPRINT_CELLS,
   CELL_SIZE,
+  BUILDING_FOOTPRINT_CELLS,
 } from '@data/GameConstants'
+import { towerCombatRadius, buildingPlacementCombatRadiusPx } from '@rendering/assetDisplaySize'
 
 const WOOD_TOWER_STATS: EntityStats = {
   maxHp: 1791,
@@ -45,22 +45,27 @@ const warriorStats: EntityStats = {
 describe('Building CR combat hull', () => {
   const grid = new Grid()
 
-  it('uses a fixed 0.6 tile combat circle, not sprite dimensions', () => {
+  it('bomb tower uses princess-tower combat circle, not sprite dimensions', () => {
     const building = new Building(Owner.BOT, WOOD_TOWER_STATS, { x: 200, y: 500 }, 'wood_tower')
     const half = entityHalfExtents(building)
+    const princessR = towerCombatRadius(false)
 
-    expect(building.combatRadiusPx).toBe(BUILDING_COMBAT_RADIUS_CELLS * CELL_SIZE)
-    expect(half.halfW).toBe(building.combatRadiusPx)
-    expect(half.halfH).toBe(building.combatRadiusPx)
-    expect(half.halfW).toBeLessThan(CELL_SIZE)
+    expect(building.combatRadiusPx).toBe(princessR)
+    expect(half.halfW).toBe(princessR)
+    expect(half.halfH).toBe(princessR)
   })
 
-  it('blocks a 2x2 path footprint separate from combat radius', () => {
-    const building = new Building(Owner.BOT, WOOD_TOWER_STATS, { x: 200, y: 500 }, 'wood_tower')
+  it('bomb tower blocks a 2×2 path footprint while keeping princess combat hull', () => {
+    const pos = { x: 300, y: 500 }
+    const building = new Building(Owner.BOT, WOOD_TOWER_STATS, pos, 'wood_tower')
 
     expect(building.pathHalfW).toBe((BUILDING_FOOTPRINT_CELLS.w / 2) * CELL_SIZE)
-    expect(building.blockedCells.length).toBe(BUILDING_FOOTPRINT_CELLS.w * BUILDING_FOOTPRINT_CELLS.h)
-    expect(building.pathHalfW).toBeGreaterThan(building.combatRadiusPx)
+    expect(building.blockedCells.length).toBe(4)
+    expect(building.combatRadiusPx).toBe(towerCombatRadius(false))
+  })
+
+  it('bomb tower deploy preview ring matches princess combat hull', () => {
+    expect(buildingPlacementCombatRadiusPx('wood_tower')).toBe(towerCombatRadius(false))
   })
 
   it('lets a deployed warrior melee a bomb tower via the simulator', () => {
@@ -91,12 +96,13 @@ describe('Building CR combat hull', () => {
     expect(edgeDistBetweenEntities(warrior, building)).toBeCloseTo(1.2 * CELL_SIZE - CELL_SIZE * 0.5, 0)
   })
 
-  it('surface distance uses combat radius not sprite footprint', () => {
+  it('surface distance uses combat radius centred on deploy anchor', () => {
     const building = new Building(Owner.BOT, WOOD_TOWER_STATS, { x: 300, y: 500 }, 'wood_tower')
-    const r = buildingCombatRadius()
-    const center = { x: building.position.x, y: building.position.y - r }
+    const r = building.combatRadiusPx
+    const center = entityCollisionCenter(building)
     const outside = { x: center.x + r + 30, y: center.y }
 
+    expect(center).toEqual({ x: 300, y: 500 })
     expect(surfaceDistToEntity(outside, building)).toBeCloseTo(30, 0)
   })
 })

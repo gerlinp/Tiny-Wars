@@ -182,6 +182,7 @@ export class GameSimulator {
       for (const pos of positions) {
         const troop = new Troop(owner, card.stats as EntityStats, pos, this.grid, card.id)
         this.state.entities.set(troop.id, troop)
+        troop.applySpawnDelay()
         troop.applySpawnHeal(this.state)
         this.state.events.push({ type: 'DEPLOY', entityId: troop.id, cardId: card.id, position: pos })
       }
