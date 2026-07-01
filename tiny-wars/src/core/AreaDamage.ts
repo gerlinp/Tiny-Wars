@@ -5,6 +5,7 @@ import { EntityKind } from './types'
 import type { Owner, Vec2 } from './types'
 import { dist } from './Vector2'
 import { CELL_SIZE } from '@data/GameConstants'
+import { surfaceDistToEntity } from './EntityGeometry'
 
 export function dealAreaDamage(
   state: GameState,
@@ -37,7 +38,7 @@ export function dealAreaDamage(
   for (const tower of state.towers.values()) {
     if (tower.owner === owner || !tower.isAlive) continue
     if (!canHit(tower)) continue
-    if (dist(center, tower.position) > radiusPx) continue
+    if (surfaceDistToEntity(center, tower) > radiusPx) continue
 
     tower.takeDamage(damage)
     state.events.push({

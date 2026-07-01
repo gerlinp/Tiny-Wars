@@ -6,6 +6,7 @@ import type { GameState } from '../GameState'
 import type { Grid } from '../Grid'
 import { dist } from '../Vector2'
 import { CELL_SIZE, TROOP_DEPLOY_SPREAD_CELLS } from '@data/GameConstants'
+import { surfaceDistToEntity } from '../EntityGeometry'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { troopDeployPositions } from '@core/DeploySystem'
 
@@ -56,7 +57,7 @@ export class Spell extends Entity {
     for (const tower of state.towers.values()) {
       if (tower.owner === this.owner) continue
       if (!tower.isAlive) continue
-      if (dist(this.position, tower.position) <= radiusPx) {
+      if (surfaceDistToEntity(this.position, tower) <= radiusPx) {
         tower.takeDamage(this.stats.damage)
         state.events.push({ type: 'DAMAGE', targetId: tower.id, amount: this.stats.damage })
       }

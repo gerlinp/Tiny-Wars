@@ -45,7 +45,7 @@ import {
   CELL_SIZE, EPSILON_DISTANCE,
   LEFT_LANE_COL, RIGHT_LANE_COL, RIVER_ROW_START, RIVER_ROW_END,
   LEFT_BRIDGE_COLS, RIGHT_BRIDGE_COLS,
-  HEAL_PULSE_INTERVAL_MS, COMBAT_LEASH_MULTIPLIER,
+  HEAL_PULSE_INTERVAL_MS,
   TROOP_DEPLOY_SPREAD_CELLS, BRIDGE_CENTER_COL,
   TROOP_SPAWN_DELAY_MS, TROOP_AGGRO_RANGE_CELLS,
 } from '@data/GameConstants'
@@ -79,6 +79,11 @@ const STUCK_RECOVER_MS = 600
 const STUCK_PROGRESS_FRACTION = 0.15
 /** A new structure objective must be at least this much closer before a marching troop switches. */
 const STRUCTURE_SWITCH_MARGIN = CELL_SIZE * 2
+/**
+ * Once in ATTACKING state, the unit stays attacking even if the target drifts up to this many
+ * pixels beyond attackReach — prevents single-tick walk/attack oscillation from separation pushes.
+ */
+const ATTACK_HOLD_SLACK_PX = CELL_SIZE * 0.5
 
 /** Map an entity to its target-priority class. */
 function entityTargetClass(entity: Entity): TargetClass {
@@ -372,7 +377,13 @@ export class Troop extends Entity {
         return
       }
 
-      if (dist <= attackReach) {
+      // Hysteresis: once attacking, tolerate the target drifting slightly past attackReach
+      // (e.g. from separation pushes) before dropping back to walking. Prevents single-tick
+      // walk/attack oscillation that makes melee feel janky.
+      const holdReach = this.state === TroopState.ATTACKING
+        ? attackReach + ATTACK_HOLD_SLACK_PX
+        : attackReach
+      if (dist <= holdReach) {
         this.state = TroopState.ATTACKING
         this.clearPath()
         this.trackObjective(this.target)
@@ -818,7 +829,7 @@ export class Troop extends Entity {
 
     for (const tower of state.towers.values()) {
       if (tower.owner === this.owner || !tower.isAlive) continue
-      if (dist(center, tower.position) > radiusPx) continue
+      if (surfaceDistToEntity(center, tower) > radiusPx) continue
       this.dealDamageTo(state, tower, tower.id !== primaryId, damage)
     }
   }
@@ -1255,7 +1266,10 @@ export class Troop extends Entity {
 
   private aggroRangeCells(): number {
     const range = this.effectiveAttackRange()
-    let aggro = range > 2 ? range : TROOP_AGGRO_RANGE_CELLS
+    // CR: all units have sight range ≥ 5.5 tiles, regardless of attack range.
+    // Previously ranged units only noticed enemies within their attack range; this
+    // caused them to walk into enemies before registering them as targets.
+    let aggro = Math.max(range, TROOP_AGGRO_RANGE_CELLS)
     // Special long-reach melee cards must detect targets out to their ability range so the
     // dash / hook can trigger before the unit is in normal melee range.
     if (this.cardId === 'thief') aggro = Math.max(aggro, THIEF_DASH_RANGE_CELLS)
@@ -1284,32 +1298,9 @@ export class Troop extends Entity {
     const engagedTarget = this.target?.isAlive ? this.target : null
     const engagedOnTroop = engagedTarget?.kind === EntityKind.TROOP
 
-    // Troops: keep chasing as long as they're alive and nothing closer has appeared.
-    if (engagedOnTroop && !this.effectiveTargetsBuildingsOnly()) {
-      const leashPx = this.aggroRangeCells() * COMBAT_LEASH_MULTIPLIER * CELL_SIZE
-      if (this.engageDistTo(engagedTarget!, state) > leashPx) {
-        // Target fled beyond leash range — drop it and fall through to reacquire/march.
-        // Deviation: Clash Royale never drops a live target by distance (units fight to the death).
-        this.target = null
-      } else {
-        const nearestTroop = findNearestEnemy(state, {
-          owner: this.owner,
-          from: this.position,
-          includeTowers: false,
-          canAttack: (entity) => this.canAttack(entity),
-          distance: (_from, entity) => this.engageDistTo(entity, state),
-          maxDistance: this.aggroRangePx(),
-        })
-        // Keep current troop unless a different one is meaningfully closer.
-        const currentDist = this.engageDistTo(engagedTarget!, state)
-        const nearestDist = nearestTroop ? this.engageDistTo(nearestTroop, state) : Infinity
-        if (!nearestTroop || nearestTroop.id === engagedTarget!.id || nearestDist >= currentDist - CELL_SIZE * 2) {
-          return
-        }
-        this.target = nearestTroop
-        return
-      }
-    }
+    // CR: once locked on a live troop target, never re-evaluate — fight to the death.
+    // No leash, no switching to a closer enemy mid-chase.
+    if (engagedOnTroop && !this.effectiveTargetsBuildingsOnly()) return
 
     // This unit's tower target just died — redirect using lane-aware selection so we
     // hit the same-side princess next (if alive) or the king, not the cross-side tower.

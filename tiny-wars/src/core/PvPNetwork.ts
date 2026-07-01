@@ -224,10 +224,17 @@ export class PvPNetwork {
   }
 
   private setupConn(conn: DataConnection): void {
-    conn.on('open', () => {
+    const onOpen = () => {
       this.send({ type: 'HELLO', name: this.localName })
       this.onConnected?.()
-    })
+    }
+    // The matchmaking guest path resolves tryConnect only after open fires,
+    // so the connection may already be open by the time setupConn is called.
+    if (conn.open) {
+      onOpen()
+    } else {
+      conn.on('open', onOpen)
+    }
     conn.on('data', (raw) => {
       const msg = raw as PvPMessage
       if (msg.type === 'DEPLOY') {

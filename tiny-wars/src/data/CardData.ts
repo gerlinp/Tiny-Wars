@@ -366,7 +366,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
     damage: 98,
     attackRate: 1 / 1.2,
-    attackRange: 0.7,
+    attackRange: 1.2,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
     targetsBuildingsOnly: true,

@@ -10,7 +10,7 @@ import { COMPOSITE_LAYER_OFFSETS } from '@data/CompositeLayerOffsets'
 import { displaySizeForCard } from './assetDisplaySize'
 import { DamageFireOverlay } from './DamageFireOverlay'
 import { BombTowerCrew } from './BombTowerCrew'
-import { AirBoatCrew, AIR_BOAT_HEALTH_BAR_Y_FROM_BOAT, AIR_BOAT_SPRITE_ORIGIN_Y, airBoatAimYOffset } from './AirBoatCrew'
+import { AirBoatCrew, airBoatOriginY, airBoatHealthBarYRatio, airBoatAimYOffset } from './AirBoatCrew'
 
 type DisplayObject = Phaser.GameObjects.Sprite | Phaser.GameObjects.Image
 
@@ -84,7 +84,7 @@ export class EntitySprite {
     // air_boat — health bar on the balloon; combat anchor sits below the hull.
     const hbarHeight = cardId === 'air_boat' ? size.height * 0.5 : size.height
     const hbarY = cardId === 'air_boat'
-      ? y + size.height * AIR_BOAT_HEALTH_BAR_Y_FROM_BOAT
+      ? y + size.height * airBoatHealthBarYRatio(owner)
       : y
     this.healthBar = this.isBuilding
       ? HealthBar.forBuilding(scene, x, y, size.height, owner)
@@ -97,7 +97,7 @@ export class EntitySprite {
       }
     } else if (cardId === 'air_boat') {
       // Combat anchor sits below the hull; boat + balloon render above tower-top height.
-      this.sprite.setOrigin(0.5, AIR_BOAT_SPRITE_ORIGIN_Y)
+      this.sprite.setOrigin(0.5, airBoatOriginY(owner))
       this.airBoatCrew = new AirBoatCrew(scene, owner)
     }
     this.applyTeamTint()
@@ -172,7 +172,7 @@ export class EntitySprite {
     }
     this.healthBar.update(
       x,
-      this.airBoatCrew ? y + this.sprite.displayHeight * AIR_BOAT_HEALTH_BAR_Y_FROM_BOAT : y,
+      this.airBoatCrew ? y + this.sprite.displayHeight * airBoatHealthBarYRatio(this.owner) : y,
       hpFraction,
       showHealthBar,
     )
@@ -218,7 +218,7 @@ export class EntitySprite {
     if (this.cardId === 'air_boat') {
       return {
         x: this.sprite.x,
-        y: this.sprite.y + airBoatAimYOffset(this.sprite.displayHeight),
+        y: this.sprite.y + airBoatAimYOffset(this.sprite.displayHeight, this.owner),
       }
     }
     return { x: this.sprite.x, y: this.sprite.y }

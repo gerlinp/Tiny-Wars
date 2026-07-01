@@ -515,6 +515,9 @@ export class BattleScene extends Phaser.Scene {
           } else if (troop.state === TroopState.WALKING) {
             anim = 'run'
           } else if (troop.state === TroopState.ATTACKING) {
+            // Pig uses its run sheet as the attack clip — keep showing run between swings
+            // so it looks active rather than standing idle while hammering the tower.
+            if (cardId === 'pig') anim = 'run'
             attackSync = {
               cooldownMs: troop.getAttackCooldownMs(),
               // Boomerang throw clip is driven by BOOMERANG event only — not cooldown windup.
