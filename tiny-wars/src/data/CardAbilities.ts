@@ -56,6 +56,19 @@ export const SPIDER_MINION_SPAWN_INTERVAL_MS = 7000
 export const SPIDER_MINION_SPAWN_INITIAL_DELAY_MS = 1000
 
 // ---------------------------------------------------------------------------
+// Voodoo Shaman (Witch — spawns Skeletons)
+// ---------------------------------------------------------------------------
+export const VOODOO_SHAMAN_MINION_CARD_ID = 'skeleton'
+export const VOODOO_SHAMAN_MINION_SPAWN_COUNT = 3
+export const VOODOO_SHAMAN_MINION_SPAWN_INTERVAL_MS = 7000
+export const VOODOO_SHAMAN_MINION_SPAWN_INITIAL_DELAY_MS = 1000
+
+// ---------------------------------------------------------------------------
+// Lightning Shaman (Electro Wizard — chains bolt to a second target)
+// ---------------------------------------------------------------------------
+export const LIGHTNING_SHAMAN_CHAIN_RANGE_PX = 5 * 64  // 5 cells in pixels
+
+// ---------------------------------------------------------------------------
 // Monk (Battle Healer-style attack heal + spawn heal)
 // ---------------------------------------------------------------------------
 export const MONK_HEAL_PER_PULSE = 34

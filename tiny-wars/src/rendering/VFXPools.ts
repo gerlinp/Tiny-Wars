@@ -1,8 +1,8 @@
 import Phaser from 'phaser'
 import { Owner } from '@core/types'
-import { EXPLOSION_SHEET, MONK_HEAL_EFFECT_SHEETS, TROOP_DEATH_SHEET } from '@data/AssetManifest'
+import { DUST_SHEETS, EXPLOSION_SHEET, MONK_HEAL_EFFECT_SHEETS, TROOP_DEATH_SHEET } from '@data/AssetManifest'
 import { CELL_SIZE, MAP_UNIT_TARGET_HEIGHT } from '@data/GameConstants'
-import { registerExplosionFx } from './AnimationRegistry'
+import { registerDustFx, registerExplosionFx } from './AnimationRegistry'
 
 // ─── EffectsPool ─────────────────────────────────────────────────────────────
 
@@ -126,5 +126,52 @@ export class DeathPool {
 
     sprite.play(TROOP_DEATH_SHEET.animKey)
     sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => sprite.destroy())
+  }
+}
+
+// ─── DustPool ─────────────────────────────────────────────────────────────────
+
+const DUST_POOL_SIZE = 16
+const DUST_MIN_PX = CELL_SIZE * 4
+
+export class DustPool {
+  private pool: Phaser.GameObjects.Sprite[] = []
+  private nextSheet = 0
+
+  constructor(private scene: Phaser.Scene) {
+    registerDustFx(scene)
+    for (let i = 0; i < DUST_POOL_SIZE; i++) {
+      const spr = scene.add.sprite(0, 0, DUST_SHEETS[0].key, 0)
+        .setDepth(18)
+        .setOrigin(0.5, 1)
+        .setVisible(false)
+      spr.setData('playing', false)
+      this.pool.push(spr)
+    }
+  }
+
+  spawn(x: number, y: number, unitDisplayH = DUST_MIN_PX): void {
+    const spr = this.pool.find(p => !p.getData('playing'))
+    if (!spr) return
+
+    const sheet = DUST_SHEETS[this.nextSheet % DUST_SHEETS.length]
+    this.nextSheet++
+
+    if (!this.scene.textures.exists(sheet.key) || !this.scene.anims.exists(sheet.animKey)) return
+
+    const size = Math.max(DUST_MIN_PX, unitDisplayH * 1.2)
+    spr.setData('playing', true)
+    spr.setTexture(sheet.key, 0)
+    spr.setPosition(x, y)
+    spr.setDisplaySize(size, size)
+    spr.setAlpha(0.85)
+    spr.setVisible(true)
+    spr.anims.stop()
+    spr.play(sheet.animKey)
+
+    spr.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      spr.setVisible(false)
+      spr.setData('playing', false)
+    })
   }
 }

@@ -97,8 +97,11 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   bear:          AT('2025-07-01T12:00:00.000Z'),
   tnt:           AT('2026-06-01T12:00:00.000Z'),
   goblin_barrel: AT('2026-06-28T12:00:00.000Z'),
-  spider:        AT('2026-06-28T18:00:00.000Z'),
-  spiderling:    AT('2026-06-28T18:00:00.000Z'),
+  spider:           AT('2026-06-28T18:00:00.000Z'),
+  spiderling:       AT('2026-06-28T18:00:00.000Z'),
+  elder_shaman:     AT('2026-06-30T12:00:00.000Z'),
+  lightning_shaman: AT('2026-06-30T12:00:00.000Z'),
+  voodoo_shaman:    AT('2026-06-30T12:00:00.000Z'),
 }
 
 function withAddedAtTimestamps(
@@ -232,8 +235,8 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'lancer_blue_idle', 'lancer_red_idle'),
 
-  wizard: troop('wizard', 'Wizard',
-    'Launches splash fireballs that damage all nearby enemies. Hits air and ground.',
+  wizard: troop('wizard', 'Fire Shaman',
+    'Launches fireballs that splash-damage all nearby enemies. Hits air and ground.',
     5, {
     maxHp: 997,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
@@ -244,6 +247,45 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.AIR_AND_GROUND,
     splashRadius: 1.5,
   }, 'wizard_blue_idle', 'wizard_red_idle'),
+
+  elder_shaman: troop('elder_shaman', 'Elder Shaman',
+    'Hurls a transformation hex that splashes nearby enemies. Hits air and ground.',
+    5, {
+    maxHp: 930,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 183,
+    attackRate: 1 / 1.7,
+    attackRange: 5.5,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.AIR_AND_GROUND,
+    splashRadius: 1.8,
+  }, 'elder_shaman_blue_idle', 'elder_shaman_red_idle'),
+
+  lightning_shaman: troop('lightning_shaman', 'Lightning Shaman',
+    'Fires crackling lightning bolts that hit air and ground.',
+    4, {
+    maxHp: 895,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 300,
+    attackRate: 1 / 1.9,
+    attackRange: 5.0,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.AIR_AND_GROUND,
+    splashRadius: 1.5,
+  }, 'lightning_shaman_blue_idle', 'lightning_shaman_red_idle'),
+
+  voodoo_shaman: troop('voodoo_shaman', 'Voodoo Shaman',
+    'Hurls dark bolts with splash damage and periodically summons skeletons. Hits air and ground.',
+    5, {
+    maxHp: 1122,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 282,
+    attackRate: 1 / 1.5,
+    attackRange: 5.0,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.AIR_AND_GROUND,
+    splashRadius: 1.8,
+  }, 'voodoo_shaman_blue_idle', 'voodoo_shaman_red_idle'),
 
   lizard: troop('lizard', 'Lizard',
     'A flying lizard that breathes fire with wide splash. Attacks air and ground.',

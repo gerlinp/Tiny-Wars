@@ -8,6 +8,7 @@ export const LOADING_WALKER_HEIGHT = 800
 export function loadingWalkerCandidates(): string[] {
   return CARD_ASSET_BUNDLES
     .filter(b => b.animated !== false)
+    .filter(b => b.player.run.sheet.path !== '')  // exclude runtime-generated textures
     .filter(b => {
       const card = CARD_DEFINITIONS[b.cardId]
       return card?.cardType === CardType.TROOP

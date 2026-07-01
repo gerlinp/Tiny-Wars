@@ -56,6 +56,8 @@ import {
   HOOK_MIN_RANGE_CELLS, HOOK_MAX_RANGE_CELLS, HOOK_WINDUP_MS, HOOK_SLOW_DURATION_MS, HOOK_SLOW_SPEED_MULT,
   GOBLIN_DEMOLISHER_CHARGE_HP_FRACTION, GOBLIN_DEMOLISHER_CHARGE_SPEED_CR, GOBLIN_DEMOLISHER_CHARGE_ATTACK_RANGE,
   SPIDER_MINION_CARD_ID, SPIDER_MINION_SPAWN_COUNT, SPIDER_MINION_SPAWN_INTERVAL_MS, SPIDER_MINION_SPAWN_INITIAL_DELAY_MS,
+  VOODOO_SHAMAN_MINION_CARD_ID, VOODOO_SHAMAN_MINION_SPAWN_COUNT, VOODOO_SHAMAN_MINION_SPAWN_INTERVAL_MS,
+  LIGHTNING_SHAMAN_CHAIN_RANGE_PX,
   MONK_HEAL_PER_PULSE, MONK_HEAL_PULSE_COUNT, MONK_HEAL_RADIUS,
   MONK_SPAWN_HEAL_PER_PULSE, MONK_SPAWN_HEAL_PULSE_COUNT, MONK_SPAWN_HEAL_RADIUS,
 } from '@data/CardAbilities'
@@ -213,7 +215,7 @@ export class Troop extends Entity {
     this.pathfinder = new Pathfinder(grid)
     this.lastMarchDir = owner === Owner.PLAYER ? { x: 0, y: -1 } : { x: 0, y: 1 }
     this.spawnLane = position.x < BRIDGE_CENTER_COL * CELL_SIZE ? 'left' : 'right'
-    if (cardId === 'spider') {
+    if (cardId === 'spider' || cardId === 'voodoo_shaman') {
       this.spawnMinionCooldownMs = SPIDER_MINION_SPAWN_INITIAL_DELAY_MS
     }
   }
@@ -436,8 +438,46 @@ export class Troop extends Entity {
     } else {
       this.dealDamageTo(state, primary, false, damage)
     }
+    if (this.cardId === 'lightning_shaman') {
+      this.dealChainLightning(state, primary, damage)
+    }
     this.resetCharge()
     this.applyActiveHeal(state)
+  }
+
+  private dealChainLightning(state: GameState, primary: Entity, damage: number): void {
+    let nearest: Entity | null = null
+    let nearestDist = Infinity
+    for (const entity of state.entities.values()) {
+      if (entity.id === primary.id) continue
+      if (entity.owner === this.owner || !entity.isAlive) continue
+      if (!this.canAttack(entity)) continue
+      const d = dist(primary.position, entity.position)
+      if (d <= LIGHTNING_SHAMAN_CHAIN_RANGE_PX && d < nearestDist) {
+        nearest = entity
+        nearestDist = d
+      }
+    }
+    if (!nearest) {
+      for (const tower of state.towers.values()) {
+        if (tower.owner === this.owner || !tower.isAlive) continue
+        const d = dist(primary.position, tower.position)
+        if (d <= LIGHTNING_SHAMAN_CHAIN_RANGE_PX && d < nearestDist) {
+          nearest = tower
+          nearestDist = d
+        }
+      }
+    }
+    if (!nearest) return
+    nearest.takeDamage(damage)
+    state.events.push({
+      type: 'DAMAGE',
+      targetId: nearest.id,
+      amount: damage,
+      attackerId: this.id,
+      splash: false,
+      chainFrom: primary.position,
+    })
   }
 
   /** CR Goblin Demolisher — kamikaze at or below this HP fraction (e.g. 0.5 = half health). */
@@ -563,16 +603,29 @@ export class Troop extends Entity {
     if (this.spawnMinionCooldownMs > 0) return
 
     this.spawnMinions(state)
-    this.spawnMinionCooldownMs = SPIDER_MINION_SPAWN_INTERVAL_MS
+    if (this.cardId === 'voodoo_shaman') {
+      this.spawnMinionCooldownMs = VOODOO_SHAMAN_MINION_SPAWN_INTERVAL_MS
+    } else {
+      this.spawnMinionCooldownMs = SPIDER_MINION_SPAWN_INTERVAL_MS
+    }
   }
 
   private spawnMinions(state: GameState): void {
-    if (this.cardId !== 'spider') return
+    let minionCardId: string
+    let count: number
+    if (this.cardId === 'voodoo_shaman') {
+      minionCardId = VOODOO_SHAMAN_MINION_CARD_ID
+      count = VOODOO_SHAMAN_MINION_SPAWN_COUNT
+    } else if (this.cardId === 'spider') {
+      minionCardId = SPIDER_MINION_CARD_ID
+      count = SPIDER_MINION_SPAWN_COUNT
+    } else {
+      return
+    }
 
-    const spawnDef = CARD_DEFINITIONS[SPIDER_MINION_CARD_ID]
+    const spawnDef = CARD_DEFINITIONS[minionCardId]
     if (!spawnDef?.stats) return
 
-    const count = SPIDER_MINION_SPAWN_COUNT
     const positions = troopDeployPositions(this.position, count, TROOP_DEPLOY_SPREAD_CELLS)
     for (const pos of positions) {
       const minion = new Troop(this.owner, spawnDef.stats, pos, this.grid, spawnDef.id)

@@ -4,6 +4,7 @@ import {
   CARD_ASSET_BUNDLES,
   clipAnimKey,
   DAMAGE_FIRE_SHEETS,
+  DUST_SHEETS,
   MONK_HEAL_EFFECT_SHEETS,
   EXPLOSION_SHEET,
   GOBLIN_DYNAMITE_SHEET,
@@ -11,6 +12,9 @@ import {
   TROOP_DEATH_SHEET,
   PADDLE_SHARK_IDLE_SHEET,
   PADDLE_SHARK_ROW_SHEET,
+  HEX_SHAMAN_TRANSFORM_SPELL_SHEET,
+  HEX_SHAMAN_EXPLOSION_SPELL_SHEET,
+  HEX_SHAMAN_LIGHTNING_BOLT_SHEET,
   type AnimClip,
   type ClipDef,
   type SideAssets,
@@ -116,6 +120,63 @@ export function registerHexShamanFx(scene: Phaser.Scene): void {
   }
 }
 
+/** Per-card fire-colored orb projectile (3 frames, loops) + explosion (9 frames, one-shot).
+ *  Keys are side-independent: the fire color is card-identity, not faction. */
+export function registerShamanOrbFx(scene: Phaser.Scene): void {
+  // elder_shaman uses HexTransformPool instead
+  for (const cardId of ['wizard', 'lightning_shaman', 'voodoo_shaman']) {
+    const projKey  = `${cardId}_projectile`
+    const projAnim = `${cardId}_projectile_anim`
+    if (!scene.anims.exists(projAnim) && scene.textures.exists(projKey)) {
+      scene.anims.create({ key: projAnim, frames: scene.anims.generateFrameNumbers(projKey, { start: 0, end: 2 }), frameRate: 12, repeat: -1 })
+    }
+    const exKey  = `${cardId}_explosion`
+    const exAnim = `${cardId}_explosion_anim`
+    if (!scene.anims.exists(exAnim) && scene.textures.exists(exKey)) {
+      scene.anims.create({ key: exAnim, frames: scene.anims.generateFrameNumbers(exKey, { start: 0, end: 8 }), frameRate: 18, repeat: 0 })
+    }
+  }
+}
+
+/** Lightning Shaman bolt — 4-frame looping projectile. */
+export function registerLightningBoltFx(scene: Phaser.Scene): void {
+  const { key, animKey, frameEnd, frameRate } = HEX_SHAMAN_LIGHTNING_BOLT_SHEET
+  if (!scene.anims.exists(animKey) && scene.textures.exists(key)) {
+    scene.anims.create({
+      key: animKey,
+      frames: scene.anims.generateFrameNumbers(key, { start: 0, end: frameEnd }),
+      frameRate,
+      repeat: -1,
+    })
+  }
+}
+
+/** Elder Shaman transformation circle (11 frames) + explosion spell (10 frames). */
+export function registerHexTransformFx(scene: Phaser.Scene): void {
+  if (!scene.anims.exists(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.animKey)
+      && scene.textures.exists(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key)) {
+    scene.anims.create({
+      key: HEX_SHAMAN_TRANSFORM_SPELL_SHEET.animKey,
+      frames: scene.anims.generateFrameNumbers(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key, {
+        start: 0, end: HEX_SHAMAN_TRANSFORM_SPELL_SHEET.frameEnd,
+      }),
+      frameRate: HEX_SHAMAN_TRANSFORM_SPELL_SHEET.frameRate,
+      repeat: 0,
+    })
+  }
+  if (!scene.anims.exists(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.animKey)
+      && scene.textures.exists(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.key)) {
+    scene.anims.create({
+      key: HEX_SHAMAN_EXPLOSION_SPELL_SHEET.animKey,
+      frames: scene.anims.generateFrameNumbers(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.key, {
+        start: 0, end: HEX_SHAMAN_EXPLOSION_SPELL_SHEET.frameEnd,
+      }),
+      frameRate: HEX_SHAMAN_EXPLOSION_SPELL_SHEET.frameRate,
+      repeat: 0,
+    })
+  }
+}
+
 /** Monk heal aura — blue/red Heal_Effect sheets (11 frames). */
 export function registerMonkHealFx(scene: Phaser.Scene): void {
   for (const sheet of Object.values(MONK_HEAL_EFFECT_SHEETS)) {
@@ -185,6 +246,19 @@ export function registerExplosionFx(scene: Phaser.Scene): void {
     frameRate: EXPLOSION_SHEET.frameRate,
     repeat: 0,
   })
+}
+
+export function registerDustFx(scene: Phaser.Scene): void {
+  for (const sheet of DUST_SHEETS) {
+    if (scene.anims.exists(sheet.animKey)) continue
+    if (!scene.textures.exists(sheet.key)) continue
+    scene.anims.create({
+      key: sheet.animKey,
+      frames: scene.anims.generateFrameNumbers(sheet.key, { start: 0, end: sheet.frameEnd }),
+      frameRate: sheet.frameRate,
+      repeat: 0,
+    })
+  }
 }
 
 export function playCardAnim(

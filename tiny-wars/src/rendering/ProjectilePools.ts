@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { Owner } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { arrowFlightMs } from '@data/ProjectileConstants'
-import { clipAnimKey, GNOLL_BONE_SHEET, HARPOON_PROJECTILE_SHEET } from '@data/AssetManifest'
+import { clipAnimKey, GNOLL_BONE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET, HEX_SHAMAN_LIGHTNING_BOLT_SHEET } from '@data/AssetManifest'
 import { HOOK_ROPE_TEXTURE_KEY, registerHookRopeTexture } from './hookRopeTexture'
 import { CELL_SIZE } from '@data/GameConstants'
 import { applyBombArcDisplaySize, BOMB_PROJECTILE_DISPLAY_SCALE, BOMB_SPIN_TIME_SCALE, FLAT_LOB_PEAK_SCALE, TOWER_CANNON_PROJECTILE_DISPLAY_SCALE } from './bombProjectileVisual'
@@ -477,6 +477,253 @@ export class HexFireballPool {
         this.effects.spawn(to.x, to.y, undefined, style?.explosionTint)
         onHit?.()
       },
+    })
+  }
+}
+
+// ─── HexShamanOrbPool ────────────────────────────────────────────────────────
+
+const HEX_ORB_POOL_SIZE = 12
+const HEX_ORB_DISPLAY = 128
+const HEX_ORB_EXPLOSION_DISPLAY = 192
+
+export class HexShamanOrbPool {
+  private pool: Array<{ orb: Phaser.GameObjects.Sprite; explosion: Phaser.GameObjects.Sprite }> = []
+
+  constructor(private scene: Phaser.Scene) {
+    for (let i = 0; i < HEX_ORB_POOL_SIZE; i++) {
+      const orb = scene.add.sprite(0, 0, 'hex_shaman_projectile', 0)
+        .setDepth(22).setOrigin(0.5).setVisible(false)
+      const explosion = scene.add.sprite(0, 0, 'hex_shaman_explosion', 0)
+        .setDepth(22).setOrigin(0.5).setVisible(false)
+      this.pool.push({ orb, explosion })
+    }
+  }
+
+  spawn(
+    from: Vec2,
+    to: Vec2,
+    cardId: string,
+    _owner: Owner,
+    attackRate: number,
+    onHit?: () => void,
+  ): void {
+    const item = this.pool.find(p => !p.orb.getData('flying'))
+    if (!item) { onHit?.(); return }
+
+    // Fire color is card-identity, not faction — keys have no side suffix
+    const projKey  = `${cardId}_projectile`
+    const projAnim = `${cardId}_projectile_anim`
+    const exKey    = `${cardId}_explosion`
+    const exAnim   = `${cardId}_explosion_anim`
+
+    const { orb, explosion } = item
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    const d = Math.hypot(dx, dy)
+
+    if (d < 1) {
+      this.playExplosion(explosion, to, exKey, exAnim)
+      onHit?.()
+      return
+    }
+
+    orb.setData('flying', true)
+    orb.setTexture(projKey, 0)
+    orb.setDisplaySize(HEX_ORB_DISPLAY, HEX_ORB_DISPLAY)
+    orb.setPosition(from.x, from.y)
+    orb.setRotation(Math.atan2(dy, dx))
+    orb.setVisible(true)
+    orb.setAlpha(1)
+    orb.play(projAnim)
+
+    this.scene.tweens.add({
+      targets: orb,
+      x: to.x,
+      y: to.y,
+      duration: arrowFlightMs(d, attackRate),
+      ease: 'Linear',
+      onComplete: () => {
+        orb.setVisible(false)
+        orb.setData('flying', false)
+        orb.anims.stop()
+        this.playExplosion(explosion, to, exKey, exAnim)
+        onHit?.()
+      },
+    })
+  }
+
+  private playExplosion(
+    spr: Phaser.GameObjects.Sprite,
+    pos: Vec2,
+    texKey: string,
+    animKey: string,
+  ): void {
+    if (!this.scene.textures.exists(texKey) || !this.scene.anims.exists(animKey)) return
+    spr.setTexture(texKey, 0)
+    spr.setDisplaySize(HEX_ORB_EXPLOSION_DISPLAY, HEX_ORB_EXPLOSION_DISPLAY)
+    spr.setPosition(pos.x, pos.y)
+    spr.setVisible(true)
+    spr.setAlpha(1)
+    spr.play(animKey)
+    spr.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      spr.setVisible(false)
+      spr.anims.stop()
+    })
+  }
+}
+
+// ─── HexTransformPool ────────────────────────────────────────────────────────
+
+const HEX_TRANSFORM_POOL_SIZE = 8
+const HEX_TRANSFORM_DISPLAY = CELL_SIZE * 4
+
+export class HexTransformPool {
+  private transformPool: Phaser.GameObjects.Sprite[] = []
+  private explosionPool: Phaser.GameObjects.Sprite[] = []
+
+  constructor(private scene: Phaser.Scene) {
+    for (let i = 0; i < HEX_TRANSFORM_POOL_SIZE; i++) {
+      this.transformPool.push(
+        scene.add.sprite(0, 0, HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key, 0)
+          .setDepth(22).setOrigin(0.5, 0.5).setVisible(false)
+          .setData('playing', false),
+      )
+      this.explosionPool.push(
+        scene.add.sprite(0, 0, HEX_SHAMAN_EXPLOSION_SPELL_SHEET.key, 0)
+          .setDepth(23).setOrigin(0.5, 0.5).setVisible(false)
+          .setData('playing', false),
+      )
+    }
+  }
+
+  spawn(
+    _from: Vec2,
+    to: Vec2,
+    _owner: Owner,
+    _attackRate: number,
+    onHit?: () => void,
+  ): void {
+    const tspr = this.transformPool.find(p => !p.getData('playing'))
+    if (!tspr
+        || !this.scene.anims.exists(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.animKey)
+        || !this.scene.anims.exists(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.animKey)) {
+      onHit?.()
+      return
+    }
+
+    tspr.setData('playing', true)
+    tspr.setTexture(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key, 0)
+    tspr.setPosition(to.x, to.y)
+    tspr.setDisplaySize(HEX_TRANSFORM_DISPLAY, HEX_TRANSFORM_DISPLAY)
+    tspr.setVisible(true).setAlpha(1)
+    tspr.anims.stop()
+    tspr.play(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.animKey)
+    onHit?.()
+
+    tspr.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      tspr.setVisible(false).setData('playing', false)
+
+      const espr = this.explosionPool.find(p => !p.getData('playing'))
+      if (!espr) return
+      espr.setData('playing', true)
+      espr.setTexture(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.key, 0)
+      espr.setPosition(to.x, to.y)
+      espr.setDisplaySize(HEX_TRANSFORM_DISPLAY, HEX_TRANSFORM_DISPLAY)
+      espr.setVisible(true).setAlpha(1)
+      espr.anims.stop()
+      espr.play(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.animKey)
+      espr.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+        espr.setVisible(false).setData('playing', false)
+      })
+    })
+  }
+}
+
+// ─── LightningShamanPool ─────────────────────────────────────────────────────
+// Flies the generated lightning bolt sprite, then plays the transformation
+// circle + explosion spell at the impact point (same as HexTransformPool).
+
+const LIGHTNING_POOL_SIZE = 8
+const LIGHTNING_BOLT_DISPLAY = 128
+
+export class LightningShamanPool {
+  private bolts:      Phaser.GameObjects.Sprite[] = []
+  private transforms: Phaser.GameObjects.Sprite[] = []
+  private explosions: Phaser.GameObjects.Sprite[] = []
+
+  constructor(private scene: Phaser.Scene) {
+    for (let i = 0; i < LIGHTNING_POOL_SIZE; i++) {
+      this.bolts.push(
+        scene.add.sprite(0, 0, HEX_SHAMAN_LIGHTNING_BOLT_SHEET.key, 0)
+          .setDepth(22).setOrigin(0.5).setVisible(false).setData('flying', false),
+      )
+      this.transforms.push(
+        scene.add.sprite(0, 0, HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key, 0)
+          .setDepth(22).setOrigin(0.5).setVisible(false).setData('playing', false),
+      )
+      this.explosions.push(
+        scene.add.sprite(0, 0, HEX_SHAMAN_EXPLOSION_SPELL_SHEET.key, 0)
+          .setDepth(23).setOrigin(0.5).setVisible(false).setData('playing', false),
+      )
+    }
+  }
+
+  spawn(from: Vec2, to: Vec2, _owner: Owner, attackRate: number, onHit?: () => void): void {
+    const bolt = this.bolts.find(b => !b.getData('flying'))
+    if (!bolt
+        || !this.scene.anims.exists(HEX_SHAMAN_LIGHTNING_BOLT_SHEET.animKey)
+        || !this.scene.anims.exists(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.animKey)
+        || !this.scene.anims.exists(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.animKey)) {
+      onHit?.()
+      return
+    }
+
+    const dx = to.x - from.x, dy = to.y - from.y
+    const d = Math.hypot(dx, dy)
+
+    bolt.setData('flying', true)
+    bolt.setTexture(HEX_SHAMAN_LIGHTNING_BOLT_SHEET.key, 0)
+    bolt.setDisplaySize(LIGHTNING_BOLT_DISPLAY, LIGHTNING_BOLT_DISPLAY)
+    bolt.setPosition(from.x, from.y)
+    bolt.setRotation(Math.atan2(dy, dx))
+    bolt.setVisible(true).setAlpha(1)
+    bolt.play(HEX_SHAMAN_LIGHTNING_BOLT_SHEET.animKey)
+
+    this.scene.tweens.add({
+      targets: bolt,
+      x: to.x, y: to.y,
+      duration: arrowFlightMs(d, attackRate),
+      ease: 'Linear',
+      onComplete: () => {
+        bolt.setVisible(false).setData('flying', false).anims.stop()
+        onHit?.()
+        this.playImpact(to)
+      },
+    })
+  }
+
+  private playImpact(to: Vec2): void {
+    const tspr = this.transforms.find(p => !p.getData('playing'))
+    if (!tspr) return
+    const display = CELL_SIZE * 4
+    tspr.setData('playing', true)
+    tspr.setTexture(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key, 0)
+    tspr.setPosition(to.x, to.y).setDisplaySize(display, display)
+    tspr.setVisible(true).setAlpha(1).anims.stop()
+    tspr.play(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.animKey)
+    tspr.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      tspr.setVisible(false).setData('playing', false)
+      const espr = this.explosions.find(p => !p.getData('playing'))
+      if (!espr) return
+      espr.setData('playing', true)
+      espr.setTexture(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.key, 0)
+      espr.setPosition(to.x, to.y).setDisplaySize(display, display)
+      espr.setVisible(true).setAlpha(1).anims.stop()
+      espr.play(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.animKey)
+      espr.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+        espr.setVisible(false).setData('playing', false)
+      })
     })
   }
 }

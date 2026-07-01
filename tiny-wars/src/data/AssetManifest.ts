@@ -18,6 +18,28 @@ export const TROOP_DEATH_SHEET = {
   animKey: 'troop_death',
 } as const
 
+/** Unit spawn dust puff — Particle FX/Dust_01.png (8 frames) and Dust_02.png (10 frames). */
+export const DUST_SHEETS = [
+  {
+    key: 'fx_dust_01',
+    path: 'assets/Particle FX/Dust_01.png',
+    frameWidth: 64,
+    frameHeight: 64,
+    frameEnd: 7,
+    frameRate: 16,
+    animKey: 'fx_dust_01_anim',
+  },
+  {
+    key: 'fx_dust_02',
+    path: 'assets/Particle FX/Dust_02.png',
+    frameWidth: 64,
+    frameHeight: 64,
+    frameEnd: 9,
+    frameRate: 16,
+    animKey: 'fx_dust_02_anim',
+  },
+] as const
+
 /** Generic combat explosion — Effects/Explosion/Explosions.png (9 frames @ 192px). */
 export const EXPLOSION_SHEET = {
   key: 'fx_explosion',
@@ -151,6 +173,7 @@ export function getHealthBarImageKeys(): { key: string; path: string }[] {
 
 export interface SheetDef {
   key: string
+  /** Empty string for runtime-generated (palette-swapped) textures — skipped in getUniqueSheets(). */
   path: string
   frameWidth?: number
   frameHeight?: number
@@ -180,6 +203,7 @@ export interface SideAssets {
 
 export interface ImageDef {
   key: string
+  /** Empty string for runtime-generated (palette-swapped) textures — skipped in getCardAvatars(). */
   path: string
   /** When set, avatar is loaded as a spritesheet and `frame` selects the portrait. */
   frameWidth?: number
@@ -211,6 +235,11 @@ export interface CardAssetBundle {
    * Player and bot share the same sprite files (separate texture keys for anims).
    */
   tintBotSide?: boolean
+  /**
+   * Fallback sprite path used by the map editor when player.idle.sheet.path is empty
+   * (i.e. palette-swap sentinels that have no physical file of their own).
+   */
+  editorSpritePath?: string
   /**
    * Card-hand portrait scale multiplier (1 = default slot fit).
    * Warrior crest art fills more of the frame than other human avatars.
@@ -462,6 +491,51 @@ export const HEX_SHAMAN_EXPLOSION_SHEET = {
   path: `${HEX_SHAMAN_PATH}/Hex Shaman_Explosion.png`,
   frameWidth: HEX_FX_FRAME,
   frameHeight: HEX_FX_FRAME,
+} as const
+
+export const HEX_SHAMAN_LIGHTNING_BOLT_SHEET = {
+  key:         'hex_shaman_lightning_bolt',
+  path:        `${HEX_SHAMAN_PATH}/Hex Shaman_Lightning Bolt.png`,
+  frameWidth:  HEX_FX_FRAME,
+  frameHeight: HEX_FX_FRAME,
+  frameEnd:    3,
+  frameRate:   12,
+  animKey:     'hex_shaman_lightning_bolt_anim',
+} as const
+
+/** Base sprite sheets — loaded once and used as the source for all shaman palette swaps. */
+export const HEX_SHAMAN_BASE_SHEETS = {
+  idle:   { key: 'hex_shaman_base_idle',   path: `${HEX_SHAMAN_PATH}/Hex Shaman_Idle.png`,   frameWidth: FRAME_W, frameHeight: FRAME_H },
+  run:    { key: 'hex_shaman_base_run',    path: `${HEX_SHAMAN_PATH}/Hex Shaman_Run.png`,    frameWidth: FRAME_W, frameHeight: FRAME_H },
+  attack: { key: 'hex_shaman_base_attack', path: `${HEX_SHAMAN_PATH}/Hex Shaman_Attack.png`, frameWidth: FRAME_W, frameHeight: FRAME_H },
+} as const
+
+/** Base avatar image — source for shaman portrait palette swaps. */
+export const HEX_SHAMAN_BASE_AVATAR: ImageDef = {
+  key: 'hex_shaman_base_avatar',
+  path: `${ENEMY_AVATARS}/Hex Shaman.png`,
+}
+
+/** Elder Shaman — transformation circle that plays at the impact point. */
+export const HEX_SHAMAN_TRANSFORM_SPELL_SHEET = {
+  key: 'hex_shaman_transform_spell',
+  path: `${HEX_SHAMAN_PATH}/Hex Shaman_Transformation Spell.png`,
+  frameWidth: FRAME_W,
+  frameHeight: FRAME_H,
+  frameEnd: 10,
+  frameRate: 14,
+  animKey: 'hex_shaman_transform_anim',
+} as const
+
+/** Elder Shaman — explosion spell that follows the transformation. */
+export const HEX_SHAMAN_EXPLOSION_SPELL_SHEET = {
+  key: 'hex_shaman_explosion_spell',
+  path: `${HEX_SHAMAN_PATH}/Hex Shaman_Explosion Spell.png`,
+  frameWidth: FRAME_W,
+  frameHeight: FRAME_H,
+  frameEnd: 9,
+  frameRate: 16,
+  animKey: 'hex_shaman_explosion_spell_anim',
 } as const
 
 const BARREL_PATH = 'assets/Factions/Goblins/Troops/Barrel'
@@ -1074,24 +1148,13 @@ function trollSide(side: 'blue' | 'red'): SideAssets {
   }
 }
 
-/** Enemy Pack Hex Shaman — single palette; blue/red keys share the same art. */
-function hexShamanSide(side: 'blue' | 'red'): SideAssets {
-  const idle: SheetDef = {
-    key: `wizard_${side}_idle`,
-    path: `${HEX_SHAMAN_PATH}/Hex Shaman_Idle.png`,
-  }
-  const run: SheetDef = {
-    key: `wizard_${side}_run`,
-    path: `${HEX_SHAMAN_PATH}/Hex Shaman_Run.png`,
-  }
-  const attack: SheetDef = {
-    key: `wizard_${side}_attack`,
-    path: `${HEX_SHAMAN_PATH}/Hex Shaman_Attack.png`,
-  }
+/** Shaman side assets — textures are palette-swapped at runtime; path is empty sentinel. */
+function shamanSide(cardId: string, side: 'blue' | 'red'): SideAssets {
+  const sheet = (anim: string): SheetDef => ({ key: `${cardId}_${side}_${anim}`, path: '' })
   return {
-    idle:   clip(idle,   0, 7, 10, -1),
-    run:    clip(run,    0, 3, 14, -1),
-    attack: clip(attack, 0, 9, 14,  0),
+    idle:   clip(sheet('idle'),   0, 7, 10, -1),
+    run:    clip(sheet('run'),    0, 3, 14, -1),
+    attack: clip(sheet('attack'), 0, 9, 14,  0),
   }
 }
 
@@ -1207,13 +1270,47 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'wizard',
-    avatar: enemyAvatar('Hex Shaman.png'),
+    avatar: { key: 'avatar_wizard', path: '' },
     avatarCropRatio: 0.72,
     contentFill: 0.55,
     attackHitFrame: 6,
     tintBotSide: true,
-    player: hexShamanSide('blue'),
-    bot:    hexShamanSide('red'),
+    editorSpritePath: `${HEX_SHAMAN_PATH}/Hex Shaman_Idle.png`,
+    player: shamanSide('wizard', 'blue'),
+    bot:    shamanSide('wizard', 'red'),
+  },
+  {
+    cardId: 'elder_shaman',
+    avatar: { key: 'avatar_elder_shaman', path: '' },
+    avatarCropRatio: 0.72,
+    contentFill: 0.55,
+    attackHitFrame: 6,
+    tintBotSide: true,
+    editorSpritePath: `${HEX_SHAMAN_PATH}/Hex Shaman_Idle.png`,
+    player: shamanSide('elder_shaman', 'blue'),
+    bot:    shamanSide('elder_shaman', 'red'),
+  },
+  {
+    cardId: 'lightning_shaman',
+    avatar: { key: 'avatar_lightning_shaman', path: '' },
+    avatarCropRatio: 0.72,
+    contentFill: 0.55,
+    attackHitFrame: 6,
+    tintBotSide: true,
+    editorSpritePath: `${HEX_SHAMAN_PATH}/Hex Shaman_Idle.png`,
+    player: shamanSide('lightning_shaman', 'blue'),
+    bot:    shamanSide('lightning_shaman', 'red'),
+  },
+  {
+    cardId: 'voodoo_shaman',
+    avatar: { key: 'avatar_voodoo_shaman', path: '' },
+    avatarCropRatio: 0.72,
+    contentFill: 0.55,
+    attackHitFrame: 6,
+    tintBotSide: true,
+    editorSpritePath: `${HEX_SHAMAN_PATH}/Hex Shaman_Idle.png`,
+    player: shamanSide('voodoo_shaman', 'blue'),
+    bot:    shamanSide('voodoo_shaman', 'red'),
   },
   {
     cardId: 'lizard',
@@ -1576,7 +1673,7 @@ export function getCardAvatars(): ImageDef[] {
   const seen = new Set<string>()
   const avatars: ImageDef[] = []
   for (const bundle of CARD_ASSET_BUNDLES) {
-    if (bundle.avatar && !seen.has(bundle.avatar.key)) {
+    if (bundle.avatar && bundle.avatar.path !== '' && !seen.has(bundle.avatar.key)) {
       seen.add(bundle.avatar.key)
       avatars.push(bundle.avatar)
     }
@@ -1648,7 +1745,7 @@ export function getUniqueSheets(): SheetDef[] {
       for (const clip of clips) {
         if (!clip || seen.has(clip.sheet.key)) continue
         seen.add(clip.sheet.key)
-        sheets.push(clip.sheet)
+        if (clip.sheet.path !== '') sheets.push(clip.sheet)  // skip runtime-generated textures
       }
     }
   }

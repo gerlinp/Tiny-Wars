@@ -8,8 +8,9 @@ import { ForestBorder } from '@rendering/ForestBorder'
 import { DecorationLayer } from '@rendering/DecorationLayer'
 import { EntitySprite, type AttackSync, type DashSync, type HealSync } from '@rendering/EntitySprite'
 import { TowerSprite } from '@rendering/TowerSprite'
-import { EffectsPool, HealEffectPool, DeathPool } from '@rendering/VFXPools'
-import { ArrowPool, ArrowsSpellPool, TntPool, BarrelPool, BoneBoomerangPool, HexFireballPool, HarpoonRopePool } from '@rendering/ProjectilePools'
+import { EffectsPool, HealEffectPool, DeathPool, DustPool } from '@rendering/VFXPools'
+import { logicDisplayHeightForCard } from '@rendering/assetDisplaySize'
+import { ArrowPool, ArrowsSpellPool, TntPool, BarrelPool, BoneBoomerangPool, HexFireballPool, HexTransformPool, HexShamanOrbPool, LightningShamanPool, HarpoonRopePool } from '@rendering/ProjectilePools'
 import { hookAnchorPosition, hookRopeEndPosition } from '@core/HookSystem'
 import { ensurePlaceholders } from '@rendering/renderingUtils'
 import { CardDeployController } from '@input/CardDeployController'
@@ -47,8 +48,12 @@ export class BattleScene extends Phaser.Scene {
   private towerSprites: Map<string, TowerSprite> = new Map()
   private effects!: EffectsPool
   private deaths!: DeathPool
+  private dust!: DustPool
   private arrows!: ArrowPool
   private hexFireballs!: HexFireballPool
+  private hexTransforms!: HexTransformPool
+  private hexShamanOrbs!: HexShamanOrbPool
+  private lightningShaman!: LightningShamanPool
   private healEffects!: HealEffectPool
   private boneBoomerangs!: BoneBoomerangPool
   private harpoonRopes!: HarpoonRopePool
@@ -104,8 +109,12 @@ export class BattleScene extends Phaser.Scene {
     this.sprites  = new Map()
     this.effects  = new EffectsPool(this)
     this.deaths   = new DeathPool(this)
+    this.dust     = new DustPool(this)
     this.arrows   = new ArrowPool(this)
     this.hexFireballs = new HexFireballPool(this, this.effects)
+    this.hexTransforms = new HexTransformPool(this)
+    this.hexShamanOrbs = new HexShamanOrbPool(this)
+    this.lightningShaman = new LightningShamanPool(this)
     this.healEffects = new HealEffectPool(this)
     this.boneBoomerangs = new BoneBoomerangPool(this)
     this.harpoonRopes = new HarpoonRopePool(this)
@@ -229,6 +238,7 @@ export class BattleScene extends Phaser.Scene {
               entity.owner,
             )
             this.sprites.set(entity.id, sprite)
+            this.dust.spawn(entity.position.x, entity.position.y, logicDisplayHeightForCard(event.cardId))
           }
           break
         }
@@ -277,7 +287,7 @@ export class BattleScene extends Phaser.Scene {
         case 'DAMAGE': {
           const flash = () => this.flashTarget(event.targetId)
           const attacker = event.attackerId ? this.findEntity(state, event.attackerId) : null
-          let from = event.attackerId ? this.entityPosition(state, event.attackerId) : null
+          let from = event.chainFrom ?? (event.attackerId ? this.entityPosition(state, event.attackerId) : null)
           const to = this.visualTargetPoint(state, event.targetId)
           const attackerCardId = event.attackerId
             ? (this.entityCardIds.get(event.attackerId) ?? attacker?.cardId ?? '')
@@ -361,7 +371,13 @@ export class BattleScene extends Phaser.Scene {
                 spinAnimKey: GOBLIN_DYNAMITE_SHEET.animKey,
                 displaySize: 64,
               })
-            } else if (cardId === 'wizard' || cardId === 'lizard' || cardId === 'torch_goblin' || cardId === 'bomb_fish' || cardId === 'spider') {
+            } else if (cardId === 'elder_shaman') {
+              this.hexTransforms.spawn(from, to, attacker.owner, attackRate, flash)
+            } else if (cardId === 'lightning_shaman') {
+              this.lightningShaman.spawn(from, to, attacker.owner, attackRate, flash)
+            } else if (cardId === 'wizard' || cardId === 'voodoo_shaman') {
+              this.hexShamanOrbs.spawn(from, to, cardId, attacker.owner, attackRate, flash)
+            } else if (cardId === 'lizard' || cardId === 'torch_goblin' || cardId === 'bomb_fish' || cardId === 'spider') {
               this.hexFireballs.spawn(
                 from,
                 to,

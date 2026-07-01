@@ -4,7 +4,7 @@ import { PvPNetwork } from '@core/PvPNetwork'
 
 const BODY_FONT = "'Philosopher', Georgia, serif"
 
-type LobbyState = 'MENU' | 'CREATING' | 'WAITING_FOR_GUEST' | 'JOINING' | 'CONNECTING'
+type LobbyState = 'MENU' | 'CREATING' | 'WAITING_FOR_GUEST' | 'JOINING' | 'CONNECTING' | 'MATCHMAKING'
 
 /**
  * Stacks items top-to-bottom like CSS flex-direction:column.
@@ -33,6 +33,8 @@ export class PvPLobbyScene extends Phaser.Scene {
   private menuContainer!: Phaser.GameObjects.Container
   private joinContainer!: Phaser.GameObjects.Container
   private waitingContainer!: Phaser.GameObjects.Container
+  private matchmakingContainer!: Phaser.GameObjects.Container
+  private matchStatusText!: Phaser.GameObjects.Text
 
   private lobbyState: LobbyState = 'MENU'
   private network: PvPNetwork | null = null
@@ -84,9 +86,11 @@ export class PvPLobbyScene extends Phaser.Scene {
     this.buildMenuContainer(width, height)
     this.buildJoinContainer(width, height)
     this.buildWaitingContainer(width, height)
+    this.buildMatchmakingContainer(width, height)
 
     this.joinContainer.setVisible(false)
     this.waitingContainer.setVisible(false)
+    this.matchmakingContainer.setVisible(false)
 
     const rect = this.scale.canvas.getBoundingClientRect()
     const sx = rect.width / width
@@ -200,14 +204,15 @@ export class PvPLobbyScene extends Phaser.Scene {
     const leftX  = -pairW / 2 + btnW / 2
     const rightX = pairW  / 2 - btnW / 2
 
-    const [rowY, backY] = flexColumn([BTN_H, BTN_H], 160)
+    const [rowY, mmY, backY] = flexColumn([BTN_H, BTN_H, BTN_H], 128)
 
-    const createBtn = this.makeBtn(leftX,  rowY,  'CREATE', '60px', () => this.onCreateRoom())
-    const joinBtn   = this.makeBtn(rightX, rowY,  'JOIN',   '60px', () => this.showJoinInput())
-    const backBtn   = this.makeBtn(0,      backY, 'BACK',   '52px', () => this.goBack())
+    const createBtn = this.makeBtn(leftX,  rowY,  'CREATE',     '60px', () => this.onCreateRoom())
+    const joinBtn   = this.makeBtn(rightX, rowY,  'JOIN',       '60px', () => this.showJoinInput())
+    const mmBtn     = this.makeBtn(0,      mmY,   'FIND MATCH', '56px', () => this.onFindMatch())
+    const backBtn   = this.makeBtn(0,      backY, 'BACK',       '52px', () => this.goBack())
 
-    this.menuContainer = this.add.container(width / 2, height * 0.52, [
-      ...createBtn, ...joinBtn, ...backBtn,
+    this.menuContainer = this.add.container(width / 2, height * 0.46, [
+      ...createBtn, ...joinBtn, ...mmBtn, ...backBtn,
     ])
   }
 
@@ -225,6 +230,23 @@ export class PvPLobbyScene extends Phaser.Scene {
 
     this.joinContainer = this.add.container(width / 2, height * 0.46, [
       label, ...connectBtn, ...backBtn,
+    ])
+  }
+
+  private buildMatchmakingContainer(width: number, height: number): void {
+    const [statusY, cancelY] = flexColumn([80, BTN_H], 160)
+
+    this.matchStatusText = this.add.text(0, statusY, '', {
+      fontSize: '72px',
+      fontFamily: BODY_FONT,
+      color: '#aabbff',
+      align: 'center',
+    }).setOrigin(0.5)
+
+    const cancelBtn = this.makeBtn(0, cancelY, 'CANCEL', '52px', () => this.cancelMatchmaking())
+
+    this.matchmakingContainer = this.add.container(width / 2, height * 0.50, [
+      this.matchStatusText, ...cancelBtn,
     ])
   }
 
@@ -370,6 +392,39 @@ export class PvPLobbyScene extends Phaser.Scene {
     }
   }
 
+  private async onFindMatch(): Promise<void> {
+    this.lobbyState = 'MATCHMAKING'
+    this.menuContainer.setVisible(false)
+    if (this.nameInput) this.nameInput.style.display = 'none'
+    this.matchmakingContainer.setVisible(true)
+    this.statusText.setText('')
+
+    this.network = new PvPNetwork()
+    this.network.localName = this.getLocalName()
+    this.network.onConnected = () => this.startBattle()
+
+    try {
+      await this.network.findMatch(s => {
+        if (this.lobbyState === 'MATCHMAKING') this.matchStatusText.setText(s)
+      })
+    } catch {
+      if (this.lobbyState === 'MATCHMAKING') {
+        this.matchStatusText.setText('Connection error. Try again.')
+      }
+    }
+  }
+
+  private cancelMatchmaking(): void {
+    this.network?.cancelFindMatch()
+    this.network?.destroy()
+    this.network = null
+    this.matchmakingContainer.setVisible(false)
+    if (this.nameInput) this.nameInput.style.display = 'block'
+    this.lobbyState = 'MENU'
+    this.menuContainer.setVisible(true)
+    this.statusText.setText('')
+  }
+
   private startBattle(): void {
     this.scene.start('TransitionLoadingScene', {
       next: 'BattleScene',
@@ -379,6 +434,7 @@ export class PvPLobbyScene extends Phaser.Scene {
 
   private goBack(): void {
     this.stopWaitingDots()
+    if (this.lobbyState === 'MATCHMAKING') { this.cancelMatchmaking(); return }
     if (this.domInput) { this.domInput.blur(); this.domInput.style.display = 'none' }
     if (this.nameInput) this.nameInput.style.display = 'block'
     this.network?.destroy()

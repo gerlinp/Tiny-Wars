@@ -97,7 +97,7 @@ export type GameEvent =
   | { type: 'DEPLOY';       entityId: string; cardId: string; position: Vec2 }
   | { type: 'SPELL_CAST';  cardId: string; owner: Owner; from: Vec2; to: Vec2; flightMs: number; entityId: string }
   | { type: 'SPELL_IMPACT'; cardId: string; position: Vec2; radius: number }
-  | { type: 'DAMAGE'; targetId: string; amount: number; attackerId?: string; splash?: boolean }
+  | { type: 'DAMAGE'; targetId: string; amount: number; attackerId?: string; splash?: boolean; chainFrom?: Vec2 }
   | { type: 'HEAL'; targetId: string; amount: number; healerId?: string }
   | { type: 'HEAL_AURA'; position: Vec2; radius: number; owner: Owner; healerId?: string }
   | { type: 'BOOMERANG'; throwerId: string; owner: Owner; from: Vec2; dir: Vec2; travelLimitPx: number }

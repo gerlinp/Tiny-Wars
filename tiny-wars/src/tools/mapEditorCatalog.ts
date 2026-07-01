@@ -203,7 +203,7 @@ function buildCardEntry(cardId: string): MapEditorUnitEntry | null {
     elixirCost: card.elixirCost,
     fw: sheet.frameWidth ?? FRAME_W,
     fh: sheet.frameHeight ?? FRAME_H,
-    path: sheet.path,
+    path: sheet.path || bundle.editorSpritePath,
     contentFill: bundle.contentFill ?? 0.55,
   }
 

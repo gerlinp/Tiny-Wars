@@ -1,7 +1,8 @@
 import Phaser from 'phaser'
-import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, getHealthBarImageKeys, HEALTH_BAR_ASSETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET, PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET } from '@data/AssetManifest'
-import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx, registerAirBoatCrewFx } from '@rendering/AnimationRegistry'
-import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL } from '@data/AssetManifest'
+import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, DUST_SHEETS, getHealthBarImageKeys, HEALTH_BAR_ASSETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET, PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET } from '@data/AssetManifest'
+import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx, registerAirBoatCrewFx, registerHexTransformFx, registerShamanOrbFx, registerLightningBoltFx } from '@rendering/AnimationRegistry'
+import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HEX_SHAMAN_BASE_SHEETS, HEX_SHAMAN_BASE_AVATAR, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET, HEX_SHAMAN_LIGHTNING_BOLT_SHEET, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL } from '@data/AssetManifest'
+import { generateAllShamanTextures } from '@rendering/PaletteSwap'
 import { TERRAIN_COLOR1, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_DECK } from '@data/TerrainManifest'
 import { DEFAULT_DECK } from '@data/CardData'
 import { setActiveMapConfig, getActiveMapConfig } from '@data/ActiveMapConfig'
@@ -170,6 +171,29 @@ export class PreloadScene extends Phaser.Scene {
       HEX_SHAMAN_EXPLOSION_SHEET.path,
       { frameWidth: HEX_SHAMAN_EXPLOSION_SHEET.frameWidth, frameHeight: HEX_SHAMAN_EXPLOSION_SHEET.frameHeight },
     )
+    this.load.spritesheet(
+      HEX_SHAMAN_LIGHTNING_BOLT_SHEET.key,
+      HEX_SHAMAN_LIGHTNING_BOLT_SHEET.path,
+      { frameWidth: HEX_SHAMAN_LIGHTNING_BOLT_SHEET.frameWidth, frameHeight: HEX_SHAMAN_LIGHTNING_BOLT_SHEET.frameHeight },
+    )
+
+    // Base shaman sprite sheets — sources for runtime palette swaps
+    for (const sheet of Object.values(HEX_SHAMAN_BASE_SHEETS)) {
+      this.load.spritesheet(sheet.key, sheet.path, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight })
+    }
+    this.load.image(HEX_SHAMAN_BASE_AVATAR.key, HEX_SHAMAN_BASE_AVATAR.path)
+
+    // Elder Shaman attack VFX sheets
+    this.load.spritesheet(
+      HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key,
+      HEX_SHAMAN_TRANSFORM_SPELL_SHEET.path,
+      { frameWidth: HEX_SHAMAN_TRANSFORM_SPELL_SHEET.frameWidth, frameHeight: HEX_SHAMAN_TRANSFORM_SPELL_SHEET.frameHeight },
+    )
+    this.load.spritesheet(
+      HEX_SHAMAN_EXPLOSION_SPELL_SHEET.key,
+      HEX_SHAMAN_EXPLOSION_SPELL_SHEET.path,
+      { frameWidth: HEX_SHAMAN_EXPLOSION_SPELL_SHEET.frameWidth, frameHeight: HEX_SHAMAN_EXPLOSION_SPELL_SHEET.frameHeight },
+    )
     this.load.image(HARPOON_PROJECTILE_SHEET.key, HARPOON_PROJECTILE_SHEET.path)
     this.load.image(GARRISON_CANNON_BALL.key, GARRISON_CANNON_BALL.path)
 
@@ -198,6 +222,12 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     // --- Effects ---
+    for (const sheet of DUST_SHEETS) {
+      this.load.spritesheet(sheet.key, sheet.path, {
+        frameWidth: sheet.frameWidth,
+        frameHeight: sheet.frameHeight,
+      })
+    }
     this.load.spritesheet(EXPLOSION_SHEET.key, EXPLOSION_SHEET.path, {
       frameWidth: EXPLOSION_SHEET.frameWidth,
       frameHeight: EXPLOSION_SHEET.frameHeight,
@@ -277,6 +307,9 @@ export class PreloadScene extends Phaser.Scene {
       setActiveMapConfig(DEFAULT_MAP_CONFIG)
     }
 
+    // Generate all palette-swapped shaman textures from the loaded base sprites
+    generateAllShamanTextures(this)
+
     for (const cardId of DEFAULT_DECK) {
       const def = getCardAvatarDef(cardId)
       if (!this.textures.exists(def.key)) {
@@ -315,6 +348,9 @@ export class PreloadScene extends Phaser.Scene {
     registerDamageFireAnims(this)
     registerMonkHealFx(this)
     registerExplosionFx(this)
+    registerHexTransformFx(this)
+    registerShamanOrbFx(this)
+    registerLightningBoltFx(this)
     registerGnollBoneFx(this)
     registerGoblinDynamiteFx(this)
     registerAirBoatCrewFx(this)
