@@ -5,9 +5,10 @@ import { tryAllyLateralSeparation, clampGroundTroopToWalkable } from './TroopAvo
 import { EntityKind, UnitType } from './types'
 import { CELL_SIZE, EPSILON_DISTANCE } from '@data/GameConstants'
 
-// Allies apply only this fraction of overlap correction per pass — keeps swarm
-// clusters tighter so they fit through the bridge in fewer waves.
-const ALLY_SEPARATION_FRACTION = 0.35
+// Allies apply this fraction of overlap correction per pass.
+// Increased from 0.35 → 0.50: firmer separation means units don't deeply stack, which reduces
+// the chaotic collision response that contributed to swarm wave/accordion behaviour.
+const ALLY_SEPARATION_FRACTION = 0.50
 
 // Enemies use soft separation too (units overlap slightly and spread out naturally) rather
 // than rigid body-blocking. Deviation: Clash Royale has no troop collision at all (discrete
@@ -43,7 +44,16 @@ function airTroops(state: GameState): Troop[] {
 }
 
 function tryAllyPushFromBehind(pusher: Troop, front: Troop, deltaMs: number): void {
-  if (pusher.stats.speed <= front.stats.speed) return
+  const pusherWeight = pusher.stats.pushWeight ?? 1.0
+  const frontWeight = front.stats.pushWeight ?? 1.0
+
+  // A unit can push a lighter-or-equal ally forward if:
+  //  • it's moving faster (speed-based push), OR
+  //  • it's heavier even at the same speed (weight-based shove)
+  // Neither applies when the front unit is both faster AND heavier.
+  const speedDiff = pusher.stats.speed - front.stats.speed
+  const weightDiff = pusherWeight - frontWeight
+  if (speedDiff <= 0 && weightDiff <= 0) return
 
   const dir = pusher.getMarchDirection()
   const len = Math.hypot(dir.x, dir.y)
@@ -59,7 +69,13 @@ function tryAllyPushFromBehind(pusher: Troop, front: Troop, deltaMs: number): vo
   const halfFront = troopCollisionRadius(front)
   if (!circlesOverlap(pusher.position, halfPusher, front.position, halfFront)) return
 
-  const push = (pusher.stats.speed - front.stats.speed) * CELL_SIZE * deltaMs / 1000
+  // Speed-based component — proportional to speed delta as before.
+  const speedPush = Math.max(0, speedDiff) * CELL_SIZE * deltaMs / 1000
+  // Weight-based component — heavier unit nudges lighter one even at equal speed.
+  // Scaled so a 2× weight difference gives a modest bump (~15% of a medium troop step/tick).
+  const weightPush = Math.max(0, weightDiff) * front.stats.speed * CELL_SIZE * deltaMs / 1000 * 0.15
+  const push = speedPush + weightPush
+
   front.position.x += nx * push
   front.position.y += ny * push
 }

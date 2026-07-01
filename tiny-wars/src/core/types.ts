@@ -56,6 +56,13 @@ export interface EntityStats {
   suicideOnAttack?: boolean
   /** Extra HP pool absorbed before body HP (per unit) — displayed as Armor. */
   armorHp?: number
+  /**
+   * CR-style push weight — how strongly this unit displaces allies (and is displaced)
+   * during collisions. Heavier units (Giant, Juggernaut) push lighter ones forward
+   * even when moving at the same speed. Defaults to 1.0 when omitted.
+   * Higher values = harder to displace and displaces others more.
+   */
+  pushWeight?: number
 }
 
 export interface SpellStats {

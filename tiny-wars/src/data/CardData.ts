@@ -220,6 +220,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
     targetsBuildingsOnly: true,
+    pushWeight: 3.0,  // Giant-class: bulldozes lighter allies out of the way
   }, 'troll_blue_idle', 'troll_red_idle'),
 
   /** Melee with distance charge — Lancer faction art. */
@@ -233,6 +234,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackRange: 1.6,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
+    pushWeight: 1.5,  // Prince-class: fast charger shoves lighter units
   }, 'lancer_blue_idle', 'lancer_red_idle'),
 
   wizard: troop('wizard', 'Fire Shaman',
@@ -327,6 +329,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
     splashRadius: 1.3,
+    pushWeight: 2.5,  // Golem-class bruiser
   }, 'bear_blue_idle', 'bear_red_idle'),
 
   torch_goblin: troop('torch_goblin', 'Torch Goblin',
@@ -356,6 +359,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
     targetsBuildingsOnly: true,
+    pushWeight: 1.5,  // Hog Rider-class: plows through lighter units
   }, 'pig_rider_blue_idle', 'pig_rider_red_idle'),
 
   /** ×4 deploy — Pig art. CR Royal Hogs (building-only rush). */
@@ -413,6 +417,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackRange: 1.2,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
+    pushWeight: 2.5,  // P.E.K.K.A-class: slow and massive, shoves lighter units
   }, 'minotaur_blue_idle', 'minotaur_red_idle'),
 
   /** Fast melee — dashes in before each strike when target is just out of reach. */

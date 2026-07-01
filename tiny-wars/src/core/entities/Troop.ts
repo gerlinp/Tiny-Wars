@@ -15,7 +15,6 @@ import {
   surfaceDistToEntity,
   troopCollisionRadius,
 } from '../EntityGeometry'
-import { assignSlotIndex, attackSlotPosition, attackSlotPositionFromLayout, slotBaseAngle } from '../AttackSlots'
 import { dealAreaDamage, applySlowInRadius, applyHealInRadius } from '../AreaDamage'
 import { launchBoomerang, isBoomerangThrowerBusy } from '../BoomerangSystem'
 import { canHookTarget, isHookThrowerBusy, launchHook } from '../HookSystem'
@@ -32,7 +31,7 @@ import {
   worldRow,
 } from '../Movement'
 import { getLaneMarchGoal } from '../LaneMovement'
-import { towerAttackCenter, towerSlotOriginCenter } from '@rendering/towerRenderPosition'
+import { towerSlotOriginCenter } from '@rendering/towerRenderPosition'
 import { bombTowerMeleeLayout } from '@data/BombTowerMeleeLayout'
 import { kingTowerMeleeLayout } from '@data/KingTowerMeleeLayout'
 import { princessTowerMeleeLayout } from '@data/PrincessTowerMeleeLayout'
@@ -847,37 +846,44 @@ export class Troop extends Entity {
     return this.aggroRangeCells() * CELL_SIZE
   }
 
-  /** Goal while closing on a target: melee swarms fan onto attack slots; everything else uses the standoff point. */
+  /** Goal while closing on a target: use attack slots for both melee and ranged swarms, else standoff point. */
   private attackGoalFor(target: Entity, state: GameState): Vec2 {
     if (this.effectiveAttackRange() <= 2) {
       const slot = this.attackSlotGoalFor(target, state)
+      if (slot) return slot
+    } else if (target.kind === EntityKind.TOWER) {
+      const slot = this.rangedTowerSlotGoalFor(target as Tower, state)
       if (slot) return slot
     }
     return this.moveGoalFor(target)
   }
 
   /**
-   * Swarm surround: when multiple melee allies share this target, fan them onto a ring of
-   * attack slots so they circle it instead of stacking on one approach point. Returns null for
-   * solo attackers (keeps single-unit approach unchanged) or when the slot is unwalkable.
+   * Swarm surround: steer this unit toward its nearest *open* (unclaimed) attack slot
+   * around the target.
+   *
+   * Assignment algorithm (O(attackers × slots)):
+   *   For each slot, find the attacker closest to it → that attacker exclusively claims it.
+   *   This unit uses whichever slot it won. If the swarm is larger than the slot count,
+   *   overflow units fall back to the nearest slot overall (they'll physically push/spread
+   *   via collision resolution).
+   *
+   * Returns null for solo attackers (direct approach used) or when no walkable slot exists.
    */
   private attackSlotGoalFor(target: Entity, state: GameState): Vec2 | null {
-    // Building-only rush units charge straight at structures — skip swarm slots tuned
-    // for normal melee (princess tower ring positions sit too far for hogs / hog rider).
     if (this.effectiveTargetsBuildingsOnly()) return null
 
-    const allyIds: string[] = []
+    // Collect all melee allies attacking this target (including this unit).
+    const attackers: { id: string; pos: Vec2 }[] = []
     for (const entity of state.entities.values()) {
       if (!entity.isAlive || entity.kind !== EntityKind.TROOP) continue
       if (entity.owner !== this.owner) continue
       const ally = entity as Troop
       if (ally.target?.id !== target.id) continue
       if (ally.effectiveAttackRange() > 2) continue
-      allyIds.push(ally.id)
+      attackers.push({ id: ally.id, pos: ally.position })
     }
-
-    const { index, total } = assignSlotIndex(this.id, allyIds)
-    if (total <= 1) return null
+    if (attackers.length <= 1) return null
 
     if (target.kind === EntityKind.TOWER) {
       const tower = target as Tower
@@ -886,61 +892,131 @@ export class Troop extends Entity {
         : princessTowerMeleeLayout(tower.owner, false)
       if (layout) {
         const origin = towerSlotOriginCenter(
-          tower.position.x,
-          tower.position.y,
-          tower.owner,
-          tower.isKing,
+          tower.position.x, tower.position.y, tower.owner, tower.isKing,
         )
-        const slot = attackSlotPositionFromLayout(origin, index, layout.slotPositions)
-        if (this.stats.unitType === UnitType.GROUND && !isWorldWalkable(this.grid, slot.x, slot.y)) {
-          return null
-        }
-        return slot
+        return this.nearestOpenSlot(origin, layout.slotPositions, attackers)
       }
     }
 
     if (target.kind === EntityKind.BUILDING && target.cardId === BOMB_TOWER_CARD_ID) {
       const building = target as Building
-      const layout = bombTowerMeleeLayout()
       const origin = buildingCombatCenter(building)
-      const slot = attackSlotPositionFromLayout(origin, index, layout.slotPositions)
-      if (this.stats.unitType === UnitType.GROUND && !isWorldWalkable(this.grid, slot.x, slot.y)) {
-        return null
-      }
-      return slot
+      return this.nearestOpenSlot(origin, bombTowerMeleeLayout().slotPositions, attackers)
     }
 
+    // Troop target — use a virtual radial ring for melee contact spacing.
     const center = entityCollisionCenter(target)
     const targetRadius = entityCombatRadius(target) ?? troopCollisionRadius(this)
     const attackerRadius = troopCollisionRadius(this)
     const rangePx = this.effectiveAttackRange() * CELL_SIZE
-    const baseAngle = slotBaseAngle(this.position, center)
-    const slot = attackSlotPosition(
-      center,
-      targetRadius,
-      attackerRadius,
-      rangePx,
-      index,
-      total,
-      baseAngle,
-      CELL_SIZE * 0.5,
-      12,
-    )
+    const slotRadius = Math.max(0, targetRadius + attackerRadius + rangePx - CELL_SIZE * 0.5)
+    const total = Math.max(attackers.length, 8) // at least 8 virtual slots for spread
+    const virtualSlots = Array.from({ length: total }, (_, i) => {
+      const a = (Math.PI * 2 * i) / total
+      return { x: (Math.cos(a) * slotRadius) / CELL_SIZE, y: (Math.sin(a) * slotRadius) / CELL_SIZE }
+    })
+    return this.nearestOpenSlot(center, virtualSlots, attackers)
+  }
 
-    if (this.stats.unitType === UnitType.GROUND && !isWorldWalkable(this.grid, slot.x, slot.y)) {
-      return null
+  /**
+   * Ranged tower approach slots: spread ranged allies around a standoff ring so they
+   * don't stack on one point while trying to fire at the same tower/king.
+   */
+  private rangedTowerSlotGoalFor(tower: Tower, state: GameState): Vec2 | null {
+    const attackers: { id: string; pos: Vec2 }[] = []
+    for (const entity of state.entities.values()) {
+      if (!entity.isAlive || entity.kind !== EntityKind.TROOP) continue
+      if (entity.owner !== this.owner) continue
+      const ally = entity as Troop
+      if (ally.target?.id !== tower.id) continue
+      if (ally.effectiveAttackRange() <= 2) continue
+      attackers.push({ id: ally.id, pos: ally.position })
     }
-    return slot
+    if (attackers.length <= 1) return null
+
+    const rangePx = this.effectiveAttackRange() * CELL_SIZE
+    const slotRadius = Math.max(0, rangePx - CELL_SIZE * 0.5)
+    const total = Math.max(attackers.length, 12)
+    const slots = Array.from({ length: total }, (_, i) => {
+      const a = (Math.PI * 2 * i) / total
+      return { x: (Math.cos(a) * slotRadius) / CELL_SIZE, y: (Math.sin(a) * slotRadius) / CELL_SIZE }
+    })
+    return this.nearestOpenSlot(tower.position, slots, attackers)
+  }
+
+  /**
+   * Exclusive greedy slot assignment: each slot is awarded to whichever attacker is
+   * closest to it. Ties broken by ID for determinism. This unit receives its won slot;
+   * overflow units (more attackers than slots) get the globally nearest walkable slot.
+   */
+  private nearestOpenSlot(
+    origin: Vec2,
+    slots: readonly { x: number; y: number }[],
+    attackers: readonly { id: string; pos: Vec2 }[],
+  ): Vec2 | null {
+    if (slots.length === 0) return null
+
+    // Materialise world positions, filter to walkable slots only.
+    const worldSlots: (Vec2 | null)[] = slots.map(s => {
+      const wx = origin.x + s.x * CELL_SIZE
+      const wy = origin.y + s.y * CELL_SIZE
+      if (this.stats.unitType === UnitType.GROUND && !isWorldWalkable(this.grid, wx, wy)) return null
+      return { x: wx, y: wy }
+    })
+
+    // For each walkable slot find the nearest attacker (owner of that slot).
+    const slotOwner: (string | null)[] = worldSlots.map(slot => {
+      if (!slot) return null
+      let bestId: string | null = null
+      let bestDist = Infinity
+      for (const a of attackers) {
+        const dx = a.pos.x - slot.x
+        const dy = a.pos.y - slot.y
+        const d = dx * dx + dy * dy
+        if (d < bestDist || (d === bestDist && (bestId === null || a.id < bestId))) {
+          bestDist = d
+          bestId = a.id
+        }
+      }
+      return bestId
+    })
+
+    // Return the slot this unit won that is nearest to its current position.
+    let bestSlot: Vec2 | null = null
+    let bestDistSq = Infinity
+    for (let i = 0; i < worldSlots.length; i++) {
+      const slot = worldSlots[i]
+      if (!slot || slotOwner[i] !== this.id) continue
+      const dx = this.position.x - slot.x
+      const dy = this.position.y - slot.y
+      const dSq = dx * dx + dy * dy
+      if (dSq < bestDistSq) { bestDistSq = dSq; bestSlot = slot }
+    }
+    if (bestSlot) return bestSlot
+
+    // Overflow: more attackers than slots — go to the nearest walkable slot.
+    for (let i = 0; i < worldSlots.length; i++) {
+      const slot = worldSlots[i]
+      if (!slot) continue
+      const dx = this.position.x - slot.x
+      const dy = this.position.y - slot.y
+      const dSq = dx * dx + dy * dy
+      if (dSq < bestDistSq) { bestDistSq = dSq; bestSlot = slot }
+    }
+    return bestSlot
   }
 
   private moveGoalFor(target: Entity): Vec2 {
     const range = this.effectiveAttackRange()
     if (target.kind === EntityKind.TOWER && range > 2) {
-      // Ranged vs tower stands off at `range` cells center-to-center from the tower's
-      // attack centre — the same distance combatDistTo measures — so the troop fires from
-      // exactly the range the tower measures back, not the inflated surface standoff.
+      // Ranged vs tower: stand off at `range` cells from the tower's LOGIC POSITION (not
+      // its attack centre). The tower's attack centre is intentionally placed off-map for
+      // king towers (behind the king) to give the tower a wide arc of fire — but using
+      // that off-map point as the troop standoff target forces ranged units to march all
+      // the way to the king's doorstep. Use tower.position (logic anchor) so troops stop
+      // at the intended standoff ring. combatDistTo is matched to the same reference.
       const tower = target as Tower
-      const center = towerAttackCenter(tower.position.x, tower.position.y, tower.owner, tower.isKing)
+      const center = tower.position
       const dx = this.position.x - center.x
       const dy = this.position.y - center.y
       const d = Math.hypot(dx, dy)
@@ -1436,14 +1512,13 @@ export class Troop extends Entity {
   private combatDistTo(entity: Entity): number {
     const ranged = this.effectiveAttackRange() > 2
     if (entity.kind === EntityKind.TOWER && ranged) {
-      // Ranged vs tower: measure center-to-center to the tower's own attack centre — the
-      // exact point the tower measures range from (see Tower.tick). This keeps attackRange
-      // symmetric on both sides of the fight, so CR range values map 1:1 and the tower
-      // always wins its designed range bracket instead of being out-ranged by the
-      // surface-to-surface bonus (tower radius + troop radius ≈ 1.85 cells).
-      const tower = entity as Tower
-      const center = towerAttackCenter(tower.position.x, tower.position.y, tower.owner, tower.isKing)
-      return Math.sqrt(distSq(this.position, center))
+      // Ranged vs tower: measure center-to-center from the tower's LOGIC POSITION.
+      // The tower's `towerAttackCenter` is intentionally off-map for king towers (placed
+      // behind the king to give wide arc-of-fire), so it cannot be used as a troop standoff
+      // reference — troops would have to walk to the king's doorstep. Using tower.position
+      // keeps the standoff symmetric with moveGoalFor and places troops at the correct
+      // firing distance from the tower's actual body.
+      return Math.sqrt(distSq(this.position, entity.position))
     }
     if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {
       // Buildings (and melee vs towers): surface-to-surface so attackRange means "cells

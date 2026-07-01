@@ -474,7 +474,12 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 
     <div class="section" id="king-range-section" style="display:none">
       <div class="section-title">Range Center (castle)</div>
-      <div style="font-size:10px;color:#6070a0;margin-bottom:6px">Attack range is measured from this point (not the white logic anchor) · cells from anchor</div>
+      <div style="font-size:10px;color:#6070a0;margin-bottom:6px">
+        Two spots are shown on canvas:
+        <span style="color:#9fe8ff">cyan crosshair = troop slot/ranged standoff center (logic anchor)</span>,
+        <span style="color:#ffd36a">gold crosshair = castle fire range center</span>.
+        Values here edit the gold point in cells from anchor.
+      </div>
       <div class="range-row">
         <label style="width:24px;color:#aaa;font-size:11px">X</label>
         <input type="number" id="king-range-x" step="0.05" min="-8" max="8" style="width:58px">
@@ -5427,8 +5432,22 @@ function drawKingArenaContext(unit, cx, cy, UCELL) {
   }
 
   // King anchor label
+  // Cyan crosshair: troop slot + ranged standoff reference (logic anchor).
+  uctx.beginPath()
+  uctx.moveTo(cx - 8, cy); uctx.lineTo(cx + 8, cy)
+  uctx.moveTo(cx, cy - 8); uctx.lineTo(cx, cy + 8)
+  uctx.strokeStyle = 'rgba(140,235,255,0.92)'
+  uctx.lineWidth = 2
+  uctx.stroke()
+  uctx.beginPath()
+  uctx.arc(cx, cy, 5, 0, Math.PI * 2)
+  uctx.fillStyle = 'rgba(140,235,255,0.22)'
+  uctx.fill()
+  uctx.strokeStyle = 'rgba(140,235,255,0.92)'
+  uctx.lineWidth = 1.5
+  uctx.stroke()
   uctx.fillStyle = 'rgba(180,190,210,0.65)'; uctx.font = '9px sans-serif'; uctx.textAlign = 'center'
-  uctx.fillText('logic anchor (you)', cx, cy + (unit.isKing ? KT_RADIUS : PT_RADIUS) * UCELL + 14)
+  uctx.fillText('logic anchor / troop slot center', cx, cy + (unit.isKing ? KT_RADIUS : PT_RADIUS) * UCELL + 14)
 }
 
 function drawKingRangeCenterHandle(unit, cx, cy, UCELL) {
@@ -5461,7 +5480,7 @@ function drawKingRangeCenterHandle(unit, cx, cy, UCELL) {
   }
   uctx.fillStyle = sel ? 'rgba(255,255,100,0.95)' : 'rgba(255,200,60,0.90)'
   uctx.font = '9px sans-serif'; uctx.textAlign = 'left'
-  uctx.fillText(`range center (${off.x >= 0 ? '+' : ''}${off.x.toFixed(2)}, ${off.y >= 0 ? '+' : ''}${off.y.toFixed(2)})`, rcx + 10, rcy - 6)
+  uctx.fillText(`fire range center (${off.x >= 0 ? '+' : ''}${off.x.toFixed(2)}, ${off.y >= 0 ? '+' : ''}${off.y.toFixed(2)})`, rcx + 10, rcy - 6)
 }
 
 function hitTestKingRangeCenter(mx, my, unit, cx, cy, UCELL) {
@@ -6074,7 +6093,7 @@ function updateUnitEditSelectionStatus(unit) {
   } else if (unitEditSelection.type === 'rangeCenter') {
     const off = getKingRangeCenterOffset(unit, unitApproachSide)
     document.getElementById('unit-status').textContent =
-      `Range center: (${off.x >= 0 ? '+' : ''}${off.x.toFixed(2)}, ${off.y >= 0 ? '+' : ''}${off.y.toFixed(2)}) cells from logic anchor${hint}`
+      `Fire range center: (${off.x >= 0 ? '+' : ''}${off.x.toFixed(2)}, ${off.y >= 0 ? '+' : ''}${off.y.toFixed(2)}) cells from logic anchor (cyan crosshair = troop slot/standoff center)${hint}`
   } else if (unitEditSelection.type === 'garrison') {
     const slots = getKingGarrisonSlots(unit, unitApproachSide)
     const slot = slots[unitEditSelection.index]

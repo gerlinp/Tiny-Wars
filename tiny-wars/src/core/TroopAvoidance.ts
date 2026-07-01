@@ -13,10 +13,25 @@ const MELEE_ATTACK_RANGE_CELLS = 2
 /** Rows on each side of the river where lateral avoidance is suppressed so units queue straight into the bridge. */
 const BRIDGE_APPROACH_ROW_MARGIN = 4
 
-/** How far ahead (in body widths) to look for a directly stacked ally. */
+/**
+ * How far ahead (in body widths) to look for a directly stacked STATIONARY ally.
+ * Stationary (attacking) allies won't step aside — steer around them proactively.
+ */
 const ALLY_BLOCK_LOOKAHEAD_MULT = 2.5
-/** Lateral steering weight when blocked by a moving ally. */
-const ALLY_AVOID_LATERAL_BLEND = 0.55
+/**
+ * For MOVING allies, use zero proactive lookahead — only steer when nearly at physical
+ * contact. The collision resolver handles the rest. This prevents the accordion/wave
+ * oscillation where every unit in a marching swarm sees the next unit as a blocker and
+ * starts steering sideways before they even touch.
+ */
+const ALLY_BLOCK_LOOKAHEAD_MULT_MOVING = 0
+/**
+ * Lateral steering weight when blocked by a moving ally.
+ * Kept low so units drift gently sideways; the collision resolution does the heavy lifting.
+ * A large blend here (e.g. 0.55) caused the wave pattern: units steered wide, stopped
+ * seeing the blocker, went straight, caught up, repeated.
+ */
+const ALLY_AVOID_LATERAL_BLEND = 0.22
 /** Lateral steering weight when blocked by a stationary (attacking) ally — steer fully around. */
 const ALLY_AVOID_LATERAL_BLEND_STATIONARY = 0.80
 
@@ -78,7 +93,11 @@ export function findBlockingAlly(troop: Troop, goal: Vec2, state: GameState): Al
   if (!dir) return null
 
   const radius = troopCollisionRadius(troop)
-  const lookAhead = radius * ALLY_BLOCK_LOOKAHEAD_MULT * 2 + CELL_SIZE * 0.25
+  // Proactive lookahead distance used only for stationary (attacking) allies.
+  // Moving allies use zero lookahead (ALLY_BLOCK_LOOKAHEAD_MULT_MOVING = 0) so steering
+  // only fires when the ally is nearly at physical contact. The collision resolver spreads
+  // the group naturally; this prevents the premature-steer → overshoot → catch-up wave cycle.
+  const stationaryLookAhead = radius * ALLY_BLOCK_LOOKAHEAD_MULT * 2 + CELL_SIZE * 0.25
 
   let bestAhead = Infinity
   let bestLateral: 1 | -1 = 1
@@ -94,13 +113,20 @@ export function findBlockingAlly(troop: Troop, goal: Vec2, state: GameState): Al
     const lateral = Math.abs(-dir.y * toAllyX + dir.x * toAllyY)
     const stackLane = radius + allyRadius - CELL_SIZE * 0.15
     const blockDepth = radius + allyRadius + CELL_SIZE * 0.1
+
+    // For moving allies use no proactive lookahead — only steer when nearly touching.
+    const allyStationary = ally.state === TroopState.ATTACKING
+    const lookAhead = allyStationary
+      ? stationaryLookAhead
+      : ALLY_BLOCK_LOOKAHEAD_MULT_MOVING * radius * 2
+
     if (lateral >= stackLane || ahead >= lookAhead + blockDepth) continue
     if (ahead >= bestAhead) continue
 
     bestAhead = ahead
     const cross = dir.x * toAllyY - dir.y * toAllyX
     bestLateral = cross >= 0 ? -1 : 1
-    bestStationary = ally.state === TroopState.ATTACKING
+    bestStationary = allyStationary
   }
 
   return bestAhead < Infinity ? { lateral: bestLateral, allyStationary: bestStationary } : null
