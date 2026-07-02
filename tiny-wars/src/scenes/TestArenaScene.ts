@@ -59,7 +59,6 @@ export class TestArenaScene extends Phaser.Scene {
   private domRoot: HTMLDivElement | null = null
   private domLeftPanel: HTMLDivElement | null = null
   private domRightPanel: HTMLDivElement | null = null
-  private domStatus: HTMLDivElement | null = null
   private domBottomBar: HTMLDivElement | null = null
   private domPrincessBtn: HTMLButtonElement | null = null
   private onWindowResize = () => this.layoutDomControls()
@@ -163,7 +162,6 @@ export class TestArenaScene extends Phaser.Scene {
   private destroyDomControls(): void {
     window.removeEventListener('resize', this.onWindowResize)
     this.domPrincessBtn = null
-    this.domStatus = null
     this.domLeftPanel = null
     this.domRightPanel = null
     this.domBottomBar = null
@@ -195,39 +193,21 @@ export class TestArenaScene extends Phaser.Scene {
     return panel
   }
 
-  private makeDomTopBar(): HTMLDivElement {
   private makeDomBottomBar(): HTMLDivElement {
     const bar = document.createElement('div')
     bar.style.position = 'fixed'
     bar.style.pointerEvents = 'auto'
     bar.style.display = 'flex'
-    bar.style.flexDirection = 'column'
-    bar.style.gap = '8px'
+    bar.style.justifyContent = 'center'
+    bar.style.gap = '10px'
     bar.style.padding = '10px 12px'
     bar.style.border = '2px solid #304070'
     bar.style.background = 'rgba(8,9,20,0.88)'
 
-    const status = document.createElement('div')
-    status.style.fontFamily = 'monospace'
-    status.style.fontSize = '14px'
-    status.style.lineHeight = '1.3'
-    status.style.color = '#d8e6ff'
-    status.style.whiteSpace = 'pre-line'
-    bar.appendChild(status)
-    this.domStatus = status
-
-    const row = document.createElement('div')
-    row.style.display = 'flex'
-    row.style.justifyContent = 'center'
-    row.style.gap = '10px'
-
     const resetBtn = this.makeDomActionButton('Reset [R]', () => this.resetArena())
-    const menuBtn = this.makeDomActionButton('Menu [Esc]', () => this.exitToMainMenu())
     const princessBtn = this.makeDomActionButton('', () => this.togglePrincessTowers())
-    row.appendChild(resetBtn)
-    row.appendChild(menuBtn)
-    row.appendChild(princessBtn)
-    bar.appendChild(row)
+    bar.appendChild(resetBtn)
+    bar.appendChild(princessBtn)
 
     this.domPrincessBtn = princessBtn
     return bar
@@ -567,13 +547,6 @@ export class TestArenaScene extends Phaser.Scene {
   }
 
   private updateStatus(): void {
-    const blue = [...this.simulator.state.entities.values()].filter(e => e.owner === Owner.PLAYER).length
-    const red = [...this.simulator.state.entities.values()].filter(e => e.owner === Owner.BOT).length
-    const patch = this.setup.balancePatches?.[this.selectedCardId]
-    const firstLine = `Actual Game Test Arena: ${this.selectedCardId}${patch ? ' (editor stats applied)' : ''}`
-    const secondLine = `Click left/right cards to spawn · R reset · T princess towers · Esc menu`
-    const thirdLine = `Princess towers: ${this.princessTowersEnabled ? 'on' : 'off'} · Entities: blue ${blue} / red ${red}`
-    if (this.domStatus) this.domStatus.textContent = `${firstLine}\n${secondLine}\n${thirdLine}`
     if (this.domPrincessBtn) {
       this.domPrincessBtn.textContent = `Princess Towers: ${this.princessTowersEnabled ? 'On' : 'Off'} [T]`
       this.domPrincessBtn.style.background = this.princessTowersEnabled ? '#1e3a5f' : '#4a2b1e'
