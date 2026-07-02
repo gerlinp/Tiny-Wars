@@ -33,6 +33,15 @@ describe('mapEditorCatalog sync', () => {
     expect(entry?.elixirCost).toBe(4)
   })
 
+  it('exports CardData balance stats for unit editor tuning', () => {
+    const entry = buildMapEditorCatalog().find(e => e.id === 'warrior')
+    expect(entry?.balance?.sourceFile).toBe('tiny-wars/src/data/CardData.ts')
+    expect(entry?.balance?.sourceObject).toBe('CARD_DEFINITIONS_BASE.warrior')
+    expect(entry?.balance?.stats.attackRange).toBe(entry?.attackRange)
+    expect(entry?.balance?.stats.maxHp).toBeGreaterThan(0)
+    expect(entry?.balance?.notes?.vision).toContain('No per-card vision stat')
+  })
+
   it('exports bomb tower bomber paths from bomb_fish idle sheets', () => {
     const constants = buildMapEditorConstants()
     expect(constants.bombTowerBomberPaths.player).toContain('Bomb Fish_Idle.png')

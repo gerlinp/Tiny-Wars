@@ -55,6 +55,7 @@ export interface MapEditorUnitEntry {
   name: string
   attackRange: number
   elixirCost?: number
+  balance?: MapEditorBalanceEntry
   fw: number
   fh: number
   path?: string
@@ -70,6 +71,16 @@ export interface MapEditorUnitEntry {
   hbarOffsetY?: number
   slotOffsetX?: number
   slotOffsetY?: number
+}
+
+export interface MapEditorBalanceEntry {
+  sourceFile: 'tiny-wars/src/data/CardData.ts'
+  sourceObject: string
+  cardType: string
+  elixirCost: number
+  deployCount?: number
+  stats: Record<string, unknown>
+  notes?: Record<string, string>
 }
 
 export interface MapEditorLayoutConstants {
@@ -105,6 +116,24 @@ export interface MapEditorGeneratedConstants {
 
 const SPELL_CARD_IDS = new Set(['arrows', 'tnt', 'goblin_barrel'])
 const COMPOSITE_EDITOR_UNIT_IDS = ['wood_tower', 'air_boat'] as const
+
+function buildBalanceEntry(cardId: string): MapEditorBalanceEntry | undefined {
+  const card = CARD_DEFINITIONS[cardId]
+  if (!card?.stats) return undefined
+  return {
+    sourceFile: 'tiny-wars/src/data/CardData.ts',
+    sourceObject: `CARD_DEFINITIONS_BASE.${cardId}`,
+    cardType: card.cardType,
+    elixirCost: card.elixirCost,
+    deployCount: card.deployCount,
+    stats: { ...card.stats },
+    notes: {
+      vision: 'No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.',
+      attackRate: 'Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.',
+      speed: 'Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec().',
+    },
+  }
+}
 
 export interface CompositeStaticAvatarMeta {
   frameW?: number
@@ -201,6 +230,7 @@ function buildCardEntry(cardId: string): MapEditorUnitEntry | null {
     name: MAP_EDITOR_DISPLAY_NAME_OVERRIDES[cardId] ?? card.displayName,
     attackRange: card.stats.attackRange,
     elixirCost: card.elixirCost,
+    balance: buildBalanceEntry(cardId),
     fw: sheet.frameWidth ?? FRAME_W,
     fh: sheet.frameHeight ?? FRAME_H,
     path: sheet.path || bundle.editorSpritePath,
@@ -266,6 +296,7 @@ function formatEntry(entry: MapEditorUnitEntry): string {
   parts.push(`contentFill:${entry.contentFill}`)
 
   if (entry.elixirCost !== undefined) parts.push(`elixirCost:${entry.elixirCost}`)
+  if (entry.balance) parts.push(`balance:${JSON.stringify(entry.balance)}`)
   if (entry.isBuilding) parts.push('isBuilding:true')
   if (entry.isTower) parts.push('isTower:true')
   if (entry.isKing) parts.push('isKing:true')

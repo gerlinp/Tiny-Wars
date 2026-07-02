@@ -27,6 +27,36 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
 }
+body.arena-tab-mode #sidebar {
+  width: 320px;
+  min-width: 320px;
+}
+#arena-left-info {
+  display: none;
+}
+#arena-left-info .section {
+  border-bottom: none;
+}
+#arena-left-info p {
+  color: #9aa6c8;
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+#arena-right-host {
+  display: none;
+  flex-direction: column;
+  width: min(980px, calc(100% - 24px));
+  margin: 0 auto;
+  gap: 10px;
+}
+#arena-right-host #arena-sidebar {
+  display: block;
+}
+#arena-right-host #arena-sidebar .section {
+  border: 1px solid #1e1e38;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
 #sidebar h1 {
   font-size: 14px;
   font-weight: 700;
@@ -169,7 +199,7 @@ table.tower-table tr:nth-child(even) td { background: #16182a; }
 .export-btn:hover { background: #224530; }
 .export-copy-row { display: flex; gap: 6px; margin-bottom: 6px; }
 .export-copy-row button { flex: 1; padding: 5px 8px; font-size: 11px; }
-#export-out, #unit-export-out {
+#export-out, #unit-export-out, #arena-export-out {
   max-height: 160px; overflow-y: auto; background: #0e0e1a;
   border: 1px solid #2a2a4a; border-radius: 4px; padding: 6px;
   font-size: 10px; color: #80c0a0; white-space: pre;
@@ -308,6 +338,167 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
   border: 1px solid #2a2a5a;
 }
 #unit-status { color: #6070a0; font-size: 11px; font-variant-numeric: tabular-nums; min-height: 16px; text-align: center; }
+.balance-field {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.balance-field label { color: #a0aac0; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.balance-field input, .balance-field select {
+  width: 100%;
+  background: #0e0e1a;
+  color: #d8e0ff;
+  border: 1px solid #2a2a5a;
+  border-radius: 3px;
+  padding: 4px 5px;
+  font-size: 11px;
+}
+.balance-hint, .arena-hint { font-size: 10px; color: #6070a0; line-height: 1.35; margin-top: 6px; }
+#balance-fields { max-height: 260px; overflow-y: auto; padding-right: 2px; }
+.arena-deck-row {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 5px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.arena-deck-row span { color: #6070a0; font-size: 10px; font-family: monospace; }
+.arena-deck-row select {
+  width: 100%;
+  background: #0e0e1a;
+  color: #d8e0ff;
+  border: 1px solid #2a2a5a;
+  border-radius: 3px;
+  padding: 4px 5px;
+  font-size: 11px;
+}
+.arena-deck-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 6px 0 8px;
+}
+.arena-slot-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+.arena-slot-btn {
+  width: 100%;
+  text-align: left;
+  background: #0e0e1a;
+  color: #d8e0ff;
+  border: 1px solid #2a2a5a;
+  border-radius: 3px;
+  padding: 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.arena-slot-btn.active {
+  border-color: #7db0ff;
+  box-shadow: 0 0 0 1px #7db0ff inset;
+  background: #132338;
+}
+.arena-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.arena-card-btn {
+  width: 100%;
+  text-align: left;
+  background: #111626;
+  color: #d8e0ff;
+  border: 1px solid #2a2a5a;
+  border-radius: 3px;
+  padding: 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.arena-card-btn:hover {
+  border-color: #608ad8;
+}
+.arena-deck-card {
+  border: 1px solid #2a2a5a;
+  border-radius: 6px;
+  background: #101626;
+  padding: 6px;
+}
+.arena-deck-card.active {
+  border-color: #7db0ff;
+  box-shadow: 0 0 0 1px #7db0ff inset;
+  background: #132338;
+}
+.arena-card-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.arena-card-thumb {
+  width: 52px;
+  height: 52px;
+  border: 1px solid #2a2a5a;
+  border-radius: 4px;
+  background: #0c1020 center / contain no-repeat;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+.arena-card-meta {
+  min-width: 0;
+}
+.arena-card-title {
+  color: #dce6ff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.arena-card-sub {
+  color: #8da0cc;
+  font-size: 10px;
+  margin-top: 2px;
+}
+.arena-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  margin-top: 6px;
+}
+.arena-card-actions .action-btn {
+  padding: 5px 6px;
+  font-size: 10px;
+  margin: 0;
+}
+.arena-collection-card {
+  border: 1px solid #2a2a5a;
+  border-radius: 6px;
+  background: #0f1424;
+  padding: 6px;
+}
+.arena-collection-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-top: 6px;
+}
+.arena-collection-actions .action-btn {
+  padding: 5px 6px;
+  font-size: 10px;
+  margin: 0;
+}
+#arena-canvas-wrap {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  background: #08080e;
+  padding: 16px;
+}
+#arena-canvas-stage { display: flex; flex-direction: column; align-items: center; gap: 6px; width: fit-content; margin: 0 auto; }
+#arena-c { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; background: #101522; }
+#arena-status { color: #6070a0; font-size: 11px; font-variant-numeric: tabular-nums; min-height: 16px; text-align: center; }
 </style>
 </head>
 <body>
@@ -317,6 +508,16 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-map-btn">Map</button>
     <button class="tab-btn" id="tab-units-btn">Units</button>
+    <button class="tab-btn" id="tab-arena-btn">Arena</button>
+  </div>
+
+  <div id="arena-left-info">
+    <div class="section">
+      <div class="section-title">Arena Builder</div>
+      <p>Build both decks here before launching the real test arena.</p>
+      <p>Use slot selection plus card collection on the right to assign cards for player and enemy.</p>
+      <p>Press Start Test Arena to open gameplay with these exact decks.</p>
+    </div>
   </div>
 
   <div id="map-sidebar" style="display:contents">
@@ -408,6 +609,13 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
         <span style="color:#6070a0;font-size:11px">cells</span>
       </div>
       <button class="export-btn" id="btn-copy-range" style="margin-bottom:0">⎘ Copy value for CardData.ts</button>
+    </div>
+
+    <div class="section" id="balance-section">
+      <div class="section-title">Balance Stats — CardData.ts</div>
+      <div id="balance-fields"></div>
+      <button class="action-btn" id="btn-reset-balance" style="margin-top:6px">↺ Reset selected stats</button>
+      <div class="balance-hint" id="balance-hint">Vision is not a per-card stat yet; the export notes the shared targeting constants.</div>
     </div>
 
     <div class="section">
@@ -600,6 +808,40 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 
   </div><!-- /#unit-sidebar -->
 
+  <!-- ── Arena Sidebar ───────────────────────────────────────── -->
+  <div id="arena-sidebar" style="display:none">
+    <div class="section">
+      <div class="section-title">Test Arena Setup</div>
+      <div class="arena-hint">Pick each side's 8 cards, then start the real Phaser test arena.</div>
+      <button class="export-btn" id="btn-open-game-arena" style="margin-top:8px;margin-bottom:0">▶ Start Test Arena</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Player Cards — left side in game arena</div>
+      <div class="arena-deck-actions">
+        <button class="action-btn" id="btn-arena-player-from-main" title="Load the saved main-player deck">Use Main Deck</button>
+        <button class="action-btn" id="btn-arena-player-random" title="Pick 8 random unique cards for player">Randomize</button>
+      </div>
+      <div id="arena-player-deck"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Opponent Cards — right side in game arena</div>
+      <div class="arena-deck-actions">
+        <button class="action-btn" id="btn-arena-opponent-copy" title="Copy player deck into opponent deck">Copy Player</button>
+        <button class="action-btn" id="btn-arena-opponent-random" title="Pick 8 random unique cards for opponent">Randomize</button>
+      </div>
+      <div id="arena-opponent-deck"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Card Collection</div>
+      <div class="arena-hint">Select a slot in player/enemy deck, then click a card below to assign it.</div>
+      <div id="arena-card-collection"></div>
+    </div>
+
+  </div><!-- /#arena-sidebar -->
+
 </div><!-- /#sidebar -->
 
 <div id="canvas-wrap">
@@ -607,6 +849,7 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
     <canvas id="c"></canvas>
     <div id="status">Hover over the map — gray margin area is outside the playfield</div>
   </div>
+  <div id="arena-right-host"></div>
 </div>
 
 <!-- ── Unit Editor Canvas ─────────────────────────── -->
@@ -622,6 +865,14 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
       <canvas id="avatar-preview-c"></canvas>
       <div class="preview-hint">Exact deck-hand slot proportions · Deck zoom slider = avatarPreviewScale</div>
     </div>
+  </div>
+</div>
+
+<!-- ── Test Arena Canvas ─────────────────────────────────────── -->
+<div id="arena-canvas-wrap" style="display:none">
+  <div id="arena-canvas-stage">
+    <canvas id="arena-c" width="640" height="720"></canvas>
+    <div id="arena-status"></div>
   </div>
 </div>
 
@@ -2572,17 +2823,44 @@ initEditor()
 // ── Tab switching ─────────────────────────────────────────────
 function switchTab(tab) {
   const isMap = tab === 'map'
+  const isUnits = tab === 'units'
+  const isArena = tab === 'arena'
+  const sidebar = document.getElementById('sidebar')
+  const arenaSidebar = document.getElementById('arena-sidebar')
+  const arenaLeftInfo = document.getElementById('arena-left-info')
+  const canvasWrap = document.getElementById('canvas-wrap')
+  const canvasStage = document.getElementById('canvas-stage')
+  const arenaRightHost = document.getElementById('arena-right-host')
+
+  document.body.classList.toggle('arena-tab-mode', isArena)
   document.getElementById('tab-map-btn').classList.toggle('active', isMap)
-  document.getElementById('tab-units-btn').classList.toggle('active', !isMap)
+  document.getElementById('tab-units-btn').classList.toggle('active', isUnits)
+  document.getElementById('tab-arena-btn').classList.toggle('active', isArena)
   document.getElementById('map-sidebar').style.display = isMap ? 'contents' : 'none'
   const us = document.getElementById('unit-sidebar')
-  us.style.display = isMap ? 'none' : 'flex'
-  document.getElementById('canvas-wrap').style.display = isMap ? '' : 'none'
-  document.getElementById('unit-canvas-wrap').style.display = isMap ? 'none' : 'block'
-  if (!isMap) drawUnit()
+  us.style.display = isUnits ? 'flex' : 'none'
+  arenaLeftInfo.style.display = isArena ? 'block' : 'none'
+
+  if (isArena) {
+    if (arenaSidebar.parentElement !== arenaRightHost) arenaRightHost.appendChild(arenaSidebar)
+    arenaSidebar.style.display = 'block'
+    canvasWrap.style.display = ''
+    canvasStage.style.display = 'none'
+    arenaRightHost.style.display = 'flex'
+  } else {
+    if (arenaSidebar.parentElement !== sidebar) sidebar.appendChild(arenaSidebar)
+    arenaSidebar.style.display = 'none'
+    arenaRightHost.style.display = 'none'
+    canvasStage.style.display = isMap ? 'flex' : 'none'
+    canvasWrap.style.display = isMap ? '' : 'none'
+  }
+
+  document.getElementById('unit-canvas-wrap').style.display = isUnits ? 'block' : 'none'
+  if (isUnits) drawUnit()
 }
 document.getElementById('tab-map-btn').addEventListener('click', () => switchTab('map'))
 document.getElementById('tab-units-btn').addEventListener('click', () => switchTab('units'))
+document.getElementById('tab-arena-btn').addEventListener('click', () => switchTab('arena'))
 
 // ── Unit catalog ──────────────────────────────────────────────
 // @generated map-editor-sync-start — do not edit; run: npm run sync:map-editor
@@ -2711,38 +2989,38 @@ const COMPOSITE_STATIC_AVATAR_META = {
 }
 const UNIT_CATALOG = [
   // Troops
-  { id:'warrior', name:'Warrior', attackRange:1.2, fw:192, fh:192, path:'assets/Units/Blue Units/Warrior/Warrior_Idle.png', contentFill:0.52, elixirCost:3 },
-  { id:'archer', name:'Archers', attackRange:5.5, fw:192, fh:192, path:'assets/Factions/Knights/Troops/Archer/Blue/Archer_Blue.png', contentFill:0.5, elixirCost:3 },
-  { id:'elite_archer', name:'Elite Archer', attackRange:6.5, fw:192, fh:192, path:'assets/Units/Blue Units/Archer/Archer_Idle.png', contentFill:0.5, elixirCost:4 },
-  { id:'lancer', name:'Lancer', attackRange:1.6, fw:320, fh:320, path:'assets/Units/Blue Units/Lancer/Lancer_Idle.png', contentFill:0.3, elixirCost:5 },
-  { id:'skeleton', name:'Skeletons', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, elixirCost:1, tintBotSide:true },
-  { id:'skeleton_army', name:'Skeleton Army', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, elixirCost:3, tintBotSide:true },
-  { id:'troll', name:'Troll', attackRange:1.2, fw:384, fh:384, path:'assets/Enemy Pack/Enemies/Troll/Troll_Idle.png', contentFill:0.48, elixirCost:5, tintBotSide:true },
-  { id:'spear_goblin', name:'Spear Goblins', attackRange:1.6, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin/Spear Goblin_Idle.png', contentFill:0.55, elixirCost:3, tintBotSide:true },
-  { id:'villagers', name:'Villagers', attackRange:0.5, fw:192, fh:192, path:'assets/Units/Blue Units/Pawn/Pawn_Idle.png', contentFill:0.52, elixirCost:2 },
-  { id:'torch_goblin', name:'Torch Goblin', attackRange:5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin/Torch Goblin_Idle.png', contentFill:0.55, elixirCost:3, tintBotSide:true },
-  { id:'wizard', name:'Fire Shaman', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.55, elixirCost:5, tintBotSide:true },
-  { id:'elder_shaman', name:'Elder Shaman', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.55, elixirCost:5, tintBotSide:true },
-  { id:'lightning_shaman', name:'Lightning Shaman', attackRange:5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.55, elixirCost:4, tintBotSide:true },
-  { id:'voodoo_shaman', name:'Voodoo Shaman', attackRange:5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.55, elixirCost:5, tintBotSide:true },
-  { id:'lizard', name:'Lizard', attackRange:3.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Lizard/Lizard_Idle_Flying.png', contentFill:0.55, elixirCost:4, tintBotSide:true },
-  { id:'air_boat', name:'Air Boat', attackRange:1.5, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Pirate Fish/Boat/AirBoat_Idle.png', contentFill:0.42, elixirCost:5, tintBotSide:true, spriteOriginY:0.25 },
-  { id:'bear', name:'Bear', attackRange:1.2, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Caveborn/Bear/Bear_Idle.png', contentFill:0.5, elixirCost:7, tintBotSide:true },
-  { id:'pig_rider', name:'Pig Rider', attackRange:0.8, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig Rider Spear Goblin/Pig Rider_Idle.png', contentFill:0.52, elixirCost:4, tintBotSide:true },
-  { id:'pig', name:'Pigs', attackRange:0.7, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig/Pig_Idle.png', contentFill:0.5, elixirCost:5, tintBotSide:true },
-  { id:'bomb_fish', name:'Bomb Fish', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Bomb Fish/Bomb Fish_Idle.png', contentFill:0.55, elixirCost:2, tintBotSide:true },
-  { id:'goblin_demolisher', name:'Goblin Demolisher', attackRange:5, fw:192, fh:192, path:'assets/Factions/Goblins/Troops/TNT/Blue/TNT_Blue.png', contentFill:0.55, elixirCost:4 },
-  { id:'minotaur', name:'Minotaur', attackRange:1.2, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Minotaur/Minotaur_Idle.png', contentFill:0.46, elixirCost:7, tintBotSide:true },
-  { id:'gnoll', name:'Gnoll', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Gnoll/Gnoll_Idle.png', contentFill:0.55, elixirCost:5, tintBotSide:true },
-  { id:'thief', name:'Thief', attackRange:0.75, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Thief/Thief_Idle.png', contentFill:0.55, elixirCost:3, tintBotSide:true },
-  { id:'turtle', name:'Turtle', attackRange:0.75, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Caveborn/Turtle/Turtle_Idle.png', contentFill:0.5, elixirCost:2, tintBotSide:true },
-  { id:'panda', name:'Panda', attackRange:1.2, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Panda/Panda_Idle.png', contentFill:0.37, elixirCost:4, tintBotSide:true },
-  { id:'monk', name:'Monk', attackRange:1.6, fw:192, fh:192, path:'assets/Units/Blue Units/Monk/Idle.png', contentFill:0.52, elixirCost:4 },
-  { id:'harpoon_shark', name:'Harpoon Shark', attackRange:1.2, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Harpoon Shark/Harpoon Shark_Idle.png', contentFill:0.52, elixirCost:3, tintBotSide:true },
-  { id:'spider', name:'Spider', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.52, elixirCost:5, tintBotSide:true },
-  { id:'spiderling', name:'Spiderling', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.82, elixirCost:1, tintBotSide:true },
+  { id:'warrior', name:'Warrior', attackRange:1.2, fw:192, fh:192, path:'assets/Units/Blue Units/Warrior/Warrior_Idle.png', contentFill:0.52, elixirCost:3, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.warrior","cardType":"TROOP","elixirCost":3,"deployCount":1,"stats":{"maxHp":2332,"speed":1.5,"damage":267,"attackRate":0.9090909090909091,"attackRange":1.2,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}} },
+  { id:'archer', name:'Archers', attackRange:5.5, fw:192, fh:192, path:'assets/Factions/Knights/Troops/Archer/Blue/Archer_Blue.png', contentFill:0.5, elixirCost:3, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.archer","cardType":"TROOP","elixirCost":3,"deployCount":2,"stats":{"maxHp":201,"speed":1.5,"damage":148,"attackRate":1.1111111111111112,"attackRange":5.5,"unitType":"GROUND","attackType":"AIR_AND_GROUND"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}} },
+  { id:'elite_archer', name:'Elite Archer', attackRange:6.5, fw:192, fh:192, path:'assets/Units/Blue Units/Archer/Archer_Idle.png', contentFill:0.5, elixirCost:4, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.elite_archer","cardType":"TROOP","elixirCost":4,"deployCount":1,"stats":{"maxHp":955,"speed":1.5,"damage":288,"attackRate":1,"attackRange":6.5,"unitType":"GROUND","attackType":"AIR_AND_GROUND"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}} },
+  { id:'lancer', name:'Lancer', attackRange:1.6, fw:320, fh:320, path:'assets/Units/Blue Units/Lancer/Lancer_Idle.png', contentFill:0.3, elixirCost:5, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.lancer","cardType":"TROOP","elixirCost":5,"deployCount":1,"stats":{"maxHp":2542,"speed":2.25,"damage":518,"attackRate":0.7142857142857143,"attackRange":1.6,"unitType":"GROUND","attackType":"GROUND_ONLY","pushWeight":1.5},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}} },
+  { id:'skeleton', name:'Skeletons', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, elixirCost:1, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.skeleton","cardType":"TROOP","elixirCost":1,"deployCount":3,"stats":{"maxHp":108,"speed":2.25,"damage":108,"attackRate":0.9090909090909091,"attackRange":0.5,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'skeleton_army', name:'Skeleton Army', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, elixirCost:3, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.skeleton_army","cardType":"TROOP","elixirCost":3,"deployCount":14,"stats":{"maxHp":108,"speed":2.25,"damage":108,"attackRate":0.9090909090909091,"attackRange":0.5,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'troll', name:'Troll', attackRange:1.2, fw:384, fh:384, path:'assets/Enemy Pack/Enemies/Troll/Troll_Idle.png', contentFill:0.48, elixirCost:5, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.troll","cardType":"TROOP","elixirCost":5,"deployCount":1,"stats":{"maxHp":6392,"speed":1.375,"damage":214,"attackRate":0.6666666666666666,"attackRange":1.2,"unitType":"GROUND","attackType":"GROUND_ONLY","targetsBuildingsOnly":true,"pushWeight":3},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'spear_goblin', name:'Spear Goblins', attackRange:1.6, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin/Spear Goblin_Idle.png', contentFill:0.55, elixirCost:3, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.spear_goblin","cardType":"TROOP","elixirCost":3,"deployCount":3,"stats":{"maxHp":280,"armorHp":339,"speed":2.25,"damage":127,"attackRate":0.9090909090909091,"attackRange":1.6,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'villagers', name:'Villagers', attackRange:0.5, fw:192, fh:192, path:'assets/Units/Blue Units/Pawn/Pawn_Idle.png', contentFill:0.52, elixirCost:2, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.villagers","cardType":"TROOP","elixirCost":2,"deployCount":3,"stats":{"maxHp":289,"speed":3,"damage":255,"attackRate":0.9090909090909091,"attackRange":0.5,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}} },
+  { id:'torch_goblin', name:'Torch Goblin', attackRange:5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin/Torch Goblin_Idle.png', contentFill:0.55, elixirCost:3, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.torch_goblin","cardType":"TROOP","elixirCost":3,"deployCount":1,"stats":{"maxHp":466,"speed":3,"damage":199,"attackRate":1.4285714285714286,"attackRange":5,"unitType":"GROUND","attackType":"AIR_AND_GROUND"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'wizard', name:'Fire Shaman', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.55, elixirCost:5, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.wizard","cardType":"TROOP","elixirCost":5,"deployCount":1,"stats":{"maxHp":997,"speed":1.5,"damage":371,"attackRate":0.7142857142857143,"attackRange":5.5,"unitType":"GROUND","attackType":"AIR_AND_GROUND","splashRadius":1.5},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'elder_shaman', name:'Elder Shaman', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.55, elixirCost:5, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.elder_shaman","cardType":"TROOP","elixirCost":5,"deployCount":1,"stats":{"maxHp":930,"speed":1.5,"damage":183,"attackRate":0.5882352941176471,"attackRange":5.5,"unitType":"GROUND","attackType":"AIR_AND_GROUND","splashRadius":1.8},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'lightning_shaman', name:'Lightning Shaman', attackRange:5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.55, elixirCost:4, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.lightning_shaman","cardType":"TROOP","elixirCost":4,"deployCount":1,"stats":{"maxHp":895,"speed":1.5,"damage":300,"attackRate":0.5263157894736842,"attackRange":5,"unitType":"GROUND","attackType":"AIR_AND_GROUND","splashRadius":1.5},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'voodoo_shaman', name:'Voodoo Shaman', attackRange:5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman/Hex Shaman_Idle.png', contentFill:0.55, elixirCost:5, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.voodoo_shaman","cardType":"TROOP","elixirCost":5,"deployCount":1,"stats":{"maxHp":1122,"speed":1.5,"damage":282,"attackRate":0.6666666666666666,"attackRange":5,"unitType":"GROUND","attackType":"AIR_AND_GROUND","splashRadius":1.8},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'lizard', name:'Lizard', attackRange:3.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Lizard/Lizard_Idle_Flying.png', contentFill:0.55, elixirCost:4, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.lizard","cardType":"TROOP","elixirCost":4,"deployCount":1,"stats":{"maxHp":1064,"speed":1.5,"damage":152,"attackRate":0.5555555555555556,"attackRange":3.5,"unitType":"AIR","attackType":"AIR_AND_GROUND","splashRadius":2.5},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'air_boat', name:'Air Boat', attackRange:1.5, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Pirate Fish/Boat/AirBoat_Idle.png', contentFill:0.42, elixirCost:5, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.air_boat","cardType":"TROOP","elixirCost":5,"deployCount":1,"stats":{"maxHp":3403,"speed":1.5,"damage":652,"attackRate":0.5,"attackRange":1.5,"unitType":"AIR","attackType":"GROUND_ONLY","targetsBuildingsOnly":true,"splashRadius":1.5,"deathSplashDamage":272,"deathSplashRadius":3},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true, spriteOriginY:0.25 },
+  { id:'bear', name:'Bear', attackRange:1.2, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Caveborn/Bear/Bear_Idle.png', contentFill:0.5, elixirCost:7, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.bear","cardType":"TROOP","elixirCost":7,"deployCount":1,"stats":{"maxHp":5288,"speed":1.5,"damage":355,"attackRate":0.5882352941176471,"attackRange":1.2,"unitType":"GROUND","attackType":"GROUND_ONLY","splashRadius":1.3,"pushWeight":2.5},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'pig_rider', name:'Pig Rider', attackRange:0.8, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig Rider Spear Goblin/Pig Rider_Idle.png', contentFill:0.52, elixirCost:4, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.pig_rider","cardType":"TROOP","elixirCost":4,"deployCount":1,"stats":{"maxHp":2247,"speed":3,"damage":420,"attackRate":0.625,"attackRange":0.8,"unitType":"GROUND","attackType":"GROUND_ONLY","targetsBuildingsOnly":true,"pushWeight":1.5},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'pig', name:'Pigs', attackRange:1.2, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Pig/Pig_Idle.png', contentFill:0.5, elixirCost:5, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.pig","cardType":"TROOP","elixirCost":5,"deployCount":4,"stats":{"maxHp":1108,"speed":3,"damage":98,"attackRate":0.8333333333333334,"attackRange":1.2,"unitType":"GROUND","attackType":"GROUND_ONLY","targetsBuildingsOnly":true},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'bomb_fish', name:'Bomb Fish', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Bomb Fish/Bomb Fish_Idle.png', contentFill:0.55, elixirCost:2, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.bomb_fish","cardType":"TROOP","elixirCost":2,"deployCount":1,"stats":{"maxHp":403,"speed":1.5,"damage":298,"attackRate":0.5555555555555556,"attackRange":4.5,"unitType":"GROUND","attackType":"GROUND_ONLY","splashRadius":1.5},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'goblin_demolisher', name:'Goblin Demolisher', attackRange:5, fw:192, fh:192, path:'assets/Factions/Goblins/Troops/TNT/Blue/TNT_Blue.png', contentFill:0.55, elixirCost:4, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.goblin_demolisher","cardType":"TROOP","elixirCost":4,"deployCount":1,"stats":{"maxHp":1300,"speed":1.5,"damage":246,"attackRate":0.8333333333333334,"attackRange":5,"unitType":"GROUND","attackType":"GROUND_ONLY","splashRadius":1.5,"deathSplashRadius":2.5,"deathSplashDamage":614},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}} },
+  { id:'minotaur', name:'Minotaur', attackRange:1.2, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Minotaur/Minotaur_Idle.png', contentFill:0.46, elixirCost:7, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.minotaur","cardType":"TROOP","elixirCost":7,"deployCount":1,"stats":{"maxHp":4979,"speed":1.375,"damage":1081,"attackRate":0.5555555555555556,"attackRange":1.2,"unitType":"GROUND","attackType":"GROUND_ONLY","pushWeight":2.5},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'gnoll', name:'Gnoll', attackRange:4.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Gnoll/Gnoll_Idle.png', contentFill:0.55, elixirCost:5, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.gnoll","cardType":"TROOP","elixirCost":5,"deployCount":1,"stats":{"maxHp":1695,"speed":1.5,"damage":223,"attackRate":0.4166666666666667,"attackRange":4.5,"unitType":"GROUND","attackType":"AIR_AND_GROUND","splashRadius":1.5},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'thief', name:'Thief', attackRange:0.75, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Thief/Thief_Idle.png', contentFill:0.55, elixirCost:3, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.thief","cardType":"TROOP","elixirCost":3,"deployCount":1,"stats":{"maxHp":1200,"speed":2.25,"damage":257,"attackRate":1,"attackRange":0.75,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'turtle', name:'Turtle', attackRange:0.75, fw:320, fh:320, path:'assets/Enemy Pack/Enemies/Caveborn/Turtle/Turtle_Idle.png', contentFill:0.5, elixirCost:2, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.turtle","cardType":"TROOP","elixirCost":2,"deployCount":1,"stats":{"maxHp":1742,"speed":1.125,"damage":111,"attackRate":0.4,"attackRange":0.75,"unitType":"GROUND","attackType":"GROUND_ONLY","targetsBuildingsOnly":true,"deathSplashRadius":2,"deathSplashDamage":111,"deathSlowDurationMs":2000,"deathSlowSpeedMultiplier":0.7},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'panda', name:'Panda', attackRange:1.2, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Panda/Panda_Idle.png', contentFill:0.37, elixirCost:4, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.panda","cardType":"TROOP","elixirCost":4,"deployCount":1,"stats":{"maxHp":2525,"speed":1.5,"damage":352,"attackRate":0.6666666666666666,"attackRange":1.2,"unitType":"GROUND","attackType":"GROUND_ONLY","splashRadius":2},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'monk', name:'Monk', attackRange:1.6, fw:192, fh:192, path:'assets/Units/Blue Units/Monk/Idle.png', contentFill:0.52, elixirCost:4, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.monk","cardType":"TROOP","elixirCost":4,"deployCount":1,"stats":{"maxHp":2274,"speed":1.5,"damage":196,"attackRate":0.6666666666666666,"attackRange":1.6,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}} },
+  { id:'harpoon_shark', name:'Harpoon Shark', attackRange:1.2, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Harpoon Shark/Harpoon Shark_Idle.png', contentFill:0.52, elixirCost:3, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.harpoon_shark","cardType":"TROOP","elixirCost":3,"deployCount":1,"stats":{"maxHp":1152,"speed":1.5,"damage":257,"attackRate":0.7692307692307692,"attackRange":1.2,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'spider', name:'Spider', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.52, elixirCost:5, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.spider","cardType":"TROOP","elixirCost":5,"deployCount":1,"stats":{"maxHp":1111,"speed":1.5,"damage":179,"attackRate":0.9090909090909091,"attackRange":5.5,"unitType":"GROUND","attackType":"AIR_AND_GROUND","splashRadius":1.5},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'spiderling', name:'Spiderling', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.82, elixirCost:1, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.spiderling","cardType":"TROOP","elixirCost":1,"deployCount":1,"stats":{"maxHp":108,"speed":2.25,"damage":108,"attackRate":0.9090909090909091,"attackRange":0.5,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
   // Buildings — deployable structures (CardData building cards)
-  { id:'wood_tower', name:'Bomb Tower', attackRange:7, fw:128, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower/Pirate Tower_Ground.png', contentFill:0.72, elixirCost:4, isBuilding:true, tintBotSide:true, spriteOriginY:1, hbarOffsetY:-1.1 },
+  { id:'wood_tower', name:'Bomb Tower', attackRange:7, fw:128, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower/Pirate Tower_Ground.png', contentFill:0.72, elixirCost:4, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.wood_tower","cardType":"BUILDING","elixirCost":4,"stats":{"maxHp":1791,"speed":0,"damage":293,"attackRate":0.5555555555555556,"attackRange":7,"unitType":"GROUND","attackType":"GROUND_ONLY","splashRadius":1.5,"deathSplashRadius":3,"lifetimeMs":30000},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, isBuilding:true, tintBotSide:true, spriteOriginY:1, hbarOffsetY:-1.1 },
   // Towers — sprite follows Player ↓ / CPU ↑ approach side
   { id:'princess_tower', name:'Princess Tower', attackRange:7.5, fw:128, fh:256, path:TOWER_EDITOR_PATHS.bot.princess, contentFill:0.9, isTower:true, slotOffsetX:0, slotOffsetY:0 },
   { id:'king_tower', name:'King Tower', attackRange:20, fw:320, fh:256, path:TOWER_EDITOR_PATHS.bot.king, contentFill:0.88, isTower:true, isKing:true, slotOffsetX:0, slotOffsetY:0 },
@@ -2752,6 +3030,33 @@ const UNIT_CATALOG = [
 // Live-editable ranges (user can tweak without touching source)
 const liveRanges = {}
 for (const u of UNIT_CATALOG) liveRanges[u.id] = u.attackRange
+
+// Live-editable CardData balance patch. The editor never mutates source directly.
+const liveBalance = {}
+const originalBalance = {}
+function cloneData(obj) { return JSON.parse(JSON.stringify(obj)) }
+function defaultBalanceForUnit(u) {
+  return u.balance ? cloneData(u.balance) : {
+    sourceFile: 'tiny-wars/src/data/CardData.ts',
+    sourceObject: `CARD_DEFINITIONS_BASE.${u.id}`,
+    cardType: u.isBuilding ? 'BUILDING' : u.isTower ? 'TOWER' : 'TROOP',
+    elixirCost: u.elixirCost ?? 0,
+    stats: {
+      maxHp: u.isKing ? 4000 : u.isTower ? 2500 : 1000,
+      speed: u.isTower || u.isBuilding ? 0 : 1.5,
+      damage: 100,
+      attackRate: 1,
+      attackRange: u.attackRange,
+      unitType: u.isTower || u.isBuilding ? 'GROUND' : 'GROUND',
+      attackType: 'GROUND_ONLY',
+    },
+    notes: { source: 'Editor fallback; add real source mapping before applying to game code.' },
+  }
+}
+for (const u of UNIT_CATALOG) {
+  liveBalance[u.id] = defaultBalanceForUnit(u)
+  originalBalance[u.id] = cloneData(liveBalance[u.id])
+}
 
 // ── Preload sprites ───────────────────────────────────────────
 const unitSpriteCache = {}
@@ -3076,6 +3381,7 @@ function cloneUnitEditorData(obj) {
 function snapshotUnitEditorState() {
   return {
     liveRanges: cloneUnitEditorData(liveRanges),
+    liveBalance: cloneUnitEditorData(liveBalance),
     liveSlotRadii: cloneUnitEditorData(liveSlotRadii),
     liveSlotOffsets: cloneUnitEditorData(liveSlotOffsets),
     liveHbarOffsets: cloneUnitEditorData(liveHbarOffsets),
@@ -3102,6 +3408,7 @@ function replaceObjectContents(target, source) {
 
 function restoreUnitEditorState(snap) {
   replaceObjectContents(liveRanges, snap.liveRanges)
+  if (snap.liveBalance) replaceObjectContents(liveBalance, snap.liveBalance)
   replaceObjectContents(liveSlotRadii, snap.liveSlotRadii)
   replaceObjectContents(liveSlotOffsets, snap.liveSlotOffsets)
   replaceObjectContents(liveHbarOffsets, snap.liveHbarOffsets)
@@ -3141,6 +3448,7 @@ function restoreUnitEditorState(snap) {
   document.getElementById('unit-picker').value = activeUnitId
   document.getElementById('range-slider').value = liveRanges[activeUnitId]
   document.getElementById('range-val').value    = liveRanges[activeUnitId]
+  syncBalancePanel()
   document.getElementById('btn-approach-player').classList.toggle('active', unitApproachSide === 'player')
   document.getElementById('btn-approach-cpu').classList.toggle('active', unitApproachSide === 'cpu')
   syncSlotRadiusInputs()
@@ -4424,6 +4732,132 @@ function drawSideAvatarPreview(unit) {
 }
 
 // ── Unit picker ───────────────────────────────────────────────
+const BALANCE_FIELD_ORDER = [
+  'maxHp',
+  'armorHp',
+  'speed',
+  'damage',
+  'attackRate',
+  'attackRange',
+  'attackType',
+  'unitType',
+  'elixirCost',
+  'deployCount',
+  'splashRadius',
+  'deathSplashDamage',
+  'deathSplashRadius',
+  'deathSlowSpeedMultiplier',
+  'deathSlowDurationMs',
+  'lifetimeMs',
+  'targetsBuildingsOnly',
+  'suicideOnAttack',
+  'pushWeight',
+]
+const BALANCE_BOOLEAN_FIELDS = new Set(['targetsBuildingsOnly', 'suicideOnAttack'])
+const BALANCE_SELECT_OPTIONS = {
+  unitType: ['GROUND', 'AIR'],
+  attackType: ['GROUND_ONLY', 'AIR_ONLY', 'AIR_AND_GROUND'],
+  cardType: ['TROOP', 'BUILDING', 'TOWER'],
+}
+
+function balanceForUnitId(unitId) {
+  return liveBalance[unitId]
+}
+
+function balanceValueForField(balance, field) {
+  if (field === 'elixirCost' || field === 'deployCount') return balance[field]
+  return balance.stats?.[field]
+}
+
+function setBalanceValue(unitId, field, raw) {
+  const balance = balanceForUnitId(unitId)
+  if (!balance) return
+  let value = raw
+  if (BALANCE_BOOLEAN_FIELDS.has(field)) value = !!raw
+  else if (field !== 'unitType' && field !== 'attackType' && field !== 'cardType') {
+    value = raw === '' ? undefined : Number(raw)
+  }
+
+  if (field === 'elixirCost' || field === 'deployCount') {
+    if (value === undefined || Number.isNaN(value)) delete balance[field]
+    else balance[field] = value
+  } else {
+    if (!balance.stats) balance.stats = {}
+    if (value === undefined || Number.isNaN(value)) delete balance.stats[field]
+    else balance.stats[field] = value
+    if (field === 'attackRange') {
+      const nextRange = Number(value)
+      if (!Number.isNaN(nextRange) && nextRange > 0) {
+        liveRanges[unitId] = Math.round(nextRange * 20) / 20
+        document.getElementById('range-slider').value = liveRanges[unitId]
+        document.getElementById('range-val').value = liveRanges[unitId]
+      }
+    }
+  }
+  drawUnit()
+  drawTowerCompare()
+}
+
+function syncBalancePanel() {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  const wrap = document.getElementById('balance-fields')
+  const hint = document.getElementById('balance-hint')
+  if (!unit || !wrap) return
+  const balance = balanceForUnitId(unit.id)
+  if (!balance) {
+    wrap.innerHTML = '<div class="balance-hint">No balance stats available for this entry.</div>'
+    return
+  }
+
+  const fields = new Set(BALANCE_FIELD_ORDER)
+  for (const key of Object.keys(balance.stats ?? {})) fields.add(key)
+  if (balance.elixirCost != null) fields.add('elixirCost')
+  if (balance.deployCount != null || unit.isTower === false) fields.add('deployCount')
+
+  wrap.innerHTML = ''
+  for (const field of BALANCE_FIELD_ORDER.filter(f => fields.has(f))) {
+    const row = document.createElement('div')
+    row.className = 'balance-field'
+    const label = document.createElement('label')
+    label.textContent = field
+    label.title = field
+    row.appendChild(label)
+
+    const current = balanceValueForField(balance, field)
+    let input
+    if (BALANCE_SELECT_OPTIONS[field]) {
+      input = document.createElement('select')
+      for (const opt of BALANCE_SELECT_OPTIONS[field]) {
+        const option = document.createElement('option')
+        option.value = opt
+        option.textContent = opt
+        input.appendChild(option)
+      }
+      input.value = current ?? BALANCE_SELECT_OPTIONS[field][0]
+    } else if (BALANCE_BOOLEAN_FIELDS.has(field)) {
+      input = document.createElement('input')
+      input.type = 'checkbox'
+      input.checked = !!current
+    } else {
+      input = document.createElement('input')
+      input.type = 'number'
+      input.step = field === 'attackRange' || field === 'speed' || field.includes('Radius') || field === 'pushWeight' ? '0.05' : '1'
+      input.value = current ?? ''
+    }
+    input.dataset.balanceField = field
+    input.addEventListener('change', e => {
+      pushUnitUndo()
+      const target = e.target
+      setBalanceValue(unit.id, field, target.type === 'checkbox' ? target.checked : target.value)
+      syncBalancePanel()
+    })
+    row.appendChild(input)
+    wrap.appendChild(row)
+  }
+
+  hint.textContent = `${balance.sourceFile} → ${balance.sourceObject}. Vision is not per-card yet; use shared targeting constants if you add it.`
+}
+
 function buildUnitPicker() {
   const sel = document.getElementById('unit-picker')
   const troops = UNIT_CATALOG.filter(u => !u.isTower && !u.isBuilding)
@@ -4443,6 +4877,7 @@ function buildUnitPicker() {
     const r = liveRanges[activeUnitId]
     document.getElementById('range-slider').value = r
     document.getElementById('range-val').value    = r
+    syncBalancePanel()
     syncSlotRadiusInputs()
     syncTowerSections()
     drawUnit(); drawTowerCompare()
@@ -4451,12 +4886,558 @@ function buildUnitPicker() {
 buildUnitPicker()
 buildGarrisonUnitPicker()
 
+// ── Lightweight one-lane arena sandbox ─────────────────────────
+const arenaCanvas = document.getElementById('arena-c')
+const arenaCtx = arenaCanvas.getContext('2d')
+const ARENA = {
+  w: arenaCanvas.width,
+  h: arenaCanvas.height,
+  cell: 24,
+  laneX: arenaCanvas.width / 2,
+  riverY: arenaCanvas.height / 2,
+  bridgeW: 92,
+}
+let arenaUnits = []
+let arenaTowers = []
+let arenaLastT = performance.now()
+let arenaPaused = false
+let arenaIdSeq = 1
+const ARENA_DECK_SIZE = 8
+const ARENA_SETUP_STORAGE_KEY = 'tinyWarsEditorArenaDeckSetup'
+const MAIN_PLAYER_DECK_STORAGE_KEY = 'tinywars.playerDeck'
+
+function arenaDeckOptions() {
+  return UNIT_CATALOG
+    .filter(u => !u.isTower)
+    .map(u => ({ id: u.id, label: `${u.name}${u.isBuilding ? ' (building)' : ''}` }))
+}
+
+function normalizeArenaDeck(deck) {
+  const options = arenaDeckOptions()
+  const validIds = new Set(options.map(o => o.id))
+  const out = []
+  for (const raw of (Array.isArray(deck) ? deck : [])) {
+    if (typeof raw !== 'string') continue
+    if (!validIds.has(raw)) continue
+    out.push(raw)
+    if (out.length >= ARENA_DECK_SIZE) break
+  }
+  for (const opt of options) {
+    out.push(opt.id)
+    if (out.length >= ARENA_DECK_SIZE) break
+  }
+  return out.slice(0, ARENA_DECK_SIZE)
+}
+
+function pickRandomArenaDeck() {
+  const ids = arenaDeckOptions().map(o => o.id)
+  for (let i = ids.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const t = ids[i]
+    ids[i] = ids[j]
+    ids[j] = t
+  }
+  return ids.slice(0, ARENA_DECK_SIZE)
+}
+
+function readMainPlayerDeck() {
+  try {
+    const raw = window.localStorage.getItem(MAIN_PLAYER_DECK_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function loadArenaDeckSetup() {
+  const fallback = normalizeArenaDeck([])
+  let playerDeck = fallback
+  let opponentDeck = fallback
+  try {
+    const raw = window.localStorage.getItem(ARENA_SETUP_STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      playerDeck = normalizeArenaDeck(parsed?.playerDeck)
+      opponentDeck = normalizeArenaDeck(parsed?.opponentDeck)
+      return { playerDeck, opponentDeck }
+    }
+  } catch {
+    // Use defaults below.
+  }
+  const mainDeck = normalizeArenaDeck(readMainPlayerDeck())
+  return { playerDeck: mainDeck, opponentDeck: mainDeck }
+}
+
+function persistArenaDeckSetup() {
+  try {
+    window.localStorage.setItem(ARENA_SETUP_STORAGE_KEY, JSON.stringify({
+      playerDeck: arenaPlayerDeck,
+      opponentDeck: arenaOpponentDeck,
+    }))
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+const initialArenaDeckSetup = loadArenaDeckSetup()
+let arenaPlayerDeck = [...initialArenaDeckSetup.playerDeck]
+let arenaOpponentDeck = [...initialArenaDeckSetup.opponentDeck]
+let arenaEditSide = 'player'
+let arenaEditIndex = 0
+
+function arenaCardLabel(cardId) {
+  const unit = UNIT_CATALOG.find(u => u.id === cardId)
+  if (!unit) return cardId
+  const cost = Number(liveBalance[cardId]?.elixirCost ?? unit.elixirCost ?? 0)
+  return `${unit.name}${unit.isBuilding ? ' (building)' : ''} (${cost})`
+}
+
+function arenaCardInfoText(cardId) {
+  const unit = UNIT_CATALOG.find(u => u.id === cardId)
+  const stats = liveBalance[cardId]?.stats ?? {}
+  if (!unit) return `Unknown card: ${cardId}`
+  const elixir = Number(liveBalance[cardId]?.elixirCost ?? unit.elixirCost ?? 0)
+  const deploy = Number(liveBalance[cardId]?.deployCount ?? 1)
+  const hp = Number(stats.maxHp ?? 0)
+  const damage = Number(stats.damage ?? 0)
+  const range = Number(stats.attackRange ?? 0)
+  const type = unit.isBuilding ? 'Building' : 'Troop'
+  return `${unit.name}\nType: ${type}\nElixir: ${elixir}\nDeploy: ${deploy}\nHP: ${Math.round(hp)}\nDamage: ${Math.round(damage)}\nRange: ${range}`
+}
+
+function showArenaCardInfo(cardId) {
+  window.alert(arenaCardInfoText(cardId))
+}
+
+function arenaCardThumbPath(cardId) {
+  return UNIT_CATALOG.find(u => u.id === cardId)?.path ?? ''
+}
+
+function assignArenaCard(cardId) {
+  const targetDeck = arenaEditSide === 'player' ? arenaPlayerDeck : arenaOpponentDeck
+  targetDeck[arenaEditIndex] = cardId
+  arenaEditIndex = (arenaEditIndex + 1) % ARENA_DECK_SIZE
+  persistArenaDeckSetup()
+  renderArenaDeckBuilder()
+}
+
+function removeArenaCard(side, index) {
+  const targetDeck = side === 'player' ? arenaPlayerDeck : arenaOpponentDeck
+  targetDeck[index] = ''
+  persistArenaDeckSetup()
+  renderArenaDeckBuilder()
+}
+
+function renderArenaDeckSlots(containerId, deck, side) {
+  const wrap = document.getElementById(containerId)
+  wrap.innerHTML = ''
+  const grid = document.createElement('div')
+  grid.className = 'arena-slot-grid'
+  for (let i = 0; i < ARENA_DECK_SIZE; i++) {
+    const cardId = deck[i] ?? ''
+
+    const card = document.createElement('div')
+    card.className = 'arena-deck-card'
+    if (arenaEditSide === side && arenaEditIndex === i) card.classList.add('active')
+
+    const head = document.createElement('div')
+    head.className = 'arena-card-head'
+    const thumb = document.createElement('div')
+    thumb.className = 'arena-card-thumb'
+    const spritePath = arenaCardThumbPath(cardId)
+    if (spritePath) thumb.style.backgroundImage = `url(${spritePath})`
+    head.appendChild(thumb)
+
+    const meta = document.createElement('div')
+    meta.className = 'arena-card-meta'
+    const title = document.createElement('div')
+    title.className = 'arena-card-title'
+    title.textContent = `${i + 1}. ${arenaCardLabel(cardId || 'warrior')}`
+    const sub = document.createElement('div')
+    sub.className = 'arena-card-sub'
+    sub.textContent = `${side === 'player' ? 'Player' : 'Enemy'} slot ${i + 1}`
+    meta.appendChild(title)
+    meta.appendChild(sub)
+    head.appendChild(meta)
+    card.appendChild(head)
+
+    const actions = document.createElement('div')
+    actions.className = 'arena-card-actions'
+    const addBtn = document.createElement('button')
+    addBtn.type = 'button'
+    addBtn.className = 'action-btn'
+    addBtn.textContent = 'Add'
+    addBtn.addEventListener('click', () => {
+      arenaEditSide = side
+      arenaEditIndex = i
+      renderArenaDeckBuilder()
+    })
+
+    const infoBtn = document.createElement('button')
+    infoBtn.type = 'button'
+    infoBtn.className = 'action-btn'
+    infoBtn.textContent = 'Info'
+    infoBtn.addEventListener('click', () => showArenaCardInfo(cardId || 'warrior'))
+
+    const removeBtn = document.createElement('button')
+    removeBtn.type = 'button'
+    removeBtn.className = 'action-btn'
+    removeBtn.textContent = 'Remove'
+    removeBtn.addEventListener('click', () => removeArenaCard(side, i))
+
+    actions.appendChild(addBtn)
+    actions.appendChild(infoBtn)
+    actions.appendChild(removeBtn)
+    card.appendChild(actions)
+    grid.appendChild(card)
+  }
+  wrap.appendChild(grid)
+}
+
+function renderArenaCardCollection() {
+  const wrap = document.getElementById('arena-card-collection')
+  wrap.innerHTML = ''
+  const cards = arenaDeckOptions()
+    .map(option => {
+      const unit = UNIT_CATALOG.find(u => u.id === option.id)
+      const cost = Number(liveBalance[option.id]?.elixirCost ?? unit?.elixirCost ?? 0)
+      return { ...option, cost }
+    })
+    .sort((a, b) => a.cost - b.cost || a.label.localeCompare(b.label))
+  const grid = document.createElement('div')
+  grid.className = 'arena-card-grid'
+  for (const card of cards) {
+    const item = document.createElement('div')
+    item.className = 'arena-collection-card'
+
+    const head = document.createElement('div')
+    head.className = 'arena-card-head'
+    const thumb = document.createElement('div')
+    thumb.className = 'arena-card-thumb'
+    const spritePath = arenaCardThumbPath(card.id)
+    if (spritePath) thumb.style.backgroundImage = `url(${spritePath})`
+    head.appendChild(thumb)
+
+    const meta = document.createElement('div')
+    meta.className = 'arena-card-meta'
+    const title = document.createElement('div')
+    title.className = 'arena-card-title'
+    title.textContent = `${card.label}`
+    const sub = document.createElement('div')
+    sub.className = 'arena-card-sub'
+    sub.textContent = `Elixir ${card.cost}`
+    meta.appendChild(title)
+    meta.appendChild(sub)
+    head.appendChild(meta)
+    item.appendChild(head)
+
+    const actions = document.createElement('div')
+    actions.className = 'arena-collection-actions'
+    const addBtn = document.createElement('button')
+    addBtn.type = 'button'
+    addBtn.className = 'action-btn'
+    addBtn.textContent = 'Add'
+    addBtn.title = `Assign to ${arenaEditSide === 'player' ? 'player' : 'enemy'} slot ${arenaEditIndex + 1}`
+    addBtn.addEventListener('click', () => assignArenaCard(card.id))
+
+    const infoBtn = document.createElement('button')
+    infoBtn.type = 'button'
+    infoBtn.className = 'action-btn'
+    infoBtn.textContent = 'Info'
+    infoBtn.addEventListener('click', () => showArenaCardInfo(card.id))
+
+    actions.appendChild(addBtn)
+    actions.appendChild(infoBtn)
+    item.appendChild(actions)
+    grid.appendChild(item)
+  }
+  wrap.appendChild(grid)
+}
+
+function renderArenaDeckBuilder() {
+  renderArenaDeckSlots('arena-player-deck', arenaPlayerDeck, 'player')
+  renderArenaDeckSlots('arena-opponent-deck', arenaOpponentDeck, 'opponent')
+  renderArenaCardCollection()
+}
+
+function refreshArenaDeckEditors() {
+  arenaPlayerDeck = normalizeArenaDeck(arenaPlayerDeck)
+  arenaOpponentDeck = normalizeArenaDeck(arenaOpponentDeck)
+  renderArenaDeckBuilder()
+  persistArenaDeckSetup()
+}
+
+function getArenaStats(unitId) {
+  const balance = balanceForUnitId(unitId)
+  const stats = balance?.stats ?? {}
+  return {
+    maxHp: Number(stats.maxHp ?? 1000),
+    speed: Number(stats.speed ?? 1.5),
+    damage: Number(stats.damage ?? 100),
+    attackRate: Math.max(0.05, Number(stats.attackRate ?? 1)),
+    attackRange: Number(stats.attackRange ?? liveRanges[unitId] ?? 1),
+    splashRadius: Number(stats.splashRadius ?? 0),
+    targetsBuildingsOnly: !!stats.targetsBuildingsOnly,
+    unitType: stats.unitType ?? 'GROUND',
+    attackType: stats.attackType ?? 'GROUND_ONLY',
+  }
+}
+
+function resetArena() {
+  arenaUnits = []
+  arenaIdSeq = 1
+  arenaTowers = [
+    { id: 'cpu-princess', side: 'cpu', label: 'Red Tower', x: ARENA.laneX, y: 110, hp: 2600, maxHp: 2600, range: 7.5, damage: 90, attackRate: 1 },
+    { id: 'cpu-king', side: 'cpu', label: 'Red Castle', x: ARENA.laneX, y: 48, hp: 4000, maxHp: 4000, range: 8.5, damage: 110, attackRate: 1 },
+    { id: 'player-princess', side: 'player', label: 'Blue Tower', x: ARENA.laneX, y: ARENA.h - 110, hp: 2600, maxHp: 2600, range: 7.5, damage: 90, attackRate: 1 },
+    { id: 'player-king', side: 'player', label: 'Blue Castle', x: ARENA.laneX, y: ARENA.h - 48, hp: 4000, maxHp: 4000, range: 8.5, damage: 110, attackRate: 1 },
+  ]
+  updateArenaStatus()
+  drawArena()
+}
+
+function spawnArenaUnit(side, unitId = document.getElementById('arena-unit-picker').value) {
+  const unit = UNIT_CATALOG.find(u => u.id === unitId)
+  if (!unit) return
+  const stats = getArenaStats(unitId)
+  const count = Math.max(1, Math.floor(liveBalance[unitId]?.deployCount ?? 1))
+  const startY = side === 'player' ? ARENA.h - 170 : 170
+  const dir = side === 'player' ? -1 : 1
+  for (let i = 0; i < count; i++) {
+    const spread = (i - (count - 1) / 2) * 18
+    arenaUnits.push({
+      id: `arena-${arenaIdSeq++}`,
+      unitId,
+      name: unit.name,
+      side,
+      x: ARENA.laneX + spread,
+      y: startY + Math.abs(spread) * 0.12 * -dir,
+      hp: stats.maxHp,
+      maxHp: stats.maxHp,
+      cooldown: 0,
+    })
+  }
+  updateArenaStatus()
+}
+
+function aliveArenaEnemies(side) {
+  return arenaUnits.filter(u => u.side !== side && u.hp > 0)
+}
+
+function aliveArenaTowers(side) {
+  return arenaTowers.filter(t => t.side !== side && t.hp > 0)
+}
+
+function nearestArenaTarget(unit, stats) {
+  const candidates = stats.targetsBuildingsOnly ? [] : aliveArenaEnemies(unit.side)
+  candidates.push(...aliveArenaTowers(unit.side))
+  let best = null
+  let bestD = Infinity
+  for (const target of candidates) {
+    const d = Math.hypot(target.x - unit.x, target.y - unit.y)
+    if (d < bestD) {
+      best = target
+      bestD = d
+    }
+  }
+  return best ? { target: best, dist: bestD } : null
+}
+
+function damageArenaTarget(target, amount, attacker, splashRadius) {
+  target.hp -= amount
+  if (splashRadius > 0) {
+    const splashPx = splashRadius * ARENA.cell
+    for (const other of arenaUnits) {
+      if (other === target || other.side === attacker.side || other.hp <= 0) continue
+      if (Math.hypot(other.x - target.x, other.y - target.y) <= splashPx) other.hp -= amount * 0.45
+    }
+  }
+}
+
+function tickArena(dt) {
+  for (const unit of arenaUnits) {
+    if (unit.hp <= 0) continue
+    const stats = getArenaStats(unit.unitId)
+    unit.cooldown = Math.max(0, unit.cooldown - dt)
+    const match = nearestArenaTarget(unit, stats)
+    if (!match) continue
+    const rangePx = Math.max(0.35, stats.attackRange) * ARENA.cell
+    if (match.dist <= rangePx) {
+      if (unit.cooldown <= 0) {
+        damageArenaTarget(match.target, stats.damage, unit, stats.splashRadius)
+        unit.cooldown = 1 / stats.attackRate
+      }
+    } else if (!UNIT_CATALOG.find(u => u.id === unit.unitId)?.isBuilding) {
+      const speedPx = stats.speed * ARENA.cell
+      const dx = match.target.x - unit.x
+      const dy = match.target.y - unit.y
+      const len = Math.max(1, Math.hypot(dx, dy))
+      unit.x += (dx / len) * speedPx * dt
+      unit.y += (dy / len) * speedPx * dt
+    }
+  }
+  arenaUnits = arenaUnits.filter(u => u.hp > 0)
+  arenaTowers = arenaTowers.filter(t => t.hp > 0)
+  updateArenaStatus()
+}
+
+function drawArenaMap() {
+  arenaCtx.fillStyle = '#203d24'
+  arenaCtx.fillRect(0, 0, ARENA.w, ARENA.h)
+  arenaCtx.fillStyle = '#1e4c82'
+  arenaCtx.fillRect(0, ARENA.riverY - 34, ARENA.w, 68)
+  arenaCtx.fillStyle = '#8b7020'
+  arenaCtx.fillRect(ARENA.laneX - ARENA.bridgeW / 2, ARENA.riverY - 34, ARENA.bridgeW, 68)
+  arenaCtx.strokeStyle = 'rgba(255,255,255,0.06)'
+  for (let y = 0; y <= ARENA.h; y += ARENA.cell) {
+    arenaCtx.beginPath(); arenaCtx.moveTo(0, y); arenaCtx.lineTo(ARENA.w, y); arenaCtx.stroke()
+  }
+  arenaCtx.fillStyle = 'rgba(80,120,255,0.15)'
+  arenaCtx.fillRect(0, ARENA.riverY, ARENA.w, ARENA.h - ARENA.riverY)
+  arenaCtx.fillStyle = 'rgba(255,80,70,0.13)'
+  arenaCtx.fillRect(0, 0, ARENA.w, ARENA.riverY)
+  arenaCtx.strokeStyle = 'rgba(255,255,255,0.20)'
+  arenaCtx.setLineDash([8, 8])
+  arenaCtx.beginPath(); arenaCtx.moveTo(ARENA.laneX, 0); arenaCtx.lineTo(ARENA.laneX, ARENA.h); arenaCtx.stroke()
+  arenaCtx.setLineDash([])
+}
+
+function drawArenaHealth(x, y, w, hp, maxHp) {
+  const pct = Math.max(0, Math.min(1, hp / maxHp))
+  arenaCtx.fillStyle = 'rgba(0,0,0,0.65)'
+  arenaCtx.fillRect(x - w / 2, y, w, 5)
+  arenaCtx.fillStyle = pct > 0.35 ? '#50dc58' : '#f0b040'
+  arenaCtx.fillRect(x - w / 2, y, w * pct, 5)
+}
+
+function drawArenaSprite(unit) {
+  const catalog = UNIT_CATALOG.find(u => u.id === unit.unitId)
+  const img = catalog ? unitSpriteCache[catalog.path] : null
+  const size = catalog?.isBuilding ? 72 : 48
+  if (img?.complete && img.naturalWidth) {
+    arenaCtx.save()
+    if (unit.side === 'cpu' && catalog.tintBotSide) arenaCtx.filter = 'sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.08)'
+    arenaCtx.drawImage(img, 0, 0, catalog.fw, catalog.fh, unit.x - size / 2, unit.y - size / 2, size, size)
+    arenaCtx.restore()
+  } else {
+    arenaCtx.fillStyle = unit.side === 'player' ? '#5d9cff' : '#e55b55'
+    arenaCtx.beginPath(); arenaCtx.arc(unit.x, unit.y, 13, 0, Math.PI * 2); arenaCtx.fill()
+  }
+  drawArenaHealth(unit.x, unit.y - size / 2 - 8, 42, unit.hp, unit.maxHp)
+}
+
+function drawArenaTower(t) {
+  const isPlayer = t.side === 'player'
+  arenaCtx.fillStyle = isPlayer ? '#4f85dd' : '#d5534c'
+  const w = t.id.includes('king') ? 70 : 54
+  const h = t.id.includes('king') ? 44 : 58
+  arenaCtx.fillRect(t.x - w / 2, t.y - h / 2, w, h)
+  arenaCtx.strokeStyle = '#1a1a2e'
+  arenaCtx.lineWidth = 2
+  arenaCtx.strokeRect(t.x - w / 2, t.y - h / 2, w, h)
+  drawArenaHealth(t.x, t.y + h / 2 + 5, w, t.hp, t.maxHp)
+  arenaCtx.fillStyle = '#e0e8ff'
+  arenaCtx.font = '10px sans-serif'
+  arenaCtx.textAlign = 'center'
+  arenaCtx.fillText(t.id.includes('king') ? 'King Castle' : 'Tower', t.x, t.y + 4)
+}
+
+function drawArena() {
+  drawArenaMap()
+  for (const tower of arenaTowers) drawArenaTower(tower)
+  for (const unit of arenaUnits) drawArenaSprite(unit)
+}
+
+function updateArenaStatus() {
+  document.getElementById('arena-player-count').textContent = arenaUnits.filter(u => u.side === 'player').length
+  document.getElementById('arena-cpu-count').textContent = arenaUnits.filter(u => u.side === 'cpu').length
+  const playerHp = arenaTowers.filter(t => t.side === 'player').reduce((sum, t) => sum + Math.max(0, t.hp), 0)
+  const cpuHp = arenaTowers.filter(t => t.side === 'cpu').reduce((sum, t) => sum + Math.max(0, t.hp), 0)
+  document.getElementById('arena-player-tower-hp').textContent = Math.round(playerHp)
+  document.getElementById('arena-cpu-tower-hp').textContent = Math.round(cpuHp)
+  document.getElementById('arena-status').textContent = `${arenaUnits.length} units · ${arenaPaused ? 'paused' : 'running'} · live stats from balance panel`
+}
+
+function arenaLoop(now) {
+  const dt = Math.min(0.08, (now - arenaLastT) / 1000)
+  arenaLastT = now
+  if (!arenaPaused) tickArena(dt)
+  drawArena()
+  requestAnimationFrame(arenaLoop)
+}
+
+function buildArenaExportObject() {
+  const selectedUnitId = arenaPlayerDeck[0] ?? arenaDeckOptions()[0]?.id ?? 'warrior'
+  return {
+    schema: 'tiny-wars-editor-arena-v1',
+    note: 'Editor-only one-lane sandbox setup. Apply balancePatch entries to tiny-wars/src/data/CardData.ts for real game changes.',
+    selectedUnitId,
+    playerDeck: [...arenaPlayerDeck],
+    opponentDeck: [...arenaOpponentDeck],
+    units: arenaUnits.map(u => ({ unitId: u.unitId, side: u.side, x: Math.round(u.x), y: Math.round(u.y), hp: Math.round(u.hp) })),
+    towers: arenaTowers.map(t => ({ id: t.id, side: t.side, hp: Math.round(t.hp), maxHp: t.maxHp })),
+    activeBalancePatch: buildBalancePatchExport(UNIT_CATALOG.find(u => u.id === selectedUnitId)),
+  }
+}
+
+function buildGameArenaLaunchObject() {
+  arenaPlayerDeck = normalizeArenaDeck(arenaPlayerDeck)
+  arenaOpponentDeck = normalizeArenaDeck(arenaOpponentDeck)
+  const selectedUnitId = arenaPlayerDeck[0] ?? arenaDeckOptions()[0]?.id ?? 'warrior'
+  const patches = {}
+  for (const u of UNIT_CATALOG) {
+    if (u.isTower) continue
+    const patch = buildBalancePatchExport(u)
+    if (patch) {
+      patches[u.id] = {
+        stats: patch.stats,
+        elixirCost: patch.elixirCost,
+        deployCount: patch.deployCount,
+      }
+    }
+  }
+  return {
+    selectedUnitId,
+    playerDeck: [...arenaPlayerDeck],
+    opponentDeck: [...arenaOpponentDeck],
+    balancePatches: patches,
+  }
+}
+
+refreshArenaDeckEditors()
+document.getElementById('btn-arena-player-from-main').addEventListener('click', () => {
+  arenaPlayerDeck = normalizeArenaDeck(readMainPlayerDeck())
+  refreshArenaDeckEditors()
+})
+document.getElementById('btn-arena-player-random').addEventListener('click', () => {
+  arenaPlayerDeck = pickRandomArenaDeck()
+  refreshArenaDeckEditors()
+})
+document.getElementById('btn-arena-opponent-copy').addEventListener('click', () => {
+  arenaOpponentDeck = [...arenaPlayerDeck]
+  refreshArenaDeckEditors()
+})
+document.getElementById('btn-arena-opponent-random').addEventListener('click', () => {
+  arenaOpponentDeck = pickRandomArenaDeck()
+  refreshArenaDeckEditors()
+})
+document.getElementById('btn-open-game-arena').addEventListener('click', () => {
+  refreshArenaDeckEditors()
+  window.localStorage.setItem('tinyWarsTestArenaSetup', JSON.stringify(buildGameArenaLaunchObject()))
+  window.open('./?testArena=1', '_blank')
+})
+
 // ── Range controls ────────────────────────────────────────────
 function setRange(v) {
   v = Math.round(v * 20) / 20  // snap to 0.05
   liveRanges[activeUnitId] = v
+  const balance = balanceForUnitId(activeUnitId)
+  if (balance?.stats) balance.stats.attackRange = v
   document.getElementById('range-slider').value = v
   document.getElementById('range-val').value    = v
+  syncBalancePanel()
   drawUnit(); drawTowerCompare()
 }
 document.getElementById('range-slider').addEventListener('pointerdown', armUnitUndoOnce)
@@ -4468,7 +5449,9 @@ document.getElementById('range-val').addEventListener('change', e => {
 
 document.getElementById('btn-copy-range').addEventListener('click', () => {
   const v = liveRanges[activeUnitId]
-  const txt = `attackRange: ${v},`
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  const src = balanceForUnitId(activeUnitId)?.sourceFile ?? 'tiny-wars/src/data/CardData.ts'
+  const txt = `// Edit ${src} (${unit?.id ?? activeUnitId})\nattackRange: ${v},`
   navigator.clipboard.writeText(txt).catch(() => {
     const ta = document.createElement('textarea')
     ta.value = txt; document.body.appendChild(ta); ta.select()
@@ -4519,6 +5502,7 @@ document.getElementById('tog-slot-sync').addEventListener('change', e => {
 // seed slider/input with first unit
 document.getElementById('range-slider').value = liveRanges[activeUnitId]
 document.getElementById('range-val').value    = liveRanges[activeUnitId]
+syncBalancePanel()
 
 // ── Helpers: sync sidebar inputs with live data ───────────────
 function syncSlotRadiusInputs() {
@@ -4726,6 +5710,7 @@ function buildTroopExport(u) {
     kind: 'troop',
     label: u.name,
     id: u.id,
+    balancePatch: buildBalancePatchExport(u),
     attackRange: liveRanges[u.id],
     hbarOffsetY: +(liveHbarOffsets[u.id]?.y ?? 0).toFixed(3),
     collisionRadiusCells: TROOP_R,
@@ -4749,6 +5734,7 @@ function buildBuildingExport(u) {
     kind: 'building',
     label: u.name,
     id: u.id,
+    balancePatch: buildBalancePatchExport(u),
     attackRange: liveRanges[u.id],
     hbarOffsetY: +(liveHbarOffsets[u.id]?.y ?? 0).toFixed(3),
     contentFill: u.contentFill,
@@ -4777,6 +5763,7 @@ function buildTowerExport(u) {
   return {
     ...meta,
     id: u.id,
+    balancePatch: buildBalancePatchExport(u),
     attackRange: liveRanges[u.id],
     hbarOffsetY: +(liveHbarOffsets[u.id]?.y ?? 0).toFixed(3),
     slotRadius: +slotR.toFixed(3),
@@ -4791,17 +5778,34 @@ function buildTowerExport(u) {
   }
 }
 
+function buildBalancePatchExport(u) {
+  const balance = balanceForUnitId(u.id)
+  if (!balance) return null
+  return {
+    editFile: balance.sourceFile,
+    sourceObject: balance.sourceObject,
+    cardType: balance.cardType,
+    elixirCost: balance.elixirCost,
+    deployCount: balance.deployCount,
+    stats: cloneData(balance.stats ?? {}),
+    notes: {
+      ...balance.notes,
+      apply: 'Update this card in CARD_DEFINITIONS_BASE, then run npm run sync:map-editor.',
+    },
+  }
+}
+
 function buildUnitEditorApplyPrompt(activeUnit) {
   const focus = activeUnit
     ? `Focus on "${activeUnit.id}" (${activeUnit.label}, ${activeUnit.kind}). `
     : ''
   const files = activeUnit?.kind === 'building'
-    ? 'compositeOffsets → CompositeLayerOffsets.ts; avatarPreviewScale → CompositeAvatarLayout.ts (COMPOSITE_AVATAR_SLOT_SCALE); wood_tower slotPositions → BombTowerMeleeLayout.ts. avatarFramePos is editor-canvas only. '
+    ? 'stats/elixir/deployCount → tiny-wars/src/data/CardData.ts; compositeOffsets → CompositeLayerOffsets.ts; avatarPreviewScale → CompositeAvatarLayout.ts (COMPOSITE_AVATAR_SLOT_SCALE); wood_tower slotPositions → BombTowerMeleeLayout.ts. avatarFramePos is editor-canvas only. '
     : activeUnit?.kind === 'princess_tower' || activeUnit?.kind === 'king_tower'
       ? 'slotPositions → PrincessTowerMeleeLayout.ts (or king layout); towerVisualOffset → map.json towerVisualOffsets; garrison → tower rendering. '
       : activeUnit?.kind === 'troop' && COMPOSITE_UNIT_IDS.has(activeUnit.id)
-        ? 'compositeOffsets → CompositeLayerOffsets.ts; avatar fields → CompositeAvatarLayout.ts; slotPositions → AttackSlots.ts. '
-        : 'slotPositions / ranges → AttackSlots.ts, CardData.ts, or unit layout files as appropriate. '
+        ? 'stats/elixir/deployCount → tiny-wars/src/data/CardData.ts; compositeOffsets → CompositeLayerOffsets.ts; avatar fields → CompositeAvatarLayout.ts; slotPositions → AttackSlots.ts. '
+        : 'stats/elixir/deployCount → tiny-wars/src/data/CardData.ts; slotPositions → AttackSlots.ts or unit layout files as appropriate. '
   return (
     `${focus}Apply this tiny-wars-unit-editor-v2 export to the game: ${files}` +
     'Then run npm run sync:map-editor, npm test, and npm run build.'
@@ -4850,6 +5854,7 @@ function buildUnitEditorExportObject() {
     activeUnit,
     _readme: {
       applyPrompt: 'Copy applyPrompt at the top into Cursor chat to wire this export into source.',
+      balancePatch: 'Each troop/building entry includes editFile/sourceObject for CardData.ts stats, elixirCost, and deployCount.',
       troops: 'One entry per troop card — attack range, health bar, melee hit-zone slots.',
       buildings: {
         wood_tower: 'Pirate Tower platform + deck bomber (BombTowerCrew.ts / bomb_fish). Bot side uses tintBotSide + flipX.',
@@ -5150,6 +6155,16 @@ document.getElementById('btn-copy-unit-export').addEventListener('click', () => 
   const json = document.getElementById('unit-export-out').textContent
   if (!json) return
   copyText(json, document.getElementById('btn-copy-unit-export'), 'Copy JSON')
+})
+document.getElementById('btn-reset-balance').addEventListener('click', () => {
+  pushUnitUndo()
+  liveBalance[activeUnitId] = cloneData(originalBalance[activeUnitId])
+  liveRanges[activeUnitId] = liveBalance[activeUnitId]?.stats?.attackRange ?? liveRanges[activeUnitId]
+  document.getElementById('range-slider').value = liveRanges[activeUnitId]
+  document.getElementById('range-val').value = liveRanges[activeUnitId]
+  syncBalancePanel()
+  drawUnit()
+  drawTowerCompare()
 })
 
 // seed new controls with first unit values

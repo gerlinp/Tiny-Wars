@@ -1,0 +1,62 @@
+---
+description: Always use the project map to avoid scanning the full codebase unnecessarily.
+alwaysApply: true
+---
+
+# Game Project Rule
+
+Before analyzing, planning, editing, or adding code in this repository:
+
+1. Read `tiny-wars/docs/AI_PROJECT_MAP.md` first.
+2. Use it to identify the smallest relevant set of files for the task.
+3. Do not scan the entire repository unless the map says the system is unclear or the listed files are insufficient.
+
+## Working Rules
+
+- Treat `tiny-wars/docs/AI_PROJECT_MAP.md` as the primary guide for this project.
+- Modify existing systems instead of creating duplicate systems.
+- Follow the documented source-of-truth files, data flow, naming conventions, and architecture.
+- Do not refactor unrelated code during a focused task.
+- Do not invent a new pattern when a similar implementation already exists.
+- For gameplay tasks, find the closest existing example and copy its structure.
+
+## Before Editing
+
+Before making changes, briefly state:
+
+1. What system the task belongs to
+2. Which files you plan to change
+3. Why those files are the correct source of truth
+
+## Gameplay Changes
+
+For units, cards, combat, targeting, movement, collision, bridges, lanes, buildings, resources, UI, networking, or assets:
+
+1. Check the relevant section of `tiny-wars/docs/AI_PROJECT_MAP.md`.
+2. Follow the listed implementation recipe if one exists.
+3. Reuse the current architecture and patterns.
+4. Check dependent systems named in the map before finishing.
+
+## Updating the Project Map
+
+Update `tiny-wars/docs/AI_PROJECT_MAP.md` when a change affects:
+
+- Important file locations
+- System ownership
+- Data models or contracts
+- Major gameplay architecture
+- Common implementation recipes
+- New units, cards, buildings, UI systems, networking systems, or asset pipelines
+
+Keep project-map updates concise and factual.
+
+## When Uncertain
+
+Do not guess or create a new architecture.
+
+Instead:
+
+1. State what is unclear.
+2. Start from the nearest documented source-of-truth file.
+3. Inspect only the smallest related set of files needed.
+4. Explain the existing pattern before changing it.

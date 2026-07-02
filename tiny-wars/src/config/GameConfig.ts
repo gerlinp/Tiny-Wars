@@ -4,6 +4,7 @@ import { PreloadScene }  from '@scenes/PreloadScene'
 import { MainMenuScene } from '@scenes/MainMenuScene'
 import { DeckBuilderScene } from '@scenes/DeckBuilderScene'
 import { BattleScene }   from '@scenes/BattleScene'
+import { TestArenaScene } from '@scenes/TestArenaScene'
 import { UIScene }       from '@scenes/UIScene'
 import { ResultScene }   from '@scenes/ResultScene'
 import { TransitionLoadingScene } from '@scenes/TransitionLoadingScene'
@@ -28,5 +29,5 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     target: 30,
     forceSetTimeOut: true,
   },
-  scene: [BootScene, PreloadScene, MainMenuScene, DeckBuilderScene, TransitionLoadingScene, PvPLobbyScene, BattleScene, UIScene, ResultScene],
+  scene: [BootScene, PreloadScene, MainMenuScene, DeckBuilderScene, TransitionLoadingScene, PvPLobbyScene, BattleScene, TestArenaScene, UIScene, ResultScene],
 }

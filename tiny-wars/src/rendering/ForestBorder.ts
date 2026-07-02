@@ -22,7 +22,11 @@ export class ForestBorder {
   private treePattern: string[] = []
   private availableDecos: typeof SIDE_DECOS[number][] = []
 
-  constructor(private scene: Phaser.Scene) {}
+  constructor(
+    private scene: Phaser.Scene,
+    private leftEdgeX = 0,
+    private rightEdgeX = GAME_WIDTH,
+  ) {}
 
   draw(): void {
     this.treePattern = ALL_TREE_KEYS
@@ -33,8 +37,8 @@ export class ForestBorder {
     this.availableDecos = SIDE_DECOS.filter(([key]) => this.scene.textures.exists(key))
 
     this.ensureAnims()
-    this.drawColumn(0)
-    this.drawColumn(GAME_WIDTH)
+    this.drawColumn(this.leftEdgeX, true)
+    this.drawColumn(this.rightEdgeX, false)
   }
 
   private ensureAnims(): void {
@@ -63,9 +67,8 @@ export class ForestBorder {
     }
   }
 
-  private drawColumn(centerX: number): void {
+  private drawColumn(edgeX: number, isLeft: boolean): void {
     const n      = this.treePattern.length
-    const isLeft = centerX === 0
     const startY = -TREE_H * 0.4
     const endY   = GAME_HEIGHT + TREE_H * 0.4
     let i = 0
@@ -74,7 +77,7 @@ export class ForestBorder {
       // Tree
       const key    = this.treePattern[i % n]!
       const jitter = ((i * 13) % 20) - 10
-      const spr    = this.scene.add.sprite(centerX, y + jitter, key, 0)
+      const spr    = this.scene.add.sprite(edgeX, y + jitter, key, 0)
       spr.setOrigin(0.5, 1)
       spr.setDisplaySize(TREE_W, TREE_H)
       spr.setDepth(DEPTH)
@@ -85,8 +88,9 @@ export class ForestBorder {
         const deco = this.availableDecos[(i * 7 + 3) % this.availableDecos.length]!
         const [decoKey, frames] = deco
         const decoY = y + STEP_Y * 0.5 + ((i * 11) % 30) - 15
-        // Offset toward the playfield edge (x=0 left, x=GAME_WIDTH right)
-        const xOffset = isLeft ? 18 + (i % 3) * 6 : GAME_WIDTH - 18 - (i % 3) * 6
+        const xOffset = isLeft
+          ? edgeX + 18 + (i % 3) * 6
+          : edgeX - 18 - (i % 3) * 6
         const decoSize = CELL_SIZE * 1.8
 
         if (frames > 0) {

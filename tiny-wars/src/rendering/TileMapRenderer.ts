@@ -6,6 +6,7 @@ import {
   terrainCellAt,
   grassTilePlacement,
   cliffOverlayAt,
+  isRiverRow,
 } from '@rendering/TerrainMap'
 
 const DEPTH_WATER = 0
@@ -17,23 +18,33 @@ const FALLBACK_WATER_COLOR = 0x1a3a6a
 const FALLBACK_BRIDGE_COLOR = 0x8b6914
 const FALLBACK_GRASS_COLOR = 0x2d6a2d
 
+type TileMapRendererOptions = {
+  extraColsLeft?: number
+  extraColsRight?: number
+}
+
 export class TileMapRenderer {
-  constructor(private scene: Phaser.Scene) {}
+  constructor(
+    private scene: Phaser.Scene,
+    private options: TileMapRendererOptions = {},
+  ) {}
 
   draw(): void {
     const hasTileset = this.scene.textures.exists(TERRAIN_COLOR1.key)
     const hasWater   = this.scene.textures.exists(TERRAIN_WATER.key)
     const hasBridge  = this.scene.textures.exists(TERRAIN_BRIDGE.key)
+    const extraColsLeft = Math.max(0, this.options.extraColsLeft ?? 0)
+    const extraColsRight = Math.max(0, this.options.extraColsRight ?? 0)
 
     for (let row = 0; row < GRID_ROWS; row++) {
-      for (let col = 0; col < GRID_COLS; col++) {
+      for (let col = -extraColsLeft; col < GRID_COLS + extraColsRight; col++) {
         const x = col * CELL_SIZE
         const y = row * CELL_SIZE
-        const kind = terrainCellAt(col, row)
+        const kind = this.terrainCellAtExtended(col, row)
 
         if (kind === 'water') {
           this.drawTile(x, y, hasWater ? TERRAIN_WATER.key : null, null, FALLBACK_WATER_COLOR, DEPTH_WATER)
-          const cliff = cliffOverlayAt(col, row)
+          const cliff = col >= 0 && col < GRID_COLS ? cliffOverlayAt(col, row) : null
           if (cliff && hasTileset) {
             this.drawTile(x, y, TERRAIN_COLOR1.key, cliff.frame, FALLBACK_WATER_COLOR, DEPTH_CLIFF, cliff.flipY)
           }
@@ -48,6 +59,13 @@ export class TileMapRenderer {
     }
 
     this.drawBridges(hasBridge)
+  }
+
+  private terrainCellAtExtended(col: number, row: number): 'grass' | 'water' | 'bridge' {
+    if (col < 0 || col >= GRID_COLS) {
+      return isRiverRow(row) ? 'water' : 'grass'
+    }
+    return terrainCellAt(col, row)
   }
 
   /** Draw each bridge as a 3-slice vertical strip (health-bar style). */
