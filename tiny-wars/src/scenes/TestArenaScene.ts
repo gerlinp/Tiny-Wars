@@ -35,6 +35,7 @@ interface TestArenaBalancePatch {
 
 interface TestArenaSetup {
   selectedUnitId?: string
+  deck?: string[]
   playerDeck?: string[]
   opponentDeck?: string[]
   balancePatches?: Record<string, TestArenaBalancePatch>
@@ -72,8 +73,9 @@ export class TestArenaScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroyDomControls())
     this.setup = this.readSetup()
     this.selectedCardId = this.validCardId(this.setup.selectedUnitId)
-    this.playerDeck = this.validDeck(this.setup.playerDeck, this.selectedCardId)
-    this.opponentDeck = this.validDeck(this.setup.opponentDeck, this.selectedCardId)
+    const sharedDeck = this.setup.deck
+    this.playerDeck = this.validDeck(this.setup.playerDeck ?? sharedDeck, this.selectedCardId)
+    this.opponentDeck = this.validDeck(this.setup.opponentDeck ?? sharedDeck, this.selectedCardId)
 
     this.createWorld()
     this.registerKeyboardControls()

@@ -31,7 +31,7 @@ import {
   worldRow,
 } from '../Movement'
 import { getLaneMarchGoal } from '../LaneMovement'
-import { towerSlotOriginCenter } from '@rendering/towerRenderPosition'
+import { kingTowerRangedAttackPoint, towerSlotOriginCenter } from '@rendering/towerRenderPosition'
 import { bombTowerMeleeLayout } from '@data/BombTowerMeleeLayout'
 import { kingTowerMeleeLayout } from '@data/KingTowerMeleeLayout'
 import { princessTowerMeleeLayout } from '@data/PrincessTowerMeleeLayout'
@@ -941,7 +941,10 @@ export class Troop extends Entity {
       const a = (Math.PI * 2 * i) / total
       return { x: (Math.cos(a) * slotRadius) / CELL_SIZE, y: (Math.sin(a) * slotRadius) / CELL_SIZE }
     })
-    return this.nearestOpenSlot(tower.position, slots, attackers)
+    const origin = tower.isKing
+      ? kingTowerRangedAttackPoint(tower.position.x, tower.position.y, tower.owner)
+      : tower.position
+    return this.nearestOpenSlot(origin, slots, attackers)
   }
 
   /**
@@ -1512,12 +1515,17 @@ export class Troop extends Entity {
   private combatDistTo(entity: Entity): number {
     const ranged = this.effectiveAttackRange() > 2
     if (entity.kind === EntityKind.TOWER && ranged) {
-      // Ranged vs tower: measure center-to-center from the tower's LOGIC POSITION.
-      // The tower's `towerAttackCenter` is intentionally off-map for king towers (placed
-      // behind the king to give wide arc-of-fire), so it cannot be used as a troop standoff
-      // reference — troops would have to walk to the king's doorstep. Using tower.position
-      // keeps the standoff symmetric with moveGoalFor and places troops at the correct
-      // firing distance from the tower's actual body.
+      if ((entity as Tower).isKing) {
+        const kingTower = entity as Tower
+        const attackPoint = kingTowerRangedAttackPoint(
+          kingTower.position.x,
+          kingTower.position.y,
+          kingTower.owner,
+        )
+        return Math.sqrt(distSq(this.position, attackPoint))
+      }
+      // Ranged vs non-king towers: center-to-center from the tower logic position.
+      // (King towers use a dedicated ranged attack point above.)
       return Math.sqrt(distSq(this.position, entity.position))
     }
     if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {

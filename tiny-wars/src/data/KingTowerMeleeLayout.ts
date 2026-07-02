@@ -9,6 +9,8 @@ export interface KingTowerMeleeSideLayout {
   slotOriginOffsetCells: { x: number; y: number }
   /** Cells from logic anchor — tower attack range centre (king range ring). */
   rangeCenterOffsetCells: { x: number; y: number }
+  /** Cells from logic anchor — ranged troop standoff/attack point against king tower. */
+  rangedAttackPointOffsetCells: { x: number; y: number }
   slotPositions: TowerSlotPoint[]
 }
 
@@ -16,6 +18,7 @@ export interface KingTowerMeleeSideLayout {
 export const PLAYER_KING_TOWER_MELEE: KingTowerMeleeSideLayout = {
   slotOriginOffsetCells: { x: 0.05, y: -0.2 },
   rangeCenterOffsetCells: { x: 0, y: 7.7 },
+  rangedAttackPointOffsetCells: { x: 0, y: 0 },
   slotPositions: [
     { x: 0, y: -3.45 },
     { x: 0, y: 3.45 },
@@ -54,6 +57,7 @@ export const PLAYER_KING_TOWER_MELEE: KingTowerMeleeSideLayout = {
 export const BOT_KING_TOWER_MELEE: KingTowerMeleeSideLayout = {
   slotOriginOffsetCells: { x: 0.05, y: 0.2 },
   rangeCenterOffsetCells: { x: 0, y: -7.7 },
+  rangedAttackPointOffsetCells: { x: 0, y: 0 },
   slotPositions: [
     { x: 0, y: 3.45 },
     { x: 0, y: -3.45 },

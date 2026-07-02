@@ -128,6 +128,15 @@ export function towerAttackCenter(logicX: number, logicY: number, owner: Owner, 
   return { x: logicX, y: logicY }
 }
 
+/** World centre used by ranged troops to stand off and attack king towers. */
+export function kingTowerRangedAttackPoint(logicX: number, logicY: number, owner: Owner): Vec2 {
+  const layout = kingTowerMeleeLayout(owner)
+  return {
+    x: logicX + layout.rangedAttackPointOffsetCells.x * CELL_SIZE,
+    y: logicY + layout.rangedAttackPointOffsetCells.y * CELL_SIZE,
+  }
+}
+
 /**
  * Same unflipped art on both sides; position so the footprint river edge meets the
  * sprite top (player) or bottom (bot). Princess towers get an extra nudge toward

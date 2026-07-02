@@ -45,16 +45,19 @@ body.arena-tab-mode #sidebar {
 #arena-right-host {
   display: none;
   flex-direction: column;
-  width: min(980px, calc(100% - 24px));
+  width: min(1240px, calc(100% - 40px));
   margin: 0 auto;
   gap: 10px;
 }
 #arena-right-host #arena-sidebar {
   display: block;
+  width: 100%;
+  max-width: 1160px;
 }
 #arena-right-host #arena-sidebar .section {
   border: 1px solid #1e1e38;
   border-radius: 8px;
+  padding: 14px 18px;
   margin-bottom: 10px;
 }
 #sidebar h1 {
@@ -357,28 +360,86 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 }
 .balance-hint, .arena-hint { font-size: 10px; color: #6070a0; line-height: 1.35; margin-top: 6px; }
 #balance-fields { max-height: 260px; overflow-y: auto; padding-right: 2px; }
+#arena-player-deck {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(420px, 1fr));
+  column-gap: 18px;
+}
 .arena-deck-row {
   display: grid;
-  grid-template-columns: 18px 1fr;
-  gap: 5px;
+  grid-template-columns: 62px minmax(230px, 330px) 78px;
+  justify-content: start;
+  gap: 8px;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 .arena-deck-row span { color: #6070a0; font-size: 10px; font-family: monospace; }
+.arena-deck-slot {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+.arena-deck-thumb {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #2a2a5a;
+  border-radius: 3px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  background: #0e0e1a;
+}
 .arena-deck-row select {
   width: 100%;
   background: #0e0e1a;
   color: #d8e0ff;
   border: 1px solid #2a2a5a;
   border-radius: 3px;
-  padding: 4px 5px;
-  font-size: 11px;
+  padding: 6px 8px;
+  font-size: 12px;
 }
 .arena-deck-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  margin: 6px 0 8px;
+  grid-template-columns: repeat(2, minmax(170px, 220px));
+  justify-content: start;
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+.arena-deck-actions .action-btn,
+#btn-open-game-arena {
+  width: auto;
+  min-width: 190px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+@media (max-width: 1200px) {
+  #arena-player-deck {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  #arena-right-host {
+    width: min(980px, calc(100% - 20px));
+  }
+  #arena-right-host #arena-sidebar {
+    max-width: 100%;
+  }
+  #arena-player-deck {
+    grid-template-columns: 1fr;
+  }
+  .arena-deck-row {
+    grid-template-columns: 56px minmax(180px, 1fr) 72px;
+  }
+  .arena-deck-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+  .arena-deck-actions .action-btn,
+  #btn-open-game-arena {
+    width: 100%;
+    min-width: 0;
+  }
 }
 .arena-slot-grid {
   display: grid;
@@ -701,6 +762,25 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
       <button class="export-btn" id="btn-copy-king-range" style="margin-top:6px;margin-bottom:0">⎘ Copy rangeCenterOffset</button>
     </div>
 
+    <div class="section" id="king-ranged-attack-section" style="display:none">
+      <div class="section-title"><label class="selectable-overlay" data-sel-type="rangedAttackCenter">Ranged Attack Point (castle)</label></div>
+      <div style="font-size:10px;color:#6070a0;margin-bottom:6px">
+        Cyan crosshair used by ranged troops when attacking the king tower.
+        Values are in cells from logic anchor.
+      </div>
+      <div class="range-row">
+        <label style="width:24px;color:#aaa;font-size:11px">X</label>
+        <input type="number" id="king-ranged-x" step="0.05" min="-12" max="12" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">cells</span>
+      </div>
+      <div class="range-row">
+        <label style="width:24px;color:#aaa;font-size:11px">Y</label>
+        <input type="number" id="king-ranged-y" step="0.05" min="-12" max="12" style="width:58px">
+        <span style="color:#6070a0;font-size:11px">cells</span>
+      </div>
+      <button class="export-btn" id="btn-copy-king-ranged" style="margin-top:6px;margin-bottom:0">⎘ Copy rangedAttackPointOffset</button>
+    </div>
+
     <div class="section" id="garrison-section" style="display:none">
       <div class="section-title">Castle Garrison — <span id="lbl-garrison-side">CPU</span></div>
       <div style="font-size:10px;color:#6070a0;margin-bottom:6px">Drag cannon &amp; deck units · positions are fractions of castle sprite size</div>
@@ -812,32 +892,18 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
   <div id="arena-sidebar" style="display:none">
     <div class="section">
       <div class="section-title">Test Arena Setup</div>
-      <div class="arena-hint">Pick each side's 8 cards, then start the real Phaser test arena.</div>
+      <div class="arena-hint">Build one 8-card deck. Test Arena will use it for both player and opponent.</div>
       <button class="export-btn" id="btn-open-game-arena" style="margin-top:8px;margin-bottom:0">▶ Start Test Arena</button>
     </div>
 
     <div class="section">
-      <div class="section-title">Player Cards — left side in game arena</div>
+      <div class="section-title">Shared Arena Deck — both sides</div>
       <div class="arena-deck-actions">
         <button class="action-btn" id="btn-arena-player-from-main" title="Load the saved main-player deck">Use Main Deck</button>
-        <button class="action-btn" id="btn-arena-player-random" title="Pick 8 random unique cards for player">Randomize</button>
+        <button class="action-btn" id="btn-arena-player-random" title="Pick 8 random unique cards">Randomize</button>
       </div>
+      <div class="arena-hint">Pick each slot from a dropdown. This same deck is used for player and opponent.</div>
       <div id="arena-player-deck"></div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">Opponent Cards — right side in game arena</div>
-      <div class="arena-deck-actions">
-        <button class="action-btn" id="btn-arena-opponent-copy" title="Copy player deck into opponent deck">Copy Player</button>
-        <button class="action-btn" id="btn-arena-opponent-random" title="Pick 8 random unique cards for opponent">Randomize</button>
-      </div>
-      <div id="arena-opponent-deck"></div>
-    </div>
-
-    <div class="section">
-      <div class="section-title">Card Collection</div>
-      <div class="arena-hint">Select a slot in player/enemy deck, then click a card below to assign it.</div>
-      <div id="arena-card-collection"></div>
     </div>
 
   </div><!-- /#arena-sidebar -->
@@ -3168,14 +3234,15 @@ function garrisonDeckRelY(nativeRow) {
 // @generated map-editor-king-garrison-sync-start
 // Mirrors towerGarrison.ts king garrison deck offsets — run: npm run sync:map-editor
 const KING_GARRISON_ARCHER_REL_Y = { player: -0.065, cpu: 0.065 }
-const KING_GARRISON_CANNON_REL = { relX: -0.005, relY: { player: -0.08, cpu: 0.08 } }
+const KING_GARRISON_CANNON_REL = { relX: { player: -0.005, cpu: -0.005 }, relY: { player: -0.08, cpu: 0.08 } }
 
 function defaultKingGarrisonSlots(side) {
   const archerRelY = side === 'cpu' ? KING_GARRISON_ARCHER_REL_Y.cpu : KING_GARRISON_ARCHER_REL_Y.player
+  const cannonRelX = side === 'cpu' ? KING_GARRISON_CANNON_REL.relX.cpu : KING_GARRISON_CANNON_REL.relX.player
   const cannonRelY = side === 'cpu' ? KING_GARRISON_CANNON_REL.relY.cpu : KING_GARRISON_CANNON_REL.relY.player
   return [
     { label: 'Left deck',  relX: -0.28, relY: archerRelY, unitId: 'elite_archer', flipX: false },
-    { label: 'Cannon',     relX: KING_GARRISON_CANNON_REL.relX, relY: cannonRelY, unitId: 'cannon',       flipX: false },
+    { label: 'Cannon',     relX: cannonRelX, relY: cannonRelY, unitId: 'cannon',       flipX: false },
     { label: 'Right deck', relX: 0.28,  relY: archerRelY, unitId: 'elite_archer', flipX: true  },
   ]
 }
@@ -3389,6 +3456,7 @@ function snapshotUnitEditorState() {
     liveSlotRingAngle: cloneUnitEditorData(liveSlotRingAngle),
     liveTowerVisualOffsets: cloneUnitEditorData(liveTowerVisualOffsets),
     liveKingRangeCenterOffsets: cloneUnitEditorData(liveKingRangeCenterOffsets),
+    liveKingRangedAttackOffsets: cloneUnitEditorData(liveKingRangedAttackOffsets),
     liveKingGarrison: cloneUnitEditorData(liveKingGarrison),
     liveCompositeOffsets: cloneUnitEditorData(liveCompositeOffsets),
     liveUseEditorCompositeAvatar: cloneUnitEditorData(liveUseEditorCompositeAvatar),
@@ -3417,6 +3485,9 @@ function restoreUnitEditorState(snap) {
   replaceObjectContents(liveTowerVisualOffsets, snap.liveTowerVisualOffsets)
   if (snap.liveKingRangeCenterOffsets) {
     replaceObjectContents(liveKingRangeCenterOffsets, snap.liveKingRangeCenterOffsets)
+  }
+  if (snap.liveKingRangedAttackOffsets) {
+    replaceObjectContents(liveKingRangedAttackOffsets, snap.liveKingRangedAttackOffsets)
   }
   if (snap.liveKingGarrison) {
     replaceObjectContents(liveKingGarrison, snap.liveKingGarrison)
@@ -3454,6 +3525,7 @@ function restoreUnitEditorState(snap) {
   syncSlotRadiusInputs()
   syncSlotRingAngleInputs()
   syncKingRangeCenterInputs()
+  syncKingRangedAttackInputs()
   syncTowerSections()
   syncGarrisonSection()
   updateUnitUndoButtons()
@@ -3572,6 +3644,8 @@ liveSlotRadii.wood_tower = 2.35
 
 /** King castle attack-range origin — cells from logic anchor (matches kingVisualAnchorY row delta). */
 const liveKingRangeCenterOffsets = { king_tower: { player: null, cpu: null } }
+/** King castle ranged troop attack point — cells from logic anchor. */
+const liveKingRangedAttackOffsets = { king_tower: { player: null, cpu: null } }
 
 function getUnitMapLayout() {
   return {
@@ -3606,6 +3680,40 @@ function getKingRangeCenterOffset(unit, side) {
 function getKingRangeCenterPos(unit, cx, cy, UCELL, side) {
   const off = getKingRangeCenterOffset(unit, side ?? unitApproachSide)
   return { x: cx + off.x * UCELL, y: cy + off.y * UCELL, off }
+}
+
+function defaultKingRangedAttackOffset(_side) {
+  return { x: 0, y: 0 }
+}
+
+function ensureKingRangedAttackOffset(unit, side) {
+  if (!unit?.isKing) return { x: 0, y: 0 }
+  const store = liveKingRangedAttackOffsets[unit.id]
+  if (!store[side]) store[side] = defaultKingRangedAttackOffset(side)
+  return store[side]
+}
+
+function getKingRangedAttackOffset(unit, side) {
+  if (!unit?.isKing) return { x: 0, y: 0 }
+  return ensureKingRangedAttackOffset(unit, side ?? unitApproachSide)
+}
+
+function getKingRangedAttackPos(unit, cx, cy, UCELL, side) {
+  const off = getKingRangedAttackOffset(unit, side ?? unitApproachSide)
+  return { x: cx + off.x * UCELL, y: cy + off.y * UCELL, off }
+}
+
+function syncKingRangedAttackInputs() {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  const sec = document.getElementById('king-ranged-attack-section')
+  if (!unit?.isKing) {
+    if (sec) sec.style.display = 'none'
+    return
+  }
+  if (sec) sec.style.display = ''
+  const off = ensureKingRangedAttackOffset(unit, unitApproachSide)
+  document.getElementById('king-ranged-x').value = parseFloat(off.x.toFixed(3))
+  document.getElementById('king-ranged-y').value = parseFloat(off.y.toFixed(3))
 }
 
 function syncKingRangeCenterInputs() {
@@ -3911,6 +4019,8 @@ if (liveTowerVisualOffsets.king_tower) {
 }
 liveKingRangeCenterOffsets.king_tower.player = { x: 0, y: 7.7 }
 liveKingRangeCenterOffsets.king_tower.cpu = { x: 0, y: -7.7 }
+liveKingRangedAttackOffsets.king_tower.player = { x: 0, y: 0 }
+liveKingRangedAttackOffsets.king_tower.cpu = { x: 0, y: 0 }
 // @generated map-editor-king-unit-sync-end
 
 const BOMB_TOWER_SLOT_POSITIONS = PLAYER_PRINCESS_SLOT_POSITIONS.map(p => ({ ...p }))
@@ -4306,6 +4416,7 @@ function isUnitEditSelectionVisible(unit, sel = unitEditSelection) {
     case 'slotOrigin': return unitShowSlots && unit.isTower
     case 'sprite': return unitShowSprite && unit.isTower
     case 'rangeCenter': return unit.isKing && unitShowRing
+    case 'rangedAttackCenter': return unit.isKing && unitShowRing
     case 'garrison': return unit.isKing && unitShowGarrison
     case 'composite': return unitShowSprite && isCompositeUnit(unit)
     case 'avatarBox': return unitShowAvatarFrame && isCompositeUnit(unit)
@@ -4953,28 +5064,26 @@ function readMainPlayerDeck() {
 
 function loadArenaDeckSetup() {
   const fallback = normalizeArenaDeck([])
-  let playerDeck = fallback
-  let opponentDeck = fallback
+  let deck = fallback
   try {
     const raw = window.localStorage.getItem(ARENA_SETUP_STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
-      playerDeck = normalizeArenaDeck(parsed?.playerDeck)
-      opponentDeck = normalizeArenaDeck(parsed?.opponentDeck)
-      return { playerDeck, opponentDeck }
+      const candidate = parsed?.deck ?? parsed?.playerDeck ?? parsed?.opponentDeck
+      deck = normalizeArenaDeck(candidate)
+      return { deck }
     }
   } catch {
     // Use defaults below.
   }
   const mainDeck = normalizeArenaDeck(readMainPlayerDeck())
-  return { playerDeck: mainDeck, opponentDeck: mainDeck }
+  return { deck: mainDeck }
 }
 
 function persistArenaDeckSetup() {
   try {
     window.localStorage.setItem(ARENA_SETUP_STORAGE_KEY, JSON.stringify({
-      playerDeck: arenaPlayerDeck,
-      opponentDeck: arenaOpponentDeck,
+      deck: arenaDeck,
     }))
   } catch {
     // Ignore storage failures.
@@ -4982,16 +5091,18 @@ function persistArenaDeckSetup() {
 }
 
 const initialArenaDeckSetup = loadArenaDeckSetup()
-let arenaPlayerDeck = [...initialArenaDeckSetup.playerDeck]
-let arenaOpponentDeck = [...initialArenaDeckSetup.opponentDeck]
-let arenaEditSide = 'player'
-let arenaEditIndex = 0
+let arenaDeck = [...initialArenaDeckSetup.deck]
 
 function arenaCardLabel(cardId) {
   const unit = UNIT_CATALOG.find(u => u.id === cardId)
   if (!unit) return cardId
-  const cost = Number(liveBalance[cardId]?.elixirCost ?? unit.elixirCost ?? 0)
-  return `${unit.name}${unit.isBuilding ? ' (building)' : ''} (${cost})`
+  return unit.name
+}
+
+function arenaCardThumbPath(cardId) {
+  const unit = UNIT_CATALOG.find(u => u.id === cardId)
+  if (!unit?.path) return ''
+  return encodeURI(unit.path)
 }
 
 function arenaCardInfoText(cardId) {
@@ -5011,160 +5122,70 @@ function showArenaCardInfo(cardId) {
   window.alert(arenaCardInfoText(cardId))
 }
 
-function arenaCardThumbPath(cardId) {
-  return UNIT_CATALOG.find(u => u.id === cardId)?.path ?? ''
-}
-
-function assignArenaCard(cardId) {
-  const targetDeck = arenaEditSide === 'player' ? arenaPlayerDeck : arenaOpponentDeck
-  targetDeck[arenaEditIndex] = cardId
-  arenaEditIndex = (arenaEditIndex + 1) % ARENA_DECK_SIZE
-  persistArenaDeckSetup()
-  renderArenaDeckBuilder()
-}
-
-function removeArenaCard(side, index) {
-  const targetDeck = side === 'player' ? arenaPlayerDeck : arenaOpponentDeck
-  targetDeck[index] = ''
-  persistArenaDeckSetup()
-  renderArenaDeckBuilder()
-}
-
-function renderArenaDeckSlots(containerId, deck, side) {
+function renderArenaDeckDropdowns(containerId, deck) {
   const wrap = document.getElementById(containerId)
   wrap.innerHTML = ''
-  const grid = document.createElement('div')
-  grid.className = 'arena-slot-grid'
+  const options = arenaDeckOptions()
+  const validIds = new Set(options.map(o => o.id))
   for (let i = 0; i < ARENA_DECK_SIZE; i++) {
-    const cardId = deck[i] ?? ''
+    let cardId = typeof deck[i] === 'string' && validIds.has(deck[i])
+      ? deck[i]
+      : options[0]?.id ?? 'warrior'
+    deck[i] = cardId
 
-    const card = document.createElement('div')
-    card.className = 'arena-deck-card'
-    if (arenaEditSide === side && arenaEditIndex === i) card.classList.add('active')
+    const row = document.createElement('div')
+    row.className = 'arena-deck-row'
 
-    const head = document.createElement('div')
-    head.className = 'arena-card-head'
-    const thumb = document.createElement('div')
-    thumb.className = 'arena-card-thumb'
-    const spritePath = arenaCardThumbPath(cardId)
-    if (spritePath) thumb.style.backgroundImage = `url(${spritePath})`
-    head.appendChild(thumb)
+    const slotWrap = document.createElement('div')
+    slotWrap.className = 'arena-deck-slot'
 
-    const meta = document.createElement('div')
-    meta.className = 'arena-card-meta'
-    const title = document.createElement('div')
-    title.className = 'arena-card-title'
-    title.textContent = `${i + 1}. ${arenaCardLabel(cardId || 'warrior')}`
-    const sub = document.createElement('div')
-    sub.className = 'arena-card-sub'
-    sub.textContent = `${side === 'player' ? 'Player' : 'Enemy'} slot ${i + 1}`
-    meta.appendChild(title)
-    meta.appendChild(sub)
-    head.appendChild(meta)
-    card.appendChild(head)
+    const thumb = document.createElement('img')
+    thumb.className = 'arena-deck-thumb'
+    thumb.alt = cardId
+    thumb.src = arenaCardThumbPath(cardId)
 
-    const actions = document.createElement('div')
-    actions.className = 'arena-card-actions'
-    const addBtn = document.createElement('button')
-    addBtn.type = 'button'
-    addBtn.className = 'action-btn'
-    addBtn.textContent = 'Add'
-    addBtn.addEventListener('click', () => {
-      arenaEditSide = side
-      arenaEditIndex = i
-      renderArenaDeckBuilder()
+    const slot = document.createElement('span')
+    slot.textContent = `#${i + 1}`
+
+    slotWrap.appendChild(thumb)
+    slotWrap.appendChild(slot)
+
+    const sel = document.createElement('select')
+    sel.className = 'unit-select'
+    for (const option of options) {
+      const item = document.createElement('option')
+      item.value = option.id
+      item.textContent = arenaCardLabel(option.id)
+      sel.appendChild(item)
+    }
+    sel.value = cardId
+    sel.addEventListener('change', () => {
+      arenaDeck[i] = sel.value
+      thumb.src = arenaCardThumbPath(sel.value)
+      thumb.alt = sel.value
+      persistArenaDeckSetup()
     })
 
     const infoBtn = document.createElement('button')
     infoBtn.type = 'button'
     infoBtn.className = 'action-btn'
     infoBtn.textContent = 'Info'
-    infoBtn.addEventListener('click', () => showArenaCardInfo(cardId || 'warrior'))
+    infoBtn.style.width = '72px'
+    infoBtn.addEventListener('click', () => showArenaCardInfo(sel.value))
 
-    const removeBtn = document.createElement('button')
-    removeBtn.type = 'button'
-    removeBtn.className = 'action-btn'
-    removeBtn.textContent = 'Remove'
-    removeBtn.addEventListener('click', () => removeArenaCard(side, i))
-
-    actions.appendChild(addBtn)
-    actions.appendChild(infoBtn)
-    actions.appendChild(removeBtn)
-    card.appendChild(actions)
-    grid.appendChild(card)
+    row.appendChild(slotWrap)
+    row.appendChild(sel)
+    row.appendChild(infoBtn)
+    wrap.appendChild(row)
   }
-  wrap.appendChild(grid)
-}
-
-function renderArenaCardCollection() {
-  const wrap = document.getElementById('arena-card-collection')
-  wrap.innerHTML = ''
-  const cards = arenaDeckOptions()
-    .map(option => {
-      const unit = UNIT_CATALOG.find(u => u.id === option.id)
-      const cost = Number(liveBalance[option.id]?.elixirCost ?? unit?.elixirCost ?? 0)
-      return { ...option, cost }
-    })
-    .sort((a, b) => a.cost - b.cost || a.label.localeCompare(b.label))
-  const grid = document.createElement('div')
-  grid.className = 'arena-card-grid'
-  for (const card of cards) {
-    const item = document.createElement('div')
-    item.className = 'arena-collection-card'
-
-    const head = document.createElement('div')
-    head.className = 'arena-card-head'
-    const thumb = document.createElement('div')
-    thumb.className = 'arena-card-thumb'
-    const spritePath = arenaCardThumbPath(card.id)
-    if (spritePath) thumb.style.backgroundImage = `url(${spritePath})`
-    head.appendChild(thumb)
-
-    const meta = document.createElement('div')
-    meta.className = 'arena-card-meta'
-    const title = document.createElement('div')
-    title.className = 'arena-card-title'
-    title.textContent = `${card.label}`
-    const sub = document.createElement('div')
-    sub.className = 'arena-card-sub'
-    sub.textContent = `Elixir ${card.cost}`
-    meta.appendChild(title)
-    meta.appendChild(sub)
-    head.appendChild(meta)
-    item.appendChild(head)
-
-    const actions = document.createElement('div')
-    actions.className = 'arena-collection-actions'
-    const addBtn = document.createElement('button')
-    addBtn.type = 'button'
-    addBtn.className = 'action-btn'
-    addBtn.textContent = 'Add'
-    addBtn.title = `Assign to ${arenaEditSide === 'player' ? 'player' : 'enemy'} slot ${arenaEditIndex + 1}`
-    addBtn.addEventListener('click', () => assignArenaCard(card.id))
-
-    const infoBtn = document.createElement('button')
-    infoBtn.type = 'button'
-    infoBtn.className = 'action-btn'
-    infoBtn.textContent = 'Info'
-    infoBtn.addEventListener('click', () => showArenaCardInfo(card.id))
-
-    actions.appendChild(addBtn)
-    actions.appendChild(infoBtn)
-    item.appendChild(actions)
-    grid.appendChild(item)
-  }
-  wrap.appendChild(grid)
 }
 
 function renderArenaDeckBuilder() {
-  renderArenaDeckSlots('arena-player-deck', arenaPlayerDeck, 'player')
-  renderArenaDeckSlots('arena-opponent-deck', arenaOpponentDeck, 'opponent')
-  renderArenaCardCollection()
+  renderArenaDeckDropdowns('arena-player-deck', arenaDeck)
 }
 
 function refreshArenaDeckEditors() {
-  arenaPlayerDeck = normalizeArenaDeck(arenaPlayerDeck)
-  arenaOpponentDeck = normalizeArenaDeck(arenaOpponentDeck)
+  arenaDeck = normalizeArenaDeck(arenaDeck)
   renderArenaDeckBuilder()
   persistArenaDeckSetup()
 }
@@ -5369,13 +5390,14 @@ function arenaLoop(now) {
 }
 
 function buildArenaExportObject() {
-  const selectedUnitId = arenaPlayerDeck[0] ?? arenaDeckOptions()[0]?.id ?? 'warrior'
+  const selectedUnitId = arenaDeck[0] ?? arenaDeckOptions()[0]?.id ?? 'warrior'
   return {
     schema: 'tiny-wars-editor-arena-v1',
-    note: 'Editor-only one-lane sandbox setup. Apply balancePatch entries to tiny-wars/src/data/CardData.ts for real game changes.',
+    note: 'Editor-only one-lane sandbox setup. Shared deck is applied to both sides in Test Arena. Apply balancePatch entries to tiny-wars/src/data/CardData.ts for real game changes.',
     selectedUnitId,
-    playerDeck: [...arenaPlayerDeck],
-    opponentDeck: [...arenaOpponentDeck],
+    deck: [...arenaDeck],
+    playerDeck: [...arenaDeck],
+    opponentDeck: [...arenaDeck],
     units: arenaUnits.map(u => ({ unitId: u.unitId, side: u.side, x: Math.round(u.x), y: Math.round(u.y), hp: Math.round(u.hp) })),
     towers: arenaTowers.map(t => ({ id: t.id, side: t.side, hp: Math.round(t.hp), maxHp: t.maxHp })),
     activeBalancePatch: buildBalancePatchExport(UNIT_CATALOG.find(u => u.id === selectedUnitId)),
@@ -5383,9 +5405,8 @@ function buildArenaExportObject() {
 }
 
 function buildGameArenaLaunchObject() {
-  arenaPlayerDeck = normalizeArenaDeck(arenaPlayerDeck)
-  arenaOpponentDeck = normalizeArenaDeck(arenaOpponentDeck)
-  const selectedUnitId = arenaPlayerDeck[0] ?? arenaDeckOptions()[0]?.id ?? 'warrior'
+  arenaDeck = normalizeArenaDeck(arenaDeck)
+  const selectedUnitId = arenaDeck[0] ?? arenaDeckOptions()[0]?.id ?? 'warrior'
   const patches = {}
   for (const u of UNIT_CATALOG) {
     if (u.isTower) continue
@@ -5400,27 +5421,20 @@ function buildGameArenaLaunchObject() {
   }
   return {
     selectedUnitId,
-    playerDeck: [...arenaPlayerDeck],
-    opponentDeck: [...arenaOpponentDeck],
+    deck: [...arenaDeck],
+    playerDeck: [...arenaDeck],
+    opponentDeck: [...arenaDeck],
     balancePatches: patches,
   }
 }
 
 refreshArenaDeckEditors()
 document.getElementById('btn-arena-player-from-main').addEventListener('click', () => {
-  arenaPlayerDeck = normalizeArenaDeck(readMainPlayerDeck())
+  arenaDeck = normalizeArenaDeck(readMainPlayerDeck())
   refreshArenaDeckEditors()
 })
 document.getElementById('btn-arena-player-random').addEventListener('click', () => {
-  arenaPlayerDeck = pickRandomArenaDeck()
-  refreshArenaDeckEditors()
-})
-document.getElementById('btn-arena-opponent-copy').addEventListener('click', () => {
-  arenaOpponentDeck = [...arenaPlayerDeck]
-  refreshArenaDeckEditors()
-})
-document.getElementById('btn-arena-opponent-random').addEventListener('click', () => {
-  arenaOpponentDeck = pickRandomArenaDeck()
+  arenaDeck = pickRandomArenaDeck()
   refreshArenaDeckEditors()
 })
 document.getElementById('btn-open-game-arena').addEventListener('click', () => {
@@ -5582,6 +5596,7 @@ function syncTowerSections() {
   document.getElementById('slot-origin-section').style.display = isTower ? '' : 'none'
   document.getElementById('tower-visual-section').style.display = isTower ? '' : 'none'
   document.getElementById('king-range-section').style.display = isKing ? '' : 'none'
+  document.getElementById('king-ranged-attack-section').style.display = isKing ? '' : 'none'
   document.getElementById('tog-map-context-row').style.display = isKing ? '' : 'none'
   document.getElementById('tog-garrison-row').style.display = isKing ? '' : 'none'
   document.getElementById('tog-avatar-frame-row').style.display = isCompositeUnit(unit) ? '' : 'none'
@@ -5594,6 +5609,7 @@ function syncTowerSections() {
   syncHbarInputs()
   syncSlotRingAngleInputs()
   syncKingRangeCenterInputs()
+  syncKingRangedAttackInputs()
   if (isTower) {
     syncSlotOffsetInputs()
     syncTowerVisualInputs()
@@ -5697,6 +5713,12 @@ function buildTowerSideExport(unit, side, slotR) {
         y: +ensureKingRangeCenterOffset(unit, side).y.toFixed(3),
         units: 'cells from logic anchor',
         note: 'Tower attack range measured center-to-center from this point (towerAttackCenter / kingVisualAnchorY). Default Y = visualRow − hitboxRow.',
+      },
+      rangedAttackPointOffset: {
+        x: +ensureKingRangedAttackOffset(unit, side).x.toFixed(3),
+        y: +ensureKingRangedAttackOffset(unit, side).y.toFixed(3),
+        units: 'cells from logic anchor',
+        note: 'Ranged troop standoff/attack center when targeting king tower.',
       },
       garrisonSlots: exportGarrisonSlotsArray(unit, side),
       garrisonNote: 'Deck units + centre cannon — relX/relY are fractions of castle sprite size from centre. unitId from troop catalog or "cannon".',
@@ -5931,14 +5953,14 @@ document.getElementById('btn-approach-player').addEventListener('click', () => {
   document.getElementById('btn-approach-player').classList.add('active')
   document.getElementById('btn-approach-cpu').classList.remove('active')
   clearUnitEditSelection()
-  syncSlotOffsetInputs(); syncSlotRingAngleInputs(); syncTowerVisualInputs(); syncKingRangeCenterInputs(); syncGarrisonSection(); drawUnit()
+  syncSlotOffsetInputs(); syncSlotRingAngleInputs(); syncTowerVisualInputs(); syncKingRangeCenterInputs(); syncKingRangedAttackInputs(); syncGarrisonSection(); drawUnit()
 })
 document.getElementById('btn-approach-cpu').addEventListener('click', () => {
   unitApproachSide = 'cpu'
   document.getElementById('btn-approach-cpu').classList.add('active')
   document.getElementById('btn-approach-player').classList.remove('active')
   clearUnitEditSelection()
-  syncSlotOffsetInputs(); syncSlotRingAngleInputs(); syncTowerVisualInputs(); syncKingRangeCenterInputs(); syncGarrisonSection(); drawUnit()
+  syncSlotOffsetInputs(); syncSlotRingAngleInputs(); syncTowerVisualInputs(); syncKingRangeCenterInputs(); syncKingRangedAttackInputs(); syncGarrisonSection(); drawUnit()
 })
 
 // ── Tower sprite visual offset inputs ─────────────────────────
@@ -5988,6 +6010,30 @@ document.getElementById('btn-copy-king-range').addEventListener('click', () => {
   const off = ensureKingRangeCenterOffset(unit, unitApproachSide)
   const txt = `rangeCenterOffset: { x: ${off.x.toFixed(3)}, y: ${off.y.toFixed(3)} },  // cells from logic anchor`
   copyText(txt, document.getElementById('btn-copy-king-range'), '⎘ Copy rangeCenterOffset')
+})
+
+document.getElementById('king-ranged-x').addEventListener('change', e => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit?.isKing) return
+  pushUnitUndo()
+  ensureKingRangedAttackOffset(unit, unitApproachSide).x = +e.target.value
+  if (slotSyncSides) mirrorKingTowerSideFrom(unit, unitApproachSide)
+  drawUnit()
+})
+document.getElementById('king-ranged-y').addEventListener('change', e => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit?.isKing) return
+  pushUnitUndo()
+  ensureKingRangedAttackOffset(unit, unitApproachSide).y = +e.target.value
+  if (slotSyncSides) mirrorKingTowerSideFrom(unit, unitApproachSide)
+  drawUnit()
+})
+document.getElementById('btn-copy-king-ranged').addEventListener('click', () => {
+  const unit = UNIT_CATALOG.find(u => u.id === activeUnitId)
+  if (!unit?.isKing) return
+  const off = ensureKingRangedAttackOffset(unit, unitApproachSide)
+  const txt = `rangedAttackPointOffset: { x: ${off.x.toFixed(3)}, y: ${off.y.toFixed(3)} },  // cells from logic anchor`
+  copyText(txt, document.getElementById('btn-copy-king-ranged'), '⎘ Copy rangedAttackPointOffset')
 })
 
 // ── Castle garrison inputs ────────────────────────────────────
@@ -7109,6 +7155,10 @@ function updateUnitEditSelectionStatus(unit) {
     const off = getKingRangeCenterOffset(unit, unitApproachSide)
     document.getElementById('unit-status').textContent =
       `Fire range center: (${off.x >= 0 ? '+' : ''}${off.x.toFixed(2)}, ${off.y >= 0 ? '+' : ''}${off.y.toFixed(2)}) cells from logic anchor (cyan crosshair = troop slot/standoff center)${hint}`
+  } else if (unitEditSelection.type === 'rangedAttackCenter') {
+    const off = getKingRangedAttackOffset(unit, unitApproachSide)
+    document.getElementById('unit-status').textContent =
+      `Ranged attack point: (${off.x >= 0 ? '+' : ''}${off.x.toFixed(2)}, ${off.y >= 0 ? '+' : ''}${off.y.toFixed(2)}) cells from logic anchor${hint}`
   } else if (unitEditSelection.type === 'garrison') {
     const slots = getKingGarrisonSlots(unit, unitApproachSide)
     const slot = slots[unitEditSelection.index]
@@ -7144,6 +7194,7 @@ function nudgeUnitEditSelection(signX, signY, e) {
   else if (sel.type === 'sprite' && (!unitShowSprite || !unit.isTower)) return false
   else if (sel.type === 'hbar' && !unitShowHbar) return false
   else if (sel.type === 'rangeCenter' && (!unit.isKing || !unitShowRing)) return false
+  else if (sel.type === 'rangedAttackCenter' && (!unit.isKing || !unitShowRing)) return false
   else if (sel.type === 'garrison' && (!unit.isKing || !unitShowGarrison)) return false
   else if (sel.type === 'composite' && (!isCompositeUnit(unit) || !unitShowSprite)) return false
   else if (sel.type === 'avatarBox' && (!isCompositeUnit(unit) || !unitShowAvatarFrame)) return false
@@ -7183,6 +7234,13 @@ function nudgeUnitEditSelection(signX, signY, e) {
     off.y = roundSlotCoord(off.y + signY * step)
     if (slotSyncSides) mirrorKingTowerSideFrom(unit, unitApproachSide)
     syncKingRangeCenterInputs()
+  } else if (sel.type === 'rangedAttackCenter') {
+    const off = ensureKingRangedAttackOffset(unit, unitApproachSide)
+    const { step } = arrowNudgeHint(e, 'cells')
+    off.x = roundSlotCoord(off.x + signX * step)
+    off.y = roundSlotCoord(off.y + signY * step)
+    if (slotSyncSides) mirrorKingTowerSideFrom(unit, unitApproachSide)
+    syncKingRangedAttackInputs()
   } else if (sel.type === 'garrison') {
     const slots = getKingGarrisonSlots(unit, unitApproachSide)
     const slot = slots[sel.index]
