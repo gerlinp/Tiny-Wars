@@ -1203,11 +1203,18 @@ export class Troop extends Entity {
   ): void {
     if (expectedStep <= EPSILON_DISTANCE) { this.stuckMs = 0; return }
 
-    const moved = Math.hypot(this.position.x - beforeX, this.position.y - beforeY)
+    // Progress = distance CLOSED toward the next waypoint (or the goal), not raw
+    // displacement. Collision jostle moves a unit sideways every tick, which used to
+    // reset the stuck timer forever — a shoving cluster at a bridge mouth could
+    // livelock indefinitely without ever counting as stuck.
+    const ref = this.pathWaypoints[0] ?? goal
+    const refBefore = Math.hypot(ref.x - beforeX, ref.y - beforeY)
+    const refNow = Math.hypot(ref.x - this.position.x, ref.y - this.position.y)
+    const progress = refBefore - refNow
     const remaining = Math.hypot(goal.x - this.position.x, goal.y - this.position.y)
     // Real progress — or arriving at the goal (unless the caller says arrival alone
     // doesn't count, e.g. parked on an attack slot that can't actually reach) — is not "stuck".
-    if (moved >= expectedStep * STUCK_PROGRESS_FRACTION || (arrivedIsProgress && remaining <= expectedStep)) {
+    if (progress >= expectedStep * STUCK_PROGRESS_FRACTION || (arrivedIsProgress && remaining <= expectedStep)) {
       this.stuckMs = 0
       this.progressMsSinceRecovery += deltaMs
       if (this.progressMsSinceRecovery >= STUCK_LEVEL_DECAY_MS) {
