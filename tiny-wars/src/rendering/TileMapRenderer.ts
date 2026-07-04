@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { GRID_COLS, GRID_ROWS, CELL_SIZE, RIVER_ROW_START, RIVER_ROW_END, LEFT_BRIDGE_COLS, RIGHT_BRIDGE_COLS } from '@data/GameConstants'
-import { TERRAIN_COLOR1, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_BANK_PADDING_ROWS } from '@data/TerrainManifest'
+import { TERRAIN_COLOR1, TERRAIN_ROAD, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_BANK_PADDING_ROWS } from '@data/TerrainManifest'
 import { BridgeStrip } from '@rendering/BridgeStrip'
 import {
   terrainCellAt,
@@ -17,6 +17,7 @@ const DEPTH_BRIDGE = 3
 const FALLBACK_WATER_COLOR = 0x1a3a6a
 const FALLBACK_BRIDGE_COLOR = 0x8b6914
 const FALLBACK_GRASS_COLOR = 0x2d6a2d
+const FALLBACK_ROAD_COLOR = 0x9a7b4f
 
 type TileMapRendererOptions = {
   extraColsLeft?: number
@@ -51,6 +52,10 @@ export class TileMapRenderer {
         } else if (kind === 'bridge') {
           // Water underneath; bridge deck drawn as single image below
           this.drawTile(x, y, hasWater ? TERRAIN_WATER.key : null, null, FALLBACK_WATER_COLOR, DEPTH_WATER)
+        } else if (kind === 'road') {
+          const { frame, flipY } = grassTilePlacement(col, row)
+          const roadKey = this.scene.textures.exists(TERRAIN_ROAD.key) ? TERRAIN_ROAD.key : null
+          this.drawTile(x, y, roadKey, frame, FALLBACK_ROAD_COLOR, DEPTH_GROUND, flipY)
         } else {
           const { frame, flipY } = grassTilePlacement(col, row)
           this.drawTile(x, y, hasTileset ? TERRAIN_COLOR1.key : null, frame, FALLBACK_GRASS_COLOR, DEPTH_GROUND, flipY)
@@ -61,7 +66,7 @@ export class TileMapRenderer {
     this.drawBridges(hasBridge)
   }
 
-  private terrainCellAtExtended(col: number, row: number): 'grass' | 'water' | 'bridge' {
+  private terrainCellAtExtended(col: number, row: number): 'grass' | 'water' | 'bridge' | 'road' {
     if (col < 0 || col >= GRID_COLS) {
       return isRiverRow(row) ? 'water' : 'grass'
     }

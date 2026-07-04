@@ -47,6 +47,7 @@ import {
   HEAL_PULSE_INTERVAL_MS,
   TROOP_DEPLOY_SPREAD_CELLS, BRIDGE_CENTER_COL,
   TROOP_SPAWN_DELAY_MS, TROOP_AGGRO_RANGE_CELLS,
+  COMBAT_LEASH_MULTIPLIER, RETARGET_GRACE_MS,
 } from '@data/GameConstants'
 import {
   GNOLL_BOOMERANG_TRAVEL_CELLS,
@@ -197,6 +198,12 @@ export class Troop extends Entity {
   private slowUntilMs = 0
   private isDashing = false
   private dashWindupMsRemaining = 0
+  /** Pending attack windup — damage lands when this reaches 0 (null = no swing in progress). */
+  private attackWindupRemainingMs: number | null = null
+  /** Post-hit recovery — unit stands still until this reaches 0. */
+  private attackRecoveryRemainingMs = 0
+  /** How long the current troop target has been beyond the retention leash (ms). */
+  private leashExceededMs = 0
   private dashTarget: Vec2 | null = null
   private dashTargetEntity: Entity | null = null
   private isHooking = false
@@ -338,6 +345,7 @@ export class Troop extends Entity {
 
     this.syncBuildingChargeState()
     this.syncBuildingChargeTransition()
+    this.tickTargetLeash(deltaMs, state)
     this.refreshCombatTarget(state)
 
     if (this.target) {
@@ -393,9 +401,28 @@ export class Troop extends Entity {
           this.detonateOnStructure(state)
           return
         }
+        if (this.attackWindupRemainingMs !== null) {
+          this.attackWindupRemainingMs -= deltaMs
+          if (this.attackWindupRemainingMs <= 0) {
+            this.attackWindupRemainingMs = null
+            this.performAttack(state, this.target)
+            this.attackRecoveryRemainingMs = this.stats.attackRecoveryMs ?? 0
+          }
+          return
+        }
+        if (this.attackRecoveryRemainingMs > 0) {
+          this.attackRecoveryRemainingMs -= deltaMs
+          return
+        }
         if (this.attackCooldownMs <= 0) {
-          this.performAttack(state, this.target)
           this.attackCooldownMs = 1000 / this.stats.attackRate
+          const windup = this.stats.attackWindupMs ?? 0
+          if (windup > 0) {
+            this.attackWindupRemainingMs = windup
+          } else {
+            this.performAttack(state, this.target)
+            this.attackRecoveryRemainingMs = this.stats.attackRecoveryMs ?? 0
+          }
         }
         return
       }
@@ -412,6 +439,16 @@ export class Troop extends Entity {
         return
       }
 
+      // Target slipped out of reach mid-swing — cancel the windup and refund the swing
+      // so the unit can restart the attack when back in range (closest CR match; tunable).
+      if (this.attackWindupRemainingMs !== null) {
+        this.attackWindupRemainingMs = null
+        this.attackCooldownMs = 0
+      }
+      if (this.attackRecoveryRemainingMs > 0) {
+        this.attackRecoveryRemainingMs -= deltaMs
+        return
+      }
       this.state = TroopState.WALKING
       this.trackObjective(this.target)
       this.marchTowerId = this.target.kind === EntityKind.TOWER ? this.target.id : null
@@ -1343,12 +1380,35 @@ export class Troop extends Entity {
     this.pathGoal = null
   }
 
+  /**
+   * Drop a locked troop target once it stays beyond the retention leash for the grace
+   * period. Structure targets never leash (CR: building-targeters commit until death).
+   */
+  private tickTargetLeash(deltaMs: number, state: GameState): void {
+    if (!this.target?.isAlive || this.target.kind !== EntityKind.TROOP) {
+      this.leashExceededMs = 0
+      return
+    }
+    const retentionCells = this.stats.targetRetentionRangeCells
+      ?? this.aggroRangeCells() * COMBAT_LEASH_MULTIPLIER
+    if (this.engageDistTo(this.target, state) <= retentionCells * CELL_SIZE) {
+      this.leashExceededMs = 0
+      return
+    }
+    this.leashExceededMs += deltaMs
+    if (this.leashExceededMs >= (this.stats.retargetGraceMs ?? RETARGET_GRACE_MS)) {
+      this.target = null
+      this.leashExceededMs = 0
+      this.attackWindupRemainingMs = null
+    }
+  }
+
   private aggroRangeCells(): number {
     const range = this.effectiveAttackRange()
     // CR: all units have sight range ≥ 5.5 tiles, regardless of attack range.
     // Previously ranged units only noticed enemies within their attack range; this
     // caused them to walk into enemies before registering them as targets.
-    let aggro = Math.max(range, TROOP_AGGRO_RANGE_CELLS)
+    let aggro = Math.max(range, this.stats.sightRangeCells ?? TROOP_AGGRO_RANGE_CELLS)
     // Special long-reach melee cards must detect targets out to their ability range so the
     // dash / hook can trigger before the unit is in normal melee range.
     if (this.cardId === 'thief') aggro = Math.max(aggro, THIEF_DASH_RANGE_CELLS)

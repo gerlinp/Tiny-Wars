@@ -17,15 +17,15 @@ describe('SpawnZones layout', () => {
   it('buildFallbackSpawnZones covers full deploy bands per lane', () => {
     const zones = buildFallbackSpawnZones()
     expect(zones[spawnZoneCellKey(4, BOT_DEPLOY_ROW_MAX)]).toBe('left')
-    expect(zones[spawnZoneCellKey(19, BOT_DEPLOY_ROW_MAX)]).toBe('right')
-    expect(zones[spawnZoneCellKey(11, PLAYER_DEPLOY_ROW_MIN)]).toBe('base')
+    expect(zones[spawnZoneCellKey(13, BOT_DEPLOY_ROW_MAX)]).toBe('right')
+    expect(zones[spawnZoneCellKey(9, PLAYER_DEPLOY_ROW_MIN)]).toBe('base')
   })
 
   it('buildClashStyleSpawnZones keeps enemy center corridor off lane unlock paint', () => {
     const zones = buildClashStyleSpawnZones()
-    expect(zones[spawnZoneCellKey(4, 13)]).toBe('left')
-    expect(zones[spawnZoneCellKey(19, 13)]).toBe('right')
-    expect(zones[spawnZoneCellKey(11, 13)]).toBe('base')
+    expect(zones[spawnZoneCellKey(2, BOT_DEPLOY_ROW_MAX)]).toBe('left')
+    expect(zones[spawnZoneCellKey(15, BOT_DEPLOY_ROW_MAX)]).toBe('right')
+    expect(zones[spawnZoneCellKey(9, BOT_DEPLOY_ROW_MAX)]).toBe('base')
   })
 
   it('enemyUnlockOverlayCells skips friendly-row left/right paint', () => {

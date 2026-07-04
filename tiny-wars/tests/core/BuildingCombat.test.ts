@@ -73,8 +73,8 @@ describe('Building CR combat hull', () => {
     const woodTower = CARD_DEFINITIONS.wood_tower!
     const warriorCard = CARD_DEFINITIONS.warrior!
 
-    expect(sim.deployCard(Owner.BOT, woodTower, { x: 15, y: 18 })).toBe(true)
-    expect(sim.deployCard(Owner.PLAYER, warriorCard, { x: 15, y: 23 })).toBe(true)
+    expect(sim.deployCard(Owner.BOT, woodTower, { x: 11, y: 12 })).toBe(true)
+    expect(sim.deployCard(Owner.PLAYER, warriorCard, { x: 11, y: 18 })).toBe(true)
 
     const building = [...sim.state.entities.values()].find(e => e.cardId === 'wood_tower')!
     const beforeHp = building.hp

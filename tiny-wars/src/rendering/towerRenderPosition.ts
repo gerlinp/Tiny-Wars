@@ -148,10 +148,9 @@ export function towerRenderY(logicY: number, owner: Owner, isKing: boolean, logi
     const vis = towerVisualOffset(owner, isKing, logicX)
     if (vis) return anchorY + vis.offsetY
   }
-  const riverEdge = towerFootprintRiverEdge(logicY, owner, isKing)
-  const halfDisplay = targetHeightForTower(isKing) / 2
-  const base = owner === Owner.PLAYER ? riverEdge + halfDisplay : riverEdge - halfDisplay
-  return base + princessRenderNudgeY(owner, isKing)
+  // Sprite centred on the logic anchor (kings use their visual row); tall art
+  // naturally extends behind the footprint like CR's perspective.
+  return anchorY + princessRenderNudgeY(owner, isKing)
 }
 
 /** Sprite X — map.json override or tower logic centre (kings nudged to true map centre on even-width grid). */

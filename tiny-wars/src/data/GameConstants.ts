@@ -1,27 +1,29 @@
-export const GRID_COLS = 24
-export const GRID_ROWS = 43
+// Clash Royale arena grid — 18×32 tiles (observable via placement grid in-game)
+export const GRID_COLS = 18
+export const GRID_ROWS = 32
 
 /** Minimum world-space distance treated as effectively zero in movement and collision checks. */
 export const EPSILON_DISTANCE = 0.01
 
-/** Arena border — visual moat in terrain; also trims deploy zones (pathfinding grid stays fully open). */
-export const ARENA_FENCE_ROWS = 1
-export const ARENA_FENCE_COLS = 1
+/** Arena border — CR's full 18×32 grid is playable; fence kept configurable (0 = none). */
+export const ARENA_FENCE_ROWS = 0
+export const ARENA_FENCE_COLS = 0
 
-// Each grid cell in pixels — 64 renders terrain at native 64×64 and troops near-native 192×192
-export const CELL_SIZE = 64
+// Each grid cell in logical pixels — battlefield 900×1600 at 18×32 cells
+export const CELL_SIZE = 50
 
-// Map display scale — relative to visible unit height (matches Tiny Swords reference art)
-export const MAP_UNIT_TARGET_HEIGHT = CELL_SIZE * 2.5
+// Map display scale — visible unit height in cells. CR units read ~1.5–2 tiles tall,
+// so a standard troop targets 1.6 cells (× SPRITE_VISUAL_SCALE below).
+export const MAP_UNIT_TARGET_HEIGHT = CELL_SIZE * 1.6
 
 // Visual-only scale applied to rendered sprites; does NOT affect collision or game logic
-export const SPRITE_VISUAL_SCALE = 1.35
+export const SPRITE_VISUAL_SCALE = 1.15
 
 /** Height multipliers vs a knight's visible height (reference proportions) */
 export const MAP_HEIGHT_MULTIPLIER = {
   troop:           1.0,
   building:        2.2,
-  tower_princess:  3.5,
+  tower_princess:  2.7,
   tower_king:      2.5,  // composite castle sprite (whole base, not a single tower)
 } as const
 
@@ -31,46 +33,50 @@ export const MAP_TOWER_CONTENT_FILL = {
   tower_king:     0.88,
 } as const
 
-export const GAME_WIDTH  = GRID_COLS * CELL_SIZE  // 1536
-export const GAME_HEIGHT = GRID_ROWS * CELL_SIZE  // 2752 — arena only
-export const HUD_HEIGHT  = 560
-export const CANVAS_HEIGHT = GAME_HEIGHT + HUD_HEIGHT  // 3312 — must match GameConfig height
+export const GAME_WIDTH  = GRID_COLS * CELL_SIZE  // 900
+export const GAME_HEIGHT = GRID_ROWS * CELL_SIZE  // 1600 — arena only
+export const HUD_HEIGHT  = 400
+export const CANVAS_HEIGHT = GAME_HEIGHT + HUD_HEIGHT  // 2000 — must match GameConfig height
 
-// Tower hitbox anchors (map.json overrides — combat, pathing, targeting)
-export const PLAYER_KING_ROW    = 39
-/** Half-cell offset on 24-col grid — logic X lands on true map centre (768px). */
-export const PLAYER_KING_COL    = 11.5
-export const PLAYER_TOWER_ROW   = 30
-export const PLAYER_TOWER_COLS  = [4, 19] as const
+// Tower hitbox anchors (map.json overrides — combat, pathing, targeting).
+// CR placement grid (observable): princess towers centred on cols 3/14, ~6.5 tiles
+// from each back edge; king centred on the map axis ~2.5 tiles from the back edge.
+export const PLAYER_KING_ROW    = 29
+/** Half-cell offset on 18-col grid — logic X lands on true map centre (450px). */
+export const PLAYER_KING_COL    = 8.5
+export const PLAYER_TOWER_ROW   = 25
+export const PLAYER_TOWER_COLS  = [3, 14] as const
 
-export const BOT_KING_ROW   = 3
-export const BOT_KING_COL   = 11.5
-export const BOT_TOWER_ROW  = 12
-export const BOT_TOWER_COLS = [4, 19] as const
+export const BOT_KING_ROW   = 2
+export const BOT_KING_COL   = 8.5
+export const BOT_TOWER_ROW  = 6
+export const BOT_TOWER_COLS = [3, 14] as const
 
 /** King logic anchor is already at map centre — no render nudge. */
 export const KING_SPRITE_CENTER_OFFSET_X = 0
 export const KING_MAP_CENTER_X = (GRID_COLS * CELL_SIZE) / 2
 
 /** King castle art — visual-only rows (sprites/garrison stay here when hitbox row differs). */
-export const PLAYER_KING_VISUAL_ROW = 36
-export const BOT_KING_VISUAL_ROW    = 6
+export const PLAYER_KING_VISUAL_ROW = 28
+export const BOT_KING_VISUAL_ROW    = 3
 
 /** King-tower garrison cannon — map grid row on the visible castle deck. */
-export const PLAYER_KING_CANNON_ROW = 37
-export const BOT_KING_CANNON_ROW = 5
+export const PLAYER_KING_CANNON_ROW = 28
+export const BOT_KING_CANNON_ROW = 3
 
-/** Walkable bridge columns through the river — 7-wide, centred on each princess lane. */
-export const BRIDGE_SPAN = 7
+/** Walkable bridge columns through the river, centred on each princess lane.
+ *  CR's exact bridge width is uncertain (reads as ~2–3 tiles in-game); 3 is the
+ *  closest observable match and stays configurable via BRIDGE_SPAN. */
+export const BRIDGE_SPAN = 3
 const BRIDGE_RADIUS = Math.floor(BRIDGE_SPAN / 2)
 
 function bridgeColsOnTowerLane(towerCol: number): readonly number[] {
   return Array.from({ length: BRIDGE_SPAN }, (_, i) => towerCol - BRIDGE_RADIUS + i)
 }
 
-// River runs across rows 20–22 (0-indexed); bridge columns are walkable through it
-export const RIVER_ROW_START = 20
-export const RIVER_ROW_END   = 22
+// River spans 2 rows across the arena middle (CR observable); bridges cut through it
+export const RIVER_ROW_START = 15
+export const RIVER_ROW_END   = 16
 /** Each bridge sits on its princess tower lane — CPU marches straight to player tower. */
 export const LEFT_BRIDGE_COLS  = bridgeColsOnTowerLane(PLAYER_TOWER_COLS[0])
 export const RIGHT_BRIDGE_COLS = bridgeColsOnTowerLane(PLAYER_TOWER_COLS[1])
@@ -79,9 +85,9 @@ export const BRIDGE_COLS = [...LEFT_BRIDGE_COLS, ...RIGHT_BRIDGE_COLS] as const
 // Lane movement — one vertical lane per princess tower column
 export const LEFT_LANE_COL     = PLAYER_TOWER_COLS[0]
 export const RIGHT_LANE_COL    = PLAYER_TOWER_COLS[1]
-export const RIVER_BRIDGE_ROW  = 21   // middle river row — horizontal bridge crossing
-/** Integer column on bridge row where lanes converge (between cols 11 & 12). */
-export const BRIDGE_CENTER_COL = 12
+export const RIVER_BRIDGE_ROW  = 16   // last river row — horizontal bridge crossing
+/** Integer column on bridge row where lanes converge (map centre). */
+export const BRIDGE_CENTER_COL = 9
 
 // Game duration
 export const GAME_DURATION_MS = 180_000  // 3 minutes
@@ -122,7 +128,7 @@ export function towerFootprintHalfExtents(isKing: boolean): { halfW: number; hal
 
 /** Princess-only sprite shift toward the river (visual only; hitboxes unchanged). */
 export const PRINCESS_TOWER_RENDER_NUDGE_Y = {
-  player: -152,
+  player: 0,
   bot: 0,
 } as const
 
@@ -134,14 +140,14 @@ export const TOWER_HEALTH_BAR_Y = {
   playerOffsetFromCenter: 24,
 } as const
 
-// Deployment zones — exclude fence border rows from valid placement
-export const PLAYER_DEPLOY_ROW_MIN = 23
-export const PLAYER_DEPLOY_ROW_MAX = GRID_ROWS - 1 - ARENA_FENCE_ROWS  // 41
-export const BOT_DEPLOY_ROW_MIN    = ARENA_FENCE_ROWS                   // 1
-export const BOT_DEPLOY_ROW_MAX    = 19
+// Deployment zones — own half of the arena, bounded by the river (CR observable)
+export const PLAYER_DEPLOY_ROW_MIN = RIVER_ROW_END + 1                  // 17
+export const PLAYER_DEPLOY_ROW_MAX = GRID_ROWS - 1 - ARENA_FENCE_ROWS  // 31
+export const BOT_DEPLOY_ROW_MIN    = ARENA_FENCE_ROWS                   // 0
+export const BOT_DEPLOY_ROW_MAX    = RIVER_ROW_START - 1                // 14
 
 /** Princess-lane split — left tower unlocks cols [0, split); right unlocks [split, GRID_COLS). */
-export const DEPLOY_LANE_SPLIT_COL = 12
+export const DEPLOY_LANE_SPLIT_COL = 9
 
 // Bot AI think interval range (ms)
 export const BOT_THINK_MIN_MS = 2000
@@ -184,15 +190,31 @@ export const BOMB_TOWER_LIFETIME_MS = 30_000
 /** Melee troop detection radius (ranged troops use their attack range instead) */
 export const TROOP_AGGRO_RANGE_CELLS = 6
 
-/** How far beyond attack range a unit can be pushed before it drops its current target.
- *  1.0 = drop immediately at edge of range; 2.0 = hold until twice attack range away. */
+/** How far beyond sight range a troop target can flee before it is dropped.
+ *  Default retention = sight range × this; override per-card with targetRetentionRangeCells. */
 export const COMBAT_LEASH_MULTIPLIER = 2.0
+
+/** Grace period (ms) a troop target may remain beyond the leash before it is dropped.
+ *  CR's exact behavior is unobservable — 0 (immediate drop) is the closest safe default;
+ *  override per-card with retargetGraceMs. */
+export const RETARGET_GRACE_MS = 0
 
 /** Ground troop feet collision — small circle (CR-style), not sprite-sized boxes. */
 export const TROOP_COLLISION_RADIUS_CELLS = 0.35
 
 /** Deployed building combat hull — CR non-spawner buildings use ~0.6 tiles. */
 export const BUILDING_COMBAT_RADIUS_CELLS = 0.6
+
+/**
+ * Navigation cost multipliers by terrain (lower = preferred). Roads are an original
+ * Tiny Wars mechanic (CR paths straight to bridges); grass stays 1.0 so maps without
+ * painted roads navigate exactly as before. Tune road pull here.
+ */
+export const NAV_TERRAIN_COST = {
+  road: 0.7,
+  grass: 1.0,
+  bridge: 1.0,
+} as const
 
 /** Grid cells blocked for pathfinding (separate from combat circle). */
 export const BUILDING_FOOTPRINT_CELLS = { w: 2, h: 2 } as const

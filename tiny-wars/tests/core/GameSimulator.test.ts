@@ -106,19 +106,19 @@ describe('GameSimulator', () => {
   })
 
   describe('canDeployAt', () => {
-    it('rejects player deploy on row 22 (river boundary)', () => {
+    it('rejects player deploy on row 16 (river boundary)', () => {
       const sim = makeSim()
       const card = CARD_DEFINITIONS['archer']!
       sim.state.playerElixir = 10
-      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: 22 })).toBe(false)
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 9, y: 16 })).toBe(false)
     })
 
-    it('accepts player deploy at row 23 and inner zone edge below king', () => {
+    it('accepts player deploy at first row past river and inner zone edge below king', () => {
       const sim = makeSim()
       const card = CARD_DEFINITIONS['archer']!
       sim.state.playerElixir = 10
-      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: PLAYER_DEPLOY_ROW_MIN })).toBe(true)
-      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: 28 })).toBe(true)
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 9, y: PLAYER_DEPLOY_ROW_MIN })).toBe(true)
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 4, y: 28 })).toBe(true)
     })
 
     it('rejects deploy when player has insufficient elixir', () => {
@@ -153,8 +153,8 @@ describe('GameSimulator', () => {
       sim.state.enemyLaneDeploy[Owner.PLAYER].left = true
       sim.state.playerElixir = 10
       const card = CARD_DEFINITIONS['warrior']!
-      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 4, y: 5 })).toBe(true)
-      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 19, y: 5 })).toBe(false)
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 4, y: 3 })).toBe(true)
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 13, y: 3 })).toBe(false)
     })
   })
 })

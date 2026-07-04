@@ -206,9 +206,9 @@ describe('Troop targeting', () => {
     unit.tick(33, state)
 
     const targetPos = unit.getDevInfo(state).targetPos
-    // Princess-sized hull — standoff ~x=187 toward building at 350, not the nearer troop (~170).
-    expect(targetPos?.x).toBeGreaterThan(170)
-    expect(targetPos?.x).toBeLessThan(220)
+    // Princess-sized hull — standoff ~x=222 toward building at 350, not the nearer troop (~187).
+    expect(targetPos?.x).toBeGreaterThan(205)
+    expect(targetPos?.x).toBeLessThan(240)
   })
 
   it('building-only troops ignore enemy troops and march toward structures', () => {

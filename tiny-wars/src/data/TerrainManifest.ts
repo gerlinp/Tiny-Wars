@@ -14,6 +14,16 @@ export const TERRAIN_COLOR1 = {
 /** @deprecated alias — renderer uses TERRAIN_COLOR1 */
 export const TERRAIN_GRASS = TERRAIN_COLOR1
 
+/** Road surface — color2 variant of the same autotile sheet. */
+export const TERRAIN_ROAD = {
+  key: 'terrain_road',
+  path: 'assets/Terrain/Tileset/Tilemap_color2.png',
+  frameWidth: TERRAIN_TILE_PX,
+  frameHeight: TERRAIN_TILE_PX,
+  sheetCols: 9,
+  sheetRows: 6,
+} as const
+
 export const TERRAIN_WATER = {
   key: 'terrain_water',
   path: 'assets/Terrain/Water/Water.png',

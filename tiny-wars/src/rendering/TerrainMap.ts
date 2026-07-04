@@ -17,7 +17,7 @@ import {
 } from '@data/TerrainManifest'
 import { getActiveMapConfig } from '@data/ActiveMapConfig'
 
-export type TerrainCell = 'grass' | 'water' | 'bridge'
+export type TerrainCell = 'grass' | 'water' | 'bridge' | 'road'
 
 /** True for the outermost border cells that form the arena moat (rendered as water). */
 export function isBorderCell(col: number, row: number): boolean {
@@ -61,6 +61,8 @@ export function terrainCellAt(col: number, row: number): TerrainCell {
     const override = config.terrainOverrides[key]
     if (override === 'water') return 'water'
     if (override === 'grass') return 'grass'
+    // Roads only exist on land — river cells keep water/bridge semantics.
+    if (override === 'road' && !isRiverRow(row)) return 'road'
   }
   if (isRiverRow(row)) {
     return isBridgeCol(col) ? 'bridge' : 'water'
@@ -72,7 +74,7 @@ export function terrainCellAt(col: number, row: number): TerrainCell {
 export function isLandNeighbor(col: number, row: number): boolean {
   if (col < 0 || col >= GRID_COLS || row < 0 || row >= GRID_ROWS) return false
   const kind = terrainCellAt(col, row)
-  return kind === 'grass' || kind === 'bridge'
+  return kind === 'grass' || kind === 'bridge' || kind === 'road'
 }
 
 function neighborMask(col: number, row: number): number {

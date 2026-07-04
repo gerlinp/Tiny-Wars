@@ -27,20 +27,21 @@ describe('LaneMovement', () => {
   })
 
   it('off-path troop steers toward nearest lane (right of left lane)', () => {
-    const next = getLaneStep(10, 30, Owner.PLAYER)
-    expect(next).toEqual({ x: 9, y: 30 })
-  })
-
-  it('off-path troop east of left lane moves left toward it', () => {
-    // cols 1–7 are the 7-wide left bridge; col 8 is the first genuinely off-path column
+    // col 8 is closer to left lane (col 3, dist 5) than right lane (col 14, dist 6)
     const next = getLaneStep(8, 30, Owner.PLAYER)
     expect(next).toEqual({ x: 7, y: 30 })
   })
 
+  it('off-path troop east of left lane moves left toward it', () => {
+    // cols 2–4 are the left bridge; col 5 is the first genuinely off-path column
+    const next = getLaneStep(5, 30, Owner.PLAYER)
+    expect(next).toEqual({ x: 4, y: 30 })
+  })
+
   it('off-path troop between bridges steers toward nearest lane', () => {
-    // col 13 is closer to right lane (col 19, dist 6) than left lane (col 4, dist 9)
-    const next = getLaneStep(13, 30, Owner.PLAYER)
-    expect(next).toEqual({ x: 14, y: 30 })
+    // col 10 is closer to right lane (col 14, dist 4) than left lane (col 3, dist 7)
+    const next = getLaneStep(10, 30, Owner.PLAYER)
+    expect(next).toEqual({ x: 11, y: 30 })
   })
 
   it('bridge column crosses river vertically instead of sidestepping into water', () => {
@@ -51,11 +52,11 @@ describe('LaneMovement', () => {
   })
 
   it('bridge row between lanes still converges toward centre on land', () => {
-    // cols 8–15 are between the two 7-wide bridges and converge toward center col 12
-    expect(getLaneStep(9, RIVER_BRIDGE_ROW, Owner.PLAYER))
-      .toEqual({ x: 10, y: RIVER_BRIDGE_ROW })
-    expect(getLaneStep(15, RIVER_BRIDGE_ROW, Owner.PLAYER))
-      .toEqual({ x: 14, y: RIVER_BRIDGE_ROW })
+    // cols 5–12 are between the two bridges and converge toward center col 9
+    expect(getLaneStep(6, RIVER_BRIDGE_ROW, Owner.PLAYER))
+      .toEqual({ x: 7, y: RIVER_BRIDGE_ROW })
+    expect(getLaneStep(12, RIVER_BRIDGE_ROW, Owner.PLAYER))
+      .toEqual({ x: 11, y: RIVER_BRIDGE_ROW })
   })
 
   it('outer bridge column crosses vertically like inner lane', () => {
@@ -76,7 +77,7 @@ describe('LaneMovement', () => {
 
   it('off-path march goal steers diagonally toward the lane ahead', () => {
     const { worldToCell, cellToWorld } = gridHelpers()
-    const wx = 10 * CELL_SIZE + CELL_SIZE / 2
+    const wx = 8 * CELL_SIZE + CELL_SIZE / 2
     const wy = 30 * CELL_SIZE + CELL_SIZE / 2
     const goal = getLaneMarchGoal(wx, wy, Owner.PLAYER, worldToCell, cellToWorld)
 

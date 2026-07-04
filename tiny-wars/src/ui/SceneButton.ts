@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { CINZEL_FONT } from './cardHandLayout'
 
-export const MENU_BUTTON_SCALE = 8
+export const MENU_BUTTON_SCALE = 4.4
 const MENU_BUTTON_SRC_W = 64
 
 export function menuButtonDisplayWidth(): number {
@@ -56,7 +56,7 @@ export function createMenuButton(
     fontStyle: 'bold',
     color: '#ffffff',
     stroke: '#000022',
-    strokeThickness: 12,
+    strokeThickness: 7,
   }).setOrigin(0.5).setDepth(depth + 1)
   btn.on('pointerup', onPress)
   btn.on('pointerover', () => btn.setTint(0xdddddd))

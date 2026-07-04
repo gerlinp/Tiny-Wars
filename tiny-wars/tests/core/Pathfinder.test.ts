@@ -40,15 +40,15 @@ describe('Pathfinder', () => {
   it('ground unit cannot cross river outside bridge columns', () => {
     const grid = new Grid()
     // Column 10 is not a bridge — should be impassable through the river
-    expect(grid.isWalkable(10, 21)).toBe(false)
+    expect(grid.isWalkable(10, 15)).toBe(false)
+    expect(grid.isWalkable(10, 16)).toBe(false)
   })
 
   it('bridge columns are walkable through the river', () => {
     const grid = new Grid()
     for (const col of BRIDGE_COLS) {
-      expect(grid.isWalkable(col, 20)).toBe(true)
-      expect(grid.isWalkable(col, 21)).toBe(true)
-      expect(grid.isWalkable(col, 22)).toBe(true)
+      expect(grid.isWalkable(col, 15)).toBe(true)
+      expect(grid.isWalkable(col, 16)).toBe(true)
     }
   })
 })

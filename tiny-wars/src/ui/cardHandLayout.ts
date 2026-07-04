@@ -9,12 +9,12 @@ export const NUMBER_FONT  = "'Philosopher', Georgia, serif"
 /** Maximize avatars within the HUD — row spans the screen, slots fill deck height. */
 
 const HAND_SLOTS = 4
-const DECK_MARGIN_X = 24
-const CARD_SLOT_GAP = 16
-const NEXT_HAND_GAP = 32
+const DECK_MARGIN_X = 14
+const CARD_SLOT_GAP = 10
+const NEXT_HAND_GAP = 20
 const NEXT_SLOT_SCALE = 0.65
 
-export const ELIXIR_BAND_H = 72
+export const ELIXIR_BAND_H = 56
 export const DECK_PAD_TOP = 4
 export const DECK_PAD_BOTTOM = 8
 
@@ -38,7 +38,7 @@ const DECK_ROW_WIDTH =
 
 const DECK_ROW_LEFT = (GAME_WIDTH - DECK_ROW_WIDTH) / 2
 
-export const CARD_SELECTED_LIFT = 24
+export const CARD_SELECTED_LIFT = 16
 
 /** Draw avatars slightly inside the slot so frame art isn't clipped. */
 const AVATAR_SLOT_FILL = 0.94
@@ -93,7 +93,7 @@ export function deckCenterY(gameHeight: number): number {
 }
 
 export function elixirBarY(gameHeight: number): number {
-  return gameHeight + 32
+  return gameHeight + 26
 }
 
 export function cardIconDisplaySize(): { w: number; h: number } {

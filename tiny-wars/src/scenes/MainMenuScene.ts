@@ -27,25 +27,25 @@ export class MainMenuScene extends Phaser.Scene {
     createWaterBackground(this, width, height)
 
     this.add.text(width / 2, height * 0.28, 'TINY WARS', {
-      fontSize: '208px',
+      fontSize: '129px',
       fontFamily: CINZEL_FONT,
       fontStyle: 'bold',
       color: '#ffdd88',
       stroke: '#332200',
-      strokeThickness: 32,
+      strokeThickness: 20,
     }).setOrigin(0.5)
 
     this.add.text(width / 2, height * 0.38, 'Real-time lane battles', {
-      fontSize: '68px',
+      fontSize: '42px',
       fontFamily: CINZEL_FONT,
       fontStyle: 'bold',
       color: '#8888aa',
       stroke: '#000022',
-      strokeThickness: 8,
+      strokeThickness: 5,
     }).setOrigin(0.5)
 
     const menuBtnY = height * 0.55
-    const [playX, onlineX, deckX] = menuButtonRowCenters(width, 3, 40)
+    const [playX, onlineX, deckX] = menuButtonRowCenters(width, 3, 24)
     createMenuButton(this, playX,   menuBtnY, 'PLAY',   '72px', 1, () => startBattleLoading(this))
     createMenuButton(this, onlineX, menuBtnY, 'ONLINE', '56px', 1, () => this.scene.start('PvPLobbyScene'))
     createMenuButton(this, deckX,   menuBtnY, 'DECK',   '72px', 1, () => this.scene.start('DeckBuilderScene'))

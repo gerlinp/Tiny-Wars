@@ -16,26 +16,24 @@ describe('towerRenderPosition', () => {
   const botLogicY = BOT_TOWER_ROW * CELL_SIZE + CELL_SIZE / 2
   const playerLogicY = 35 * CELL_SIZE + CELL_SIZE / 2
 
-  it('nudges bot princess sprite toward the river', () => {
-    const bounds = towerVisualBounds(botLogicY, Owner.BOT, false)
-    expect(bounds.bottom).toBeCloseTo(bounds.riverEdge + PRINCESS_TOWER_RENDER_NUDGE_Y.bot, 0)
+  it('centres princess sprites on their logic anchor (plus configurable nudge)', () => {
+    expect(towerRenderY(botLogicY, Owner.BOT, false))
+      .toBeCloseTo(botLogicY + PRINCESS_TOWER_RENDER_NUDGE_Y.bot, 5)
+    expect(towerRenderY(playerLogicY, Owner.PLAYER, false))
+      .toBeCloseTo(playerLogicY + PRINCESS_TOWER_RENDER_NUDGE_Y.player, 5)
   })
 
-  it('nudges player princess sprite toward the river', () => {
-    const bounds = towerVisualBounds(playerLogicY, Owner.PLAYER, false)
-    expect(bounds.top).toBeCloseTo(bounds.riverEdge + PRINCESS_TOWER_RENDER_NUDGE_Y.player, 0)
+  it('centres king castle on its visual row anchor', () => {
+    const botKingLogicY = BOT_KING_ROW * CELL_SIZE + CELL_SIZE / 2
+    const expected = botKingLogicY + (BOT_KING_VISUAL_ROW - BOT_KING_ROW) * CELL_SIZE
+    expect(towerRenderY(botKingLogicY, Owner.BOT, true)).toBeCloseTo(expected, 5)
   })
 
-  it('does not nudge king castle render position', () => {
-    const bounds = towerVisualBounds(botLogicY, Owner.BOT, true)
-    expect(bounds.bottom).toBeCloseTo(bounds.riverEdge, 0)
-  })
-
-  it('derives render Y from footprint river edge', () => {
-    const river = towerFootprintRiverEdge(botLogicY, Owner.BOT, true)
-    const ry = towerRenderY(botLogicY, Owner.BOT, true)
-    const half = towerVisualBounds(botLogicY, Owner.BOT, true).height / 2
-    expect(ry).toBeCloseTo(river - half, 0)
+  it('keeps the footprint river edge on the correct side of the anchor', () => {
+    const river = towerFootprintRiverEdge(botLogicY, Owner.BOT, false)
+    expect(river).toBeGreaterThan(botLogicY)
+    const playerRiver = towerFootprintRiverEdge(playerLogicY, Owner.PLAYER, false)
+    expect(playerRiver).toBeLessThan(playerLogicY)
   })
 
   it('places bot king health bar above the castle toward the bot side', () => {
@@ -80,12 +78,12 @@ describe('towerRenderPosition', () => {
   })
 
   it('mirrors king tower anchors and range centers across the map', () => {
-    const RIVER_ROW = 21
-    const mirrorRow = (r: number) => 42 - r
+    const RIVER_AXIS = 15.5  // river spans rows 15-16; mirror axis between them
+    const mirrorRow = (r: number) => 31 - r
 
     expect(PLAYER_KING_ROW).toBe(mirrorRow(BOT_KING_ROW))
     expect(PLAYER_TOWER_ROW).toBe(mirrorRow(BOT_TOWER_ROW))
-    expect(PLAYER_KING_ROW - RIVER_ROW).toBe(RIVER_ROW - BOT_KING_ROW)
+    expect(PLAYER_KING_ROW - RIVER_AXIS).toBe(RIVER_AXIS - BOT_KING_ROW)
     expect(PLAYER_KING_ROW - PLAYER_TOWER_ROW).toBe(BOT_TOWER_ROW - BOT_KING_ROW)
 
     const botCenterRow = BOT_KING_ROW + BOT_KING_TOWER_MELEE.rangeCenterOffsetCells.y
@@ -103,8 +101,8 @@ describe('towerRenderPosition', () => {
   })
 
   it('places king logic col symmetrically between princess towers', () => {
-    const [left, right] = [4, 19]
+    const [left, right] = [3, 14]
     expect(left - PLAYER_KING_COL).toBeCloseTo(-(right - PLAYER_KING_COL), 5)
-    expect(right - PLAYER_KING_COL).toBeCloseTo(7.5, 5)
+    expect(right - PLAYER_KING_COL).toBeCloseTo(5.5, 5)
   })
 })

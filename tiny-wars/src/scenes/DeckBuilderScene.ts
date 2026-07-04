@@ -23,19 +23,19 @@ import { GAME_WIDTH, CANVAS_HEIGHT } from '@data/GameConstants'
 import { createWaterBackground } from '../ui/menuBackground'
 
 const COLS = 4
-const SIDE_MARGIN = 64
-const CELL_GAP_X = 32
-const CELL_GAP_Y = 40
+const SIDE_MARGIN = 40
+const CELL_GAP_X = 20
+const CELL_GAP_Y = 24
 
-const DECK_TOP = 368
-const FOOTER_H = 384
+const DECK_TOP = 228
+const FOOTER_H = 238
 // Extra space below the last collection row so the expanded action panel of the
 // bottom row clears the fixed footer when scrolled fully down.
-const EXPANDED_PANEL_H = 152 * 2 + 8 + 32 * 2  // BTN_H*2 + BTN_GAP + PANEL_PAD*2
-const SCROLL_BOTTOM_PAD = FOOTER_H + EXPANDED_PANEL_H + 80
-const COLLECTION_TITLE_BOTTOM_MARGIN = 72
-const COLLECTION_SORT_BTN_H = 112
-const COLLECTION_SORT_BOTTOM_MARGIN = 56
+const EXPANDED_PANEL_H = 94 * 2 + 5 + 20 * 2  // BTN_H*2 + BTN_GAP + PANEL_PAD*2
+const SCROLL_BOTTOM_PAD = FOOTER_H + EXPANDED_PANEL_H + 50
+const COLLECTION_TITLE_BOTTOM_MARGIN = 45
+const COLLECTION_SORT_BTN_H = 70
+const COLLECTION_SORT_BOTTOM_MARGIN = 35
 
 export class DeckBuilderScene extends Phaser.Scene {
   private deck: string[] = []
@@ -70,42 +70,42 @@ export class DeckBuilderScene extends Phaser.Scene {
 
     createWaterBackground(this, GAME_WIDTH, CANVAS_HEIGHT, { scrollFactor: 0 })
 
-    this.add.text(GAME_WIDTH / 2, 160, 'DECK BUILDER', {
-      fontSize: '128px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#ffdd88', stroke: '#332200', strokeThickness: 24,
+    this.add.text(GAME_WIDTH / 2, 100, 'DECK BUILDER', {
+      fontSize: '79px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#ffdd88', stroke: '#332200', strokeThickness: 15,
     }).setOrigin(0.5)
 
-    this.add.text(SIDE_MARGIN, 288, 'YOUR DECK', {
-      fontSize: '68px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
+    this.add.text(SIDE_MARGIN, 179, 'YOUR DECK', {
+      fontSize: '42px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
     }).setOrigin(0, 0.5)
 
-    this.counterText = this.add.text(GAME_WIDTH - SIDE_MARGIN, 288, '', {
-      fontSize: '68px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
+    this.counterText = this.add.text(GAME_WIDTH - SIDE_MARGIN, 179, '', {
+      fontSize: '42px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(1, 0.5)
 
     const { cellW, cellH } = this.cellSize()
     this.cellW = cellW
     this.cellH = cellH
     const deckBottom = DECK_TOP + 2 * cellH + CELL_GAP_Y
-    this.collectionTop = deckBottom + 480
+    this.collectionTop = deckBottom + 298
 
-    this.elixirText = this.add.text(GAME_WIDTH / 2, deckBottom + 56, '', {
-      fontSize: '64px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#d8a8ff',
+    this.elixirText = this.add.text(GAME_WIDTH / 2, deckBottom + 35, '', {
+      fontSize: '40px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#d8a8ff',
     }).setOrigin(0.5, 0)
 
     const sortRowY = this.collectionTop - COLLECTION_SORT_BTN_H / 2 - COLLECTION_SORT_BOTTOM_MARGIN
     const titleY = sortRowY - COLLECTION_SORT_BTN_H - COLLECTION_TITLE_BOTTOM_MARGIN
 
     this.add.text(SIDE_MARGIN, titleY, 'COLLECTION', {
-      fontSize: '68px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
+      fontSize: '42px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
     }).setOrigin(0, 0.5)
 
     this.buildSortControls(sortRowY)
 
-    this.warningText = this.add.text(GAME_WIDTH / 2, this.collectionTop - 32, 'DECK IS FULL!', {
-      fontSize: '60px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#ff6666', stroke: '#1a0000', strokeThickness: 12,
-      backgroundColor: '#330000', padding: { x: 40, y: 20 },
+    this.warningText = this.add.text(GAME_WIDTH / 2, this.collectionTop - 20, 'DECK IS FULL!', {
+      fontSize: '37px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#ff6666', stroke: '#1a0000', strokeThickness: 7,
+      backgroundColor: '#330000', padding: { x: 25, y: 12 },
     }).setOrigin(0.5, 1).setAlpha(0).setDepth(50)
 
     this.modal = new CardInfoModal(this, () => this.modal.hide())
@@ -143,7 +143,7 @@ export class DeckBuilderScene extends Phaser.Scene {
   }
 
   private buildSortControls(y: number): void {
-    const btnW = 344
+    const btnW = 213
     const btnH = COLLECTION_SORT_BTN_H
     const gap = 24
     const count = COLLECTION_SORT_MODES.length
@@ -156,7 +156,7 @@ export class DeckBuilderScene extends Phaser.Scene {
         .setDepth(20)
         .setInteractive({ useHandCursor: true })
       const text = this.add.text(cx, y, COLLECTION_SORT_LABELS[mode], {
-        fontSize: '48px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
+        fontSize: '30px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#cfe0ff',
       }).setOrigin(0.5).setDepth(21)
 
       bg.on('pointerdown', () => this.setCollectionSort(mode))
@@ -391,11 +391,11 @@ function makeButton(
   depth: number,
   onPress: () => void,
 ): { setEnabled: (on: boolean) => void } {
-  const h = 216
-  const bg   = scene.add.rectangle(cx, y, w, h, color).setStrokeStyle(8, 0xffffff, 0.25).setDepth(depth).setScrollFactor(0)
+  const h = 134
+  const bg   = scene.add.rectangle(cx, y, w, h, color).setStrokeStyle(5, 0xffffff, 0.25).setDepth(depth).setScrollFactor(0)
   const text = scene.add.text(cx, y, label, {
-    fontSize: '88px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-    color: '#ffffff', stroke: '#000022', strokeThickness: 12,
+    fontSize: '55px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+    color: '#ffffff', stroke: '#000022', strokeThickness: 7,
   }).setOrigin(0.5).setDepth(depth).setScrollFactor(0)
 
   let enabled = true

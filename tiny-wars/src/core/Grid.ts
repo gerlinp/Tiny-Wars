@@ -1,6 +1,7 @@
 import {
   GRID_COLS, GRID_ROWS, CELL_SIZE,
   RIVER_ROW_START, RIVER_ROW_END, BRIDGE_COLS,
+  NAV_TERRAIN_COST,
 } from '@data/GameConstants'
 import { getActiveMapConfig } from '@data/ActiveMapConfig'
 import type { Vec2 } from './types'
@@ -59,6 +60,15 @@ export class Grid {
     }
   }
 
+  /** Terrain movement-cost multiplier — roads are cheaper, so paths gravitate to them. */
+  navCostMultiplierAt(col: number, row: number): number {
+    const config = getActiveMapConfig()
+    if (config?.terrainOverrides?.[`${col},${row}`] === 'road') return NAV_TERRAIN_COST.road
+    const inRiver = row >= RIVER_ROW_START && row <= RIVER_ROW_END
+    if (inRiver && (BRIDGE_COLS as readonly number[]).includes(col)) return NAV_TERRAIN_COST.bridge
+    return NAV_TERRAIN_COST.grass
+  }
+
   isRiverCell(col: number, row: number): boolean {
     const inRiver = row >= RIVER_ROW_START && row <= RIVER_ROW_END
     const isBridge = (BRIDGE_COLS as readonly number[]).includes(col)
@@ -88,7 +98,9 @@ export class Grid {
     for (const { dc, dr } of cardinals) {
       const nc = col + dc
       const nr = row + dr
-      if (this.isWalkable(nc, nr)) result.push({ col: nc, row: nr, cost: 1 })
+      if (this.isWalkable(nc, nr)) {
+        result.push({ col: nc, row: nr, cost: this.navCostMultiplierAt(nc, nr) })
+      }
     }
 
     if (!allowDiagonal) return result
@@ -100,7 +112,7 @@ export class Grid {
       if (!this.isWalkable(nc, nr)) continue
       // Prevent cutting corners through blocked cells
       if (!this.isWalkable(col + dc, row) || !this.isWalkable(col, row + dr)) continue
-      result.push({ col: nc, row: nr, cost: Math.SQRT2 })
+      result.push({ col: nc, row: nr, cost: Math.SQRT2 * this.navCostMultiplierAt(nc, nr) })
     }
     return result
   }

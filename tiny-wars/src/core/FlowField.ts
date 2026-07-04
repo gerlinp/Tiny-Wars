@@ -121,7 +121,8 @@ export class FlowField {
         const nr = row + dr
         if (!grid.isWalkable(nc, nr)) continue
         const nidx  = nr * cols + nc
-        const newCost = c + edgeCost
+        // Terrain-weighted edge — roads (< 1.0) pull paths onto the road network.
+        const newCost = c + Math.round(edgeCost * grid.navCostMultiplierAt(nc, nr))
         if (this.cost[nidx]! <= newCost) continue
         this.cost[nidx] = newCost
         // Direction stored at neighbor points back toward goal: normalized(-dc, -dr)

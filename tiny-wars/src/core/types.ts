@@ -63,6 +63,34 @@ export interface EntityStats {
    * Higher values = harder to displace and displaces others more.
    */
   pushWeight?: number
+  /**
+   * How far this unit can see enemy troops (grid cells). Defaults to
+   * max(attackRange, TROOP_AGGRO_RANGE_CELLS). CR does not expose per-card sight
+   * ranges; this default matches observed acquisition behavior and stays tunable.
+   */
+  sightRangeCells?: number
+  /**
+   * Troop-target leash — drop a locked troop target once it is pushed/flees beyond
+   * this many cells. Defaults to sight range × COMBAT_LEASH_MULTIPLIER. Structure
+   * targets never leash (CR: building-targeters commit until death).
+   */
+  targetRetentionRangeCells?: number
+  /**
+   * Grace period (ms) a troop target may stay beyond the retention range before it
+   * is dropped. Defaults to RETARGET_GRACE_MS. CR's exact behavior is uncertain;
+   * 0 = drop the tick it leaves the leash.
+   */
+  retargetGraceMs?: number
+  /**
+   * Delay between starting an attack and the damage landing (ms). CR calls this the
+   * first-hit / load time. Defaults to 0 (instant hit, legacy behavior).
+   */
+  attackWindupMs?: number
+  /**
+   * Time after damage lands before the unit may move again (ms). Defaults to 0.
+   * The attack cooldown still runs from the start of the swing.
+   */
+  attackRecoveryMs?: number
 }
 
 export interface SpellStats {

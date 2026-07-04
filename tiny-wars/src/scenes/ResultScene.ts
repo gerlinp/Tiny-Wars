@@ -27,12 +27,12 @@ export class ResultScene extends Phaser.Scene {
                        winner === Owner.BOT    ? '#ff4444'  : '#aabbff'
 
     this.add.text(width / 2, height * 0.35, titleText, {
-      fontSize: '176px',
+      fontSize: '109px',
       fontFamily: CINZEL_FONT,
       fontStyle: 'bold',
       color: titleColor,
       stroke: '#000000',
-      strokeThickness: 28,
+      strokeThickness: 17,
     }).setOrigin(0.5).setDepth(10)
 
     if (pvpNetwork) {
@@ -46,8 +46,8 @@ export class ResultScene extends Phaser.Scene {
     createMenuButton(this, width / 2, height * 0.56, 'PLAY AGAIN', '76px', 10, () => startBattleLoading(this))
     createMenuButton(this, width / 2, height * 0.66, 'DECK', '76px', 10, () => this.scene.start('DeckBuilderScene'))
     this.add.text(width / 2, height * 0.75, 'Main Menu', {
-      fontSize: '64px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#aabbff', stroke: '#000022', strokeThickness: 8,
+      fontSize: '40px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#aabbff', stroke: '#000022', strokeThickness: 5,
     }).setOrigin(0.5).setDepth(11)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.scene.start('MainMenuScene'))
@@ -58,7 +58,7 @@ export class ResultScene extends Phaser.Scene {
     let remoteReady = false
 
     const statusText = this.add.text(width / 2, height * 0.52, '', {
-      fontSize: '60px',
+      fontSize: '37px',
       fontFamily: "'Philosopher', Georgia, serif",
       color: '#aabbff',
       align: 'center',
@@ -71,8 +71,8 @@ export class ResultScene extends Phaser.Scene {
       .setScale(MENU_BUTTON_SCALE)
       .setDepth(10)
     const rematchLabel = this.add.text(rematchX, height * 0.62, 'REMATCH', {
-      fontSize: '60px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#ffffff', stroke: '#000022', strokeThickness: 12,
+      fontSize: '37px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#ffffff', stroke: '#000022', strokeThickness: 7,
     }).setOrigin(0.5).setDepth(11)
     rematchBtn.on('pointerover', () => { if (!localReady) rematchBtn.setTint(0xdddddd) })
     rematchBtn.on('pointerout',  () => { if (!localReady) rematchBtn.clearTint() })

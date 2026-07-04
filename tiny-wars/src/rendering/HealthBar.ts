@@ -53,13 +53,13 @@ export class HealthBar {
   constructor(scene: Phaser.Scene, x: number, y: number, options: HealthBarOptions = {}) {
     const variant = options.variant ?? 'small'
     const assets = HEALTH_BAR_ASSETS[variant]
-    this.offsetY = options.offsetY ?? -56
+    this.offsetY = options.offsetY ?? -35
     this.barH = assets.displayHeight
     this.depth = options.depth ?? 12
     this.owner = options.owner
     this.fillInsetX = assets.fillInsetX
     this.fillHeightRatio = assets.fillHeightRatio
-    this.fillMinW = 16
+    this.fillMinW = 10
     this.fillFrameH = assets.fillFrame.h
     this.leftCapTexW = assets.baseRegions.leftCap.w
     this.rightCapTexW = assets.baseRegions.rightCap.w
@@ -116,7 +116,7 @@ export class HealthBar {
   ): HealthBar {
     const widthMult = isKing ? 0.38 : 0.32
     return new HealthBar(scene, x, barY, {
-      barWidth: Math.max(isKing ? 200 : 160, Math.round(spriteWidth * widthMult)),
+      barWidth: Math.max(isKing ? 100 : 80, Math.round(spriteWidth * widthMult)),
       offsetY: 0,
       depth: 48,
       variant: 'big',

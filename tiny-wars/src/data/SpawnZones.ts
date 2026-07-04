@@ -78,8 +78,8 @@ export function buildClashStyleSpawnZones(): SpawnZoneMap {
 
   for (let row = BOT_DEPLOY_ROW_MIN; row <= BOT_DEPLOY_ROW_MAX; row++) {
     const depth = BOT_DEPLOY_ROW_MAX - row
-    const leftInner = Math.min(9, colMin + 2 + Math.floor(depth * 0.45))
-    const rightInner = Math.max(14, colMax - 2 - Math.floor(depth * 0.45))
+    const leftInner = Math.min(DEPLOY_LANE_SPLIT_COL - 2, colMin + 2 + Math.floor(depth * 0.45))
+    const rightInner = Math.max(DEPLOY_LANE_SPLIT_COL + 1, colMax - 2 - Math.floor(depth * 0.45))
 
     for (let col = colMin; col <= colMax; col++) {
       const key = spawnZoneCellKey(col, row)
