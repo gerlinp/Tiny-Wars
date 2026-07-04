@@ -3,11 +3,11 @@ import type { CardDefinition } from '@core/types'
 import { CINZEL_FONT, NUMBER_FONT } from './cardHandLayout'
 import { createCardPortrait, destroyCardPortrait, type CardPortraitNode } from './cardPortrait'
 
-const ICON_FILL  = 0.74
-const BTN_H      = 152
-const BTN_GAP    = 8
-const PANEL_PAD  = 32
-const BTN_FONT   = '72px'
+const ICON_FILL  = 0.94
+const BTN_H      = 94
+const BTN_GAP    = 5
+const PANEL_PAD  = 20
+const BTN_FONT   = '44px'
 const INFO_FILL  = 0x1a4a8a
 const INFO_HOVER = 0x2a6ac0
 const ADD_FILL   = 0x1a5a2a
@@ -45,22 +45,22 @@ export class DeckCard {
     h: number,
   ) {
     this.bg = scene.add.rectangle(x, y, w, h, 0x0d1b3e, 0.92)
-      .setStrokeStyle(8, 0x2e4480).setDepth(0)
+      .setStrokeStyle(5, 0x2e4480).setDepth(0)
 
     this.portraitNodes = createCardPortrait(scene, card, x, y, w * ICON_FILL, h * ICON_FILL)
     for (const img of this.portraitNodes) {
       img.setDepth(1)
     }
 
-    this.nameText = scene.add.text(x, y - h / 2 + 44, card.displayName, {
-      fontSize: '52px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#cfe0ff', stroke: '#000022', strokeThickness: 12,
+    this.nameText = scene.add.text(x, y - h / 2 + 24, card.displayName, {
+      fontSize: '26px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#cfe0ff', stroke: '#000022', strokeThickness: 6,
     }).setOrigin(0.5).setDepth(2)
 
-    this.elixirText = scene.add.text(x - w / 2 + 16, y + h / 2 - 16, `${card.elixirCost}`, {
-      fontSize: '56px', fontFamily: NUMBER_FONT, fontStyle: 'bold',
-      color: '#ffffff', stroke: '#1a004a', strokeThickness: 8,
-      backgroundColor: '#5500cc', padding: { x: 20, y: 12 },
+    this.elixirText = scene.add.text(x - w / 2 + 10, y + h / 2 - 10, `${card.elixirCost}`, {
+      fontSize: '30px', fontFamily: NUMBER_FONT, fontStyle: 'bold',
+      color: '#ffffff', stroke: '#1a004a', strokeThickness: 5,
+      backgroundColor: '#5500cc', padding: { x: 11, y: 7 },
     }).setOrigin(0, 1).setDepth(2)
 
     this.dim = scene.add.rectangle(x, y, w, h, 0x05070f, 0.62)
@@ -72,9 +72,9 @@ export class DeckCard {
     const panelCy = y + h / 2 + panelH / 2
 
     this.panelBg = scene.add.rectangle(x, panelCy, w, panelH, 0x2e4480)
-      .setStrokeStyle(6, 0x2e4480).setDepth(9).setVisible(false)
+      .setStrokeStyle(4, 0x2e4480).setDepth(9).setVisible(false)
 
-    this.infoBtnBg = scene.add.rectangle(x, btnY1, w - 16, BTN_H, INFO_FILL)
+    this.infoBtnBg = scene.add.rectangle(x, btnY1, w - 10, BTN_H, INFO_FILL)
       .setStrokeStyle(0).setDepth(10).setVisible(false)
       .setInteractive({ useHandCursor: true })
       .on('pointerover',  () => this.infoBtnBg.setFillStyle(INFO_HOVER))
@@ -88,7 +88,7 @@ export class DeckCard {
       fontSize: BTN_FONT, fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5).setDepth(11).setVisible(false)
 
-    this.actionBtnBg = scene.add.rectangle(x, btnY2, w - 16, BTN_H, ADD_FILL)
+    this.actionBtnBg = scene.add.rectangle(x, btnY2, w - 10, BTN_H, ADD_FILL)
       .setStrokeStyle(0).setDepth(10).setVisible(false)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => { this.btnPressed = true; this.justInteracted = true })
@@ -136,7 +136,7 @@ export class DeckCard {
     this.infoBtnText.setVisible(true)
     this.actionBtnBg.setVisible(true)
     this.actionBtnText.setVisible(true)
-    this.bg.setStrokeStyle(8, 0x4488ff)
+    this.bg.setStrokeStyle(5, 0x4488ff)
   }
 
   collapse(): void {
@@ -146,20 +146,20 @@ export class DeckCard {
     this.infoBtnText.setVisible(false)
     this.actionBtnBg.setVisible(false)
     this.actionBtnText.setVisible(false)
-    this.bg.setStrokeStyle(this.dim.visible ? 12 : 8, this.dim.visible ? 0xffdd88 : 0x2e4480)
+    this.bg.setStrokeStyle(this.dim.visible ? 7 : 5, this.dim.visible ? 0xffdd88 : 0x2e4480)
   }
 
   setInDeck(inDeck: boolean): void {
     this.dim.setVisible(inDeck)
     const border = inDeck ? 0xffdd88 : (this.expanded ? 0x4488ff : 0x2e4480)
-    this.bg.setStrokeStyle(inDeck ? 12 : 8, border)
+    this.bg.setStrokeStyle(inDeck ? 7 : 5, border)
     if (inDeck) {
-      this.actionBtnBg.setFillStyle(REM_FILL).setStrokeStyle(4, 0xaa4444)
+      this.actionBtnBg.setFillStyle(REM_FILL).setStrokeStyle(3, 0xaa4444)
       this.actionBtnBg.off('pointerover').on('pointerover', () => this.actionBtnBg.setFillStyle(REM_HOVER))
       this.actionBtnBg.off('pointerout') .on('pointerout',  () => this.actionBtnBg.setFillStyle(REM_FILL))
       this.actionBtnText.setText('Remove')
     } else {
-      this.actionBtnBg.setFillStyle(ADD_FILL).setStrokeStyle(4, 0x44aa66)
+      this.actionBtnBg.setFillStyle(ADD_FILL).setStrokeStyle(3, 0x44aa66)
       this.actionBtnBg.off('pointerover').on('pointerover', () => this.actionBtnBg.setFillStyle(ADD_HOVER))
       this.actionBtnBg.off('pointerout') .on('pointerout',  () => this.actionBtnBg.setFillStyle(ADD_FILL))
       this.actionBtnText.setText('Add')

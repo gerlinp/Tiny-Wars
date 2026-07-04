@@ -30,6 +30,38 @@ function spawnPair(attackerStats: EntityStats) {
   return { attacker, victim, state }
 }
 
+describe('CR combat commitment', () => {
+  it('keeps attacking the same troop even when a closer enemy appears mid-fight', () => {
+    const { attacker, victim, state } = spawnPair(baseStats)
+    attacker.tick(16, state)  // engages — commitment locked
+    expect(victim.hp).toBeLessThan(baseStats.maxHp)
+
+    // Drop a closer enemy right on top of the attacker.
+    const closer = new Troop(Owner.BOT, baseStats, { x: 405, y: 800 }, grid, 'warrior')
+    state.entities.set(closer.id, closer)
+
+    for (let i = 0; i < 40; i++) attacker.tick(33, state)  // > one attack cooldown
+    // Damage keeps landing on the ORIGINAL target, not the interloper.
+    expect(victim.hp).toBeLessThan(baseStats.maxHp - baseStats.damage)
+    expect(closer.hp).toBe(baseStats.maxHp)
+  })
+
+  it('keeps its target when the target is pushed out of attack range', () => {
+    const { attacker, victim, state } = spawnPair(baseStats)
+    attacker.tick(16, state)  // engaged
+    // Knock the victim 3 cells away (well within the retention leash).
+    victim.position.x += 150
+    const bystander = new Troop(Owner.BOT, baseStats, { x: 415, y: 800 }, grid, 'warrior')
+    state.entities.set(bystander.id, bystander)
+
+    attacker.tick(16, state)
+    // Still chasing the committed victim — the nearer bystander is ignored.
+    const goal = attacker.getDevInfo(state).targetPos
+    expect(goal).not.toBeNull()
+    expect(goal!.x).toBeGreaterThan(450)  // toward the pushed victim, not the bystander
+  })
+})
+
 describe('attack windup / recovery', () => {
   it('lands damage immediately when no windup is configured (legacy behavior)', () => {
     const { attacker, victim, state } = spawnPair(baseStats)

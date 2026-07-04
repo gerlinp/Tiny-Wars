@@ -208,6 +208,9 @@ export class Troop extends Entity {
   /** Sticky swarm-slot claim — keeps surrounds stable instead of re-shuffling every tick. */
   slotClaimTargetId: string | null = null
   slotClaimIndex = -1
+  /** CR combat lock — once this unit has started attacking a target it commits until
+   *  the target dies (or flees past the leash), even if either side is pushed/shocked. */
+  private committedTargetId: string | null = null
   private slowSpeedMultiplier = 1
   private slowUntilMs = 0
   private isDashing = false
@@ -406,6 +409,7 @@ export class Troop extends Entity {
         : attackReach
       if (dist <= holdReach) {
         this.state = TroopState.ATTACKING
+        this.committedTargetId = this.target.id
         this.clearPath()
         this.trackObjective(this.target)
         if (
@@ -580,7 +584,10 @@ export class Troop extends Entity {
   private syncBuildingChargeTransition(): void {
     const inCharge = this.isBuildingChargeMode()
     if (inCharge && !this.wasInBuildingChargeMode) {
-      if (this.target?.kind === EntityKind.TROOP) this.target = null
+      if (this.target?.kind === EntityKind.TROOP) {
+        this.target = null
+        this.committedTargetId = null
+      }
       this.clearPath()
       this.attackCooldownMs = 0
     }
@@ -1491,6 +1498,7 @@ export class Troop extends Entity {
     this.leashExceededMs += deltaMs
     if (this.leashExceededMs >= (this.stats.retargetGraceMs ?? RETARGET_GRACE_MS)) {
       this.target = null
+      this.committedTargetId = null
       this.leashExceededMs = 0
       this.attackWindupRemainingMs = null
     }
@@ -1528,6 +1536,13 @@ export class Troop extends Entity {
    */
   private refreshCombatTarget(state: GameState): void {
     const engagedTarget = this.target?.isAlive ? this.target : null
+    if (!engagedTarget) this.committedTargetId = null
+
+    // CR: once this unit has STARTED ATTACKING a target (troop or structure), it is
+    // locked until the target dies — being pushed, hooked, or shoved out of range
+    // does not cause a switch. Only the retention leash (tickTargetLeash) breaks it.
+    if (engagedTarget && this.committedTargetId === engagedTarget.id) return
+
     const engagedOnTroop = engagedTarget?.kind === EntityKind.TROOP
 
     // CR: once locked on a live troop target, never re-evaluate — fight to the death.

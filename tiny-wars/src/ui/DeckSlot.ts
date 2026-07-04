@@ -3,11 +3,11 @@ import type { CardDefinition } from '@core/types'
 import { CINZEL_FONT, NUMBER_FONT } from './cardHandLayout'
 import { createCardPortrait, destroyCardPortrait, type CardPortraitNode } from './cardPortrait'
 
-const ICON_FILL  = 0.78
-const BTN_H      = 152
-const BTN_GAP    = 8
-const PANEL_PAD  = 32
-const BTN_FONT   = '72px'
+const ICON_FILL  = 0.94
+const BTN_H      = 94
+const BTN_GAP    = 5
+const PANEL_PAD  = 20
+const BTN_FONT   = '44px'
 
 export class DeckSlot {
   onInfo:   (() => void) | null = null
@@ -38,16 +38,16 @@ export class DeckSlot {
     private readonly h: number,
   ) {
     this.bg = scene.add.rectangle(x, y, w, h, 0x0d1b3e, 0.92)
-      .setStrokeStyle(8, 0x2e4480).setDepth(0)
+      .setStrokeStyle(5, 0x2e4480).setDepth(0)
 
     this.emptyText = scene.add.text(x, y, '+', {
-      fontSize: '136px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#3a4a78',
+      fontSize: '80px', fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#3a4a78',
     }).setOrigin(0.5).setDepth(2)
 
-    this.costText = scene.add.text(x - w / 2 + 16, y + h / 2 - 16, '', {
-      fontSize: '56px', fontFamily: NUMBER_FONT, fontStyle: 'bold',
-      color: '#ffffff', stroke: '#1a004a', strokeThickness: 8,
-      backgroundColor: '#5500cc', padding: { x: 20, y: 12 },
+    this.costText = scene.add.text(x - w / 2 + 10, y + h / 2 - 10, '', {
+      fontSize: '30px', fontFamily: NUMBER_FONT, fontStyle: 'bold',
+      color: '#ffffff', stroke: '#1a004a', strokeThickness: 5,
+      backgroundColor: '#5500cc', padding: { x: 11, y: 7 },
     }).setOrigin(0, 1).setDepth(4).setVisible(false)
 
     const btnY1   = y + h / 2 + PANEL_PAD + BTN_H / 2
@@ -56,9 +56,9 @@ export class DeckSlot {
     const panelCy = y + h / 2 + panelH / 2
 
     this.panelBg = scene.add.rectangle(x, panelCy, w, panelH, 0x2e4480)
-      .setStrokeStyle(6, 0x2e4480).setDepth(9).setVisible(false)
+      .setStrokeStyle(4, 0x2e4480).setDepth(9).setVisible(false)
 
-    this.infoBtnBg = scene.add.rectangle(x, btnY1, w - 16, BTN_H, 0x1a4a8a)
+    this.infoBtnBg = scene.add.rectangle(x, btnY1, w - 10, BTN_H, 0x1a4a8a)
       .setStrokeStyle(0).setDepth(10).setVisible(false)
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => this.infoBtnBg.setFillStyle(0x2a6ac0))
@@ -72,7 +72,7 @@ export class DeckSlot {
       fontSize: BTN_FONT, fontFamily: CINZEL_FONT, fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5).setDepth(11).setVisible(false)
 
-    this.remBtnBg = scene.add.rectangle(x, btnY2, w - 16, BTN_H, 0x6a1a1a)
+    this.remBtnBg = scene.add.rectangle(x, btnY2, w - 10, BTN_H, 0x6a1a1a)
       .setStrokeStyle(0).setDepth(10).setVisible(false)
       .setInteractive({ useHandCursor: true })
       .on('pointerover', () => this.remBtnBg.setFillStyle(0x8a2a2a))
