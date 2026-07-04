@@ -4,7 +4,7 @@ export const TERRAIN_TILE_PX = 64
 
 export const TERRAIN_COLOR1 = {
   key: 'terrain_color1',
-  path: 'assets/Terrain/Tileset/Tilemap_color1.png',
+  path: 'assets/Terrain/Tileset/Tilemap_color4.png',
   frameWidth: TERRAIN_TILE_PX,
   frameHeight: TERRAIN_TILE_PX,
   sheetCols: 9,
@@ -17,11 +17,32 @@ export const TERRAIN_GRASS = TERRAIN_COLOR1
 /** Road surface — color2 variant of the same autotile sheet. */
 export const TERRAIN_ROAD = {
   key: 'terrain_road',
-  path: 'assets/Terrain/Tileset/Tilemap_color2.png',
+  path: 'assets/Terrain/Tileset/Tilemap_color1.png',
   frameWidth: TERRAIN_TILE_PX,
   frameHeight: TERRAIN_TILE_PX,
   sheetCols: 9,
   sheetRows: 6,
+} as const
+
+/** Flat ground sheet — two variants (green cols 0-4, sand cols 5-9) used for the path,
+ *  one variant per arena half. 3×3 fill block, 1-wide strips (col 3 / row 3), isolated tile. */
+export const TERRAIN_PATH_FLAT = {
+  key: 'terrain_path_flat',
+  path: 'assets/Terrain/Ground/Tilemap_Flat.png',
+  frameWidth: TERRAIN_TILE_PX,
+  frameHeight: TERRAIN_TILE_PX,
+  sheetCols: 10,
+  sheetRows: 4,
+} as const
+
+/** Stone elevation sheet — 4×8 @64px; 1-wide plateau strips (col 3) + bottom ledge row. */
+export const TERRAIN_PATH_STONE = {
+  key: 'terrain_path_stone',
+  path: 'assets/Terrain/Ground/Tilemap_Elevation.png',
+  frameWidth: TERRAIN_TILE_PX,
+  frameHeight: TERRAIN_TILE_PX,
+  sheetCols: 4,
+  sheetRows: 8,
 } as const
 
 export const TERRAIN_WATER = {

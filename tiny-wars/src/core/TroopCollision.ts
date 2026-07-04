@@ -2,7 +2,7 @@ import type { GameState } from './GameState'
 import { Troop } from './entities/Troop'
 import { circlesOverlap, separateCirclePair, troopCollisionRadius } from './EntityGeometry'
 import { tryAllyLateralSeparation, clampGroundTroopToWalkable } from './TroopAvoidance'
-import { EntityKind, UnitType } from './types'
+import { EntityKind, TroopState, UnitType } from './types'
 import { CELL_SIZE, EPSILON_DISTANCE } from '@data/GameConstants'
 
 // Allies apply this fraction of overlap correction per pass.
@@ -100,26 +100,33 @@ export function resolveTroopCollisions(state: GameState, deltaMs: number): void 
         let allyLaterallySeparated = false
         const anchoredA = isBoomerangAnchored(a, state)
         const anchoredB = isBoomerangAnchored(b, state)
+        // RTS-style combat rooting: a unit actively attacking holds its slot — it
+        // neither pushes allies nor gets shoved by them (StarCraft/AoE convention).
+        // This is what stops swarms from jostling each other off a tower they're hitting.
+        const rootedA = anchoredA || a.state === TroopState.ATTACKING
+        const rootedB = anchoredB || b.state === TroopState.ATTACKING
         if (a.owner === b.owner) {
-          if (!anchoredA) {
+          if (rootedA && rootedB) continue
+          if (!rootedA) {
             allyLaterallySeparated = tryAllyLateralSeparation(a, b) || allyLaterallySeparated
           }
-          if (!anchoredB) {
+          if (!rootedB) {
             allyLaterallySeparated = tryAllyLateralSeparation(b, a) || allyLaterallySeparated
           }
-          if (!anchoredB) tryAllyPushFromBehind(a, b, deltaMs)
-          if (!anchoredA) tryAllyPushFromBehind(b, a, deltaMs)
+          if (!rootedB) tryAllyPushFromBehind(a, b, deltaMs)
+          if (!rootedA) tryAllyPushFromBehind(b, a, deltaMs)
         }
 
         if (!allyLaterallySeparated && circlesOverlap(a.position, rA, b.position, rB)) {
-          if (anchoredA && anchoredB) continue
-          // Fix 5: Removed bridge-zone ally ghosting — allies always use normal separation
-          // so units queue naturally at the bridge bottleneck (CR behavior).
-          const moveRatioA = anchoredA ? 0 : anchoredB ? 1 : 0.5
-          const fraction = a.owner === b.owner ? ALLY_SEPARATION_FRACTION : ENEMY_SEPARATION_FRACTION
-          // Soft separation for both allies and enemies — units tolerate partial overlap and
-          // spread out naturally instead of clumping or hard body-blocking at chokepoints.
-          separateCirclePair(a.position, rA, b.position, rB, moveRatioA, fraction)
+          if (a.owner === b.owner) {
+            if (rootedA && rootedB) continue
+            const moveRatioA = rootedA ? 0 : rootedB ? 1 : 0.5
+            separateCirclePair(a.position, rA, b.position, rB, moveRatioA, ALLY_SEPARATION_FRACTION)
+          } else {
+            if (anchoredA && anchoredB) continue
+            const moveRatioA = anchoredA ? 0 : anchoredB ? 1 : 0.5
+            separateCirclePair(a.position, rA, b.position, rB, moveRatioA, ENEMY_SEPARATION_FRACTION)
+          }
         }
       }
     }

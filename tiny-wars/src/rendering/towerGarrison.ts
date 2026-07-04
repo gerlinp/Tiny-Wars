@@ -87,13 +87,13 @@ const PRINCESS_GARRISON: GarrisonSlot[] = [
 // Knights Castle_Blue.png — side archers + centre cannon (fractions of sprite size from centre).
 const PLAYER_KING_GARRISON: GarrisonSlot[] = [
   { relX: -0.28, deckRelY: -0.065 },
-  { relX: -0.005, deckRelY: -0.08, unit: 'cannon' },
+  { relX: -0.005, deckRelY: 0.12, unit: 'cannon' },
   { relX: 0.28, deckRelY: -0.065, flipX: true },
 ]
 
 const BOT_KING_GARRISON: GarrisonSlot[] = [
   { relX: -0.28, deckRelY: 0.065 },
-  { relX: -0.005, deckRelY: 0.08, unit: 'cannon' },
+  { relX: -0.005, deckRelY: 0.22, unit: 'cannon' },
   { relX: 0.28, deckRelY: 0.065, flipX: true },
 ]
 

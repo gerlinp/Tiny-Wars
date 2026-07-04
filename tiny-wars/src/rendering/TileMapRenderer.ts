@@ -1,10 +1,11 @@
 import Phaser from 'phaser'
 import { GRID_COLS, GRID_ROWS, CELL_SIZE, RIVER_ROW_START, RIVER_ROW_END, LEFT_BRIDGE_COLS, RIGHT_BRIDGE_COLS } from '@data/GameConstants'
-import { TERRAIN_COLOR1, TERRAIN_ROAD, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_BANK_PADDING_ROWS } from '@data/TerrainManifest'
+import { TERRAIN_COLOR1, TERRAIN_PATH_STONE, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_BANK_PADDING_ROWS } from '@data/TerrainManifest'
 import { BridgeStrip } from '@rendering/BridgeStrip'
 import {
   terrainCellAt,
   grassTilePlacement,
+  roadStoneFrame,
   cliffOverlayAt,
   isRiverRow,
 } from '@rendering/TerrainMap'
@@ -53,9 +54,12 @@ export class TileMapRenderer {
           // Water underneath; bridge deck drawn as single image below
           this.drawTile(x, y, hasWater ? TERRAIN_WATER.key : null, null, FALLBACK_WATER_COLOR, DEPTH_WATER)
         } else if (kind === 'road') {
+          // Grass underlay — flat path tiles have organic transparent edges.
           const { frame, flipY } = grassTilePlacement(col, row)
-          const roadKey = this.scene.textures.exists(TERRAIN_ROAD.key) ? TERRAIN_ROAD.key : null
-          this.drawTile(x, y, roadKey, frame, FALLBACK_ROAD_COLOR, DEPTH_GROUND, flipY)
+          this.drawTile(x, y, hasTileset ? TERRAIN_COLOR1.key : null, frame, FALLBACK_GRASS_COLOR, DEPTH_GROUND, flipY)
+          // Stone elevation path on both halves.
+          const pathKey = this.scene.textures.exists(TERRAIN_PATH_STONE.key) ? TERRAIN_PATH_STONE.key : null
+          this.drawTile(x, y, pathKey, roadStoneFrame(col, row), FALLBACK_ROAD_COLOR, DEPTH_GROUND + 0.5)
         } else {
           const { frame, flipY } = grassTilePlacement(col, row)
           this.drawTile(x, y, hasTileset ? TERRAIN_COLOR1.key : null, frame, FALLBACK_GRASS_COLOR, DEPTH_GROUND, flipY)

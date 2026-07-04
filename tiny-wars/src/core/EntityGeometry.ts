@@ -32,8 +32,11 @@ function edgeDistBetweenCircleEntities(a: Entity, b: Entity, rA: number, rB: num
 }
 
 /** Small circular combat radius at a troop's feet (world pixels). */
-export function troopCollisionRadius(_entity?: Entity): number {
-  return TROOP_COLLISION_RADIUS_CELLS * CELL_SIZE
+export function troopCollisionRadius(entity?: Entity): number {
+  const custom = entity && entity.kind === EntityKind.TROOP
+    ? (entity as { stats?: { collisionRadiusCells?: number } }).stats?.collisionRadiusCells
+    : undefined
+  return (custom ?? TROOP_COLLISION_RADIUS_CELLS) * CELL_SIZE
 }
 
 /** CR-style fixed combat radius for generic deployed buildings (world pixels). */
@@ -320,9 +323,12 @@ export function buildingBlockedCells(position: Vec2): Vec2[] {
 /** Grid cells covered by a building's image-sized footprint. */
 export function gridCellsForFootprint(center: Vec2, halfW: number, halfH: number): Vec2[] {
   const minCol = Math.floor((center.x - halfW) / CELL_SIZE)
-  const maxCol = Math.floor((center.x + halfW) / CELL_SIZE)
+  // Half-open upper edge: an edge landing exactly on a cell boundary must NOT
+  // claim the zero-area cell beyond it (otherwise footprints skew right/down
+  // of the sprite whenever the centre sits on a cell centre or corner).
+  const maxCol = Math.ceil((center.x + halfW) / CELL_SIZE) - 1
   const minRow = Math.floor((center.y - halfH) / CELL_SIZE)
-  const maxRow = Math.floor((center.y + halfH) / CELL_SIZE)
+  const maxRow = Math.ceil((center.y + halfH) / CELL_SIZE) - 1
   const cells: Vec2[] = []
 
   for (let row = minRow; row <= maxRow; row++) {

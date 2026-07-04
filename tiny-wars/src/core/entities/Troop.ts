@@ -73,10 +73,17 @@ const PATH_REPLAN_DIST_SQ = CELL_SIZE * CELL_SIZE * 4
 
 export type DashPhase = 'windup' | 'leap'
 
+/** Attacker snapshot for swarm-slot assignment (claim = slot index held last tick, -1 = none). */
+interface SlotAttacker { id: string; pos: Vec2; claim: number }
+
 /** Ground troop is "stuck" after this long with almost no forward progress while walking. */
 const STUCK_RECOVER_MS = 600
 /** Fraction of the expected per-tick step that counts as real progress (resets the stuck timer). */
 const STUCK_PROGRESS_FRACTION = 0.15
+/** Sustained progress for this long resets the stuck escalation back to the cheap nudge. */
+const STUCK_LEVEL_DECAY_MS = 1500
+/** Distance bias for a slot's previous claimant — keeps surrounds stable (< 1 = sticky). */
+const SLOT_CLAIM_STICKINESS = 0.6
 /** A new structure objective must be at least this much closer before a marching troop switches. */
 const STRUCTURE_SWITCH_MARGIN = CELL_SIZE * 2
 /**
@@ -194,6 +201,13 @@ export class Troop extends Entity {
   private walkDistanceCells = 0
   private isCharging = false
   private stuckMs = 0
+  /** Escalation counter — each consecutive stuck recovery tries a stronger dislodge. */
+  private stuckRecoveryLevel = 0
+  /** Sustained-progress timer used to decay the stuck escalation level. */
+  private progressMsSinceRecovery = 0
+  /** Sticky swarm-slot claim — keeps surrounds stable instead of re-shuffling every tick. */
+  slotClaimTargetId: string | null = null
+  slotClaimIndex = -1
   private slowSpeedMultiplier = 1
   private slowUntilMs = 0
   private isDashing = false
@@ -452,7 +466,9 @@ export class Troop extends Entity {
       this.state = TroopState.WALKING
       this.trackObjective(this.target)
       this.marchTowerId = this.target.kind === EntityKind.TOWER ? this.target.id : null
-      this.moveFree(deltaMs, this.attackGoalFor(this.target, state), state)
+      // Arrival at the slot is NOT progress while a target is live but out of reach —
+      // a unit parked on an unreachable slot must trigger stuck recovery and re-slot.
+      this.moveFree(deltaMs, this.attackGoalFor(this.target, state), state, false)
       return
     }
 
@@ -911,14 +927,18 @@ export class Troop extends Entity {
     if (this.effectiveTargetsBuildingsOnly()) return null
 
     // Collect all melee allies attacking this target (including this unit).
-    const attackers: { id: string; pos: Vec2 }[] = []
+    const attackers: SlotAttacker[] = []
     for (const entity of state.entities.values()) {
       if (!entity.isAlive || entity.kind !== EntityKind.TROOP) continue
       if (entity.owner !== this.owner) continue
       const ally = entity as Troop
       if (ally.target?.id !== target.id) continue
       if (ally.effectiveAttackRange() > 2) continue
-      attackers.push({ id: ally.id, pos: ally.position })
+      attackers.push({
+        id: ally.id,
+        pos: ally.position,
+        claim: ally.slotClaimTargetId === target.id ? ally.slotClaimIndex : -1,
+      })
     }
     if (attackers.length <= 1) return null
 
@@ -931,14 +951,14 @@ export class Troop extends Entity {
         const origin = towerSlotOriginCenter(
           tower.position.x, tower.position.y, tower.owner, tower.isKing,
         )
-        return this.nearestOpenSlot(origin, layout.slotPositions, attackers)
+        return this.nearestOpenSlot(target.id, origin, layout.slotPositions, attackers)
       }
     }
 
     if (target.kind === EntityKind.BUILDING && target.cardId === BOMB_TOWER_CARD_ID) {
       const building = target as Building
       const origin = buildingCombatCenter(building)
-      return this.nearestOpenSlot(origin, bombTowerMeleeLayout().slotPositions, attackers)
+      return this.nearestOpenSlot(target.id, origin, bombTowerMeleeLayout().slotPositions, attackers)
     }
 
     // Troop target — use a virtual radial ring for melee contact spacing.
@@ -952,7 +972,7 @@ export class Troop extends Entity {
       const a = (Math.PI * 2 * i) / total
       return { x: (Math.cos(a) * slotRadius) / CELL_SIZE, y: (Math.sin(a) * slotRadius) / CELL_SIZE }
     })
-    return this.nearestOpenSlot(center, virtualSlots, attackers)
+    return this.nearestOpenSlot(target.id, center, virtualSlots, attackers)
   }
 
   /**
@@ -960,14 +980,18 @@ export class Troop extends Entity {
    * don't stack on one point while trying to fire at the same tower/king.
    */
   private rangedTowerSlotGoalFor(tower: Tower, state: GameState): Vec2 | null {
-    const attackers: { id: string; pos: Vec2 }[] = []
+    const attackers: SlotAttacker[] = []
     for (const entity of state.entities.values()) {
       if (!entity.isAlive || entity.kind !== EntityKind.TROOP) continue
       if (entity.owner !== this.owner) continue
       const ally = entity as Troop
       if (ally.target?.id !== tower.id) continue
       if (ally.effectiveAttackRange() <= 2) continue
-      attackers.push({ id: ally.id, pos: ally.position })
+      attackers.push({
+        id: ally.id,
+        pos: ally.position,
+        claim: ally.slotClaimTargetId === tower.id ? ally.slotClaimIndex : -1,
+      })
     }
     if (attackers.length <= 1) return null
 
@@ -981,7 +1005,7 @@ export class Troop extends Entity {
     const origin = tower.isKing
       ? kingTowerRangedAttackPoint(tower.position.x, tower.position.y, tower.owner)
       : tower.position
-    return this.nearestOpenSlot(origin, slots, attackers)
+    return this.nearestOpenSlot(tower.id, origin, slots, attackers)
   }
 
   /**
@@ -990,9 +1014,10 @@ export class Troop extends Entity {
    * overflow units (more attackers than slots) get the globally nearest walkable slot.
    */
   private nearestOpenSlot(
+    targetId: string,
     origin: Vec2,
     slots: readonly { x: number; y: number }[],
-    attackers: readonly { id: string; pos: Vec2 }[],
+    attackers: readonly SlotAttacker[],
   ): Vec2 | null {
     if (slots.length === 0) return null
 
@@ -1004,15 +1029,18 @@ export class Troop extends Entity {
       return { x: wx, y: wy }
     })
 
-    // For each walkable slot find the nearest attacker (owner of that slot).
-    const slotOwner: (string | null)[] = worldSlots.map(slot => {
+    // For each walkable slot find the nearest attacker (owner of that slot). A slot's
+    // previous claimant gets a distance bias so assignments settle instead of churning
+    // as the swarm shuffles — this is what makes surrounds look deliberate.
+    const slotOwner: (string | null)[] = worldSlots.map((slot, slotIdx) => {
       if (!slot) return null
       let bestId: string | null = null
       let bestDist = Infinity
       for (const a of attackers) {
         const dx = a.pos.x - slot.x
         const dy = a.pos.y - slot.y
-        const d = dx * dx + dy * dy
+        let d = dx * dx + dy * dy
+        if (a.claim === slotIdx) d *= SLOT_CLAIM_STICKINESS * SLOT_CLAIM_STICKINESS
         if (d < bestDist || (d === bestDist && (bestId === null || a.id < bestId))) {
           bestDist = d
           bestId = a.id
@@ -1023,6 +1051,7 @@ export class Troop extends Entity {
 
     // Return the slot this unit won that is nearest to its current position.
     let bestSlot: Vec2 | null = null
+    let bestIdx = -1
     let bestDistSq = Infinity
     for (let i = 0; i < worldSlots.length; i++) {
       const slot = worldSlots[i]
@@ -1030,9 +1059,13 @@ export class Troop extends Entity {
       const dx = this.position.x - slot.x
       const dy = this.position.y - slot.y
       const dSq = dx * dx + dy * dy
-      if (dSq < bestDistSq) { bestDistSq = dSq; bestSlot = slot }
+      if (dSq < bestDistSq) { bestDistSq = dSq; bestSlot = slot; bestIdx = i }
     }
-    if (bestSlot) return bestSlot
+    if (bestSlot) {
+      this.slotClaimTargetId = targetId
+      this.slotClaimIndex = bestIdx
+      return bestSlot
+    }
 
     // Overflow: more attackers than slots — go to the nearest walkable slot.
     for (let i = 0; i < worldSlots.length; i++) {
@@ -1043,6 +1076,8 @@ export class Troop extends Entity {
       const dSq = dx * dx + dy * dy
       if (dSq < bestDistSq) { bestDistSq = dSq; bestSlot = slot }
     }
+    this.slotClaimTargetId = null
+    this.slotClaimIndex = -1
     return bestSlot
   }
 
@@ -1078,7 +1113,7 @@ export class Troop extends Entity {
   }
 
   /** 360° movement — flow field navigation for towers; A* fallback for other targets. */
-  private moveFree(deltaMs: number, goal: Vec2, state: GameState): void {
+  private moveFree(deltaMs: number, goal: Vec2, state: GameState, arrivedIsProgress = true): void {
     const dx = goal.x - this.position.x
     const dy = goal.y - this.position.y
     const dirLen = Math.hypot(dx, dy)
@@ -1106,7 +1141,7 @@ export class Troop extends Entity {
       moveTowardDirect(this.position, chargeGoal, speed)
       this.resolveCollisions(state)
       this.finishMove(beforeX, beforeY)
-      this.updateStuckRecovery(deltaMs, speed, chargeGoal, beforeX, beforeY)
+      this.updateStuckRecovery(deltaMs, speed, chargeGoal, beforeX, beforeY, arrivedIsProgress)
       return
     }
 
@@ -1149,7 +1184,7 @@ export class Troop extends Entity {
 
     this.resolveCollisions(state)
     this.finishMove(beforeX, beforeY)
-    this.updateStuckRecovery(deltaMs, speed, goal, beforeX, beforeY)
+    this.updateStuckRecovery(deltaMs, speed, goal, beforeX, beforeY, arrivedIsProgress)
   }
 
   /**
@@ -1164,14 +1199,20 @@ export class Troop extends Entity {
     goal: Vec2,
     beforeX: number,
     beforeY: number,
+    arrivedIsProgress = true,
   ): void {
     if (expectedStep <= EPSILON_DISTANCE) { this.stuckMs = 0; return }
 
     const moved = Math.hypot(this.position.x - beforeX, this.position.y - beforeY)
     const remaining = Math.hypot(goal.x - this.position.x, goal.y - this.position.y)
-    // Real progress — or simply arriving at the goal — is not "stuck".
-    if (moved >= expectedStep * STUCK_PROGRESS_FRACTION || remaining <= expectedStep) {
+    // Real progress — or arriving at the goal (unless the caller says arrival alone
+    // doesn't count, e.g. parked on an attack slot that can't actually reach) — is not "stuck".
+    if (moved >= expectedStep * STUCK_PROGRESS_FRACTION || (arrivedIsProgress && remaining <= expectedStep)) {
       this.stuckMs = 0
+      this.progressMsSinceRecovery += deltaMs
+      if (this.progressMsSinceRecovery >= STUCK_LEVEL_DECAY_MS) {
+        this.stuckRecoveryLevel = 0
+      }
       return
     }
 
@@ -1179,27 +1220,72 @@ export class Troop extends Entity {
     if (this.stuckMs < STUCK_RECOVER_MS) return
     this.recoverFromStuck(goal)
     this.stuckMs = 0
+    this.progressMsSinceRecovery = 0
+    this.stuckRecoveryLevel = Math.min(this.stuckRecoveryLevel + 1, 2)
   }
 
-  /** Nudge perpendicular to the goal onto walkable ground, then drop the cached path. */
+  /**
+   * Escalating dislodge — each consecutive recovery is stronger, so a unit can never
+   * permanently stick whatever the cause:
+   *   0: half-cell perpendicular nudge (cheap, handles bridge/corner jams)
+   *   1: full-cell nudge in the best of 8 directions + forced path replan
+   *   2: snap to the nearest walkable cell centre and drop the swarm-slot claim
+   */
   private recoverFromStuck(goal: Vec2): void {
-    const dx = goal.x - this.position.x
-    const dy = goal.y - this.position.y
-    const len = Math.hypot(dx, dy) || 1
-    const px = -dy / len
-    const py = dx / len
-    const nudge = CELL_SIZE * 0.5
-
-    for (const side of [1, -1] as const) {
-      const nx = this.position.x + px * side * nudge
-      const ny = this.position.y + py * side * nudge
-      if (isWorldWalkable(this.grid, nx, ny)) {
-        this.position.x = nx
-        this.position.y = ny
-        break
+    if (this.stuckRecoveryLevel === 0) {
+      const dx = goal.x - this.position.x
+      const dy = goal.y - this.position.y
+      const len = Math.hypot(dx, dy) || 1
+      const px = -dy / len
+      const py = dx / len
+      const nudge = CELL_SIZE * 0.5
+      for (const side of [1, -1] as const) {
+        const nx = this.position.x + px * side * nudge
+        const ny = this.position.y + py * side * nudge
+        if (isWorldWalkable(this.grid, nx, ny)) {
+          this.position.x = nx
+          this.position.y = ny
+          break
+        }
+      }
+    } else if (this.stuckRecoveryLevel === 1) {
+      // Full-cell nudge toward whichever open direction brings us closest to the goal.
+      let best: Vec2 | null = null
+      let bestDist = Infinity
+      for (let i = 0; i < 8; i++) {
+        const a = (Math.PI * 2 * i) / 8
+        const nx = this.position.x + Math.cos(a) * CELL_SIZE
+        const ny = this.position.y + Math.sin(a) * CELL_SIZE
+        if (!isWorldWalkable(this.grid, nx, ny)) continue
+        const d = Math.hypot(goal.x - nx, goal.y - ny)
+        if (d < bestDist) { bestDist = d; best = { x: nx, y: ny } }
+      }
+      if (best) {
+        this.position.x = best.x
+        this.position.y = best.y
+      }
+    } else {
+      // Last resort — snap to the nearest walkable cell centre (ring search outward)
+      // and release the swarm slot so the next tick can claim a reachable one.
+      const cell = this.grid.worldToCell(this.position.x, this.position.y)
+      outer: for (let r = 0; r <= 2; r++) {
+        for (let dr = -r; dr <= r; dr++) {
+          for (let dc = -r; dc <= r; dc++) {
+            if (Math.max(Math.abs(dr), Math.abs(dc)) !== r) continue
+            if (!this.grid.isWalkable(cell.x + dc, cell.y + dr)) continue
+            const world = this.grid.cellToWorld(cell.x + dc, cell.y + dr)
+            this.position.x = world.x
+            this.position.y = world.y
+            break outer
+          }
+        }
       }
     }
 
+    // Whatever the level, drop the swarm-slot claim — if we were stuck, the slot we
+    // were steering to is suspect; the next tick claims a reachable one.
+    this.slotClaimTargetId = null
+    this.slotClaimIndex = -1
     this.clearPath()
   }
 

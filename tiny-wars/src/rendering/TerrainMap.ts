@@ -70,6 +70,43 @@ export function terrainCellAt(col: number, row: number): TerrainCell {
   return 'grass'
 }
 
+/**
+ * Path frame in Tilemap_Flat (10-col sheet) for a road cell, from its road neighbours.
+ * `sand` picks the right-hand variant (+5 cols). 1-wide runs use the strip pieces;
+ * corners/junctions and lone cells use the isolated rounded tile.
+ */
+export function roadFlatFrame(col: number, row: number, sand: boolean): number {
+  const road = (c: number, r: number) => terrainCellAt(c, r) === 'road'
+  const n = road(col, row - 1)
+  const e = road(col + 1, row)
+  const s2 = road(col, row + 1)
+  const w = road(col - 1, row)
+  const base = sand ? 5 : 0
+
+  const vertical = (n || s2) && !e && !w
+  const horizontal = (e || w) && !n && !s2
+  if (vertical) {
+    if (n && s2) return 1 * 10 + base + 3   // vertical strip middle
+    return (n ? 2 : 0) * 10 + base + 3      // bottom / top cap
+  }
+  if (horizontal) {
+    if (e && w) return 3 * 10 + base + 1    // horizontal strip middle
+    return 3 * 10 + base + (e ? 0 : 2)      // left / right cap
+  }
+  return 3 * 10 + base + 3                  // junction / lone cell — isolated tile
+}
+
+/**
+ * Stone path frame in Tilemap_Elevation (4-col sheet). Vertical runs use the 1-wide
+ * plateau strip (col 3); horizontal runs use the bottom ledge row; junctions use the
+ * plateau centre tile.
+ */
+export function roadStoneFrame(_col: number, _row: number): number {
+  // Flat path: every cell uses the plateau centre piece — no edge/ledge shading,
+  // so the road reads as a flat stone surface rather than raised elevation.
+  return 1 * 4 + 1
+}
+
 /** Land for autotile — grass or bridge; water and off-map are not land. */
 export function isLandNeighbor(col: number, row: number): boolean {
   if (col < 0 || col >= GRID_COLS || row < 0 || row >= GRID_ROWS) return false

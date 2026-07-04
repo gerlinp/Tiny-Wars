@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { GAME_WIDTH, HUD_HEIGHT } from '@data/GameConstants'
-import { getCardAvatarBuildingFit, getCardAvatarCropRatio, getCardAvatarFocusY, getCardAvatarHandScale, AVATAR_CROP_RATIO_DEFAULT } from '@data/AssetManifest'
+import { getCardAvatarFocusY, getCardAvatarHandScale, AVATAR_CROP_RATIO_DEFAULT } from '@data/AssetManifest'
 import { centerCropFillScale, containAvatarScale } from './cardAvatarFit'
 
 export const CINZEL_FONT  = "'Philosopher', Georgia, serif"
@@ -152,6 +152,32 @@ export function nextCardCenterX(_cx: number): number {
   return handEnd + NEXT_HAND_GAP + NEXT_SLOT_W / 2
 }
 
+/**
+ * Uniform cover fit — the avatar fills the slot at its native aspect ratio;
+ * whatever overflows (typically the sides in tall slots) is cropped, never stretched.
+ */
+export function applyCoverAvatarDisplaySize(
+  icon: Phaser.GameObjects.Image,
+  w: number,
+  h: number,
+  focusY = 0.5,
+): void {
+  const fw = icon.frame.width
+  const fh = icon.frame.height
+  if (fw <= 0 || fh <= 0) {
+    icon.setDisplaySize(w, h)
+    icon.setRotation(0)
+    return
+  }
+  const scale = Math.max(w / fw, h / fh)
+  const cropW = Math.min(fw, w / scale)
+  const cropH = Math.min(fh, h / scale)
+  const cropY = (fh - cropH) * Phaser.Math.Clamp(focusY, 0, 1)
+  icon.setCrop((fw - cropW) / 2, cropY, cropW, cropH)
+  icon.setScale(scale)
+  icon.setRotation(0)
+}
+
 /** Apply the correct display sizing for a non-arrows card avatar icon. */
 export function applyCardAvatarIconSize(
   icon: Phaser.GameObjects.Image,
@@ -160,13 +186,7 @@ export function applyCardAvatarIconSize(
   h: number,
   _hasBackdrop: boolean,
 ): void {
-  const focusY = getCardAvatarFocusY(cardId)
-  if (getCardAvatarBuildingFit(cardId)) {
-    applyBuildingAvatarDisplaySize(icon, w, h)
-  } else if (_hasBackdrop) {
-    applyLayeredPortraitDisplaySize(icon, w, h, focusY)
-  } else {
-    applyIconDisplaySize(icon, w, h, getCardAvatarCropRatio(cardId), focusY)
-  }
+  // Cover-fit every avatar: fills the slot at true aspect ratio, sides crop off.
+  applyCoverAvatarDisplaySize(icon, w, h, getCardAvatarFocusY(cardId))
   applyHandScale(icon, getCardAvatarHandScale(cardId))
 }

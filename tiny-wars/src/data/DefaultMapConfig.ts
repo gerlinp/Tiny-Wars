@@ -3,6 +3,8 @@ import { buildClashStyleSpawnZones } from './SpawnZones'
 import {
   RIVER_ROW_START,
   RIVER_ROW_END,
+  PLAYER_KING_VISUAL_ROW,
+  BOT_KING_VISUAL_ROW,
   LEFT_BRIDGE_COLS,
   RIGHT_BRIDGE_COLS,
   PLAYER_KING_ROW,
@@ -27,17 +29,23 @@ export function buildDefaultRoadOverrides(): Record<string, 'road'> {
   const roads: Record<string, 'road'> = {}
   const paint = (col: number, row: number) => { roads[`${col},${row}`] = 'road' }
 
+  // Castle art anchors on its visual row and extends upward, so the row that reads
+  // as "through the castle base" is one row below the visual row on both sides.
+  const botConnectorRow = BOT_KING_VISUAL_ROW + 1
+  const playerConnectorRow = PLAYER_KING_VISUAL_ROW + 1
+
   for (const laneCol of PLAYER_TOWER_COLS) {
-    // Vertical lanes — princess row to river bank on each half
-    for (let row = BOT_TOWER_ROW; row < RIVER_ROW_START; row++) paint(laneCol, row)
-    for (let row = RIVER_ROW_END + 1; row <= PLAYER_TOWER_ROW; row++) paint(laneCol, row)
+    // Vertical lanes — from each castle connector, past the princess tower, to the river
+    for (let row = botConnectorRow; row < RIVER_ROW_START; row++) paint(laneCol, row)
+    for (let row = RIVER_ROW_END + 1; row <= playerConnectorRow; row++) paint(laneCol, row)
   }
 
-  // Horizontal connectors between the lanes, along each princess row
+  // Horizontal connectors between the lanes, running through the middle of each
+  // king castle (hidden under the castle art at centre, emerging on both sides — CR style)
   const [leftCol, rightCol] = PLAYER_TOWER_COLS
   for (let col = leftCol; col <= rightCol; col++) {
-    paint(col, BOT_TOWER_ROW)
-    paint(col, PLAYER_TOWER_ROW)
+    paint(col, botConnectorRow)
+    paint(col, playerConnectorRow)
   }
 
   return roads

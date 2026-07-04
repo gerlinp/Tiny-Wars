@@ -7,22 +7,29 @@ import {
   PIRATE_TOWER_GROUND,
 } from '@data/AssetManifest'
 import {
+  ARENA_FENCE_COLS,
+  ARENA_FENCE_ROWS,
   BOT_KING_COL,
   BOT_KING_ROW,
   BOT_KING_VISUAL_ROW,
   BOT_TOWER_ROW,
   BRIDGE_CENTER_COL,
   BRIDGE_SPAN,
+  CELL_SIZE,
   DEPLOY_LANE_SPLIT_COL,
+  GRID_COLS,
+  GRID_ROWS,
   KING_SPRITE_CENTER_OFFSET_X,
   LEFT_BRIDGE_COLS,
   MAP_HEIGHT_MULTIPLIER,
+  MAP_UNIT_TARGET_HEIGHT,
   PLAYER_KING_COL,
   PLAYER_KING_ROW,
   PLAYER_KING_VISUAL_ROW,
   PLAYER_TOWER_COLS,
   PLAYER_TOWER_ROW,
   RIGHT_BRIDGE_COLS,
+  SPRITE_VISUAL_SCALE,
 } from '@data/GameConstants'
 import {
   BOT_KING_TOWER_MELEE,
@@ -84,6 +91,13 @@ export interface MapEditorBalanceEntry {
 }
 
 export interface MapEditorLayoutConstants {
+  gridCols: number
+  gridRows: number
+  gameCellSize: number
+  arenaFenceRows: number
+  arenaFenceCols: number
+  unitHeightCells: number
+  spriteVisualScale: number
   deployLaneSplitCol: number
   kingLogicCol: number
   kingSpriteCenterOffsetX: number
@@ -178,6 +192,13 @@ export function buildMapEditorLayoutConstants(): MapEditorLayoutConstants {
     throw new Error(`map editor expects symmetric king cols; got player=${PLAYER_KING_COL} bot=${BOT_KING_COL}`)
   }
   return {
+    gridCols: GRID_COLS,
+    gridRows: GRID_ROWS,
+    gameCellSize: CELL_SIZE,
+    arenaFenceRows: ARENA_FENCE_ROWS,
+    arenaFenceCols: ARENA_FENCE_COLS,
+    unitHeightCells: MAP_UNIT_TARGET_HEIGHT / CELL_SIZE,
+    spriteVisualScale: SPRITE_VISUAL_SCALE,
     deployLaneSplitCol: DEPLOY_LANE_SPLIT_COL,
     kingLogicCol: PLAYER_KING_COL,
     kingSpriteCenterOffsetX: KING_SPRITE_CENTER_OFFSET_X,
@@ -390,7 +411,14 @@ export function formatMapEditorLayoutBlock(): string {
   const layout = buildMapEditorLayoutConstants()
   return [
     MAP_EDITOR_LAYOUT_SYNC_START,
-    '// Mirrors GameConstants.ts tower layout — run: npm run sync:map-editor',
+    '// Mirrors GameConstants.ts arena geometry + tower layout — run: npm run sync:map-editor',
+    `const COLS = ${layout.gridCols}`,
+    `const ROWS = ${layout.gridRows}`,
+    `const GAME_CELL_SIZE = ${layout.gameCellSize}`,
+    `const ARENA_FENCE_ROWS = ${layout.arenaFenceRows}`,
+    `const ARENA_FENCE_COLS = ${layout.arenaFenceCols}`,
+    `const MAP_UNIT_HEIGHT_CELLS = ${layout.unitHeightCells}`,
+    `const SPRITE_VISUAL_SCALE = ${layout.spriteVisualScale}`,
     `const DEPLOY_LANE_SPLIT_COL = ${layout.deployLaneSplitCol}`,
     `const KING_LOGIC_COL = ${layout.kingLogicCol}`,
     `const KING_SPRITE_CENTER_OFFSET_X = ${layout.kingSpriteCenterOffsetX}`,

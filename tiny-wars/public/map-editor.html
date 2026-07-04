@@ -587,6 +587,7 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
     <button class="tool-btn active" id="btn-select" title="S">▶ Select / Move anchors</button>
     <button class="tool-btn"       id="btn-water"  title="W">💧 Paint Water</button>
     <button class="tool-btn"       id="btn-grass"  title="G">🌿 Paint Grass</button>
+    <button class="tool-btn"       id="btn-road"   title="R">🪨 Paint Path</button>
   </div>
 
   <div class="section">
@@ -944,12 +945,16 @@ canvas { display: block; image-rendering: pixelated; border: 1px solid #2a2a5a; 
 
 <script>
 // ── Constants (mirror GameConstants.ts) ─────────────────────
-const COLS   = 24
-const ROWS   = 43
-const CELL   = 16
-const GAME_CELL_SIZE = 64   // GameConstants.ts CELL_SIZE — offsets & tower layout use these px
+const CELL   = 16   // editor canvas px per cell (editor-only zoom)
 // @generated map-editor-layout-sync-start
-// Mirrors GameConstants.ts tower layout — run: npm run sync:map-editor
+// Mirrors GameConstants.ts arena geometry + tower layout — run: npm run sync:map-editor
+const COLS = 18
+const ROWS = 32
+const GAME_CELL_SIZE = 50
+const ARENA_FENCE_ROWS = 0
+const ARENA_FENCE_COLS = 0
+const MAP_UNIT_HEIGHT_CELLS = 1.6
+const SPRITE_VISUAL_SCALE = 1.15
 const DEPLOY_LANE_SPLIT_COL = 9
 const KING_LOGIC_COL = 8.5
 const KING_SPRITE_CENTER_OFFSET_X = 0
@@ -966,10 +971,8 @@ const BRIDGE_SPAN = 3
 const LEFT_BRIDGE_START = 2
 const RIGHT_BRIDGE_START = 13
 // @generated map-editor-layout-sync-end
-const ARENA_FENCE_ROWS = 1
-const ARENA_FENCE_COLS = 1
-const PLAYER_DEPLOY_ROW_MAX = ROWS - 1 - ARENA_FENCE_ROWS  // 41
-const BOT_DEPLOY_ROW_MIN = ARENA_FENCE_ROWS                   // 1
+const PLAYER_DEPLOY_ROW_MAX = ROWS - 1 - ARENA_FENCE_ROWS
+const BOT_DEPLOY_ROW_MIN = ARENA_FENCE_ROWS
 
 // @generated map-editor-spawn-sync-start
 // Mirrors SpawnZones.ts buildClashStyleSpawnZones() — run: npm run sync:map-editor
@@ -1252,8 +1255,8 @@ const DEFAULT_SPAWN_ZONES = {
   "5,0": "left",
   "6,0": "left",
   "7,0": "left",
-  "8,0": "base",
-  "9,0": "base",
+  "8,0": "left",
+  "9,0": "right",
   "10,0": "right",
   "11,0": "right",
   "12,0": "right",
@@ -1270,8 +1273,8 @@ const DEFAULT_SPAWN_ZONES = {
   "5,1": "left",
   "6,1": "left",
   "7,1": "left",
-  "8,1": "base",
-  "9,1": "base",
+  "8,1": "left",
+  "9,1": "right",
   "10,1": "right",
   "11,1": "right",
   "12,1": "right",
@@ -1288,8 +1291,8 @@ const DEFAULT_SPAWN_ZONES = {
   "5,2": "left",
   "6,2": "left",
   "7,2": "left",
-  "8,2": "base",
-  "9,2": "base",
+  "8,2": "left",
+  "9,2": "right",
   "10,2": "right",
   "11,2": "right",
   "12,2": "right",
@@ -1305,10 +1308,10 @@ const DEFAULT_SPAWN_ZONES = {
   "4,3": "left",
   "5,3": "left",
   "6,3": "left",
-  "7,3": "base",
-  "8,3": "base",
-  "9,3": "base",
-  "10,3": "base",
+  "7,3": "left",
+  "8,3": "left",
+  "9,3": "right",
+  "10,3": "right",
   "11,3": "right",
   "12,3": "right",
   "13,3": "right",
@@ -1323,10 +1326,10 @@ const DEFAULT_SPAWN_ZONES = {
   "4,4": "left",
   "5,4": "left",
   "6,4": "left",
-  "7,4": "base",
-  "8,4": "base",
-  "9,4": "base",
-  "10,4": "base",
+  "7,4": "left",
+  "8,4": "left",
+  "9,4": "right",
+  "10,4": "right",
   "11,4": "right",
   "12,4": "right",
   "13,4": "right",
@@ -1341,10 +1344,10 @@ const DEFAULT_SPAWN_ZONES = {
   "4,5": "left",
   "5,5": "left",
   "6,5": "left",
-  "7,5": "base",
-  "8,5": "base",
-  "9,5": "base",
-  "10,5": "base",
+  "7,5": "left",
+  "8,5": "left",
+  "9,5": "right",
+  "10,5": "right",
   "11,5": "right",
   "12,5": "right",
   "13,5": "right",
@@ -1358,12 +1361,12 @@ const DEFAULT_SPAWN_ZONES = {
   "3,6": "left",
   "4,6": "left",
   "5,6": "left",
-  "6,6": "base",
-  "7,6": "base",
-  "8,6": "base",
-  "9,6": "base",
-  "10,6": "base",
-  "11,6": "base",
+  "6,6": "left",
+  "7,6": "left",
+  "8,6": "left",
+  "9,6": "right",
+  "10,6": "right",
+  "11,6": "right",
   "12,6": "right",
   "13,6": "right",
   "14,6": "right",
@@ -1376,12 +1379,12 @@ const DEFAULT_SPAWN_ZONES = {
   "3,7": "left",
   "4,7": "left",
   "5,7": "left",
-  "6,7": "base",
-  "7,7": "base",
-  "8,7": "base",
-  "9,7": "base",
-  "10,7": "base",
-  "11,7": "base",
+  "6,7": "left",
+  "7,7": "left",
+  "8,7": "left",
+  "9,7": "right",
+  "10,7": "right",
+  "11,7": "right",
   "12,7": "right",
   "13,7": "right",
   "14,7": "right",
@@ -1393,14 +1396,14 @@ const DEFAULT_SPAWN_ZONES = {
   "2,8": "left",
   "3,8": "left",
   "4,8": "left",
-  "5,8": "base",
-  "6,8": "base",
-  "7,8": "base",
-  "8,8": "base",
-  "9,8": "base",
-  "10,8": "base",
-  "11,8": "base",
-  "12,8": "base",
+  "5,8": "left",
+  "6,8": "left",
+  "7,8": "left",
+  "8,8": "left",
+  "9,8": "right",
+  "10,8": "right",
+  "11,8": "right",
+  "12,8": "right",
   "13,8": "right",
   "14,8": "right",
   "15,8": "right",
@@ -1411,14 +1414,14 @@ const DEFAULT_SPAWN_ZONES = {
   "2,9": "left",
   "3,9": "left",
   "4,9": "left",
-  "5,9": "base",
-  "6,9": "base",
-  "7,9": "base",
-  "8,9": "base",
-  "9,9": "base",
-  "10,9": "base",
-  "11,9": "base",
-  "12,9": "base",
+  "5,9": "left",
+  "6,9": "left",
+  "7,9": "left",
+  "8,9": "left",
+  "9,9": "right",
+  "10,9": "right",
+  "11,9": "right",
+  "12,9": "right",
   "13,9": "right",
   "14,9": "right",
   "15,9": "right",
@@ -1428,16 +1431,16 @@ const DEFAULT_SPAWN_ZONES = {
   "1,10": "left",
   "2,10": "left",
   "3,10": "left",
-  "4,10": "base",
-  "5,10": "base",
-  "6,10": "base",
-  "7,10": "base",
-  "8,10": "base",
-  "9,10": "base",
-  "10,10": "base",
-  "11,10": "base",
-  "12,10": "base",
-  "13,10": "base",
+  "4,10": "left",
+  "5,10": "left",
+  "6,10": "left",
+  "7,10": "left",
+  "8,10": "left",
+  "9,10": "right",
+  "10,10": "right",
+  "11,10": "right",
+  "12,10": "right",
+  "13,10": "right",
   "14,10": "right",
   "15,10": "right",
   "16,10": "right",
@@ -1446,16 +1449,16 @@ const DEFAULT_SPAWN_ZONES = {
   "1,11": "left",
   "2,11": "left",
   "3,11": "left",
-  "4,11": "base",
-  "5,11": "base",
-  "6,11": "base",
-  "7,11": "base",
-  "8,11": "base",
-  "9,11": "base",
-  "10,11": "base",
-  "11,11": "base",
-  "12,11": "base",
-  "13,11": "base",
+  "4,11": "left",
+  "5,11": "left",
+  "6,11": "left",
+  "7,11": "left",
+  "8,11": "left",
+  "9,11": "right",
+  "10,11": "right",
+  "11,11": "right",
+  "12,11": "right",
+  "13,11": "right",
   "14,11": "right",
   "15,11": "right",
   "16,11": "right",
@@ -1463,54 +1466,54 @@ const DEFAULT_SPAWN_ZONES = {
   "0,12": "left",
   "1,12": "left",
   "2,12": "left",
-  "3,12": "base",
-  "4,12": "base",
-  "5,12": "base",
-  "6,12": "base",
-  "7,12": "base",
-  "8,12": "base",
-  "9,12": "base",
-  "10,12": "base",
-  "11,12": "base",
-  "12,12": "base",
-  "13,12": "base",
-  "14,12": "base",
+  "3,12": "left",
+  "4,12": "left",
+  "5,12": "left",
+  "6,12": "left",
+  "7,12": "left",
+  "8,12": "left",
+  "9,12": "right",
+  "10,12": "right",
+  "11,12": "right",
+  "12,12": "right",
+  "13,12": "right",
+  "14,12": "right",
   "15,12": "right",
   "16,12": "right",
   "17,12": "right",
   "0,13": "left",
   "1,13": "left",
   "2,13": "left",
-  "3,13": "base",
-  "4,13": "base",
-  "5,13": "base",
-  "6,13": "base",
-  "7,13": "base",
-  "8,13": "base",
-  "9,13": "base",
-  "10,13": "base",
-  "11,13": "base",
-  "12,13": "base",
-  "13,13": "base",
-  "14,13": "base",
+  "3,13": "left",
+  "4,13": "left",
+  "5,13": "left",
+  "6,13": "left",
+  "7,13": "left",
+  "8,13": "left",
+  "9,13": "right",
+  "10,13": "right",
+  "11,13": "right",
+  "12,13": "right",
+  "13,13": "right",
+  "14,13": "right",
   "15,13": "right",
   "16,13": "right",
   "17,13": "right",
   "0,14": "left",
   "1,14": "left",
   "2,14": "left",
-  "3,14": "base",
-  "4,14": "base",
-  "5,14": "base",
-  "6,14": "base",
-  "7,14": "base",
-  "8,14": "base",
-  "9,14": "base",
-  "10,14": "base",
-  "11,14": "base",
-  "12,14": "base",
-  "13,14": "base",
-  "14,14": "base",
+  "3,14": "left",
+  "4,14": "left",
+  "5,14": "left",
+  "6,14": "left",
+  "7,14": "left",
+  "8,14": "left",
+  "9,14": "right",
+  "10,14": "right",
+  "11,14": "right",
+  "12,14": "right",
+  "13,14": "right",
+  "14,14": "right",
   "15,14": "right",
   "16,14": "right",
   "17,14": "right"
@@ -1614,8 +1617,7 @@ for (const [k, path] of Object.entries(TOWER_ASSET_PATHS)) {
   towerImages[k] = img
 }
 
-const MAP_UNIT_TARGET_HEIGHT = GAME_CELL_SIZE * 2.5
-const SPRITE_VISUAL_SCALE = 1.35   // king castles only — mirrors GameConstants.ts
+const MAP_UNIT_TARGET_HEIGHT = GAME_CELL_SIZE * MAP_UNIT_HEIGHT_CELLS
 const MAP_HEIGHT_MULTIPLIER = { tower_princess: 3.5, tower_king: 2.5 }
 const MAP_TOWER_CONTENT_FILL = { tower_princess: 0.90, tower_king: 0.88 }
 const TOWER_NATIVE = {
@@ -1987,6 +1989,7 @@ function cellBaseColor(col, row) {
   const ov = state.overrides[`${col},${row}`]
   if (ov === 'water') return '#2060aa'
   if (ov === 'grass') return '#3a6a1a'
+  if (ov === 'road')  return '#8fa8b0'
   if (isRiverRow(row)) return isBridgeCol(col) ? '#8b7020' : '#1a4a7a'
   return row < state.river.start ? '#4a7c3a' : '#3a6a2a'
 }
@@ -2245,7 +2248,7 @@ function getCursorFor(mx, my) {
     }
     return TOWER_INFO[anchor]?.isKing ? 'ns-resize' : 'grab'
   }
-  if (activeTool === 'water' || activeTool === 'grass') return 'crosshair'
+  if (activeTool === 'water' || activeTool === 'grass' || activeTool === 'road') return 'crosshair'
   if (SPAWN_PAINT_TOOLS.includes(activeTool)) return 'crosshair'
   return 'default'
 }
@@ -2299,7 +2302,7 @@ canvas.addEventListener('mousedown', e => {
     return
   }
 
-  if (activeTool === 'water' || activeTool === 'grass') {
+  if (activeTool === 'water' || activeTool === 'grass' || activeTool === 'road') {
     selectedTowerKey = null
     isPainting = true; paintCell(col, row); return
   }
@@ -2378,7 +2381,7 @@ function paintCell(col, row) {
   if (!isInGrid(col, row)) return
   const key  = `${col},${row}`
   const prev = state.overrides[key]
-  const next = activeTool === 'water' ? 'water' : 'grass'
+  const next = activeTool === 'water' ? 'water' : activeTool === 'road' ? 'road' : 'grass'
   if (prev === next) return
   undoStack.push({ key, prev })
   state.overrides[key] = next
@@ -2391,6 +2394,7 @@ function setTool(t) {
   document.getElementById('btn-select').classList.toggle('active', t === 'select')
   document.getElementById('btn-water').classList.toggle('active',  t === 'water')
   document.getElementById('btn-grass').classList.toggle('active',  t === 'grass')
+  document.getElementById('btn-road').classList.toggle('active',   t === 'road')
   for (const st of SPAWN_PAINT_TOOLS) {
     const el = document.getElementById(`btn-${st}`)
     if (el) el.classList.toggle('active', t === st)
@@ -2400,6 +2404,7 @@ function setTool(t) {
 document.getElementById('btn-select').addEventListener('click', () => setTool('select'))
 document.getElementById('btn-water').addEventListener('click',  () => setTool('water'))
 document.getElementById('btn-grass').addEventListener('click',  () => setTool('grass'))
+document.getElementById('btn-road').addEventListener('click',   () => setTool('road'))
 for (const st of SPAWN_PAINT_TOOLS) {
   document.getElementById(`btn-${st}`).addEventListener('click', () => setTool(st))
 }
@@ -2515,6 +2520,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 's' || e.key === 'S') { setTool('select'); return }
   if (e.key === 'w' || e.key === 'W') { setTool('water');  return }
   if (e.key === 'g' || e.key === 'G') { setTool('grass');  return }
+  if (e.key === 'r' || e.key === 'R') { setTool('road');   return }
   if (e.key === '1') { setTool('spawn-base'); return }
   if (e.key === '2') { setTool('spawn-left'); return }
   if (e.key === '3') { setTool('spawn-right'); return }
@@ -2763,8 +2769,8 @@ const UNIT_CATALOG = [
   { id:'archer', name:'Archers', attackRange:5.5, fw:192, fh:192, path:'assets/Factions/Knights/Troops/Archer/Blue/Archer_Blue.png', contentFill:0.5, elixirCost:3, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.archer","cardType":"TROOP","elixirCost":3,"deployCount":2,"stats":{"maxHp":201,"speed":1.5,"damage":148,"attackRate":1.1111111111111112,"attackRange":5.5,"unitType":"GROUND","attackType":"AIR_AND_GROUND"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}} },
   { id:'elite_archer', name:'Elite Archer', attackRange:6.5, fw:192, fh:192, path:'assets/Units/Blue Units/Archer/Archer_Idle.png', contentFill:0.5, elixirCost:4, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.elite_archer","cardType":"TROOP","elixirCost":4,"deployCount":1,"stats":{"maxHp":955,"speed":1.5,"damage":288,"attackRate":1,"attackRange":6.5,"unitType":"GROUND","attackType":"AIR_AND_GROUND"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}} },
   { id:'lancer', name:'Lancer', attackRange:1.6, fw:320, fh:320, path:'assets/Units/Blue Units/Lancer/Lancer_Idle.png', contentFill:0.3, elixirCost:5, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.lancer","cardType":"TROOP","elixirCost":5,"deployCount":1,"stats":{"maxHp":2542,"speed":2.25,"damage":518,"attackRate":0.7142857142857143,"attackRange":1.6,"unitType":"GROUND","attackType":"GROUND_ONLY","pushWeight":1.5},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}} },
-  { id:'skeleton', name:'Skeletons', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, elixirCost:1, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.skeleton","cardType":"TROOP","elixirCost":1,"deployCount":3,"stats":{"maxHp":108,"speed":2.25,"damage":108,"attackRate":0.9090909090909091,"attackRange":0.5,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
-  { id:'skeleton_army', name:'Skeleton Army', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, elixirCost:3, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.skeleton_army","cardType":"TROOP","elixirCost":3,"deployCount":14,"stats":{"maxHp":108,"speed":2.25,"damage":108,"attackRate":0.9090909090909091,"attackRange":0.5,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'skeleton', name:'Skeletons', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, elixirCost:1, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.skeleton","cardType":"TROOP","elixirCost":1,"deployCount":3,"stats":{"maxHp":108,"speed":2.25,"damage":108,"attackRate":0.9090909090909091,"collisionRadiusCells":0.22,"attackRange":0.5,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'skeleton_army', name:'Skeleton Army', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Skull/Skull_Idle.png', contentFill:0.55, elixirCost:3, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.skeleton_army","cardType":"TROOP","elixirCost":3,"deployCount":14,"stats":{"maxHp":108,"speed":2.25,"damage":108,"attackRate":0.9090909090909091,"collisionRadiusCells":0.22,"attackRange":0.5,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
   { id:'troll', name:'Troll', attackRange:1.2, fw:384, fh:384, path:'assets/Enemy Pack/Enemies/Troll/Troll_Idle.png', contentFill:0.48, elixirCost:5, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.troll","cardType":"TROOP","elixirCost":5,"deployCount":1,"stats":{"maxHp":6392,"speed":1.375,"damage":214,"attackRate":0.6666666666666666,"attackRange":1.2,"unitType":"GROUND","attackType":"GROUND_ONLY","targetsBuildingsOnly":true,"pushWeight":3},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
   { id:'spear_goblin', name:'Spear Goblins', attackRange:1.6, fw:256, fh:256, path:'assets/Enemy Pack/Enemies/Goblin Raiders/Spear Goblin/Spear Goblin_Idle.png', contentFill:0.55, elixirCost:3, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.spear_goblin","cardType":"TROOP","elixirCost":3,"deployCount":3,"stats":{"maxHp":280,"armorHp":339,"speed":2.25,"damage":127,"attackRate":0.9090909090909091,"attackRange":1.6,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
   { id:'villagers', name:'Villagers', attackRange:0.5, fw:192, fh:192, path:'assets/Units/Blue Units/Pawn/Pawn_Idle.png', contentFill:0.52, elixirCost:2, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.villagers","cardType":"TROOP","elixirCost":2,"deployCount":3,"stats":{"maxHp":289,"speed":3,"damage":255,"attackRate":0.9090909090909091,"attackRange":0.5,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}} },
@@ -2788,7 +2794,7 @@ const UNIT_CATALOG = [
   { id:'monk', name:'Monk', attackRange:1.6, fw:192, fh:192, path:'assets/Units/Blue Units/Monk/Idle.png', contentFill:0.52, elixirCost:4, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.monk","cardType":"TROOP","elixirCost":4,"deployCount":1,"stats":{"maxHp":2274,"speed":1.5,"damage":196,"attackRate":0.6666666666666666,"attackRange":1.6,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}} },
   { id:'harpoon_shark', name:'Harpoon Shark', attackRange:1.2, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Harpoon Shark/Harpoon Shark_Idle.png', contentFill:0.52, elixirCost:3, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.harpoon_shark","cardType":"TROOP","elixirCost":3,"deployCount":1,"stats":{"maxHp":1152,"speed":1.5,"damage":257,"attackRate":0.7692307692307692,"attackRange":1.2,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
   { id:'spider', name:'Spider', attackRange:5.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.52, elixirCost:5, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.spider","cardType":"TROOP","elixirCost":5,"deployCount":1,"stats":{"maxHp":1111,"speed":1.5,"damage":179,"attackRate":0.9090909090909091,"attackRange":5.5,"unitType":"GROUND","attackType":"AIR_AND_GROUND","splashRadius":1.5},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
-  { id:'spiderling', name:'Spiderling', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.82, elixirCost:1, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.spiderling","cardType":"TROOP","elixirCost":1,"deployCount":1,"stats":{"maxHp":108,"speed":2.25,"damage":108,"attackRate":0.9090909090909091,"attackRange":0.5,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
+  { id:'spiderling', name:'Spiderling', attackRange:0.5, fw:192, fh:192, path:'assets/Enemy Pack/Enemies/Caveborn/Spider/Spider_Idle.png', contentFill:0.82, elixirCost:1, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.spiderling","cardType":"TROOP","elixirCost":1,"deployCount":1,"stats":{"maxHp":108,"speed":2.25,"damage":108,"attackRate":0.9090909090909091,"collisionRadiusCells":0.22,"attackRange":0.5,"unitType":"GROUND","attackType":"GROUND_ONLY"},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, tintBotSide:true },
   // Buildings — deployable structures (CardData building cards)
   { id:'wood_tower', name:'Bomb Tower', attackRange:7, fw:128, fh:192, path:'assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower/Pirate Tower_Ground.png', contentFill:0.72, elixirCost:4, balance:{"sourceFile":"tiny-wars/src/data/CardData.ts","sourceObject":"CARD_DEFINITIONS_BASE.wood_tower","cardType":"BUILDING","elixirCost":4,"stats":{"maxHp":1791,"speed":0,"damage":293,"attackRate":0.5555555555555556,"attackRange":7,"unitType":"GROUND","attackType":"GROUND_ONLY","splashRadius":1.5,"deathSplashRadius":3,"lifetimeMs":30000},"notes":{"vision":"No per-card vision stat exists yet; targeting acquisition currently uses shared combat constants.","attackRate":"Attacks per second; CardData often stores this as 1 / hitSpeedSeconds.","speed":"Grid cells per second; CardData may derive this from CR_SPEED via crSpeedToCellsPerSec()."}}, isBuilding:true, tintBotSide:true, spriteOriginY:1, hbarOffsetY:-1.1 },
   // Towers — sprite follows Player ↓ / CPU ↑ approach side
@@ -2938,7 +2944,7 @@ function garrisonDeckRelY(nativeRow) {
 // @generated map-editor-king-garrison-sync-start
 // Mirrors towerGarrison.ts king garrison deck offsets — run: npm run sync:map-editor
 const KING_GARRISON_ARCHER_REL_Y = { player: -0.065, cpu: 0.065 }
-const KING_GARRISON_CANNON_REL = { relX: { player: -0.005, cpu: -0.005 }, relY: { player: -0.08, cpu: 0.08 } }
+const KING_GARRISON_CANNON_REL = { relX: { player: -0.005, cpu: -0.005 }, relY: { player: 0.12, cpu: 0.22 } }
 
 function defaultKingGarrisonSlots(side) {
   const archerRelY = side === 'cpu' ? KING_GARRISON_ARCHER_REL_Y.cpu : KING_GARRISON_ARCHER_REL_Y.player
@@ -3280,7 +3286,7 @@ function unitRedo() {
 }
 
 // ── Constants mirroring game ──────────────────────────────────
-const GCS = 64   // CELL_SIZE (game pixels per cell)
+const GCS = GAME_CELL_SIZE   // game pixels per cell (generated layout block)
 const TROOP_R   = 0.35   // TROOP_COLLISION_RADIUS_CELLS
 const APPROACH_SLACK = 0.5  // CELL_SIZE * 0.5 / CELL_SIZE
 const PT_RANGE = 7.5   // Princess Tower range (cells, center-to-center)

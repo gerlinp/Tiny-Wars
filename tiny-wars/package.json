@@ -4,8 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "npm run sync:map-editor",
     "dev": "vite",
     "layout": "vite --open /layout-editor.html",
+    "prebuild": "npm run sync:map-editor",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",

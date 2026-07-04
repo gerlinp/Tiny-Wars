@@ -64,7 +64,12 @@ export function buildFallbackSpawnZones(): SpawnZoneMap {
   return zones
 }
 
-/** Clash-style painted zones for map.json when no custom export exists. */
+/**
+ * Clash-style painted zones for map.json when no custom export exists.
+ * CR (observable): destroying a princess tower unlocks that tower's entire half-width
+ * of the enemy side, full depth — players routinely deploy right beside the enemy
+ * king after taking a tower. Structure footprints stay unplaceable via deploy checks.
+ */
 export function buildClashStyleSpawnZones(): SpawnZoneMap {
   const zones: SpawnZoneMap = {}
   const colMin = ARENA_FENCE_COLS
@@ -77,15 +82,8 @@ export function buildClashStyleSpawnZones(): SpawnZoneMap {
   }
 
   for (let row = BOT_DEPLOY_ROW_MIN; row <= BOT_DEPLOY_ROW_MAX; row++) {
-    const depth = BOT_DEPLOY_ROW_MAX - row
-    const leftInner = Math.min(DEPLOY_LANE_SPLIT_COL - 2, colMin + 2 + Math.floor(depth * 0.45))
-    const rightInner = Math.max(DEPLOY_LANE_SPLIT_COL + 1, colMax - 2 - Math.floor(depth * 0.45))
-
     for (let col = colMin; col <= colMax; col++) {
-      const key = spawnZoneCellKey(col, row)
-      if (col <= leftInner) zones[key] = 'left'
-      else if (col >= rightInner) zones[key] = 'right'
-      else zones[key] = 'base'
+      zones[spawnZoneCellKey(col, row)] = col < DEPLOY_LANE_SPLIT_COL ? 'left' : 'right'
     }
   }
 

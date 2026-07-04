@@ -21,11 +21,14 @@ describe('SpawnZones layout', () => {
     expect(zones[spawnZoneCellKey(9, PLAYER_DEPLOY_ROW_MIN)]).toBe('base')
   })
 
-  it('buildClashStyleSpawnZones keeps enemy center corridor off lane unlock paint', () => {
+  it('buildClashStyleSpawnZones unlocks the full half-width side pocket (CR-style)', () => {
     const zones = buildClashStyleSpawnZones()
     expect(zones[spawnZoneCellKey(2, BOT_DEPLOY_ROW_MAX)]).toBe('left')
     expect(zones[spawnZoneCellKey(15, BOT_DEPLOY_ROW_MAX)]).toBe('right')
-    expect(zones[spawnZoneCellKey(9, BOT_DEPLOY_ROW_MAX)]).toBe('base')
+    // Split column belongs to the right pocket; full depth unlocks up to the back row
+    expect(zones[spawnZoneCellKey(9, BOT_DEPLOY_ROW_MAX)]).toBe('right')
+    expect(zones[spawnZoneCellKey(8, 0)]).toBe('left')
+    expect(zones[spawnZoneCellKey(9, 0)]).toBe('right')
   })
 
   it('enemyUnlockOverlayCells skips friendly-row left/right paint', () => {

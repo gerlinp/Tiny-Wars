@@ -82,6 +82,12 @@ export interface EntityStats {
    */
   retargetGraceMs?: number
   /**
+   * Body collision radius (grid cells). Small swarm units (skeletons) use a tighter
+   * circle so they pack around targets instead of shoving each other. Defaults to
+   * TROOP_COLLISION_RADIUS_CELLS.
+   */
+  collisionRadiusCells?: number
+  /**
    * Delay between starting an attack and the damage landing (ms). CR calls this the
    * first-hit / load time. Defaults to 0 (instant hit, legacy behavior).
    */
