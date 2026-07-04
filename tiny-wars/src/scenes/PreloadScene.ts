@@ -4,6 +4,7 @@ import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims
 import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HEX_SHAMAN_BASE_SHEETS, HEX_SHAMAN_BASE_AVATAR, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET, HEX_SHAMAN_LIGHTNING_BOLT_SHEET, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL } from '@data/AssetManifest'
 import { generateAllShamanTextures } from '@rendering/PaletteSwap'
 import { TERRAIN_COLOR1, TERRAIN_ROAD, TERRAIN_PATH_FLAT, TERRAIN_PATH_STONE, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_DECK } from '@data/TerrainManifest'
+import { preloadClouds } from '@ui/clouds'
 import { DEFAULT_DECK } from '@data/CardData'
 import { setActiveMapConfig, getActiveMapConfig } from '@data/ActiveMapConfig'
 import { DEFAULT_MAP_CONFIG } from '@data/DefaultMapConfig'
@@ -167,6 +168,7 @@ export class PreloadScene extends Phaser.Scene {
       frameHeight: TERRAIN_PATH_STONE.frameHeight,
     })
     this.load.image(TERRAIN_WATER.key, TERRAIN_WATER.path)
+    preloadClouds(this.load)
     this.load.image(TERRAIN_BRIDGE.key, TERRAIN_BRIDGE.path)
 
     // --- Projectiles (companion Arrow.png — same sprite as Archer_Shoot frames) ---

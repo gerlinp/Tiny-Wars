@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { playCloudCoverReveal } from '@ui/clouds'
 import { Grid } from '@core/Grid'
 import { GameSimulator } from '@core/GameSimulator'
 import { CardSystem } from '@core/CardSystem'
@@ -77,6 +78,10 @@ export class BattleScene extends Phaser.Scene {
 
   create(): void {
     ensurePlaceholders(this)
+
+    // Match-start reveal — the arena begins under cloud cover that blows apart
+    // (solo and PvP both enter through this create).
+    playCloudCoverReveal(this, this.scale.width, this.scale.height)
 
     this.grid      = new Grid()
     this.simulator = new GameSimulator(this.grid)

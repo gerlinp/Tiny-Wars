@@ -22,13 +22,13 @@ export function createLoadingBar(
   barY: number,
   labelY: number,
 ): LoadingBarWidgets {
-  const barBg = scene.add.rectangle(width / 2, barY, 744, 50, 0x333366)
-  const bar = scene.add.rectangle(width / 2 - 372, barY, 0, 40, 0x6688cc)
+  const barBg = scene.add.rectangle(width / 2, barY, 744, 50, 0x333366).setDepth(5)
+  const bar = scene.add.rectangle(width / 2 - 372, barY, 0, 40, 0x6688cc).setDepth(6)
   bar.setOrigin(0, 0.5)
   const label = scene.add.text(width / 2, labelY, 'Loading...', {
     fontSize: '35px',
     color: '#aabbff',
-  }).setOrigin(0.5)
+  }).setOrigin(0.5).setDepth(6)
   return { barBg, bar, label }
 }
 
