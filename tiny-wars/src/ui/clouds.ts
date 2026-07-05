@@ -76,7 +76,7 @@ export function createSpeedingClouds(
   width: number,
   height: number,
   depth = 0,
-  count = 6,
+  count = 10,
 ): void {
   if (!scene.textures.exists(cloudTextureKey(0))) return
 
@@ -89,9 +89,9 @@ export function createSpeedingClouds(
     s.img.setDisplaySize(w, w * (256 / 576) * 0.8)
     s.img.y = Math.random() * height
     // Start fully off the left edge (or anywhere when seeding the first frame).
-    s.img.x = initial ? Math.random() * width : -s.img.displayWidth / 2 - Math.random() * width * 0.5
-    s.speed = 1400 + Math.random() * 900  // px/sec — train-window rush
-    s.img.setAlpha(0.75 + Math.random() * 0.25)
+    s.img.x = initial ? Math.random() * width : -s.img.displayWidth / 2 - Math.random() * width * 0.25
+    s.speed = 1000 + Math.random() * 800  // px/sec — train-window rush
+    s.img.setAlpha(0.85 + Math.random() * 0.15)
   }
 
   for (let i = 0; i < count; i++) {
@@ -113,19 +113,68 @@ export function createSpeedingClouds(
   })
 }
 
-const COVER_ROWS = 4
+const COVER_ROWS = 6
+const COVER_COLS = 3
+const COVER_COL_X = [0.15, 0.5, 0.85] as const
 
-/** One giant full-width cloud per row — shared by the close-in and the reveal. */
+/**
+ * A dense grid of giant overlapping clouds — every cell overlaps its neighbours
+ * several times over, so the blanket is solid cloud with nothing visible through it.
+ * Fully deterministic: the same clouds appear in the same places on every transition.
+ */
 function coverCloudLayout(width: number, height: number) {
   const rowH = height / COVER_ROWS
-  return Array.from({ length: COVER_ROWS }, (_, row) => ({
-    row,
-    cx: width / 2 + (Math.random() - 0.5) * width * 0.1,
-    cy: (row + 0.5) * rowH + (Math.random() - 0.5) * rowH * 0.1,
-    w: width * 1.7,
-    h: rowH * 1.9,
-    dir: row % 2 === 0 ? -1 : 1,  // alternate rows exit opposite sides
-  }))
+  const slots: Array<{ row: number; cx: number; cy: number; w: number; h: number; dir: number; frame: number; flip: boolean }> = []
+  for (let row = 0; row < COVER_ROWS; row++) {
+    for (let col = 0; col < COVER_COLS; col++) {
+      slots.push({
+        row,
+        cx: width * COVER_COL_X[col]!,
+        cy: (row + 0.5) * rowH,
+        w: width * 1.1,
+        h: rowH * 3.2,
+        dir: (row + col) % 2 === 0 ? -1 : 1,  // alternate exit sides
+        frame: (row * COVER_COLS + col) % CLOUD_FRAME_COUNT,
+        flip: (row + col) % 2 === 1,
+      })
+    }
+  }
+  return slots
+}
+
+/**
+ * Static full cover — the blanket sitting in place (loading screens live under it,
+ * with their UI drawn above). Same deterministic layout as close/reveal.
+ */
+export function showCloudCoverStatic(
+  scene: Phaser.Scene,
+  width: number,
+  height: number,
+  depth = 900,
+): void {
+  if (!scene.textures.exists(cloudTextureKey(0))) return
+  addCoverBackdrop(scene, width, height, depth - 1, 1)
+  for (const slot of coverCloudLayout(width, height)) {
+    scene.add.image(slot.cx, slot.cy, cloudTextureKey(slot.frame))
+      .setDepth(depth)
+      .setScrollFactor(0)
+      .setFlipX(slot.flip)
+      .setDisplaySize(slot.w, slot.h)
+  }
+}
+
+/** Full-screen white backdrop under the cover clouds — guarantees an opaque whiteout. */
+function addCoverBackdrop(
+  scene: Phaser.Scene,
+  width: number,
+  height: number,
+  depth: number,
+  alpha: number,
+): Phaser.GameObjects.Rectangle {
+  return scene.add.rectangle(width / 2, height / 2, width, height, 0xffffff)
+    .setDepth(depth)
+    .setScrollFactor(0)
+    .setAlpha(alpha)
 }
 
 /**
@@ -141,12 +190,15 @@ export function playCloudCoverClose(
 ): void {
   if (!scene.textures.exists(cloudTextureKey(0))) return
 
+  const backdrop = addCoverBackdrop(scene, width, height, depth - 1, 0)
+  scene.tweens.add({ targets: backdrop, alpha: 1, duration: durationMs, ease: 'Quad.easeIn' })
+
   for (const slot of coverCloudLayout(width, height)) {
     const startX = slot.dir < 0 ? -slot.w * 0.75 : width + slot.w * 0.75
-    const img = scene.add.image(startX, slot.cy, randomCloudKey(scene))
+    const img = scene.add.image(startX, slot.cy, cloudTextureKey(slot.frame))
       .setDepth(depth)
       .setScrollFactor(0)
-      .setFlipX(slot.dir > 0)
+      .setFlipX(slot.flip)
     img.setDisplaySize(slot.w, slot.h)
     scene.tweens.add({
       targets: img,
@@ -171,20 +223,32 @@ export function playCloudCoverReveal(
 ): void {
   if (!scene.textures.exists(cloudTextureKey(0))) return
 
+  // Opaque whiteout underneath — the map fades in beneath the dispersing clouds
+  // instead of appearing abruptly through gaps in the cloud art.
+  const backdrop = addCoverBackdrop(scene, width, height, depth - 1, 1)
+  scene.tweens.add({
+    targets: backdrop,
+    alpha: 0,
+    delay: holdMs + 300,
+    duration: 1500,
+    ease: 'Quad.easeInOut',
+    onComplete: () => backdrop.destroy(),
+  })
+
   for (const slot of coverCloudLayout(width, height)) {
-    const img = scene.add.image(slot.cx, slot.cy, randomCloudKey(scene))
+    const img = scene.add.image(slot.cx, slot.cy, cloudTextureKey(slot.frame))
       .setDepth(depth)
       .setScrollFactor(0)
-      .setFlipX(slot.dir > 0)
+      .setFlipX(slot.flip)
     img.setDisplaySize(slot.w, slot.h)
 
     const targetX = slot.dir < 0 ? -slot.w * 0.75 : width + slot.w * 0.75
     scene.tweens.add({
       targets: img,
       x: targetX,
-      alpha: 0.35,
+      alpha: 0,
       delay: holdMs + slot.row * 160,
-      duration: 2000 + Math.random() * 200,
+      duration: 2100,
       ease: 'Cubic.easeInOut',
       onComplete: () => img.destroy(),
     })

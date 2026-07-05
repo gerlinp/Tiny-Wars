@@ -30,6 +30,12 @@ export const CANNON_HIT_SFX: SfxDef = {
   path: 'assets/Audio/SFX/Combat/cannon_hit.wav',
 }
 
+/** Match-intro fanfare played on the "Battle Start!" flip. */
+export const WAR_HORN_SFX: SfxDef = {
+  key: 'sfx_war_horn',
+  path: 'assets/Audio/SFX/Combat/war-horn.mp3',
+}
+
 /** Troops/buildings that use {@link CANNON_HIT_SFX} on impact. */
 export const CANNON_HIT_CARD_IDS = new Set<string>([
   'air_boat',
@@ -95,7 +101,7 @@ export function hitSfxForMeleeCard(cardId: string): SfxDef {
 }
 
 export function getCombatSfx(): readonly SfxDef[] {
-  return [BLADE_HIT_SFX, BLUNT_HIT_SFX, ARROW_HIT_SFX, CANNON_HIT_SFX]
+  return [BLADE_HIT_SFX, BLUNT_HIT_SFX, ARROW_HIT_SFX, CANNON_HIT_SFX, WAR_HORN_SFX]
 }
 
 /** Every melee troop card id grouped by strike sfx (for tests / tooling). */

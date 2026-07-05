@@ -28,6 +28,7 @@ import { getAttackWindupMs, getRunLeapPose, GOBLIN_DYNAMITE_SHEET, GARRISON_CANN
 import { arrowFlightMs, rocketFlightMs } from '@data/ProjectileConstants'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { loadPlayerDeck } from '@data/PlayerDeck'
+import { createMatchupBanner, matchupLabel } from '@ui/matchupBanner'
 import { GAME_HEIGHT, CELL_SIZE, GRID_ROWS } from '@data/GameConstants'
 import { DevMode } from '@debug/DevMode'
 import { DevModeOverlay } from '@debug/DevModeOverlay'
@@ -67,6 +68,8 @@ export class BattleScene extends Phaser.Scene {
   private devOverlay!: DevModeOverlay
   private entityCardIds = new Map<string, string>()
   private sounds!: SoundManager
+  /** Sim time is frozen until the match intro ("X vs Y" → "Battle Start!") finishes. */
+  private battleStarted = false
 
   constructor() {
     super({ key: 'BattleScene' })
@@ -82,6 +85,7 @@ export class BattleScene extends Phaser.Scene {
     // Match-start reveal — the arena begins under cloud cover that blows apart
     // (solo and PvP both enter through this create).
     playCloudCoverReveal(this, this.scale.width, this.scale.height)
+    this.runMatchIntro()
 
     this.grid      = new Grid()
     this.simulator = new GameSimulator(this.grid)
@@ -203,17 +207,62 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Match intro: once the clouds disperse, "X vs Y" pops in over the arena,
+   * flips to "Battle Start!", and sim time unfreezes on the flip.
+   */
+  private runMatchIntro(): void {
+    const banner = createMatchupBanner(
+      this, this.scale.width / 2, GAME_HEIGHT / 2, matchupLabel(this.pvpNetwork),
+    )
+    banner.setAlpha(0).setScale(0.8)
+
+    // playCloudCoverReveal's whiteout backdrop is gone by ~2300ms and the arena reads as
+    // revealed — bring the matchup in right then, while the last clouds drift off-screen.
+    this.time.delayedCall(2400, () => {
+      this.tweens.add({
+        targets: banner,
+        alpha: 1,
+        scale: 1,
+        duration: 250,
+        ease: 'Back.easeOut',
+      })
+    })
+
+    // Hold the matchup until a second after the last clouds clear (~3400ms), then
+    // flash the battle start and unfreeze the sim.
+    this.time.delayedCall(3400 + 1000, () => {
+      banner.setText('Battle Start!')
+      banner.setScale(0.3)
+      this.sounds.playWarHorn()
+      this.tweens.add({
+        targets: banner,
+        scale: 1,
+        duration: 300,
+        ease: 'Back.easeOut',
+      })
+      this.battleStarted = true
+      this.tweens.add({
+        targets: banner,
+        alpha: 0,
+        delay: 700,
+        duration: 300,
+        onComplete: () => banner.destroy(),
+      })
+    })
+  }
+
   update(_time: number, delta: number): void {
     if (this.simulator.state.phase === 'ENDED') {
       this.endGame()
       return
     }
 
-    // Tick the simulation
-    const state = this.simulator.tick(delta)
+    // Tick the simulation (dt 0 during the intro — arena renders but time is frozen)
+    const state = this.simulator.tick(this.battleStarted ? delta : 0)
 
     // Bot AI (solo only — in PvP opponent actions come via network)
-    if (this.botAI && this.botCardSystem) {
+    if (this.battleStarted && this.botAI && this.botCardSystem) {
       const botAction = this.botAI.tick(delta, state, this.botCardSystem)
       if (botAction) {
         const card = this.botCardSystem.hand[botAction.handIndex]

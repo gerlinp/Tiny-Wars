@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
 import { PvPNetwork } from '@core/PvPNetwork'
+import { loadPlayerName, savePlayerName } from '@data/PlayerName'
 
 const BODY_FONT = "'Philosopher', Georgia, serif"
 
@@ -116,6 +117,8 @@ export class PvPLobbyScene extends Phaser.Scene {
       'z-index:10',
       'padding:0',
     ].join(';')
+    ni.value = loadPlayerName()
+    ni.addEventListener('input', () => savePlayerName(ni.value))
     document.body.appendChild(ni)
     this.nameInput = ni
 

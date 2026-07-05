@@ -22,6 +22,8 @@ export interface HealthBarOptions {
   /** Pixels above entity centre; zero = y is already the bar centre */
   offsetY?: number
   barWidth?: number
+  /** Display height override — defaults to the variant's displayHeight. */
+  barHeight?: number
   depth?: number
   variant?: HealthBarVariant
   owner?: Owner
@@ -54,7 +56,7 @@ export class HealthBar {
     const variant = options.variant ?? 'small'
     const assets = HEALTH_BAR_ASSETS[variant]
     this.offsetY = options.offsetY ?? -35
-    this.barH = assets.displayHeight
+    this.barH = options.barHeight ?? assets.displayHeight
     this.depth = options.depth ?? 12
     this.owner = options.owner
     this.fillInsetX = assets.fillInsetX

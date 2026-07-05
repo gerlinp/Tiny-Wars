@@ -35,6 +35,14 @@ export const SFX_MIX_RULES: Record<string, SfxMixRule> = {
     volumeJitter: 0.1,
     detuneJitterCents: 60,
   },
+  // One-shot intro fanfare — full volume, no variation, never overlaps itself.
+  sfx_war_horn: {
+    maxVoices: 1,
+    cooldownMs: 3000,
+    baseVolume: 0.8,
+    volumeJitter: 0,
+    detuneJitterCents: 0,
+  },
 }
 
 /** Global combat bus gain (future settings slider can drive this). */

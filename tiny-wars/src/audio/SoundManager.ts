@@ -4,6 +4,7 @@ import {
   BLUNT_HIT_SFX,
   ARROW_HIT_SFX,
   CANNON_HIT_SFX,
+  WAR_HORN_SFX,
   isBladeMeleeCard,
   type SfxDef,
 } from '@data/AudioManifest'
@@ -45,6 +46,10 @@ export class SoundManager {
 
   playCannonHit(): void {
     this.playSfx(CANNON_HIT_SFX)
+  }
+
+  playWarHorn(): void {
+    this.playSfx(WAR_HORN_SFX)
   }
 
   playMeleeStrike(cardId: string): void {
