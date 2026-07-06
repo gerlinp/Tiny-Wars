@@ -20,6 +20,8 @@ import {
   BOT_DEPLOY_ROW_MAX,
   DEPLOY_LANE_SPLIT_COL,
   PLAYER_TOWER_COLS,
+  BOT_POCKET_ROW_MIN,
+  PLAYER_POCKET_ROW_MAX,
 } from '@data/GameConstants'
 
 // ─── DeployPerspective ────────────────────────────────────────────────────────
@@ -41,10 +43,11 @@ export function friendlyDeployRows(owner: Owner): { min: number; max: number } {
     : { min: BOT_DEPLOY_ROW_MIN, max: BOT_DEPLOY_ROW_MAX }
 }
 
+/** Tower-fall pocket rows — clipped to halfway depth (stops at the fallen tower's row). */
 export function enemyDeployRows(owner: Owner): { min: number; max: number } {
   return owner === Owner.PLAYER
-    ? { min: BOT_DEPLOY_ROW_MIN, max: BOT_DEPLOY_ROW_MAX }
-    : { min: PLAYER_DEPLOY_ROW_MIN, max: PLAYER_DEPLOY_ROW_MAX }
+    ? { min: Math.max(BOT_DEPLOY_ROW_MIN, BOT_POCKET_ROW_MIN), max: BOT_DEPLOY_ROW_MAX }
+    : { min: PLAYER_DEPLOY_ROW_MIN, max: Math.min(PLAYER_DEPLOY_ROW_MAX, PLAYER_POCKET_ROW_MAX) }
 }
 
 export function enemyLaneUnlocksFor(state: GameState, owner: Owner): LaneUnlocks {

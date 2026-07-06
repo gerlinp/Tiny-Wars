@@ -37,6 +37,12 @@ export function menuButtonRowCenters(screenWidth: number, count: number, gap: nu
   return Array.from({ length: count }, (_, i) => startX + i * (btnW + gap))
 }
 
+export interface MenuButtonHandle {
+  button: Phaser.GameObjects.Image
+  label: Phaser.GameObjects.Text
+  setVisible(visible: boolean): void
+}
+
 export function createMenuButton(
   scene: Phaser.Scene,
   x: number,
@@ -45,12 +51,12 @@ export function createMenuButton(
   fontSize: string,
   depth: number,
   onPress: () => void,
-): void {
+): MenuButtonHandle {
   const btn = scene.add.image(x, y, 'button_blue')
     .setInteractive({ useHandCursor: true })
     .setScale(MENU_BUTTON_SCALE)
     .setDepth(depth)
-  scene.add.text(x, y, label, {
+  const text = scene.add.text(x, y, label, {
     fontSize,
     fontFamily: CINZEL_FONT,
     fontStyle: 'bold',
@@ -61,4 +67,12 @@ export function createMenuButton(
   btn.on('pointerup', onPress)
   btn.on('pointerover', () => btn.setTint(0xdddddd))
   btn.on('pointerout',  () => btn.clearTint())
+  return {
+    button: btn,
+    label: text,
+    setVisible: (visible: boolean) => {
+      btn.setVisible(visible)
+      text.setVisible(visible)
+    },
+  }
 }

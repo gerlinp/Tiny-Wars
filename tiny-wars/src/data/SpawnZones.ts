@@ -1,7 +1,7 @@
 import type { MapConfig } from './MapConfig'
 import {
-  BOT_DEPLOY_ROW_MIN,
   BOT_DEPLOY_ROW_MAX,
+  BOT_POCKET_ROW_MIN,
   PLAYER_DEPLOY_ROW_MIN,
   PLAYER_DEPLOY_ROW_MAX,
   DEPLOY_LANE_SPLIT_COL,
@@ -55,7 +55,7 @@ export function buildFallbackSpawnZones(): SpawnZoneMap {
     }
   }
 
-  for (let row = BOT_DEPLOY_ROW_MIN; row <= BOT_DEPLOY_ROW_MAX; row++) {
+  for (let row = BOT_POCKET_ROW_MIN; row <= BOT_DEPLOY_ROW_MAX; row++) {
     for (let col = colMin; col <= colMax; col++) {
       zones[spawnZoneCellKey(col, row)] = col < DEPLOY_LANE_SPLIT_COL ? 'left' : 'right'
     }
@@ -66,9 +66,9 @@ export function buildFallbackSpawnZones(): SpawnZoneMap {
 
 /**
  * Clash-style painted zones for map.json when no custom export exists.
- * CR (observable): destroying a princess tower unlocks that tower's entire half-width
- * of the enemy side, full depth — players routinely deploy right beside the enemy
- * king after taking a tower. Structure footprints stay unplaceable via deploy checks.
+ * Destroying a princess tower unlocks that tower's half-width of the enemy side,
+ * but only halfway deep — the pocket stops at the fallen tower's row instead of
+ * reaching the enemy back wall. Structure footprints stay unplaceable via deploy checks.
  */
 export function buildClashStyleSpawnZones(): SpawnZoneMap {
   const zones: SpawnZoneMap = {}
@@ -81,7 +81,7 @@ export function buildClashStyleSpawnZones(): SpawnZoneMap {
     }
   }
 
-  for (let row = BOT_DEPLOY_ROW_MIN; row <= BOT_DEPLOY_ROW_MAX; row++) {
+  for (let row = BOT_POCKET_ROW_MIN; row <= BOT_DEPLOY_ROW_MAX; row++) {
     for (let col = colMin; col <= colMax; col++) {
       zones[spawnZoneCellKey(col, row)] = col < DEPLOY_LANE_SPLIT_COL ? 'left' : 'right'
     }

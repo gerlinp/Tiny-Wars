@@ -28,6 +28,7 @@ import { getAttackWindupMs, getRunLeapPose, GOBLIN_DYNAMITE_SHEET, GARRISON_CANN
 import { arrowFlightMs, rocketFlightMs } from '@data/ProjectileConstants'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { loadPlayerDeck } from '@data/PlayerDeck'
+import { BOT_DECKS, BOT_DIFFICULTY_LABELS, loadBotDifficulty } from '@data/BotDecks'
 import { createMatchupBanner, matchupLabel } from '@ui/matchupBanner'
 import { GAME_HEIGHT, CELL_SIZE, GRID_ROWS } from '@data/GameConstants'
 import { DevMode } from '@debug/DevMode'
@@ -92,8 +93,9 @@ export class BattleScene extends Phaser.Scene {
     this.playerCardSystem = new CardSystem(loadPlayerDeck())
     if (!this.pvpNetwork) {
       // Solo only — in PvP the opponent's cards arrive via network, not a local deck
-      this.botCardSystem = new CardSystem()
-      this.botAI         = new BotAI()
+      const difficulty = loadBotDifficulty()
+      this.botCardSystem = new CardSystem(BOT_DECKS[difficulty])
+      this.botAI         = new BotAI(difficulty)
     }
 
     if (this.pvpNetwork) {
@@ -212,8 +214,9 @@ export class BattleScene extends Phaser.Scene {
    * flips to "Battle Start!", and sim time unfreezes on the flip.
    */
   private runMatchIntro(): void {
+    const botLabel = this.botAI ? BOT_DIFFICULTY_LABELS[this.botAI.difficulty] : undefined
     const banner = createMatchupBanner(
-      this, this.scale.width / 2, GAME_HEIGHT / 2, matchupLabel(this.pvpNetwork),
+      this, this.scale.width / 2, GAME_HEIGHT / 2, matchupLabel(this.pvpNetwork, botLabel),
     )
     banner.setAlpha(0).setScale(0.8)
 

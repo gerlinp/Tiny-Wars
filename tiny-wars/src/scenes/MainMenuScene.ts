@@ -1,9 +1,15 @@
 import Phaser from 'phaser'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
-import { createMenuButton, menuButtonRowCenters } from '../ui/SceneButton'
+import { createMenuButton, menuButtonRowCenters, type MenuButtonHandle } from '../ui/SceneButton'
 import { startBattleLoading } from '../ui/loadingScreenUi'
 import { createWaterBackground } from '../ui/menuBackground'
 import { createDriftingClouds, playCloudCoverClose } from '../ui/clouds'
+import {
+  BOT_DIFFICULTIES,
+  BOT_DIFFICULTY_LABELS,
+  saveBotDifficulty,
+  type BotDifficulty,
+} from '@data/BotDecks'
 
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
@@ -49,14 +55,45 @@ export class MainMenuScene extends Phaser.Scene {
     const menuBtnY = height * 0.55
     const [playX, onlineX, deckX] = menuButtonRowCenters(width, 3, 24)
     let leaving = false
-    const playWithCloudClose = () => {
+    const startBattleAt = (difficulty: BotDifficulty) => {
       if (leaving) return
       leaving = true
+      saveBotDifficulty(difficulty)
       playCloudCoverClose(this, width, height, 650)
       this.time.delayedCall(750, () => startBattleLoading(this))
     }
-    createMenuButton(this, playX,   menuBtnY, 'PLAY',   '72px', 5, playWithCloudClose)
-    createMenuButton(this, onlineX, menuBtnY, 'ONLINE', '56px', 5, () => this.scene.start('PvPLobbyScene'))
-    createMenuButton(this, deckX,   menuBtnY, 'DECK',   '72px', 5, () => this.scene.start('DeckBuilderScene'))
+
+    // Difficulty row — hidden until PLAY is pressed, then swaps in for the main row.
+    const mainRow: MenuButtonHandle[] = []
+    const difficultyRow: MenuButtonHandle[] = []
+    const showDifficulties = (show: boolean) => {
+      for (const b of mainRow) b.setVisible(!show)
+      for (const b of difficultyRow) b.setVisible(show)
+      backLabel.setVisible(show)
+    }
+
+    mainRow.push(
+      createMenuButton(this, playX,   menuBtnY, 'PLAY',   '72px', 5, () => showDifficulties(true)),
+      createMenuButton(this, onlineX, menuBtnY, 'ONLINE', '56px', 5, () => this.scene.start('PvPLobbyScene')),
+      createMenuButton(this, deckX,   menuBtnY, 'DECK',   '72px', 5, () => this.scene.start('DeckBuilderScene')),
+    )
+
+    const difficultyX = menuButtonRowCenters(width, BOT_DIFFICULTIES.length, 24)
+    BOT_DIFFICULTIES.forEach((difficulty, i) => {
+      const btn = createMenuButton(
+        this, difficultyX[i]!, menuBtnY,
+        BOT_DIFFICULTY_LABELS[difficulty].toUpperCase(), '56px', 5,
+        () => startBattleAt(difficulty),
+      )
+      btn.setVisible(false)
+      difficultyRow.push(btn)
+    })
+
+    const backLabel = this.add.text(width / 2, menuBtnY + 110, '← Back', {
+      fontSize: '40px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#aabbff', stroke: '#000022', strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(5).setVisible(false)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerup', () => showDifficulties(false))
   }
 }

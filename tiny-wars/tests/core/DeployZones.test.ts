@@ -12,6 +12,8 @@ import {
   PLAYER_DEPLOY_ROW_MIN,
   BOT_DEPLOY_ROW_MAX,
   BOT_DEPLOY_ROW_MIN,
+  BOT_POCKET_ROW_MIN,
+  PLAYER_POCKET_ROW_MAX,
   DEPLOY_LANE_SPLIT_COL,
   CELL_SIZE,
 } from '@data/GameConstants'
@@ -25,9 +27,9 @@ import {
 } from '@data/SpawnZones'
 
 const PAINTED_SPAWN_ZONES: SpawnZoneMap = {
-  '4,5': 'left',
-  '13,5': 'right',
-  '9,5': 'base',
+  '4,8': 'left',
+  '13,8': 'right',
+  '9,8': 'base',
   '4,28': 'left',
   '8,28': 'base',
 }
@@ -53,22 +55,33 @@ describe('DeployZones', () => {
   it('unlocks enemy left lane for player when bot left princess falls', () => {
     const enemyLaneDeploy = createEmptyEnemyLaneDeploy()
     enemyLaneDeploy[Owner.PLAYER].left = true
-    expect(isTroopDeployCell(Owner.PLAYER, { x: 4, y: 5 }, enemyLaneDeploy)).toBe(true)
-    expect(isTroopDeployCell(Owner.PLAYER, { x: 13, y: 5 }, enemyLaneDeploy)).toBe(false)
+    expect(isTroopDeployCell(Owner.PLAYER, { x: 4, y: 8 }, enemyLaneDeploy)).toBe(true)
+    expect(isTroopDeployCell(Owner.PLAYER, { x: 13, y: 8 }, enemyLaneDeploy)).toBe(false)
   })
 
   it('unlocks enemy right lane for player when bot right princess falls', () => {
     const enemyLaneDeploy = createEmptyEnemyLaneDeploy()
     enemyLaneDeploy[Owner.PLAYER].right = true
-    expect(isTroopDeployCell(Owner.PLAYER, { x: 13, y: 5 }, enemyLaneDeploy)).toBe(true)
-    expect(isTroopDeployCell(Owner.PLAYER, { x: 4, y: 5 }, enemyLaneDeploy)).toBe(false)
+    expect(isTroopDeployCell(Owner.PLAYER, { x: 13, y: 8 }, enemyLaneDeploy)).toBe(true)
+    expect(isTroopDeployCell(Owner.PLAYER, { x: 4, y: 8 }, enemyLaneDeploy)).toBe(false)
   })
 
   it('unlocks player right lane for bot when player right princess falls', () => {
     const enemyLaneDeploy = createEmptyEnemyLaneDeploy()
     enemyLaneDeploy[Owner.BOT].right = true
-    expect(isTroopDeployCell(Owner.BOT, { x: 13, y: 28 }, enemyLaneDeploy)).toBe(true)
-    expect(isTroopDeployCell(Owner.BOT, { x: 4, y: 28 }, enemyLaneDeploy)).toBe(false)
+    expect(isTroopDeployCell(Owner.BOT, { x: 13, y: 20 }, enemyLaneDeploy)).toBe(true)
+    expect(isTroopDeployCell(Owner.BOT, { x: 4, y: 20 }, enemyLaneDeploy)).toBe(false)
+  })
+
+  it('keeps the deep enemy half locked — pocket stops at the fallen tower row', () => {
+    const enemyLaneDeploy = createEmptyEnemyLaneDeploy()
+    enemyLaneDeploy[Owner.PLAYER].left = true
+    enemyLaneDeploy[Owner.BOT].right = true
+    expect(isTroopDeployCell(Owner.PLAYER, { x: 4, y: BOT_POCKET_ROW_MIN }, enemyLaneDeploy)).toBe(true)
+    expect(isTroopDeployCell(Owner.PLAYER, { x: 4, y: BOT_POCKET_ROW_MIN - 1 }, enemyLaneDeploy)).toBe(false)
+    expect(isTroopDeployCell(Owner.PLAYER, { x: 4, y: 0 }, enemyLaneDeploy)).toBe(false)
+    expect(isTroopDeployCell(Owner.BOT, { x: 13, y: PLAYER_POCKET_ROW_MAX }, enemyLaneDeploy)).toBe(true)
+    expect(isTroopDeployCell(Owner.BOT, { x: 13, y: PLAYER_POCKET_ROW_MAX + 1 }, enemyLaneDeploy)).toBe(false)
   })
 })
 
@@ -92,16 +105,16 @@ describe('painted spawnZones', () => {
   it('only unlocks painted left cells on enemy half when left tower falls', () => {
     const enemyLaneDeploy = createEmptyEnemyLaneDeploy()
     enemyLaneDeploy[Owner.PLAYER].left = true
-    expect(isTroopDeployCell(Owner.PLAYER, { x: 4, y: 5 }, enemyLaneDeploy)).toBe(true)
-    expect(isTroopDeployCell(Owner.PLAYER, { x: 9, y: 5 }, enemyLaneDeploy)).toBe(false)
-    expect(isTroopDeployCell(Owner.PLAYER, { x: 13, y: 5 }, enemyLaneDeploy)).toBe(false)
+    expect(isTroopDeployCell(Owner.PLAYER, { x: 4, y: 8 }, enemyLaneDeploy)).toBe(true)
+    expect(isTroopDeployCell(Owner.PLAYER, { x: 9, y: 8 }, enemyLaneDeploy)).toBe(false)
+    expect(isTroopDeployCell(Owner.PLAYER, { x: 13, y: 8 }, enemyLaneDeploy)).toBe(false)
   })
 
   it('only unlocks painted right cells on enemy half when right tower falls', () => {
     const enemyLaneDeploy = createEmptyEnemyLaneDeploy()
     enemyLaneDeploy[Owner.PLAYER].right = true
-    expect(isTroopDeployCell(Owner.PLAYER, { x: 13, y: 5 }, enemyLaneDeploy)).toBe(true)
-    expect(isTroopDeployCell(Owner.PLAYER, { x: 9, y: 5 }, enemyLaneDeploy)).toBe(false)
+    expect(isTroopDeployCell(Owner.PLAYER, { x: 13, y: 8 }, enemyLaneDeploy)).toBe(true)
+    expect(isTroopDeployCell(Owner.PLAYER, { x: 9, y: 8 }, enemyLaneDeploy)).toBe(false)
   })
 
   it('ignores left/right paint on friendly rows for enemy unlock checks', () => {
@@ -118,14 +131,14 @@ describe('painted spawnZones', () => {
       BOT_DEPLOY_ROW_MAX,
       { left: true, right: false },
     )
-    expect(cells).toEqual([{ col: 4, row: 5 }])
+    expect(cells).toEqual([{ col: 4, row: 8 }])
 
     const rects = deployOverlayRects(Owner.PLAYER, { left: true, right: false }, PAINTED_SPAWN_ZONES)
     const expanded = rects.filter(r => r.kind === 'expanded')
     expect(expanded).toHaveLength(1)
     expect(expanded[0]).toMatchObject({
       x: 4 * CELL_SIZE,
-      y: 5 * CELL_SIZE,
+      y: 8 * CELL_SIZE,
       w: CELL_SIZE,
       h: CELL_SIZE,
     })

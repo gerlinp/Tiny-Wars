@@ -7,7 +7,7 @@ import { GAME_WIDTH, CANVAS_HEIGHT, CR_SPEED, crSpeedToCellsPerSec } from '@data
 import { LANCER_CHARGE_DAMAGE_MULT, THIEF_DASH_RANGE_CELLS } from '@data/CardAbilities'
 
 const MODAL_W = GAME_WIDTH - 160
-const MODAL_H = 1520
+const MODAL_H = 1640
 const PORTRAIT_SIZE = 400
 
 function speedLabel(cellsPerSec: number): string {
@@ -77,9 +77,16 @@ export class CardInfoModal {
     const scene = this.scene
     const top = -MODAL_H / 2
 
-    // ── Portrait ──────────────────────────────────────────────────────────
+    // ── Title (centered, clear of the close button) ───────────────────────
+    add(this.panel, scene.add.text(0, top + 56, card.displayName, {
+      fontSize: '72px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
+      color: '#ffdd88', stroke: '#2a1500', strokeThickness: 16,
+      wordWrap: { width: MODAL_W - 320 }, align: 'center',
+    }).setOrigin(0.5, 0))
+
+    // ── Portrait with type / elixir badges beside it ──────────────────────
     const portraitX = -MODAL_W / 2 + PORTRAIT_SIZE / 2 + 64
-    const portraitY = top + PORTRAIT_SIZE / 2 + 64
+    const portraitY = top + 240 + PORTRAIT_SIZE / 2
     add(this.panel, scene.add.rectangle(portraitX, portraitY, PORTRAIT_SIZE, PORTRAIT_SIZE, 0x05122a)
       .setStrokeStyle(8, 0x2e4480))
     this.portraits = createCardPortrait(scene, card, 0, 0, PORTRAIT_SIZE * 0.82, PORTRAIT_SIZE * 0.82)
@@ -88,38 +95,30 @@ export class CardInfoModal {
       this.panel.add(img)
     }
 
-    // ── Title / type / elixir ─────────────────────────────────────────────
-    const titleX  = portraitX + PORTRAIT_SIZE / 2 + 56
-    const titleW  = MODAL_W / 2 - titleX + MODAL_W / 2 - 48
+    const badgeX = portraitX + PORTRAIT_SIZE / 2 + 56
 
-    add(this.panel, scene.add.text(titleX, top + 72, card.displayName, {
-      fontSize: '80px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#ffdd88', stroke: '#2a1500', strokeThickness: 16,
-      wordWrap: { width: titleW },
-    }).setOrigin(0, 0))
-
-    add(this.panel, scene.add.text(titleX, top + 192, typeLabel(card), {
+    add(this.panel, scene.add.text(badgeX, portraitY - 108, typeLabel(card), {
       fontSize: '52px', fontFamily: CINZEL_FONT,
       color: '#aabbff', backgroundColor: '#1a2d6a',
       padding: { x: 24, y: 12 },
     }).setOrigin(0, 0))
 
-    add(this.panel, scene.add.text(titleX, top + 304, `${card.elixirCost}`, {
+    add(this.panel, scene.add.text(badgeX, portraitY + 8, `${card.elixirCost}`, {
       fontSize: '64px', fontFamily: NUMBER_FONT, fontStyle: 'bold',
       color: '#ffffff', backgroundColor: '#5500cc',
       padding: { x: 32, y: 16 },
     }).setOrigin(0, 0))
 
     // ── Description ───────────────────────────────────────────────────────
-    const descY = top + PORTRAIT_SIZE + 144
-    add(this.panel, scene.add.text(0, descY, card.description, {
-      fontSize: '60px', fontFamily: "'Philosopher', Georgia, serif",
+    const descY = top + 240 + PORTRAIT_SIZE + 56
+    const desc = add(this.panel, scene.add.text(0, descY, card.description, {
+      fontSize: '50px', fontFamily: "'Philosopher', Georgia, serif",
       color: '#c8d8f0', wordWrap: { width: MODAL_W - 128 },
-      lineSpacing: 16, align: 'center',
+      lineSpacing: 14, align: 'center',
     }).setOrigin(0.5, 0))
 
-    // ── Stats ─────────────────────────────────────────────────────────────
-    const statsY = descY + 280
+    // ── Stats (start below however tall the description actually is) ──────
+    const statsY = descY + desc.height + 64
     this.buildStats(card, statsY)
 
     // ── Close button ──────────────────────────────────────────────────────
@@ -170,23 +169,26 @@ export class CardInfoModal {
         rows.push(['Targets', 'Ground Only'])
     }
 
+    // Two columns of stacked label-over-value cells. Row height shrinks if
+    // needed so the grid never spills past the bottom of the modal.
     const colW = (MODAL_W - 128) / 2
-    const rowH = 96
     const left = -MODAL_W / 2 + 64
+    const gridRows  = Math.ceil(rows.length / 2)
+    const available = MODAL_H / 2 - 64 - startY
+    const rowH = Math.min(148, available / Math.max(gridRows, 1))
 
     rows.forEach(([label, value], i) => {
-      const col = i % 2
-      const row = Math.floor(i / 2)
-      const x   = left + col * colW
-      const y   = startY + row * rowH
+      const cx = left + (i % 2) * colW + colW / 2
+      const y  = startY + Math.floor(i / 2) * rowH
 
-      add(this.panel, scene.add.text(x, y, label, {
-        fontSize: '52px', fontFamily: CINZEL_FONT, color: '#8899cc',
-      }).setOrigin(0, 0))
+      add(this.panel, scene.add.text(cx, y, label, {
+        fontSize: '40px', fontFamily: CINZEL_FONT, color: '#8899cc',
+      }).setOrigin(0.5, 0))
 
-      add(this.panel, scene.add.text(x + colW - 32, y, value, {
-        fontSize: '56px', fontFamily: NUMBER_FONT, fontStyle: 'bold', color: '#ffffff',
-      }).setOrigin(1, 0))
+      const v = add(this.panel, scene.add.text(cx, y + 50, value, {
+        fontSize: '52px', fontFamily: NUMBER_FONT, fontStyle: 'bold', color: '#ffffff',
+      }).setOrigin(0.5, 0))
+      if (v.width > colW - 24) v.setFontSize(Math.floor(52 * (colW - 24) / v.width))
     })
   }
 

@@ -4,9 +4,11 @@ import { loadPlayerName } from '@data/PlayerName'
 import { CINZEL_FONT } from './cardHandLayout'
 
 /** "X vs Y" line for the match intro — bot match when no network is given. */
-export function matchupLabel(net: PvPNetwork | null): string {
+export function matchupLabel(net: PvPNetwork | null, botLabel?: string): string {
   const localLabel = net?.localName || loadPlayerName() || 'Player'
-  const oppLabel = net ? (net.opponentName || 'Opponent') : 'Bot'
+  const oppLabel = net
+    ? (net.opponentName || 'Opponent')
+    : botLabel ? `Bot (${botLabel})` : 'Bot'
   return `${localLabel}  vs  ${oppLabel}`
 }
 

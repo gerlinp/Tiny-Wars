@@ -149,6 +149,11 @@ export const BOT_DEPLOY_ROW_MAX    = RIVER_ROW_START - 1                // 14
 /** Princess-lane split — left tower unlocks cols [0, split); right unlocks [split, GRID_COLS). */
 export const DEPLOY_LANE_SPLIT_COL = 9
 
+// Tower-fall pocket depth — unlocked enemy cells reach only halfway into the
+// enemy half, stopping at the fallen princess tower's row.
+export const BOT_POCKET_ROW_MIN    = BOT_TOWER_ROW + 1     // 7 — pocket rows 7..14
+export const PLAYER_POCKET_ROW_MAX = PLAYER_TOWER_ROW - 1  // 24 — pocket rows 17..24
+
 // Bot AI think interval range (ms)
 export const BOT_THINK_MIN_MS = 2000
 export const BOT_THINK_MAX_MS = 5000

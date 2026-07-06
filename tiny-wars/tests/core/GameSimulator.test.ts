@@ -153,8 +153,8 @@ describe('GameSimulator', () => {
       sim.state.enemyLaneDeploy[Owner.PLAYER].left = true
       sim.state.playerElixir = 10
       const card = CARD_DEFINITIONS['warrior']!
-      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 4, y: 3 })).toBe(true)
-      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 13, y: 3 })).toBe(false)
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 4, y: 8 })).toBe(true)
+      expect(sim.canDeployAt(Owner.PLAYER, card, { x: 13, y: 8 })).toBe(false)
     })
   })
 })
