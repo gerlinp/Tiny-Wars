@@ -98,5 +98,20 @@ export class MainMenuScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(5).setVisible(false)
       .setInteractive({ useHandCursor: true })
       .on('pointerup', () => showDifficulties(false))
+
+    this.add.text(width - 48, 48, '⚙', {
+      fontSize: '120px',
+      shadow: { offsetX: 4, offsetY: 8, color: '#000000', blur: 6, fill: true },
+    }).setOrigin(1, 0).setDepth(5)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerup', () => {
+        this.scene.setVisible(false)
+        this.scene.pause()
+        this.scene.launch('SettingsScene')
+        this.scene.get('SettingsScene').events.once('shutdown', () => {
+          this.scene.setVisible(true)
+          this.scene.resume()
+        })
+      })
   }
 }

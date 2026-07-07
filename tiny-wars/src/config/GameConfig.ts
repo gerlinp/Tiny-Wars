@@ -9,6 +9,8 @@ import { UIScene }       from '@scenes/UIScene'
 import { ResultScene }   from '@scenes/ResultScene'
 import { TransitionLoadingScene } from '@scenes/TransitionLoadingScene'
 import { PvPLobbyScene } from '@scenes/PvPLobbyScene'
+import { SettingsScene } from '@scenes/SettingsScene'
+import { PauseMenuScene } from '@scenes/PauseMenuScene'
 import { GAME_WIDTH, CANVAS_HEIGHT } from '@data/GameConstants'
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
@@ -29,5 +31,5 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     target: 30,
     forceSetTimeOut: true,
   },
-  scene: [BootScene, PreloadScene, MainMenuScene, DeckBuilderScene, TransitionLoadingScene, PvPLobbyScene, BattleScene, TestArenaScene, UIScene, ResultScene],
+  scene: [BootScene, PreloadScene, MainMenuScene, DeckBuilderScene, TransitionLoadingScene, PvPLobbyScene, BattleScene, TestArenaScene, UIScene, ResultScene, SettingsScene, PauseMenuScene],
 }

@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { Owner } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { arrowFlightMs } from '@data/ProjectileConstants'
-import { clipAnimKey, GNOLL_BONE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET, HEX_SHAMAN_LIGHTNING_BOLT_SHEET } from '@data/AssetManifest'
+import { clipAnimKey, GNOLL_BONE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET, LIGHTNING_ARC_SHEET } from '@data/AssetManifest'
 import { HOOK_ROPE_TEXTURE_KEY, registerHookRopeTexture } from './hookRopeTexture'
 import { CELL_SIZE } from '@data/GameConstants'
 import { applyBombArcDisplaySize, BOMB_PROJECTILE_DISPLAY_SCALE, BOMB_SPIN_TIME_SCALE, FLAT_LOB_PEAK_SCALE, TOWER_CANNON_PROJECTILE_DISPLAY_SCALE } from './bombProjectileVisual'
@@ -662,11 +662,12 @@ export class HexTransformPool {
 }
 
 // ─── LightningShamanPool ─────────────────────────────────────────────────────
-// Flies the generated lightning bolt sprite, then plays the transformation
-// circle + explosion spell at the impact point (same as HexTransformPool).
+// Stretches the lightning arc sprite across the full attack line (instant zap,
+// no travel), then plays the transformation circle + explosion spell at the
+// impact point (same as HexTransformPool).
 
 const LIGHTNING_POOL_SIZE = 8
-const LIGHTNING_BOLT_DISPLAY = 128
+const LIGHTNING_ARC_THICKNESS = 48
 
 export class LightningShamanPool {
   private bolts:      Phaser.GameObjects.Sprite[] = []
@@ -676,8 +677,8 @@ export class LightningShamanPool {
   constructor(private scene: Phaser.Scene) {
     for (let i = 0; i < LIGHTNING_POOL_SIZE; i++) {
       this.bolts.push(
-        scene.add.sprite(0, 0, HEX_SHAMAN_LIGHTNING_BOLT_SHEET.key, 0)
-          .setDepth(22).setOrigin(0.5).setVisible(false).setData('flying', false),
+        scene.add.sprite(0, 0, LIGHTNING_ARC_SHEET.keys[0], 0)
+          .setDepth(22).setOrigin(0, 0.5).setVisible(false).setData('flying', false),
       )
       this.transforms.push(
         scene.add.sprite(0, 0, HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key, 0)
@@ -693,7 +694,7 @@ export class LightningShamanPool {
   spawn(from: Vec2, to: Vec2, _owner: Owner, attackRate: number, onHit?: () => void): void {
     const bolt = this.bolts.find(b => !b.getData('flying'))
     if (!bolt
-        || !this.scene.anims.exists(HEX_SHAMAN_LIGHTNING_BOLT_SHEET.animKey)
+        || !this.scene.anims.exists(LIGHTNING_ARC_SHEET.animKey)
         || !this.scene.anims.exists(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.animKey)
         || !this.scene.anims.exists(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.animKey)) {
       onHit?.()
@@ -702,25 +703,23 @@ export class LightningShamanPool {
 
     const dx = to.x - from.x, dy = to.y - from.y
     const d = Math.hypot(dx, dy)
+    const duration = arrowFlightMs(d, attackRate)
 
     bolt.setData('flying', true)
-    bolt.setTexture(HEX_SHAMAN_LIGHTNING_BOLT_SHEET.key, 0)
-    bolt.setDisplaySize(LIGHTNING_BOLT_DISPLAY, LIGHTNING_BOLT_DISPLAY)
+    bolt.setTexture(LIGHTNING_ARC_SHEET.keys[0], 0)
+    bolt.setDisplaySize(d, LIGHTNING_ARC_THICKNESS)
     bolt.setPosition(from.x, from.y)
     bolt.setRotation(Math.atan2(dy, dx))
     bolt.setVisible(true).setAlpha(1)
-    bolt.play(HEX_SHAMAN_LIGHTNING_BOLT_SHEET.animKey)
+    // Custom frameRate so the 13-frame crackle always finishes exactly when the
+    // bolt should land, regardless of distance/attack speed.
+    const frameRate = Math.max(8, Math.round((LIGHTNING_ARC_SHEET.keys.length * 1000) / duration))
+    bolt.play({ key: LIGHTNING_ARC_SHEET.animKey, frameRate })
 
-    this.scene.tweens.add({
-      targets: bolt,
-      x: to.x, y: to.y,
-      duration: arrowFlightMs(d, attackRate),
-      ease: 'Linear',
-      onComplete: () => {
-        bolt.setVisible(false).setData('flying', false).anims.stop()
-        onHit?.()
-        this.playImpact(to)
-      },
+    bolt.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      bolt.setVisible(false).setData('flying', false)
+      onHit?.()
+      this.playImpact(to)
     })
   }
 

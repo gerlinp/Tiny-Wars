@@ -510,7 +510,21 @@ export class BattleScene extends Phaser.Scene {
           break
         }
         case 'DEATH': {
-          if (event.deathSplashRadius) {
+          if (event.deathSplashRadius && event.cardId === 'air_boat') {
+            // Balloon-style death: the boat drops a bomb barrel that falls and
+            // explodes a beat later, instead of detonating on the spot.
+            const { x, y } = event.position
+            this.barrelProjectiles.spawn(
+              { x, y: y - CELL_SIZE * 1.5 },
+              { x, y },
+              event.owner ?? Owner.PLAYER,
+              450,
+              () => {
+                this.sounds.playCannonHit()
+                this.effects.spawn(x, y, event.deathSplashRadius! * CELL_SIZE * 1.5)
+              },
+            )
+          } else if (event.deathSplashRadius) {
             this.effects.spawn(
               event.position.x,
               event.position.y,

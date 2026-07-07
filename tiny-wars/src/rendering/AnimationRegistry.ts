@@ -14,7 +14,7 @@ import {
   PADDLE_SHARK_ROW_SHEET,
   HEX_SHAMAN_TRANSFORM_SPELL_SHEET,
   HEX_SHAMAN_EXPLOSION_SPELL_SHEET,
-  HEX_SHAMAN_LIGHTNING_BOLT_SHEET,
+  LIGHTNING_ARC_SHEET,
   type AnimClip,
   type ClipDef,
   type SideAssets,
@@ -138,17 +138,22 @@ export function registerShamanOrbFx(scene: Phaser.Scene): void {
   }
 }
 
-/** Lightning Shaman bolt — 4-frame looping projectile. */
-export function registerLightningBoltFx(scene: Phaser.Scene): void {
-  const { key, animKey, frameEnd, frameRate } = HEX_SHAMAN_LIGHTNING_BOLT_SHEET
-  if (!scene.anims.exists(animKey) && scene.textures.exists(key)) {
-    scene.anims.create({
-      key: animKey,
-      frames: scene.anims.generateFrameNumbers(key, { start: 0, end: frameEnd }),
-      frameRate,
-      repeat: -1,
-    })
-  }
+/**
+ * Lightning Shaman bolt — a jagged arc stretched across the attack line, built from
+ * 13 individually-authored crackle frames (each its own texture, not a spritesheet).
+ * frameRate is a placeholder; LightningShamanPool overrides it per-play so the
+ * animation always finishes exactly when the bolt should land.
+ */
+export function registerLightningArcFx(scene: Phaser.Scene): void {
+  const { keys, animKey } = LIGHTNING_ARC_SHEET
+  if (scene.anims.exists(animKey)) return
+  if (!keys.every(key => scene.textures.exists(key))) return
+  scene.anims.create({
+    key: animKey,
+    frames: keys.map(key => ({ key, frame: 0 })),
+    frameRate: 26,
+    repeat: 0,
+  })
 }
 
 /** Elder Shaman transformation circle (11 frames) + explosion spell (10 frames). */

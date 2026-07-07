@@ -1,3 +1,5 @@
+import { loadSfxVolume } from '@data/AudioSettings'
+
 /** Per-SFX mixing — polyphony cap, cooldown, and playback variation. */
 export interface SfxMixRule {
   maxVoices: number
@@ -45,9 +47,6 @@ export const SFX_MIX_RULES: Record<string, SfxMixRule> = {
   },
 }
 
-/** Global combat bus gain (future settings slider can drive this). */
-export const COMBAT_SFX_MASTER = 1
-
 export function sfxMixRule(sfxKey: string): SfxMixRule {
   return SFX_MIX_RULES[sfxKey] ?? DEFAULT_COMBAT_RULE
 }
@@ -63,7 +62,7 @@ export function canPlaySfx(
   return true
 }
 
-export function randomizedVolume(rule: SfxMixRule, master = COMBAT_SFX_MASTER): number {
+export function randomizedVolume(rule: SfxMixRule, master = loadSfxVolume()): number {
   const jitter = (Math.random() * 2 - 1) * rule.volumeJitter
   return Math.min(1, Math.max(0, rule.baseVolume * master * (1 + jitter)))
 }

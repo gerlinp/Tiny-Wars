@@ -78,6 +78,8 @@ export class UIScene extends Phaser.Scene {
 
     this.pauseBtn.on('pointerdown', () => {
       this.scene.pause('BattleScene')
+      this.scene.pause('UIScene')
+      this.scene.launch('PauseMenuScene')
     })
   }
 

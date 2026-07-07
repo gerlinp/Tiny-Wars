@@ -493,14 +493,19 @@ export const HEX_SHAMAN_EXPLOSION_SHEET = {
   frameHeight: HEX_FX_FRAME,
 } as const
 
-export const HEX_SHAMAN_LIGHTNING_BOLT_SHEET = {
-  key:         'hex_shaman_lightning_bolt',
-  path:        `${HEX_SHAMAN_PATH}/Hex Shaman_Lightning Bolt.png`,
-  frameWidth:  HEX_FX_FRAME,
-  frameHeight: HEX_FX_FRAME,
-  frameEnd:    3,
-  frameRate:   12,
-  animKey:     'hex_shaman_lightning_bolt_anim',
+/**
+ * Lightning Shaman bolt — a jagged arc stretched between attacker and target,
+ * built from 13 individually-authored crackle frames (not a single spritesheet).
+ */
+const LIGHTNING_ARC_PATH = 'assets/Particle FX/lightning'
+const LIGHTNING_ARC_FRAME_COUNT = 13
+
+export const LIGHTNING_ARC_SHEET = {
+  keys: Array.from({ length: LIGHTNING_ARC_FRAME_COUNT }, (_, i) => `lightning_arc_${i + 1}`),
+  paths: Array.from({ length: LIGHTNING_ARC_FRAME_COUNT }, (_, i) => `${LIGHTNING_ARC_PATH}/lightning_v2_${i + 1}.png`),
+  frameWidth: 104,
+  frameHeight: 22,
+  animKey: 'lightning_arc_anim',
 } as const
 
 /** Base sprite sheets — loaded once and used as the source for all shaman palette swaps. */

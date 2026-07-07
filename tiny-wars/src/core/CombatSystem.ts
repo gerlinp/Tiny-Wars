@@ -19,6 +19,7 @@ export function resolveDeaths(state: GameState): void {
           position: { ...entity.position },
           cardId: building.cardId,
           deathSplashRadius: building.stats.deathSplashRadius,
+          owner: building.owner,
         })
       } else if (entity.kind === EntityKind.TROOP) {
         const troop = entity as Troop
@@ -29,6 +30,7 @@ export function resolveDeaths(state: GameState): void {
           position: { ...entity.position },
           cardId: troop.cardId,
           deathSplashRadius: troop.stats.deathSplashRadius,
+          owner: troop.owner,
         })
       } else {
         state.events.push({ type: 'DEATH', entityId: id, position: { ...entity.position } })
