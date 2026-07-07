@@ -29,9 +29,11 @@ export class CardDeployController {
     private ghost: PlacementGhost,
   ) {}
 
-  private overlayModeFor(card: { cardType: CardType }): 'troop' | 'elixir' | 'spell' {
+  private overlayModeFor(card: { id?: string; cardType: CardType }): 'troop' | 'elixir' | 'spell' {
     if (card.cardType === CardType.ELIXIR) return 'elixir'
     if (card.cardType === CardType.SPELL) return 'spell'
+    // Miner burrows anywhere — highlight the whole arena like a spell.
+    if (card.id === 'miner') return 'spell'
     return 'troop'
   }
 

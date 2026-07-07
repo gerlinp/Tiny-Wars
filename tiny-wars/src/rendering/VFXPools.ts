@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { Owner } from '@core/types'
-import { DUST_SHEETS, EXPLOSION_SHEET, MONK_HEAL_EFFECT_SHEETS, TROOP_DEATH_SHEET } from '@data/AssetManifest'
+import { DUST_SHEETS, EXPLOSION_SHEET, MONK_HEAL_EFFECT_SHEETS, TROOP_DEATH_SHEET, WATER_SPLASH_SHEET } from '@data/AssetManifest'
 import { CELL_SIZE, MAP_UNIT_TARGET_HEIGHT } from '@data/GameConstants'
 import { registerDustFx, registerExplosionFx } from './AnimationRegistry'
 
@@ -112,19 +112,24 @@ export class HealEffectPool {
 // ─── DeathPool ───────────────────────────────────────────────────────────────
 
 const DEATH_DISPLAY_SIZE = MAP_UNIT_TARGET_HEIGHT * 1.1
+/** Turtle splash covers its chilling death nova, so it reads larger than the skull puff. */
+const SPLASH_DEATH_DISPLAY_SIZE = MAP_UNIT_TARGET_HEIGHT * 2.2
 
 export class DeathPool {
   constructor(private scene: Phaser.Scene) {}
 
-  spawn(x: number, y: number, flipX = false): void {
-    if (!this.scene.anims.exists(TROOP_DEATH_SHEET.animKey)) return
+  spawn(x: number, y: number, flipX = false, cardId?: string): void {
+    // Turtle death — water splash instead of the shared skull VFX.
+    const sheet = cardId === 'turtle' ? WATER_SPLASH_SHEET : TROOP_DEATH_SHEET
+    const size = cardId === 'turtle' ? SPLASH_DEATH_DISPLAY_SIZE : DEATH_DISPLAY_SIZE
+    if (!this.scene.anims.exists(sheet.animKey)) return
 
-    const sprite = this.scene.add.sprite(x, y, TROOP_DEATH_SHEET.key, 0)
+    const sprite = this.scene.add.sprite(x, y, sheet.key, 0)
       .setDepth(5.5)
-      .setDisplaySize(DEATH_DISPLAY_SIZE, DEATH_DISPLAY_SIZE)
+      .setDisplaySize(size, size)
       .setFlipX(flipX)
 
-    sprite.play(TROOP_DEATH_SHEET.animKey)
+    sprite.play(sheet.animKey)
     sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => sprite.destroy())
   }
 }

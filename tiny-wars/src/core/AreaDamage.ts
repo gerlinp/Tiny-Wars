@@ -16,12 +16,15 @@ export function dealAreaDamage(
   canHit: (entity: Entity) => boolean,
   attackerId?: string,
   primaryId?: string,
+  /** Towers take this amount instead of `damage` (e.g. spell-style reduced crown damage). */
+  towerDamage = damage,
 ): void {
   const radiusPx = radiusCells * CELL_SIZE
 
   for (const entity of state.entities.values()) {
     if (entity.owner === owner || !entity.isAlive) continue
     if (entity.kind !== EntityKind.TROOP && entity.kind !== EntityKind.BUILDING) continue
+    if (!entity.isTargetable) continue
     if (!canHit(entity)) continue
     if (dist(center, entity.position) > radiusPx) continue
 
@@ -40,11 +43,11 @@ export function dealAreaDamage(
     if (!canHit(tower)) continue
     if (surfaceDistToEntity(center, tower) > radiusPx) continue
 
-    tower.takeDamage(damage)
+    tower.takeDamage(towerDamage)
     state.events.push({
       type: 'DAMAGE',
       targetId: tower.id,
-      amount: damage,
+      amount: towerDamage,
       attackerId,
       splash: tower.id !== primaryId,
     })

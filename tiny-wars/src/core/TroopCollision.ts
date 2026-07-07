@@ -27,6 +27,7 @@ function groundTroops(state: GameState): Troop[] {
     if (!entity.isAlive || entity.kind !== EntityKind.TROOP) continue
     const troop = entity as Troop
     if (troop.stats.unitType === UnitType.AIR) continue
+    if (troop.isUnderground) continue  // burrowed Miner has no body to shove
     troops.push(troop)
   }
   return troops

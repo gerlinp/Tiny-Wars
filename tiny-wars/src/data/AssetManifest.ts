@@ -18,6 +18,18 @@ export const TROOP_DEATH_SHEET = {
   animKey: 'troop_death',
 } as const
 
+/** Turtle death splash — Particle FX/Water Splash.png (9 frames @ 192px). */
+export const WATER_SPLASH_SHEET = {
+  key: 'fx_water_splash',
+  path: 'assets/Particle FX/Water Splash.png',
+  frameWidth: FRAME_W,
+  frameHeight: FRAME_H,
+  frameStart: 0,
+  frameEnd: 8,
+  frameRate: 16,
+  animKey: 'fx_water_splash_anim',
+} as const
+
 /** Unit spawn dust puff — Particle FX/Dust_01.png (8 frames) and Dust_02.png (10 frames). */
 export const DUST_SHEETS = [
   {
@@ -701,6 +713,32 @@ function villagersSide(side: 'Blue' | 'Red'): SideAssets {
   }
 }
 
+function minerSheet(side: 'Blue' | 'Red', clip: 'idle' | 'run' | 'attack'): SheetDef {
+  const folder = side === 'Blue' ? 'Blue Units' : 'Red Units'
+  const prefix = side === 'Blue' ? 'blue' : 'red'
+  const file = clip === 'idle' ? 'Pawn_Idle Pickaxe.png'
+    : clip === 'run' ? 'Pawn_Run Pickaxe.png'
+    : 'Pawn_Interact Pickaxe.png'
+  return {
+    key: `miner_${prefix}_${clip}`,
+    path: `assets/Units/${folder}/Pawn/${file}`,
+    frameWidth: FRAME_W,
+    frameHeight: FRAME_H,
+  }
+}
+
+/** Pawn-with-pickaxe art — Miner card. Pickaxe interact clip = digging swing. */
+function minerSide(side: 'Blue' | 'Red'): SideAssets {
+  const idle   = minerSheet(side, 'idle')
+  const run    = minerSheet(side, 'run')
+  const attack = minerSheet(side, 'attack')
+  return {
+    idle:   clip(idle,   0, 7, 10, -1),
+    run:    clip(run,    0, 5, 14, -1),
+    attack: clip(attack, 0, 5, 14,  0),
+  }
+}
+
 /** Enemy Pack Spear Goblin — ×3 melee with armor. */
 function spearGoblinSide(side: 'blue' | 'red'): SideAssets {
   const idle: SheetDef = {
@@ -735,13 +773,17 @@ function lizardSide(side: 'blue' | 'red'): SideAssets {
     key: `lizard_${side}_idle`,
     path: `${LIZARD_PATH}/Lizard_Idle_Flying.png`,
   }
+  const run: SheetDef = {
+    key: `lizard_${side}_run`,
+    path: `${LIZARD_PATH}/Flying_Lizard_Run.png`,
+  }
   const attack: SheetDef = {
     key: `lizard_${side}_attack`,
-    path: `${LIZARD_PATH}/Lizard_Attack_Flying.png`,
+    path: `${LIZARD_PATH}/Flying_Lizard_Attack.png`,
   }
   return {
     idle:   clip(idle, 0, 6, 10, -1),
-    run:    clip(idle, 0, 6, 14, -1),
+    run:    clip(run, 0, 5, 14, -1),
     attack: clip(attack, 0, 8, 14,  0),
   }
 }
@@ -1262,6 +1304,14 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     attackHitFrame: 2,
     player: villagersSide('Blue'),
     bot:    villagersSide('Red'),
+  },
+  {
+    cardId: 'miner',
+    avatar: humanAvatar('Avatars_06.png'),
+    contentFill: 0.52,
+    attackHitFrame: 3,
+    player: minerSide('Blue'),
+    bot:    minerSide('Red'),
   },
   {
     cardId: 'torch_goblin',

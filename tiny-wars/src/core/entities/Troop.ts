@@ -60,6 +60,7 @@ import {
   LIGHTNING_SHAMAN_CHAIN_RANGE_PX,
   MONK_HEAL_PER_PULSE, MONK_HEAL_PULSE_COUNT, MONK_HEAL_RADIUS,
   MONK_SPAWN_HEAL_PER_PULSE, MONK_SPAWN_HEAL_PULSE_COUNT, MONK_SPAWN_HEAL_RADIUS,
+  MINER_BURROW_MS, MINER_TOWER_DAMAGE_MULT,
 } from '@data/CardAbilities'
 
 interface ActiveHealBurst {
@@ -303,7 +304,16 @@ export class Troop extends Entity {
 
   /** Activate the CR-style spawn freeze so the unit idles before acting. */
   applySpawnDelay(): void {
-    this.spawnTimerMs = TROOP_SPAWN_DELAY_MS
+    this.spawnTimerMs = this.cardId === 'miner' ? MINER_BURROW_MS : TROOP_SPAWN_DELAY_MS
+  }
+
+  /** Miner digs in during his spawn delay — hidden and untouchable until he surfaces. */
+  get isUnderground(): boolean {
+    return this.cardId === 'miner' && this.spawnTimerMs > 0
+  }
+
+  override get isTargetable(): boolean {
+    return !this.isUnderground
   }
 
   /** Deploy-time heal aura (e.g. Monk spawn heal). */
@@ -865,6 +875,10 @@ export class Troop extends Entity {
   }
 
   private dealDamageTo(state: GameState, target: Entity, splash: boolean, damage = this.stats.damage): void {
+    // CR Miner — crown towers take reduced damage from his pickaxe.
+    if (this.cardId === 'miner' && target.kind === EntityKind.TOWER) {
+      damage = Math.round(damage * MINER_TOWER_DAMAGE_MULT)
+    }
     target.takeDamage(damage)
     state.events.push({
       type: 'DAMAGE',
@@ -1561,7 +1575,13 @@ export class Troop extends Entity {
 
     if (this.effectiveTargetsBuildingsOnly()) {
       if (this.target?.kind === EntityKind.TROOP) this.target = null
-      this.target = this.stickyStructureTarget(findNearestEnemyStructure(state, {
+      // Lane-aware tower selection (same as normal troops below) so building-only rushers
+      // march to their assigned side's princess/king instead of detouring cross-map to
+      // whichever structure has the shortest raw path cost.
+      const laneAwareTower = state.flowFields
+        ? state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.spawnLane)
+        : null
+      this.target = this.stickyStructureTarget(laneAwareTower ?? findNearestEnemyStructure(state, {
         owner: this.owner,
         from: this.position,
         canAttack: (entity) => this.canAttack(entity),

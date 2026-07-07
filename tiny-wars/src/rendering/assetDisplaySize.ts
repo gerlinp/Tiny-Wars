@@ -121,7 +121,7 @@ const UNSCALED_CARD_IDS = new Set(['skeleton', 'skeleton_army', 'archer', 'villa
 /** Per-card display height multiplier — synced to map-editor via mapEditorCatalog. */
 export const CARD_DISPLAY_VISUAL_SCALE: Readonly<Partial<Record<string, number>>> = {
   [BOMB_TOWER_CARD_ID]: 1,
-  // Giant-class tank — reads too small next to regular troops at the default scale.
+  // P.E.K.K.A-class colossus — reads too small next to regular troops at the default scale.
   troll: 1.45,
 }
 

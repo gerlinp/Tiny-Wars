@@ -112,6 +112,12 @@ export class EntitySprite {
     }
   }
 
+  /** Hide the body while keeping the sprite alive (e.g. Miner underground). */
+  setHidden(hidden: boolean): void {
+    this.sprite.setVisible(!hidden)
+    if (hidden) this.healthBar.update(this.sprite.x, this.sprite.y, 1, false)
+  }
+
   update(
     x: number, y: number,
     hpFraction: number,

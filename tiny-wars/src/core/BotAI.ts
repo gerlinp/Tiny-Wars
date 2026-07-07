@@ -12,6 +12,8 @@ import {
   PLAYER_TOWER_COLS,
   DEPLOY_LANE_SPLIT_COL,
   ELIXIR_MAX,
+  CR_SPEED,
+  crSpeedToCellsPerSec,
 } from '@data/GameConstants'
 import type { BotDifficulty } from '@data/BotDecks'
 import { CARD_DEFINITIONS } from '@data/CardData'
@@ -165,8 +167,11 @@ export class BotAI {
     const troops = playable.filter(({ card }) => card.cardType === CardType.TROOP)
     if (troops.length === 0) return null
 
-    // Building-targeters charge straight past troops — send them from the bridge.
-    const rusher = troops.find(({ card }) => card.stats?.targetsBuildingsOnly)
+    // Fast building-targeters (Hog-style) charge straight past troops — send them
+    // from the bridge. Slow tanks like the Bear build a push from the back instead.
+    const rusher = troops.find(({ card }) =>
+      card.stats?.targetsBuildingsOnly &&
+      card.stats.speed >= crSpeedToCellsPerSec(CR_SPEED.fast))
     if (rusher) {
       return this.actionAt(rusher, clampBotCell({ x: laneCol + jitter(1), y: BOT_DEPLOY_ROW_MAX }))
     }

@@ -31,6 +31,7 @@ import { loadPlayerDeck } from '@data/PlayerDeck'
 import { BOT_DECKS, BOT_DIFFICULTY_LABELS, loadBotDifficulty } from '@data/BotDecks'
 import { createMatchupBanner, matchupLabel } from '@ui/matchupBanner'
 import { GAME_HEIGHT, CELL_SIZE, GRID_ROWS } from '@data/GameConstants'
+import { MINOTAUR_SPAWN_SLAM_RADIUS_CELLS } from '@data/CardAbilities'
 import { DevMode } from '@debug/DevMode'
 import { DevModeOverlay } from '@debug/DevModeOverlay'
 import { isRangedAttacker, isMeleeAttacker } from '@core/CombatHelpers'
@@ -49,9 +50,12 @@ export class BattleScene extends Phaser.Scene {
   private pvpNetwork: PvPNetwork | null = null
   private sprites: Map<string, EntitySprite> = new Map()
   private towerSprites: Map<string, TowerSprite> = new Map()
+  private lastCrownLostTowerId: string | null = null
   private effects!: EffectsPool
   private deaths!: DeathPool
   private dust!: DustPool
+  /** Miners currently digging — entity id → last dig-dust spawn time (ms). */
+  private minerDigDustAt = new Map<string, number>()
   private arrows!: ArrowPool
   private hexFireballs!: HexFireballPool
   private hexTransforms!: HexTransformPool
@@ -308,6 +312,14 @@ export class BattleScene extends Phaser.Scene {
             )
             this.sprites.set(entity.id, sprite)
             this.dust.spawn(entity.position.x, entity.position.y, logicDisplayHeightForCard(event.cardId))
+            // Minotaur — Mega Knight-style arrival slam blast.
+            if (event.cardId === 'minotaur') {
+              this.effects.spawn(
+                entity.position.x,
+                entity.position.y,
+                MINOTAUR_SPAWN_SLAM_RADIUS_CELLS * CELL_SIZE * 1.5,
+              )
+            }
           }
           break
         }
@@ -524,7 +536,8 @@ export class BattleScene extends Phaser.Scene {
                 this.effects.spawn(x, y, event.deathSplashRadius! * CELL_SIZE * 1.5)
               },
             )
-          } else if (event.deathSplashRadius) {
+          } else if (event.deathSplashRadius && event.cardId !== 'turtle') {
+            // Turtle's chilling nova reads as the water splash death below, not a fire blast.
             this.effects.spawn(
               event.position.x,
               event.position.y,
@@ -533,7 +546,7 @@ export class BattleScene extends Phaser.Scene {
           }
           const sprite = this.sprites.get(event.entityId)
           if (sprite) {
-            this.deaths.spawn(event.position.x, event.position.y, sprite.getFlipX())
+            this.deaths.spawn(event.position.x, event.position.y, sprite.getFlipX(), event.cardId)
             sprite.destroy()
             this.sprites.delete(event.entityId)
             this.entityCardIds.delete(event.entityId)
@@ -541,6 +554,7 @@ export class BattleScene extends Phaser.Scene {
           break
         }
         case 'CROWN_LOST': {
+          this.lastCrownLostTowerId = event.towerId
           this.updateTowerSprite(event.towerId, event.owner)
           this.effects.spawn(
             ...this.getTowerPos(event.towerId)
@@ -576,6 +590,24 @@ export class BattleScene extends Phaser.Scene {
         let healSync: HealSync | undefined
 
         const cardId = this.entityCardIds.get(id) ?? entity.cardId ?? ''
+
+        // Miner underground — hide the body and churn dust until he surfaces.
+        if (cardId === 'miner' && entity.kind === EntityKind.TROOP) {
+          const miner = entity as Troop
+          if (miner.isUnderground) {
+            sprite.setHidden(true)
+            const lastDust = this.minerDigDustAt.get(id) ?? 0
+            if (this.time.now - lastDust > 300) {
+              this.minerDigDustAt.set(id, this.time.now)
+              this.dust.spawn(entity.position.x, entity.position.y, logicDisplayHeightForCard(cardId))
+            }
+            continue
+          } else if (this.minerDigDustAt.has(id)) {
+            this.minerDigDustAt.delete(id)
+            sprite.setHidden(false)
+            this.dust.spawn(entity.position.x, entity.position.y, logicDisplayHeightForCard(cardId))
+          }
+        }
 
         if (entity.kind === EntityKind.TROOP) {
           const troop = entity as Troop
@@ -827,6 +859,13 @@ export class BattleScene extends Phaser.Scene {
         this.towerSprites.get(id)?.playFinaleBlast()
         return
       }
+    }
+
+    // King tower kills delete the tower from state.towers the same tick the
+    // game ends, so the loop above can never find it — fall back to the id
+    // captured off the CROWN_LOST event, whose sprite is still around.
+    if (this.lastCrownLostTowerId) {
+      this.towerSprites.get(this.lastCrownLostTowerId)?.playFinaleBlast()
     }
   }
 }

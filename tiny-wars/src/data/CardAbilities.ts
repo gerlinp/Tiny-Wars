@@ -69,6 +69,23 @@ export const VOODOO_SHAMAN_MINION_SPAWN_INITIAL_DELAY_MS = 1000
 export const LIGHTNING_SHAMAN_CHAIN_RANGE_PX = 5 * 64  // 5 cells in pixels
 
 // ---------------------------------------------------------------------------
+// Minotaur (Mega Knight-style spawn slam)
+// ---------------------------------------------------------------------------
+/** CR Mega Knight deploy damage — 2× attack damage (L11 444 × 1.321). */
+export const MINOTAUR_SPAWN_SLAM_DAMAGE = 586
+export const MINOTAUR_SPAWN_SLAM_RADIUS_CELLS = 2.0
+/** Crown towers take spell-style reduced damage from the arrival slam. */
+export const MINOTAUR_SPAWN_SLAM_TOWER_DAMAGE_MULT = 0.35
+
+// ---------------------------------------------------------------------------
+// Miner (deploys anywhere, burrows in, reduced crown tower damage)
+// ---------------------------------------------------------------------------
+/** Digging time before the Miner surfaces — untargetable and hidden underground. */
+export const MINER_BURROW_MS = 1200
+/** CR Miner — crown towers take ~40% of his normal hit damage. */
+export const MINER_TOWER_DAMAGE_MULT = 0.4
+
+// ---------------------------------------------------------------------------
 // Monk (Battle Healer-style attack heal + spawn heal)
 // ---------------------------------------------------------------------------
 export const MONK_HEAL_PER_PULSE = 34

@@ -28,6 +28,9 @@ export abstract class Entity {
 
   get isAlive(): boolean { return this.hp > 0 }
 
+  /** False while the entity cannot be acquired or hit (e.g. Miner underground). */
+  get isTargetable(): boolean { return true }
+
   takeDamage(amount: number): void {
     if (amount > 0) this.hasBeenDamaged = true
     this.hp = Math.max(0, this.hp - amount)

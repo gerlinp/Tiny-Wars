@@ -120,6 +120,9 @@ export class FlowField {
         const nc = col + dc
         const nr = row + dr
         if (!grid.isWalkable(nc, nr)) continue
+        // Disallow cutting diagonally through a blocked corner (e.g. a tower/bridge edge) —
+        // both flanking orthogonal cells must also be walkable, or a bodied unit can't fit.
+        if (dc !== 0 && dr !== 0 && (!grid.isWalkable(col + dc, row) || !grid.isWalkable(col, row + dr))) continue
         const nidx  = nr * cols + nc
         // Terrain-weighted edge — roads (< 1.0) pull paths onto the road network.
         const newCost = c + Math.round(edgeCost * grid.navCostMultiplierAt(nc, nr))

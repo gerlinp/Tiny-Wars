@@ -8,7 +8,7 @@ import { Troop } from './entities/Troop'
 import { Tower } from './entities/Tower'
 import { Building } from './entities/Building'
 import { Spell } from './entities/Spell'
-import { Owner, CardType, EntityKind } from './types'
+import { Owner, CardType, EntityKind, UnitType } from './types'
 import type { Vec2 } from './types'
 import type { CardDefinition, EntityStats } from './types'
 import {
@@ -33,6 +33,12 @@ import { resolveTroopCollisions, restoreBoomerangThrowerAnchors } from './TroopC
 import { isTroopDeployCell, troopDeployPositions } from './DeploySystem'
 import { tickBoomerangs } from './BoomerangSystem'
 import { tickHooks } from './HookSystem'
+import { dealAreaDamage } from './AreaDamage'
+import {
+  MINOTAUR_SPAWN_SLAM_DAMAGE,
+  MINOTAUR_SPAWN_SLAM_RADIUS_CELLS,
+  MINOTAUR_SPAWN_SLAM_TOWER_DAMAGE_MULT,
+} from '@data/CardAbilities'
 
 export { troopDeployPositions } from './DeploySystem'
 
@@ -128,7 +134,8 @@ export class GameSimulator {
 
     if (card.cardType === CardType.ELIXIR || card.cardType === CardType.SPELL) return true
 
-    if (!isTroopDeployCell(owner, gridPos, this.state.enemyLaneDeploy)) return false
+    // Miner burrows to any walkable cell — spawn zones don't apply.
+    if (card.id !== 'miner' && !isTroopDeployCell(owner, gridPos, this.state.enemyLaneDeploy)) return false
 
     if (!this.grid.isWalkable(gridPos.x, gridPos.y)) return false
 
@@ -186,6 +193,22 @@ export class GameSimulator {
         troop.applySpawnDelay()
         troop.applySpawnHeal(this.state)
         this.state.events.push({ type: 'DEPLOY', entityId: troop.id, cardId: card.id, position: pos })
+      }
+
+      // Minotaur — Mega Knight-style ground slam on arrival (ground targets only,
+      // crown towers take spell-style reduced damage).
+      if (card.id === 'minotaur') {
+        dealAreaDamage(
+          this.state,
+          owner,
+          worldPos,
+          MINOTAUR_SPAWN_SLAM_RADIUS_CELLS,
+          MINOTAUR_SPAWN_SLAM_DAMAGE,
+          entity => !(entity.kind === EntityKind.TROOP && (entity as Troop).stats.unitType === UnitType.AIR),
+          undefined,
+          undefined,
+          Math.round(MINOTAUR_SPAWN_SLAM_DAMAGE * MINOTAUR_SPAWN_SLAM_TOWER_DAMAGE_MULT),
+        )
       }
       return true
     } else if (card.cardType === CardType.BUILDING) {

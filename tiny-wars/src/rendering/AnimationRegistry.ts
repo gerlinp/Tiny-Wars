@@ -10,6 +10,7 @@ import {
   GOBLIN_DYNAMITE_SHEET,
   GNOLL_BONE_SHEET,
   TROOP_DEATH_SHEET,
+  WATER_SPLASH_SHEET,
   PADDLE_SHARK_IDLE_SHEET,
   PADDLE_SHARK_ROW_SHEET,
   HEX_SHAMAN_TRANSFORM_SPELL_SHEET,
@@ -80,16 +81,18 @@ export function registerCardAnimations(scene: Phaser.Scene): void {
 }
 
 export function registerTroopDeathAnim(scene: Phaser.Scene): void {
-  const { key, animKey, frameStart, frameEnd, frameRate } = TROOP_DEATH_SHEET
-  if (scene.anims.exists(animKey)) return
-  if (!scene.textures.exists(key)) return
+  for (const sheet of [TROOP_DEATH_SHEET, WATER_SPLASH_SHEET]) {
+    const { key, animKey, frameStart, frameEnd, frameRate } = sheet
+    if (scene.anims.exists(animKey)) continue
+    if (!scene.textures.exists(key)) continue
 
-  scene.anims.create({
-    key: animKey,
-    frames: scene.anims.generateFrameNumbers(key, { start: frameStart, end: frameEnd }),
-    frameRate,
-    repeat: 0,
-  })
+    scene.anims.create({
+      key: animKey,
+      frames: scene.anims.generateFrameNumbers(key, { start: frameStart, end: frameEnd }),
+      frameRate,
+      repeat: 0,
+    })
+  }
 }
 
 export function registerDamageFireAnims(scene: Phaser.Scene): void {

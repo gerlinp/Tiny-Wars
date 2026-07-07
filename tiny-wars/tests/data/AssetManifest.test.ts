@@ -293,13 +293,14 @@ describe('Card avatars', () => {
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('lizard').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
       expect(side.idle.sheet.path).toContain('Caveborn/Lizard/Lizard_Idle_Flying.png')
-      expect(side.run.sheet.path).toBe(side.idle.sheet.path)
-      expect(side.attack.sheet.path).toContain('Lizard_Attack_Flying.png')
+      expect(side.run.sheet.path).toContain('Caveborn/Lizard/Flying_Lizard_Run.png')
+      expect(side.attack.sheet.path).toContain('Flying_Lizard_Attack.png')
       expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
+      expect(existsSync(resolve(PUBLIC, side.run.sheet.path))).toBe(true)
       expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
     }
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(7)
-    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(7)
+    expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(9)
     expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(5)

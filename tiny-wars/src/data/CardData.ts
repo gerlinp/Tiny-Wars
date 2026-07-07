@@ -102,6 +102,7 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   elder_shaman:     AT('2026-06-30T12:00:00.000Z'),
   lightning_shaman: AT('2026-06-30T12:00:00.000Z'),
   voodoo_shaman:    AT('2026-06-30T12:00:00.000Z'),
+  miner:            AT('2026-07-07T12:00:00.000Z'),
 }
 
 function withAddedAtTimestamps(
@@ -210,19 +211,18 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'villagers_blue_idle', 'villagers_red_idle', 3),
 
-  /** Building-only tank — Troll enemy art. */
+  /** P.E.K.K.A analog — Troll enemy art. */
   troll: troop('troll', 'Troll',
-    'A massive brute who targets only buildings and towers. Extremely high HP.',
-    5, {
-    maxHp: 6392,
+    'A slow colossus with devastating single-target damage. Nothing survives its club for long.',
+    7, {
+    maxHp: 4979,
     speed: crSpeedToCellsPerSec(CR_SPEED.slow),
-    damage: 214,
-    attackRate: 1 / 1.5,
+    damage: 1081,
+    attackRate: 1 / 1.8,
     attackRange: 1.2,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
-    targetsBuildingsOnly: true,
-    pushWeight: 3.0,  // Giant-class: bulldozes lighter allies out of the way
+    pushWeight: 2.5,  // P.E.K.K.A-class: slow and massive, shoves lighter units
   }, 'troll_blue_idle', 'troll_red_idle'),
 
   /** Melee with distance charge — Lancer faction art. */
@@ -320,18 +320,19 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     deathSplashRadius: 3.0,
   }, 'air_boat_blue_idle', 'air_boat_red_idle'),
 
+  /** Giant analog — building-only tank. */
   bear: troop('bear', 'Bear',
-    'A heavily armored ground bruiser — slow, tough, and hits hard in melee.',
-    7, {
+    'A slow walking fortress that ignores enemy troops and grinds down buildings and towers.',
+    5, {
     maxHp: 5288,
-    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
-    damage: 355,
-    attackRate: 1 / 1.7,
+    speed: crSpeedToCellsPerSec(CR_SPEED.slow),
+    damage: 311,
+    attackRate: 1 / 1.5,
     attackRange: 1.2,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
-    splashRadius: 1.3,
-    pushWeight: 2.5,  // Golem-class bruiser
+    targetsBuildingsOnly: true,
+    pushWeight: 3.0,  // Giant-class: bulldozes lighter allies out of the way
   }, 'bear_blue_idle', 'bear_red_idle'),
 
   torch_goblin: troop('torch_goblin', 'Torch Goblin',
@@ -408,19 +409,33 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     deathSplashDamage: 614,
   }, 'goblin_demolisher_blue_sheet', 'goblin_demolisher_red_sheet'),
 
-  /** Slow heavy melee — Minotaur enemy art. */
+  /** Mega Knight analog — spawn slam handled in GameSimulator.deployCard. */
   minotaur: troop('minotaur', 'Minotaur',
-    'A heavily armored brute with massive single-target damage. Slow but devastating.',
+    'Slams the ground on arrival, damaging everything nearby, then cleaves enemies with sweeping blows.',
     7, {
-    maxHp: 4979,
-    speed: crSpeedToCellsPerSec(CR_SPEED.slow),
-    damage: 1081,
-    attackRate: 1 / 1.8,
+    maxHp: 4359,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 293,
+    attackRate: 1 / 1.7,
     attackRange: 1.2,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
-    pushWeight: 2.5,  // P.E.K.K.A-class: slow and massive, shoves lighter units
+    splashRadius: 1.3,
+    pushWeight: 3.0,  // Mega Knight-class: heaviest melee, shoves everything aside
   }, 'minotaur_blue_idle', 'minotaur_red_idle'),
+
+  /** CR Miner — deploys anywhere, burrows in (GameSimulator/Troop), reduced tower damage. */
+  miner: troop('miner', 'Miner',
+    'Burrows underground and pops up anywhere in the arena. Deals less damage to towers.',
+    3, {
+    maxHp: 1598,
+    speed: crSpeedToCellsPerSec(CR_SPEED.fast),
+    damage: 211,
+    attackRate: 1 / 1.2,
+    attackRange: 0.75,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+  }, 'miner_blue_idle', 'miner_red_idle'),
 
   /** Fast melee — dashes in before each strike when target is just out of reach. */
   thief: troop('thief', 'Thief',

@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, DUST_SHEETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET, PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET } from '@data/AssetManifest'
+import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, WATER_SPLASH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, DUST_SHEETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET, PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET } from '@data/AssetManifest'
 import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx, registerAirBoatCrewFx, registerHexTransformFx, registerShamanOrbFx, registerLightningArcFx } from '@rendering/AnimationRegistry'
 import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HEX_SHAMAN_BASE_SHEETS, HEX_SHAMAN_BASE_AVATAR, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET, LIGHTNING_ARC_SHEET, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL } from '@data/AssetManifest'
 import { generateAllShamanTextures } from '@rendering/PaletteSwap'
@@ -255,6 +255,11 @@ export class PreloadScene extends Phaser.Scene {
       TROOP_DEATH_SHEET.key,
       TROOP_DEATH_SHEET.path,
       { frameWidth: TROOP_DEATH_SHEET.frameWidth, frameHeight: TROOP_DEATH_SHEET.frameHeight },
+    )
+    this.load.spritesheet(
+      WATER_SPLASH_SHEET.key,
+      WATER_SPLASH_SHEET.path,
+      { frameWidth: WATER_SPLASH_SHEET.frameWidth, frameHeight: WATER_SPLASH_SHEET.frameHeight },
     )
 
     // --- UI ---

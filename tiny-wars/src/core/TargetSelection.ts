@@ -30,6 +30,7 @@ export function findNearestEnemy(state: GameState, opts: NearestEnemyOptions): E
   for (const entity of state.entities.values()) {
     if (entity.owner === opts.owner) continue
     if (!entity.isAlive) continue
+    if (!entity.isTargetable) continue
     if (entity.kind !== EntityKind.TROOP && entity.kind !== EntityKind.BUILDING) continue
     if (!canAttack(entity)) continue
 
