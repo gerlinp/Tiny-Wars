@@ -70,9 +70,11 @@ export class ArrowPool {
 
 // ─── ArrowsSpellPool ─────────────────────────────────────────────────────────
 
-const ARROWS_SPELL_POOL_SIZE = 20
+const ARROWS_SPELL_POOL_SIZE = 32
 const ARROW_COUNT = 14
 const STAGGER_MS = 32
+const ARROW_LINGER_MS = 900   // stuck in the ground before fading
+const ARROW_FADE_MS = 350
 
 export class ArrowsSpellPool {
   private pool: Phaser.GameObjects.Image[] = []
@@ -89,20 +91,25 @@ export class ArrowsSpellPool {
   }
 
   spawn(target: Vec2, owner: Owner, radiusPx: number, flightMs: number, onHit?: () => void): void {
-    const approach = radiusPx * 2.6
-    const spread = radiusPx * 1.7
+    // Keep the visual landing spread inside the actual damage radius (a square scatter
+    // at 1.7x radius was landing arrows well outside the true hit area).
+    const spreadRadius = radiusPx * 0.8
 
     for (let i = 0; i < ARROW_COUNT; i++) {
       this.scene.time.delayedCall(i * STAGGER_MS, () => {
         const img = this.pool.find(a => !a.getData('flying'))
         if (!img) return
 
-        const landingX = target.x + (Math.random() - 0.5) * spread
-        const landingY = target.y + (Math.random() - 0.5) * spread
+        const landingAngle = Math.random() * Math.PI * 2
+        const r = Math.sqrt(Math.random()) * spreadRadius
+        const landingX = target.x + Math.cos(landingAngle) * r
+        const landingY = target.y + Math.sin(landingAngle) * r
 
+        // Fall out of the sky: mostly straight down, drifting toward the caster's side.
         const fromCasterSide = owner === Owner.PLAYER ? -1 : 1
-        const fromX = landingX + fromCasterSide * approach * (0.75 + Math.random() * 0.35)
-        const fromY = landingY + (owner === Owner.PLAYER ? -1 : 1) * approach * (0.75 + Math.random() * 0.35)
+        const dropHeight = radiusPx * (3.2 + Math.random() * 0.8)
+        const fromX = landingX + fromCasterSide * dropHeight * (0.2 + Math.random() * 0.15)
+        const fromY = landingY - dropHeight
 
         const dx = landingX - fromX
         const dy = landingY - fromY
@@ -115,19 +122,33 @@ export class ArrowsSpellPool {
         img.setPosition(fromX, fromY)
         img.setRotation(angle)
         img.clearTint()
-        img.setAlpha(0.95)
-        img.setScale(1)
+        img.setAlpha(0.75)
+        img.setScale(1.5)
 
+        // High in the air: large and faint; shrinks and sharpens as it drops.
         this.scene.tweens.add({
           targets: img,
           x: landingX,
           y: landingY,
+          alpha: 1,
+          scale: 1,
           duration,
-          ease: 'Linear',
+          ease: 'Quad.easeIn',
           onComplete: () => {
-            img.setAlpha(0)
-            img.setData('flying', false)
             onHit?.()
+            // Stick in the ground for a moment, then fade away. Keep full colour/alpha
+            // (no grey dimming) so the arrow stays legible against light terrain.
+            img.setScale(0.9)
+            this.scene.tweens.add({
+              targets: img,
+              alpha: 0,
+              delay: ARROW_LINGER_MS,
+              duration: ARROW_FADE_MS,
+              onComplete: () => {
+                img.clearTint()
+                img.setData('flying', false)
+              },
+            })
           },
         })
       })

@@ -537,7 +537,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   arrows: spell('arrows', 'Arrows',
     'A volley of arrows that rains down on an area. Cheap and effective at clearing swarms.',
     3, {
-    damage: 404, radius: 4, duration: 0, delivery: 'arrows',
+    damage: 404, radius: 3, duration: 0, delivery: 'arrows',
   }, 'arrow_blue', 'arrow_red'),
 
   wood_tower: building('wood_tower', 'Wood Tower',

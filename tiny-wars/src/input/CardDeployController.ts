@@ -8,7 +8,7 @@ import { Owner } from '@core/types'
 import { CardType } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { GAME_HEIGHT } from '@data/GameConstants'
-import { LOCAL_OWNER, enemyLaneUnlocksFor, isTroopDeployCell } from '@core/DeploySystem'
+import { LOCAL_OWNER, enemyLaneUnlocksFor } from '@core/DeploySystem'
 
 type State = 'IDLE' | 'CARD_SELECTED'
 
@@ -28,10 +28,6 @@ export class CardDeployController {
     private overlay: DeployZoneOverlay,
     private ghost: PlacementGhost,
   ) {}
-
-  private usesDragAimHints(): boolean {
-    return this.scene.sys.game.device.input.touch
-  }
 
   private overlayModeFor(card: { cardType: CardType }): 'troop' | 'elixir' | 'spell' {
     if (card.cardType === CardType.ELIXIR) return 'elixir'
@@ -69,8 +65,7 @@ export class CardDeployController {
 
     const mode = this.overlayModeFor(card)
     this.overlay.syncExpandedZones(LOCAL_OWNER, enemyLaneUnlocksFor(this.simulator.state, LOCAL_OWNER))
-    this.overlay.show(mode, this.usesDragAimHints())
-    this.overlay.showSelectedAimHint()
+    this.overlay.show(mode)
 
     if (card.cardType === CardType.ELIXIR) {
       this.ghost.hide()
@@ -109,17 +104,7 @@ export class CardDeployController {
       return
     }
 
-    if (this.state !== 'CARD_SELECTED' || this.selectedIndex === null) {
-      const cell = this.grid.worldToCell(x, y)
-      const inZone = isTroopDeployCell(
-        LOCAL_OWNER,
-        cell,
-        this.simulator.state.enemyLaneDeploy,
-      )
-      if (inZone) this.overlay.showHint()
-      else this.overlay.hideHint()
-      return
-    }
+    if (this.state !== 'CARD_SELECTED' || this.selectedIndex === null) return
 
     this.updateAimPreview(x, y)
   }

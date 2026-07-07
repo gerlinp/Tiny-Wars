@@ -27,6 +27,7 @@ import {
 } from './towerGarrison'
 import { HealthBar } from './HealthBar'
 import { DamageFireOverlay } from './DamageFireOverlay'
+import { EXPLOSION_SHEET, DUST_SHEETS } from '@data/AssetManifest'
 
 const GARRISON_DEPTH = 4.5
 const MERLON_DEPTH = 5.5
@@ -185,6 +186,7 @@ export class TowerSprite {
   }
 
   setDestroyed(owner: Owner): void {
+    if (this.defeated) return
     this.defeated = true
     this.flashTween?.stop()
     this.flashTween = null
@@ -192,11 +194,6 @@ export class TowerSprite {
     this.cannonShotTimer = null
     this.stopCannonRecoil()
 
-    const key = towerTextureKey(this.isKing, owner, true)
-    this.image.setTexture(key)
-    applyTowerDisplaySize(this.image, this.scene, this.isKing, key)
-    this.layoutMerlonOverlay(key)
-    this.image.setTint(0x666666)
     this.merlonOverlay.setVisible(false)
     this.damageFire.hide()
 
@@ -206,6 +203,88 @@ export class TowerSprite {
     for (const unit of this.garrison) {
       unit.anims.stop()
       unit.setVisible(false)
+    }
+
+    this.scene.cameras.main.shake(this.isKing ? 320 : 220, this.isKing ? 0.012 : 0.008)
+    this.spawnDestructionFx()
+
+    // Hold on the intact sprite through a bright flash while the blast reads,
+    // then collapse into the ruined texture.
+    this.image.setTint(0xffffff)
+    this.scene.tweens.add({
+      targets: this.image,
+      alpha: 0.2,
+      duration: 90,
+      yoyo: true,
+      repeat: 1,
+      onComplete: () => {
+        const key = towerTextureKey(this.isKing, owner, true)
+        this.image.setTexture(key)
+        applyTowerDisplaySize(this.image, this.scene, this.isKing, key)
+        this.layoutMerlonOverlay(key)
+        this.image.setAlpha(1)
+        this.image.setTint(0x666666)
+      },
+    })
+  }
+
+  private spawnDestructionFx(): void {
+    const cx = this.image.x
+    const cy = this.towerRy
+
+    if (this.scene.textures.exists(EXPLOSION_SHEET.key) && this.scene.anims.exists(EXPLOSION_SHEET.animKey)) {
+      const size = this.towerSize.width * 1.7
+      const burst = this.scene.add.sprite(cx, cy, EXPLOSION_SHEET.key, 0)
+        .setDepth(20)
+        .setDisplaySize(size, size)
+      burst.play(EXPLOSION_SHEET.animKey)
+      burst.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => burst.destroy())
+    }
+
+    const dustSheet = DUST_SHEETS[0]
+    if (dustSheet && this.scene.textures.exists(dustSheet.key) && this.scene.anims.exists(dustSheet.animKey)) {
+      const size = this.towerSize.width * 1.3
+      const puff = this.scene.add.sprite(cx, cy, dustSheet.key, 0)
+        .setDepth(19)
+        .setAlpha(0.85)
+        .setDisplaySize(size, size)
+      puff.play(dustSheet.animKey)
+      puff.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => puff.destroy())
+    }
+  }
+
+  /** Bigger, multi-burst explosion for the match-ending final blow — call on the
+   *  loser's king tower once, in addition to the routine setDestroyed() blast. */
+  playFinaleBlast(): void {
+    const cx = this.image.x
+    const cy = this.towerRy
+    const baseSize = this.towerSize.width
+
+    this.scene.cameras.main.shake(520, 0.02)
+
+    for (const delay of [0, 150, 300]) {
+      this.scene.time.delayedCall(delay, () => {
+        if (!this.scene.textures.exists(EXPLOSION_SHEET.key) || !this.scene.anims.exists(EXPLOSION_SHEET.animKey)) return
+        const size = baseSize * (2.4 + Math.random() * 0.7)
+        const ox = cx + (Math.random() - 0.5) * baseSize * 0.7
+        const oy = cy + (Math.random() - 0.5) * baseSize * 0.5
+        const burst = this.scene.add.sprite(ox, oy, EXPLOSION_SHEET.key, 0)
+          .setDepth(30)
+          .setDisplaySize(size, size)
+        burst.play(EXPLOSION_SHEET.animKey)
+        burst.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => burst.destroy())
+      })
+    }
+
+    const dustSheet = DUST_SHEETS[0]
+    if (dustSheet && this.scene.textures.exists(dustSheet.key) && this.scene.anims.exists(dustSheet.animKey)) {
+      const size = baseSize * 2.6
+      const puff = this.scene.add.sprite(cx, cy, dustSheet.key, 0)
+        .setDepth(29)
+        .setAlpha(0.9)
+        .setDisplaySize(size, size)
+      puff.play(dustSheet.animKey)
+      puff.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => puff.destroy())
     }
   }
 

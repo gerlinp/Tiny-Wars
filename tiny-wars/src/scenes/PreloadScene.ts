@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, DUST_SHEETS, getHealthBarImageKeys, HEALTH_BAR_ASSETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET, PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET } from '@data/AssetManifest'
+import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, DUST_SHEETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET, PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET } from '@data/AssetManifest'
 import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx, registerAirBoatCrewFx, registerHexTransformFx, registerShamanOrbFx, registerLightningBoltFx } from '@rendering/AnimationRegistry'
 import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HEX_SHAMAN_BASE_SHEETS, HEX_SHAMAN_BASE_AVATAR, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET, HEX_SHAMAN_LIGHTNING_BOLT_SHEET, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL } from '@data/AssetManifest'
 import { generateAllShamanTextures } from '@rendering/PaletteSwap'
@@ -260,14 +260,15 @@ export class PreloadScene extends Phaser.Scene {
     )
 
     // --- UI ---
-    this.load.image('button_blue',    'assets/UI/Buttons/Button_Blue.png')
-    this.load.image('button_red',     'assets/UI/Buttons/Button_Red.png')
+    this.load.image('button_blue',      'assets/UI/Buttons/Button_Blue.png')
+    this.load.image('button_blue_wide', 'assets/UI/Buttons/Button_Blue_3Slides.png')
+    this.load.image('button_red_wide',  'assets/UI/Buttons/Button_Red_3Slides.png')
+    this.load.image('button_red',       'assets/UI/Buttons/Button_Red.png')
     this.load.image('carved_panel',   'assets/UI/Banners/Carved_9Slides.png')
     this.load.image('banner_h',       'assets/UI/Banners/Banner_Horizontal.png')
 
-    for (const bar of getHealthBarImageKeys()) {
-      this.load.image(bar.key, bar.path)
-    }
+    // Health-bar art is already loaded by BootScene (so this scene's own loading
+    // bar can use it from frame one) — no need to queue it again here.
 
     for (const sfx of getCombatSfx()) {
       this.load.audio(sfx.key, sfx.path)
@@ -333,23 +334,8 @@ export class PreloadScene extends Phaser.Scene {
       }
     }
 
-    // Register sub-frames using measured art bounds so setDisplaySize scales against
-    // actual art dimensions — not the full 320×64 or 64×64 sheet.
-    for (const variant of Object.values(HEALTH_BAR_ASSETS)) {
-      const baseTex = this.textures.get(variant.base.key)
-      const r = variant.baseRegions
-      const bf = variant.baseFrame
-      baseTex.add('leftCap',  0, r.leftCap.x,  bf.y, r.leftCap.w,  bf.h)
-      baseTex.add('mid',      0, r.mid.x,      bf.y, r.mid.w,      bf.h)
-      baseTex.add('rightCap', 0, r.rightCap.x, bf.y, r.rightCap.w, bf.h)
-
-      const fillTex = this.textures.get(variant.fill.key)
-      const ff = variant.fillFrame
-      fillTex.add('fill', 0, 0, ff.y, 64, ff.h)
-
-      const fillPlayerTex = this.textures.get(variant.fillPlayer.key)
-      fillPlayerTex.add('fill', 0, 0, ff.y, 64, ff.h)
-    }
+    // Health-bar sub-frames are registered in BootScene.create(), before this
+    // scene's own loading bar needs them — see registerHealthBarFrames().
 
     const bridgeTex = this.textures.get(TERRAIN_BRIDGE.key)
     const br = BRIDGE_DECK.regions

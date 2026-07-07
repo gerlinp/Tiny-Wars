@@ -38,6 +38,9 @@ export class UIScene extends Phaser.Scene {
     const { width } = this.scale
 
     this.cameras.main.setScroll(0, 0)
+    // Hidden until revealHud() — otherwise the HUD pops in immediately on launch,
+    // ahead of the cloud cover clearing over the board it belongs to.
+    this.cameras.main.setAlpha(0)
 
     this.add.rectangle(0, GAME_HEIGHT, width, HUD_HEIGHT, 0x111122, 0.88).setOrigin(0).setDepth(45)
 
@@ -76,6 +79,11 @@ export class UIScene extends Phaser.Scene {
     this.pauseBtn.on('pointerdown', () => {
       this.scene.pause('BattleScene')
     })
+  }
+
+  /** Fades the whole HUD in — call once the cloud cover has cleared over the board. */
+  revealHud(duration = 400): void {
+    this.tweens.add({ targets: this.cameras.main, alpha: 1, duration })
   }
 
   private opponentNameText: Phaser.GameObjects.Text | null = null

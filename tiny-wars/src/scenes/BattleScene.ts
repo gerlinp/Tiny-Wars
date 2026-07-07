@@ -71,6 +71,7 @@ export class BattleScene extends Phaser.Scene {
   private sounds!: SoundManager
   /** Sim time is frozen until the match intro ("X vs Y" → "Battle Start!") finishes. */
   private battleStarted = false
+  private gameEnded = false
 
   constructor() {
     super({ key: 'BattleScene' })
@@ -207,6 +208,10 @@ export class BattleScene extends Phaser.Scene {
       })
       net.onOpponentName = (name) => uiScene.setOpponentName(name)
     }
+
+    // Keep the HUD hidden until the cloud cover clears over the board (same moment
+    // the "vs" banner fades in) instead of popping in immediately on launch.
+    this.time.delayedCall(2400, () => uiScene.revealHud(400))
   }
 
   /**
@@ -233,31 +238,38 @@ export class BattleScene extends Phaser.Scene {
     })
 
     // Hold the matchup until a second after the last clouds clear (~3400ms), then
-    // flash the battle start and unfreeze the sim.
+    // fade out, swap to "Battle Start!", and fade back in — slow enough to read
+    // clearly instead of flickering — and unfreeze the sim on the swap.
     this.time.delayedCall(3400 + 1000, () => {
-      banner.setText('Battle Start!')
-      banner.setScale(0.3)
-      this.sounds.playWarHorn()
-      this.tweens.add({
-        targets: banner,
-        scale: 1,
-        duration: 300,
-        ease: 'Back.easeOut',
-      })
-      this.battleStarted = true
       this.tweens.add({
         targets: banner,
         alpha: 0,
-        delay: 700,
-        duration: 300,
-        onComplete: () => banner.destroy(),
+        duration: 400,
+        onComplete: () => {
+          banner.setText('Battle Start!')
+          this.sounds.playWarHorn()
+          this.battleStarted = true
+          this.tweens.add({ targets: banner, alpha: 1, duration: 400 })
+        },
+      })
+      // Hold "Battle Start!" fully visible for as long as the "vs" line was (~1750ms).
+      this.time.delayedCall(400 + 1750, () => {
+        this.tweens.add({
+          targets: banner,
+          alpha: 0,
+          duration: 700,
+          onComplete: () => banner.destroy(),
+        })
       })
     })
   }
 
   update(_time: number, delta: number): void {
     if (this.simulator.state.phase === 'ENDED') {
-      this.endGame()
+      // Keep this scene's render/tween loop alive (rather than pausing or stopping it)
+      // so the finale explosion and camera shake triggered by endGame() play out fully
+      // while ResultScene overlays on top, showing the frozen board behind it.
+      if (!this.gameEnded) this.endGame()
       return
     }
 
@@ -771,12 +783,36 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private endGame(): void {
+    this.gameEnded = true
     this.deployCtrl.deselect()
     this.scene.stop('UIScene')
     const winner = this.simulator.state.winner
     const pvpNetwork = this.pvpNetwork
     this.pvpNetwork = null
-    // Pass network to ResultScene so rematch can reuse the connection
-    this.scene.start('ResultScene', { winner, pvpNetwork })
+
+    this.triggerFinaleBlast(winner)
+    this.sounds.playWarHorn()
+
+    // Give the finale blast (staggered bursts + camera shake) room to read before
+    // the result banner covers the screen — launch (not start) so BattleScene keeps
+    // rendering behind it, board visible and frozen, once it does appear.
+    this.time.delayedCall(1200, () => {
+      this.scene.launch('ResultScene', { winner, pvpNetwork })
+    })
+  }
+
+  /** Bigger, multi-burst explosion on the losing king tower to punctuate match end. */
+  private triggerFinaleBlast(winner: Owner | null): void {
+    const loserOwner = winner === Owner.PLAYER ? Owner.BOT
+      : winner === Owner.BOT ? Owner.PLAYER
+      : null
+    if (loserOwner === null) return
+
+    for (const [id, tower] of this.simulator.state.towers) {
+      if (tower.isKing && tower.owner === loserOwner) {
+        this.towerSprites.get(id)?.playFinaleBlast()
+        return
+      }
+    }
   }
 }

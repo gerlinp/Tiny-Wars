@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { Owner } from '@core/types'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
 import { createMenuButton, menuButtonRowCenters, MENU_BUTTON_SCALE } from '../ui/SceneButton'
+import { createBannerPopup } from '../ui/matchupBanner'
 import { startBattleLoading } from '../ui/loadingScreenUi'
 import type { PvPNetwork } from '@core/PvPNetwork'
 
@@ -19,38 +20,55 @@ export class ResultScene extends Phaser.Scene {
     const { width, height } = this.scale
     const { winner, pvpNetwork } = data
 
-    this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0).setDepth(0)
+    // A dim scrim, not a solid cover — BattleScene keeps rendering behind this scene
+    // (frozen at the moment of victory), so the board stays visible through it.
+    this.add.rectangle(0, 0, width, height, 0x000000, 0.4).setOrigin(0).setDepth(0)
 
     const titleText  = winner === Owner.PLAYER ? '🏆 VICTORY!' :
                        winner === Owner.BOT    ? '💀 DEFEAT'   : '🤝 TIE'
     const titleColor = winner === Owner.PLAYER ? '#ffdd44' :
-                       winner === Owner.BOT    ? '#ff4444'  : '#aabbff'
+                       winner === Owner.BOT    ? '#ff6666'  : '#aabbff'
 
-    this.add.text(width / 2, height * 0.35, titleText, {
-      fontSize: '109px',
-      fontFamily: CINZEL_FONT,
-      fontStyle: 'bold',
-      color: titleColor,
-      stroke: '#000000',
-      strokeThickness: 17,
-    }).setOrigin(0.5).setDepth(10)
+    const banner = createBannerPopup(this, width / 2, height * 0.32, titleText, {
+      width: 640, height: 190, fontSize: '80px', color: titleColor,
+    })
+    banner.fadeIn(600)
 
-    if (pvpNetwork) {
-      this.buildPvPButtons(width, height, pvpNetwork)
-    } else {
-      this.buildSoloButtons(width, height)
-    }
+    // Buttons fade in just after the banner lands, so the reveal reads first.
+    this.time.delayedCall(600, () => {
+      if (pvpNetwork) {
+        this.buildPvPButtons(width, height, pvpNetwork)
+      } else {
+        this.buildSoloButtons(width, height)
+      }
+    })
+  }
+
+  /** BattleScene is only frozen (never paused/stopped) while this scene is up, so
+   *  any navigation away from here must explicitly tear it down first. */
+  private leaveBattle(next: () => void): void {
+    this.scene.stop('BattleScene')
+    next()
+  }
+
+  private fadeInGroup(objects: Phaser.GameObjects.GameObject[]): void {
+    for (const obj of objects) (obj as unknown as { alpha: number }).alpha = 0
+    this.tweens.add({ targets: objects, alpha: 1, duration: 300 })
   }
 
   private buildSoloButtons(width: number, height: number): void {
-    createMenuButton(this, width / 2, height * 0.56, 'PLAY AGAIN', '76px', 10, () => startBattleLoading(this))
-    createMenuButton(this, width / 2, height * 0.66, 'DECK', '76px', 10, () => this.scene.start('DeckBuilderScene'))
-    this.add.text(width / 2, height * 0.75, 'Main Menu', {
+    const playAgain = createMenuButton(this, width / 2, height * 0.56, 'PLAY AGAIN', '76px', 10,
+      () => this.leaveBattle(() => startBattleLoading(this)))
+    const deck = createMenuButton(this, width / 2, height * 0.66, 'DECK', '76px', 10,
+      () => this.leaveBattle(() => this.scene.start('DeckBuilderScene')))
+    const menuLabel = this.add.text(width / 2, height * 0.75, 'Main Menu', {
       fontSize: '40px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
       color: '#aabbff', stroke: '#000022', strokeThickness: 5,
     }).setOrigin(0.5).setDepth(11)
       .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.scene.start('MainMenuScene'))
+      .on('pointerdown', () => this.leaveBattle(() => this.scene.start('MainMenuScene')))
+
+    this.fadeInGroup([playAgain.button, playAgain.label, deck.button, deck.label, menuLabel])
   }
 
   private buildPvPButtons(width: number, height: number, network: PvPNetwork): void {
@@ -88,10 +106,12 @@ export class ResultScene extends Phaser.Scene {
       checkBothReady()
     })
 
-    createMenuButton(this, menuX, height * 0.62, 'MENU', '60px', 10, () => {
+    const menuBtn = createMenuButton(this, menuX, height * 0.62, 'MENU', '60px', 10, () => {
       network.destroy()
-      this.scene.start('MainMenuScene')
+      this.leaveBattle(() => this.scene.start('MainMenuScene'))
     })
+
+    this.fadeInGroup([statusText, rematchBtn, rematchLabel, menuBtn.button, menuBtn.label])
 
     // Pulsing tween shown when opponent has clicked but we haven't yet
     let rematchPulse: Phaser.Tweens.Tween | null = null
@@ -115,10 +135,10 @@ export class ResultScene extends Phaser.Scene {
         statusText.setText('Starting rematch!')
         network.onRematch = null
         network.onDisconnected = null
-        this.scene.start('TransitionLoadingScene', {
+        this.leaveBattle(() => this.scene.start('TransitionLoadingScene', {
           next: 'BattleScene',
           data: { pvpNetwork: network },
-        })
+        }))
       }
     }
 

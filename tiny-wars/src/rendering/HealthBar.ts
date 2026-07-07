@@ -17,6 +17,32 @@ const HEALTH_BAR_FILL_SHEET_W = 64
 const HEALTH_WARN_THRESHOLD = 0.3
 const HEALTH_CRIT_THRESHOLD = 0.15
 
+/**
+ * Registers the leftCap/mid/rightCap/fill named sub-frames used by HealthBar, so
+ * setDisplaySize scales against measured art bounds instead of the full sheet.
+ * Must run once the base images exist — call as soon as they're loaded (BootScene),
+ * since PreloadScene's own loading bar needs these frames before its main load queue
+ * finishes.
+ */
+export function registerHealthBarFrames(scene: Phaser.Scene): void {
+  for (const variant of Object.values(HEALTH_BAR_ASSETS)) {
+    const baseTex = scene.textures.get(variant.base.key)
+    if (baseTex.has('leftCap')) continue
+    const r = variant.baseRegions
+    const bf = variant.baseFrame
+    baseTex.add('leftCap',  0, r.leftCap.x,  bf.y, r.leftCap.w,  bf.h)
+    baseTex.add('mid',      0, r.mid.x,      bf.y, r.mid.w,      bf.h)
+    baseTex.add('rightCap', 0, r.rightCap.x, bf.y, r.rightCap.w, bf.h)
+
+    const ff = variant.fillFrame
+    const fillTex = scene.textures.get(variant.fill.key)
+    if (!fillTex.has('fill')) fillTex.add('fill', 0, 0, ff.y, 64, ff.h)
+
+    const fillPlayerTex = scene.textures.get(variant.fillPlayer.key)
+    if (!fillPlayerTex.has('fill')) fillPlayerTex.add('fill', 0, 0, ff.y, 64, ff.h)
+  }
+}
+
 
 export interface HealthBarOptions {
   /** Pixels above entity centre; zero = y is already the bar centre */

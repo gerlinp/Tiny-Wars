@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
 import { PvPNetwork } from '@core/PvPNetwork'
 import { loadPlayerName, savePlayerName } from '@data/PlayerName'
+import { createWideButton, DEEP_BLUE, DEEP_PURPLE, DEEP_RED, DEEP_GREEN, type WideButtonOptions } from '../ui/SceneButton'
 
 const BODY_FONT = "'Philosopher', Georgia, serif"
 
@@ -21,7 +22,7 @@ function flexColumn(heights: number[], gap: number, startY = 0): number[] {
   return centres
 }
 
-const BTN_H   = 158
+const BTN_H   = 205  // wide button frame height (64 src × 3.2)
 const INPUT_H = 104
 const NAME_H  = 90
 
@@ -43,6 +44,7 @@ export class PvPLobbyScene extends Phaser.Scene {
   private dotCount = 0
   private domInput: HTMLInputElement | null = null   // room code input
   private nameInput: HTMLInputElement | null = null  // player name input
+  private nameSaveBtn: HTMLButtonElement | null = null
   private autoJoinCode: string | null = null
 
   constructor() {
@@ -118,7 +120,6 @@ export class PvPLobbyScene extends Phaser.Scene {
       'padding:0',
     ].join(';')
     ni.value = loadPlayerName()
-    ni.addEventListener('input', () => savePlayerName(ni.value))
     document.body.appendChild(ni)
     this.nameInput = ni
 
@@ -132,6 +133,44 @@ export class PvPLobbyScene extends Phaser.Scene {
     ni.style.width    = `${niW}px`
     ni.style.height   = `${niH}px`
     ni.style.fontSize = `${56 * sy}px`
+
+    // Save button, sits just right of the name input. Grey "✓" = unsaved edits
+    // pending; green "✓" = matches what's persisted.
+    const saveBtn = document.createElement('button')
+    saveBtn.type = 'button'
+    saveBtn.textContent = '✓'
+    saveBtn.style.cssText = [
+      'position:fixed',
+      'box-sizing:border-box',
+      'background:#0d1a2a',
+      'border:1px solid #334466',
+      'border-radius:4px',
+      'font-family:monospace',
+      'font-weight:bold',
+      'text-align:center',
+      'cursor:pointer',
+      'z-index:10',
+      'padding:0',
+    ].join(';')
+    const saveBtnW = niH  // square button, matches input height
+    saveBtn.style.left     = `${niScreenX + niW / 2 + 8 * sx}px`
+    saveBtn.style.top      = `${niScreenY - niH / 2}px`
+    saveBtn.style.width    = `${saveBtnW}px`
+    saveBtn.style.height   = `${niH}px`
+    saveBtn.style.fontSize = `${44 * sy}px`
+    document.body.appendChild(saveBtn)
+    this.nameSaveBtn = saveBtn
+
+    const setSaved = (saved: boolean) => {
+      saveBtn.style.color = saved ? '#66dd88' : '#556688'
+    }
+    setSaved(ni.value.trim() === loadPlayerName().trim())
+
+    ni.addEventListener('input', () => setSaved(false))
+    saveBtn.addEventListener('click', () => {
+      savePlayerName(ni.value)
+      setSaved(true)
+    })
 
     // ── Room-code DOM input ─────────────────────────────────────────────────
     const di = document.createElement('input')
@@ -160,9 +199,9 @@ export class PvPLobbyScene extends Phaser.Scene {
     document.body.appendChild(di)
     this.domInput = di
 
-    const [inputY] = flexColumn([INPUT_H, BTN_H, BTN_H], 119)
+    const [inputY] = flexColumn([INPUT_H, BTN_H, BTN_H], 60)
     const diScreenX = rect.left + (width / 2) * sx
-    const diScreenY = rect.top + (height * 0.46 + inputY) * sy
+    const diScreenY = rect.top + (height * 0.40 + inputY) * sy
     const diW = 496 * sx
     const diH = INPUT_H * sy
     di.style.left     = `${diScreenX - diW / 2}px`
@@ -181,8 +220,10 @@ export class PvPLobbyScene extends Phaser.Scene {
     this.events.once('shutdown', () => {
       ni.remove()
       di.remove()
+      saveBtn.remove()
       this.nameInput = null
       this.domInput = null
+      this.nameSaveBtn = null
     })
 
     if (this.autoJoinCode) {
@@ -201,26 +242,20 @@ export class PvPLobbyScene extends Phaser.Scene {
   // ---------------------------------------------------------------------------
 
   private buildMenuContainer(width: number, height: number): void {
-    const gap    = 40
-    const btnW   = 317
-    const pairW  = btnW * 2 + gap
-    const leftX  = -pairW / 2 + btnW / 2
-    const rightX = pairW  / 2 - btnW / 2
+    const [createY, joinY, mmY, backY] = flexColumn([BTN_H, BTN_H, BTN_H, BTN_H], 26)
 
-    const [rowY, mmY, backY] = flexColumn([BTN_H, BTN_H, BTN_H], 79)
+    const createBtn = this.makeBtn(0, createY, 'CREATE',     '56px', () => this.onCreateRoom(), { tint: DEEP_BLUE })
+    const joinBtn   = this.makeBtn(0, joinY,   'JOIN',       '56px', () => this.showJoinInput(), { tint: DEEP_PURPLE })
+    const mmBtn     = this.makeBtn(0, mmY,     'FIND MATCH', '56px', () => this.onFindMatch(), { tint: DEEP_GREEN })
+    const backBtn   = this.makeBtn(0, backY,   'BACK',       '56px', () => this.goBack(), { tint: DEEP_RED })
 
-    const createBtn = this.makeBtn(leftX,  rowY,  'CREATE',     '60px', () => this.onCreateRoom())
-    const joinBtn   = this.makeBtn(rightX, rowY,  'JOIN',       '60px', () => this.showJoinInput())
-    const mmBtn     = this.makeBtn(0,      mmY,   'FIND MATCH', '56px', () => this.onFindMatch())
-    const backBtn   = this.makeBtn(0,      backY, 'BACK',       '52px', () => this.goBack())
-
-    this.menuContainer = this.add.container(width / 2, height * 0.46, [
+    this.menuContainer = this.add.container(width / 2, height * 0.40, [
       ...createBtn, ...joinBtn, ...mmBtn, ...backBtn,
     ])
   }
 
   private buildJoinContainer(width: number, height: number): void {
-    const [inputY, connectY, backY] = flexColumn([INPUT_H, BTN_H, BTN_H], 119)
+    const [inputY, connectY, backY] = flexColumn([INPUT_H, BTN_H, BTN_H], 60)
 
     const label = this.add.text(0, inputY - INPUT_H / 2 - 45, 'ROOM CODE', {
       fontSize: '40px',
@@ -228,16 +263,16 @@ export class PvPLobbyScene extends Phaser.Scene {
       color: '#6677bb',
     }).setOrigin(0.5)
 
-    const connectBtn = this.makeBtn(0, connectY, 'CONNECT', '56px', () => this.onJoinRoom())
-    const backBtn    = this.makeBtn(0, backY,    'BACK',    '52px', () => this.goBack())
+    const connectBtn = this.makeBtn(0, connectY, 'CONNECT', '56px', () => this.onJoinRoom(), { tint: DEEP_BLUE })
+    const backBtn    = this.makeBtn(0, backY,    'BACK',    '56px', () => this.goBack(), { tint: DEEP_RED })
 
-    this.joinContainer = this.add.container(width / 2, height * 0.46, [
+    this.joinContainer = this.add.container(width / 2, height * 0.40, [
       label, ...connectBtn, ...backBtn,
     ])
   }
 
   private buildMatchmakingContainer(width: number, height: number): void {
-    const [statusY, cancelY] = flexColumn([50, BTN_H], 99)
+    const [statusY, cancelY] = flexColumn([50, BTN_H], 60)
 
     this.matchStatusText = this.add.text(0, statusY, '', {
       fontSize: '45px',
@@ -246,9 +281,9 @@ export class PvPLobbyScene extends Phaser.Scene {
       align: 'center',
     }).setOrigin(0.5)
 
-    const cancelBtn = this.makeBtn(0, cancelY, 'CANCEL', '52px', () => this.cancelMatchmaking())
+    const cancelBtn = this.makeBtn(0, cancelY, 'CANCEL', '56px', () => this.cancelMatchmaking(), { tint: DEEP_RED })
 
-    this.matchmakingContainer = this.add.container(width / 2, height * 0.50, [
+    this.matchmakingContainer = this.add.container(width / 2, height * 0.44, [
       this.matchStatusText, ...cancelBtn,
     ])
   }
@@ -258,9 +293,9 @@ export class PvPLobbyScene extends Phaser.Scene {
     const HINT_H     = 50
 
     const [codeY, , shareY, waitY, backY] =
-      flexColumn([CODE_BOX_H, HINT_H, BTN_H, 80, BTN_H], 96)
+      flexColumn([CODE_BOX_H, HINT_H, BTN_H, 80, BTN_H], 50)
 
-    const codeBox = this.add.rectangle(0, codeY, 1200, CODE_BOX_H, 0x112233)
+    const codeBox = this.add.rectangle(0, codeY, 780, CODE_BOX_H, 0x112233)
       .setStrokeStyle(8, 0x44aaff)
       .setInteractive({ useHandCursor: true })
 
@@ -288,7 +323,7 @@ export class PvPLobbyScene extends Phaser.Scene {
     })
     this.codeText.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.copyCode())
 
-    const shareBtn = this.makeBtn(0, shareY, 'SHARE', '56px', () => this.shareCode())
+    const shareBtn = this.makeBtn(0, shareY, 'SHARE', '56px', () => this.shareCode(), { tint: DEEP_PURPLE })
 
     this.waitingText = this.add.text(0, waitY, '', {
       fontSize: '40px',
@@ -297,7 +332,7 @@ export class PvPLobbyScene extends Phaser.Scene {
       align: 'center',
     }).setOrigin(0.5)
 
-    const backBtn = this.makeBtn(0, backY, 'BACK', '52px', () => this.goBack())
+    const backBtn = this.makeBtn(0, backY, 'BACK', '56px', () => this.goBack(), { tint: DEEP_RED })
 
     this.waitingContainer = this.add.container(width / 2, height * 0.30, [
       codeBox, this.codeText, this.copyHint,
@@ -313,22 +348,10 @@ export class PvPLobbyScene extends Phaser.Scene {
     x: number, y: number,
     label: string, fontSize: string,
     onPress: () => void,
+    opts?: WideButtonOptions,
   ): Phaser.GameObjects.GameObject[] {
-    const img = this.add.image(x, y, 'button_blue')
-      .setInteractive({ useHandCursor: true })
-      .setScale(8)
-    const txt = this.add.text(x, y, label, {
-      fontSize,
-      fontFamily: CINZEL_FONT,
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000022',
-      strokeThickness: 7,
-    }).setOrigin(0.5).setDepth(1)
-    img.on('pointerdown', onPress)
-    img.on('pointerover', () => img.setTint(0xdddddd))
-    img.on('pointerout', () => img.clearTint())
-    return [img, txt]
+    const { button, label: txt } = createWideButton(this, x, y, label, fontSize, 0, onPress, opts)
+    return [button, txt]
   }
 
   // ---------------------------------------------------------------------------
@@ -337,6 +360,11 @@ export class PvPLobbyScene extends Phaser.Scene {
 
   private getLocalName(): string {
     return (this.nameInput?.value ?? '').trim().slice(0, 14)
+  }
+
+  private setNameInputVisible(visible: boolean): void {
+    if (this.nameInput) this.nameInput.style.display = visible ? 'block' : 'none'
+    if (this.nameSaveBtn) this.nameSaveBtn.style.display = visible ? 'block' : 'none'
   }
 
   private showJoinInput(): void {
@@ -351,7 +379,7 @@ export class PvPLobbyScene extends Phaser.Scene {
     this.lobbyState = 'CREATING'
     this.statusText.setText('Creating room...')
     this.menuContainer.setVisible(false)
-    if (this.nameInput) this.nameInput.style.display = 'none'
+    this.setNameInputVisible(false)
     this.network = new PvPNetwork()
     this.network.localName = this.getLocalName()
     try {
@@ -369,7 +397,7 @@ export class PvPLobbyScene extends Phaser.Scene {
       this.statusText.setText('Failed to create room. Check your connection.')
       this.lobbyState = 'MENU'
       this.menuContainer.setVisible(true)
-      if (this.nameInput) this.nameInput.style.display = 'block'
+      this.setNameInputVisible(true)
     }
   }
 
@@ -378,7 +406,7 @@ export class PvPLobbyScene extends Phaser.Scene {
     if (code.length < 5) return
     this.lobbyState = 'CONNECTING'
     if (this.domInput) { this.domInput.blur(); this.domInput.style.display = 'none' }
-    if (this.nameInput) this.nameInput.style.display = 'none'
+    this.setNameInputVisible(false)
     this.joinContainer.setVisible(false)
     this.statusText.setText('Connecting...')
     this.network = new PvPNetwork()
@@ -391,14 +419,14 @@ export class PvPLobbyScene extends Phaser.Scene {
       this.lobbyState = 'JOINING'
       this.joinContainer.setVisible(true)
       if (this.domInput) { this.domInput.style.display = 'block'; this.domInput.focus() }
-      if (this.nameInput) this.nameInput.style.display = 'block'
+      this.setNameInputVisible(true)
     }
   }
 
   private async onFindMatch(): Promise<void> {
     this.lobbyState = 'MATCHMAKING'
     this.menuContainer.setVisible(false)
-    if (this.nameInput) this.nameInput.style.display = 'none'
+    this.setNameInputVisible(false)
     this.matchmakingContainer.setVisible(true)
     this.statusText.setText('')
 
@@ -422,7 +450,7 @@ export class PvPLobbyScene extends Phaser.Scene {
     this.network?.destroy()
     this.network = null
     this.matchmakingContainer.setVisible(false)
-    if (this.nameInput) this.nameInput.style.display = 'block'
+    this.setNameInputVisible(true)
     this.lobbyState = 'MENU'
     this.menuContainer.setVisible(true)
     this.statusText.setText('')
@@ -439,7 +467,7 @@ export class PvPLobbyScene extends Phaser.Scene {
     this.stopWaitingDots()
     if (this.lobbyState === 'MATCHMAKING') { this.cancelMatchmaking(); return }
     if (this.domInput) { this.domInput.blur(); this.domInput.style.display = 'none' }
-    if (this.nameInput) this.nameInput.style.display = 'block'
+    this.setNameInputVisible(true)
     this.network?.destroy()
     this.network = null
     this.scene.start('MainMenuScene')

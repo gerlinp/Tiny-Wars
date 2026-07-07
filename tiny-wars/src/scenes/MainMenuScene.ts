@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { CINZEL_FONT } from '../ui/cardHandLayout'
-import { createMenuButton, menuButtonRowCenters, type MenuButtonHandle } from '../ui/SceneButton'
+import { createWideButton, wideButtonDisplayHeight, DEEP_BLUE, DEEP_PURPLE, DEEP_RED, DEEP_GREEN, type MenuButtonHandle } from '../ui/SceneButton'
 import { startBattleLoading } from '../ui/loadingScreenUi'
 import { createWaterBackground } from '../ui/menuBackground'
 import { createDriftingClouds, playCloudCoverClose } from '../ui/clouds'
@@ -52,8 +52,9 @@ export class MainMenuScene extends Phaser.Scene {
       strokeThickness: 5,
     }).setOrigin(0.5).setDepth(5)
 
-    const menuBtnY = height * 0.55
-    const [playX, onlineX, deckX] = menuButtonRowCenters(width, 3, 24)
+    // Wide buttons stacked in a column
+    const btnStep = wideButtonDisplayHeight() + 26
+    const btnYs = [0, 1, 2].map(i => height * 0.50 + i * btnStep)
     let leaving = false
     const startBattleAt = (difficulty: BotDifficulty) => {
       if (leaving) return
@@ -73,23 +74,25 @@ export class MainMenuScene extends Phaser.Scene {
     }
 
     mainRow.push(
-      createMenuButton(this, playX,   menuBtnY, 'PLAY',   '72px', 5, () => showDifficulties(true)),
-      createMenuButton(this, onlineX, menuBtnY, 'ONLINE', '56px', 5, () => this.scene.start('PvPLobbyScene')),
-      createMenuButton(this, deckX,   menuBtnY, 'DECK',   '72px', 5, () => this.scene.start('DeckBuilderScene')),
+      createWideButton(this, width / 2, btnYs[0]!, 'PLAY',   '64px', 5, () => showDifficulties(true), { tint: DEEP_BLUE }),
+      createWideButton(this, width / 2, btnYs[1]!, 'ONLINE', '64px', 5, () => this.scene.start('PvPLobbyScene'), { tint: DEEP_GREEN }),
+      createWideButton(this, width / 2, btnYs[2]!, 'DECK',   '64px', 5, () => this.scene.start('DeckBuilderScene'), { tint: DEEP_RED }),
     )
 
-    const difficultyX = menuButtonRowCenters(width, BOT_DIFFICULTIES.length, 24)
+    const difficultyStyles: ReadonlyArray<{ tint?: number }> =
+      [{ tint: DEEP_BLUE }, { tint: DEEP_PURPLE }, { tint: DEEP_RED }]
     BOT_DIFFICULTIES.forEach((difficulty, i) => {
-      const btn = createMenuButton(
-        this, difficultyX[i]!, menuBtnY,
-        BOT_DIFFICULTY_LABELS[difficulty].toUpperCase(), '56px', 5,
+      const btn = createWideButton(
+        this, width / 2, height * 0.50 + i * btnStep,
+        BOT_DIFFICULTY_LABELS[difficulty].toUpperCase(), '64px', 5,
         () => startBattleAt(difficulty),
+        difficultyStyles[i] ?? {},
       )
       btn.setVisible(false)
       difficultyRow.push(btn)
     })
 
-    const backLabel = this.add.text(width / 2, menuBtnY + 110, '← Back', {
+    const backLabel = this.add.text(width / 2, height * 0.50 + BOT_DIFFICULTIES.length * btnStep, '← Back', {
       fontSize: '40px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
       color: '#aabbff', stroke: '#000022', strokeThickness: 5,
     }).setOrigin(0.5).setDepth(5).setVisible(false)

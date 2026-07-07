@@ -138,7 +138,7 @@ describe('GameSimulator', () => {
       expect(sim.state.events.some(e => e.type === 'SPELL_CAST')).toBe(true)
     })
 
-    it('arrows spell costs 3 and hits in a 4-cell radius', () => {
+    it('arrows spell costs 3 and hits in a 3-cell radius', () => {
       const sim = makeSim()
       const card = CARD_DEFINITIONS['arrows']!
       sim.state.playerElixir = 5
