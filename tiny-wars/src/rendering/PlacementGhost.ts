@@ -16,6 +16,7 @@ const INVALID_TINT = 0xff6666
 export class PlacementGhost {
   private readonly troopSprites: Phaser.GameObjects.Sprite[] = []
   private readonly ring: Phaser.GameObjects.Arc
+  private readonly reticle: Phaser.GameObjects.Image
   private isSpell = false
   /** Buildings spawn cell-snapped (footprint aligns to grid), so preview snaps too. */
   private isBuilding = false
@@ -29,6 +30,11 @@ export class PlacementGhost {
     this.ring = scene.add.circle(0, 0, 40, 0xff6622, 0.12)
       .setStrokeStyle(2, 0xff8844, 0.55)
       .setDepth(6)
+      .setVisible(false)
+
+    this.reticle = scene.add.image(0, 0, 'placement_reticle')
+      .setDepth(7)
+      .setAlpha(0.85)
       .setVisible(false)
   }
 
@@ -164,6 +170,7 @@ export class PlacementGhost {
       sprite.anims.stop()
     }
     this.ring.setVisible(false)
+    this.reticle.setVisible(false)
   }
 
   private positionTroopCluster(centerX: number, centerY: number, valid: boolean): void {
@@ -191,6 +198,10 @@ export class PlacementGhost {
     }
 
     const world = { x: pointerX, y: pointerY }
+
+    this.reticle.setVisible(true)
+    this.reticle.setPosition(world.x, world.y)
+    this.reticle.setTint(valid ? VALID_TINT : INVALID_TINT)
 
     if (this.isSpell) {
       this.ring.setVisible(true)

@@ -134,6 +134,25 @@ export class DeathPool {
   }
 }
 
+// ─── GroundSlamPool ────────────────────────────────────────────────────────────
+
+/** Minotaur ground slam (spawn drop + jump landing) — reuses the water-splash sheet so it
+ *  reads as the ground itself cracking/splashing under the impact. */
+export class GroundSlamPool {
+  constructor(private scene: Phaser.Scene) {}
+
+  spawn(x: number, y: number, size: number): void {
+    if (!this.scene.anims.exists(WATER_SPLASH_SHEET.animKey)) return
+
+    const sprite = this.scene.add.sprite(x, y, WATER_SPLASH_SHEET.key, 0)
+      .setDepth(19)
+      .setDisplaySize(size, size)
+
+    sprite.play(WATER_SPLASH_SHEET.animKey)
+    sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => sprite.destroy())
+  }
+}
+
 // ─── DustPool ─────────────────────────────────────────────────────────────────
 
 const DUST_POOL_SIZE = 16
@@ -155,7 +174,11 @@ export class DustPool {
     }
   }
 
-  spawn(x: number, y: number, unitDisplayH = DUST_MIN_PX): void {
+  /**
+   * @param sizeOverride Skip the DUST_MIN_PX landing-puff floor (e.g. a trail of small
+   * footprint-sized puffs, where the default 4-cell minimum would swallow the whole trail).
+   */
+  spawn(x: number, y: number, unitDisplayH = DUST_MIN_PX, sizeOverride?: number): void {
     const spr = this.pool.find(p => !p.getData('playing'))
     if (!spr) return
 
@@ -164,7 +187,7 @@ export class DustPool {
 
     if (!this.scene.textures.exists(sheet.key) || !this.scene.anims.exists(sheet.animKey)) return
 
-    const size = Math.max(DUST_MIN_PX, unitDisplayH * 1.2)
+    const size = sizeOverride ?? Math.max(DUST_MIN_PX, unitDisplayH * 1.2)
     spr.setData('playing', true)
     spr.setTexture(sheet.key, 0)
     spr.setPosition(x, y)

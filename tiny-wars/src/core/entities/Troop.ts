@@ -61,6 +61,9 @@ import {
   MONK_HEAL_PER_PULSE, MONK_HEAL_PULSE_COUNT, MONK_HEAL_RADIUS,
   MONK_SPAWN_HEAL_PER_PULSE, MONK_SPAWN_HEAL_PULSE_COUNT, MONK_SPAWN_HEAL_RADIUS,
   MINER_BURROW_MS, MINER_TOWER_DAMAGE_MULT,
+  MINOTAUR_SPAWN_SLAM_DAMAGE, MINOTAUR_SPAWN_SLAM_RADIUS_CELLS, MINOTAUR_SPAWN_SLAM_TOWER_DAMAGE_MULT,
+  MINOTAUR_JUMP_MIN_RANGE_CELLS, MINOTAUR_JUMP_MAX_RANGE_CELLS, MINOTAUR_JUMP_WINDUP_MS,
+  MINOTAUR_JUMP_SPEED_MULT, MINOTAUR_JUMP_DAMAGE_MULT, MINOTAUR_SPAWN_DROP_MS,
 } from '@data/CardAbilities'
 
 interface ActiveHealBurst {
@@ -136,8 +139,9 @@ export class Troop extends Entity {
       ? GOBLIN_DEMOLISHER_CHARGE_SPEED_CR * (1.5 / 60)  // crSpeedToCellsPerSec(veryFast)
       : this.stats.speed
     if (this.isCharging && this.cardId === 'lancer') speed *= LANCER_CHARGE_SPEED_MULT
-    if (this.isDashing && this.dashWindupMsRemaining <= 0 && this.cardId === 'thief') {
-      speed *= THIEF_DASH_SPEED_MULT
+    if (this.isDashing && this.dashWindupMsRemaining <= 0) {
+      if (this.cardId === 'thief') speed *= THIEF_DASH_SPEED_MULT
+      if (this.cardId === 'minotaur') speed *= MINOTAUR_JUMP_SPEED_MULT
     }
     speed *= this.slowSpeedMultiplier
     return speed
@@ -216,6 +220,9 @@ export class Troop extends Entity {
   private slowUntilMs = 0
   private isDashing = false
   private dashWindupMsRemaining = 0
+  /** Leap start distance — drives {@link getDashProgress} for the jump arc. */
+  private dashStartDistPx = 0
+  private spawnTotalMs = TROOP_SPAWN_DELAY_MS
   /** Pending attack windup — damage lands when this reaches 0 (null = no swing in progress). */
   private attackWindupRemainingMs: number | null = null
   /** Post-hit recovery — unit stands still until this reaches 0. */
@@ -304,7 +311,44 @@ export class Troop extends Entity {
 
   /** Activate the CR-style spawn freeze so the unit idles before acting. */
   applySpawnDelay(): void {
-    this.spawnTimerMs = this.cardId === 'miner' ? MINER_BURROW_MS : TROOP_SPAWN_DELAY_MS
+    this.spawnTimerMs = this.cardId === 'miner' ? MINER_BURROW_MS
+      : this.cardId === 'minotaur' ? MINOTAUR_SPAWN_DROP_MS
+      : TROOP_SPAWN_DELAY_MS
+    this.spawnTotalMs = this.spawnTimerMs
+  }
+
+  /** 0→1 spawn completion — drives the Minotaur drop-in arc (1 = landed). */
+  getSpawnProgress(): number {
+    if (this.spawnTimerMs <= 0 || this.spawnTotalMs <= 0) return 1
+    return 1 - this.spawnTimerMs / this.spawnTotalMs
+  }
+
+  /** Minotaur hits the ground at the end of his spawn jump — Mega Knight arrival slam. */
+  private onSpawnLanding(state: GameState): void {
+    if (this.cardId !== 'minotaur') return
+    this.groundSlam(state, MINOTAUR_SPAWN_SLAM_DAMAGE)
+  }
+
+  /** Area slam under the Minotaur — ground targets only, spell-style reduced on towers. */
+  private groundSlam(state: GameState, damage: number): void {
+    dealAreaDamage(
+      state,
+      this.owner,
+      this.position,
+      MINOTAUR_SPAWN_SLAM_RADIUS_CELLS,
+      damage,
+      entity => !(entity.kind === EntityKind.TROOP && (entity as Troop).stats.unitType === UnitType.AIR),
+      this.id,
+      undefined,
+      Math.round(damage * MINOTAUR_SPAWN_SLAM_TOWER_DAMAGE_MULT),
+    )
+    state.events.push({
+      type: 'GROUND_SLAM',
+      entityId: this.id,
+      cardId: this.cardId ?? '',
+      position: { ...this.position },
+      radius: MINOTAUR_SPAWN_SLAM_RADIUS_CELLS,
+    })
   }
 
   /** Miner digs in during his spawn delay — hidden and untouchable until he surfaces. */
@@ -360,6 +404,7 @@ export class Troop extends Entity {
 
     if (this.spawnTimerMs > 0) {
       this.spawnTimerMs -= deltaMs
+      if (this.spawnTimerMs <= 0) this.onSpawnLanding(state)
       this.state = TroopState.SPAWNING
       return
     }
@@ -767,23 +812,37 @@ export class Troop extends Entity {
   }
 
   private hasOpeningDash(): boolean {
-    return this.cardId === 'thief'
+    return this.cardId === 'thief' || this.cardId === 'minotaur'
   }
 
   private canStartOpeningDash(distPx: number): boolean {
     if (!this.hasOpeningDash() || this.attackCooldownMs > 0) return false
+    // Minotaur — Mega Knight jump: only at ground troops inside the leap band.
+    if (this.cardId === 'minotaur') {
+      if (this.target?.kind !== EntityKind.TROOP) return false
+      if ((this.target as Troop).stats.unitType === UnitType.AIR) return false
+      return distPx >= MINOTAUR_JUMP_MIN_RANGE_CELLS * CELL_SIZE
+        && distPx <= MINOTAUR_JUMP_MAX_RANGE_CELLS * CELL_SIZE
+    }
     const dashReachPx = THIEF_DASH_RANGE_CELLS * CELL_SIZE
     return distPx <= dashReachPx && distPx > this.stats.attackRange * CELL_SIZE
   }
 
   private startOpeningDash(target: Entity): void {
     this.isDashing = true
-    this.dashWindupMsRemaining = THIEF_DASH_WINDUP_MS
+    this.dashWindupMsRemaining = this.cardId === 'minotaur' ? MINOTAUR_JUMP_WINDUP_MS : THIEF_DASH_WINDUP_MS
     this.dashTargetEntity = target
     this.dashTarget = this.moveGoalFor(target)
+    this.dashStartDistPx = dist(this.position, this.dashTarget)
     this.clearPath()
     this.trackObjective(target)
     this.state = TroopState.WALKING
+  }
+
+  /** 0→1 leap completion while airborne — drives the jump-arc rendering. */
+  getDashProgress(): number {
+    if (!this.isDashing || !this.dashTarget || this.dashStartDistPx <= 0) return 0
+    return 1 - Math.min(1, dist(this.position, this.dashTarget) / this.dashStartDistPx)
   }
 
   private cancelDash(): void {
@@ -852,7 +911,11 @@ export class Troop extends Entity {
     if (reachedWorldPoint(this.position, goal, step)) {
       this.cancelDash()
       this.state = TroopState.ATTACKING
-      this.performAttack(state, target)
+      if (this.cardId === 'minotaur') {
+        this.groundSlam(state, Math.round(this.stats.damage * MINOTAUR_JUMP_DAMAGE_MULT))
+      } else {
+        this.performAttack(state, target)
+      }
       this.attackCooldownMs = 1000 / this.stats.attackRate
     }
   }

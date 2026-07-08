@@ -17,15 +17,15 @@ export const BOT_DIFFICULTY_LABELS: Record<BotDifficulty, string> = {
  */
 export const BOT_DECKS: Record<BotDifficulty, string[]> = {
   EASY: [
-    'villagers', 'skeleton', 'turtle', 'spear_goblin',
-    'warrior', 'archer', 'thief', 'torch_goblin',
+    'miner', 'skeleton', 'turtle', 'spear_goblin',
+    'warrior', 'archer', 'thief', 'harpoon_shark',
   ],
   NORMAL: [
     'warrior', 'archer', 'skeleton', 'lancer',
-    'wizard', 'torch_goblin', 'arrows', 'pig_rider',
+    'fire_wizard', 'harpoon_shark', 'arrows', 'pig_rider',
   ],
   HARD: [
-    'bear', 'wizard', 'elite_archer', 'lightning_shaman',
+    'bear', 'fire_wizard', 'elite_archer', 'lightning_shaman',
     'pig_rider', 'skeleton_army', 'arrows', 'skeleton',
   ],
 }

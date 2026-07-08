@@ -103,6 +103,7 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   lightning_shaman: AT('2026-06-30T12:00:00.000Z'),
   voodoo_shaman:    AT('2026-06-30T12:00:00.000Z'),
   miner:            AT('2026-07-07T12:00:00.000Z'),
+  fire_wizard:      AT('2026-07-08T12:00:00.000Z'),
 }
 
 function withAddedAtTimestamps(
@@ -198,7 +199,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'spear_goblin_blue_idle', 'spear_goblin_red_idle', 3),
 
-  /** ×3 deploy — hooded villager art, knife interact attack. */
+  /** Goblin Barrel minion — hooded villager art, knife interact attack. Not offered in the deck builder. */
   villagers: troop('villagers', 'Villagers',
     'Three fast villagers that rush in with knives. Cheap swarm melee.',
     2, {
@@ -348,6 +349,20 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackRange: 5.0,
     unitType: UnitType.GROUND,
     attackType: AttackType.AIR_AND_GROUND,
+  }, 'torch_goblin_blue_idle', 'torch_goblin_red_idle'),
+
+  /** Torch Goblin art reworked as a splash-damage caster — replaces the shaman-art wizard in rotation. */
+  fire_wizard: troop('fire_wizard', 'Fire Wizard',
+    'Launches fireballs that splash-damage all nearby enemies. Hits air and ground.',
+    5, {
+    maxHp: 997,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 371,
+    attackRate: 1 / 1.4,
+    attackRange: 5.5,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.AIR_AND_GROUND,
+    splashRadius: 1.5,
   }, 'torch_goblin_blue_idle', 'torch_goblin_red_idle'),
 
   /** Fast building-only melee — Pig Rider enemy art. */
@@ -597,10 +612,10 @@ export function getCardAddedAtMs(cardId: string): number {
 export const DECK_EXCLUDED_CARD_IDS = ['wood_tower'] as const
 
 /** Spawn-only or internal troops — hidden from the deck builder collection. */
-export const COLLECTION_HIDDEN_CARD_IDS = ['spiderling'] as const
+export const COLLECTION_HIDDEN_CARD_IDS = ['spiderling', 'villagers'] as const
 
 const ALL_DECK_CARD_IDS: string[] = [
-  'warrior', 'archer', 'skeleton', 'lancer', 'wizard', 'torch_goblin', 'arrows', 'wood_tower', 'tnt',
+  'warrior', 'archer', 'skeleton', 'lancer', 'fire_wizard', 'harpoon_shark', 'arrows', 'wood_tower', 'tnt',
 ]
 
 export const DEFAULT_DECK: string[] = ALL_DECK_CARD_IDS.filter(

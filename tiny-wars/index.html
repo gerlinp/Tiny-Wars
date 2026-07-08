@@ -23,6 +23,7 @@
         display: block;
         image-rendering: pixelated;
         image-rendering: crisp-edges; /* Firefox fallback */
+        touch-action: none; /* prevent the browser from treating drags as scroll/pan, which fires pointercancel instead of pointerup mid-drag */
       }
     </style>
   </head>

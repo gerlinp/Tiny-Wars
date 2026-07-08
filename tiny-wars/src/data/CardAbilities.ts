@@ -76,12 +76,29 @@ export const MINOTAUR_SPAWN_SLAM_DAMAGE = 586
 export const MINOTAUR_SPAWN_SLAM_RADIUS_CELLS = 2.0
 /** Crown towers take spell-style reduced damage from the arrival slam. */
 export const MINOTAUR_SPAWN_SLAM_TOWER_DAMAGE_MULT = 0.35
+/** Jump attack — leaps at ground troops in this range band (grid cells). */
+export const MINOTAUR_JUMP_MIN_RANGE_CELLS = 3.5
+export const MINOTAUR_JUMP_MAX_RANGE_CELLS = 5.0
+/** Crouch before the leap. */
+export const MINOTAUR_JUMP_WINDUP_MS = 600
+/** Airborne travel speed multiplier during the leap. */
+export const MINOTAUR_JUMP_SPEED_MULT = 5
+/** CR Mega Knight — jump landing deals 2× attack damage in the slam radius. */
+export const MINOTAUR_JUMP_DAMAGE_MULT = 2
+/** Drop-in height for the spawn jump — purely visual (grid cells). */
+export const MINOTAUR_SPAWN_DROP_HEIGHT_CELLS = 4
+/** Spawn drop lands 2× faster than a normal troop's spawn freeze (500ms) — a hard, abrupt slam. */
+export const MINOTAUR_SPAWN_DROP_MS = 250
 
 // ---------------------------------------------------------------------------
 // Miner (deploys anywhere, burrows in, reduced crown tower damage)
 // ---------------------------------------------------------------------------
-/** Digging time before the Miner surfaces — untargetable and hidden underground. */
-export const MINER_BURROW_MS = 1200
+/**
+ * Digging/travel time before the Miner surfaces — untargetable and hidden underground.
+ * Long enough that the dig-trail (king tower → deploy point, see BattleScene) reads as a
+ * real tunnel crossing the map, not an instant blip.
+ */
+export const MINER_BURROW_MS = 2000
 /** CR Miner — crown towers take ~40% of his normal hit damage. */
 export const MINER_TOWER_DAMAGE_MULT = 0.4
 

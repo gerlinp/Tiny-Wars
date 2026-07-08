@@ -142,6 +142,7 @@ export type GameEvent =
   | { type: 'HEAL'; targetId: string; amount: number; healerId?: string }
   | { type: 'HEAL_AURA'; position: Vec2; radius: number; owner: Owner; healerId?: string }
   | { type: 'BOOMERANG'; throwerId: string; owner: Owner; from: Vec2; dir: Vec2; travelLimitPx: number }
+  | { type: 'GROUND_SLAM'; entityId: string; cardId: string; position: Vec2; radius: number }
   | { type: 'HOOK'; hookId: string; throwerId: string; targetId: string; pullTroop: boolean }
   | { type: 'DEATH'; entityId: string; position: Vec2; cardId?: string; deathSplashRadius?: number; owner?: Owner }
   | { type: 'CROWN_LOST';   owner: Owner; towerId: string }

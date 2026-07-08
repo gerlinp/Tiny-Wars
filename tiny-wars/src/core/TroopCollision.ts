@@ -134,7 +134,9 @@ export function resolveTroopCollisions(state: GameState, deltaMs: number): void 
   }
 
   for (const troop of troops) {
-    if (!isBoomerangAnchored(troop, state)) {
+    // Mid-leap troops (Thief dash, Minotaur jump) briefly cross unwalkable ground (e.g. the
+    // river) while airborne — clamping would snap them straight back and stall the leap forever.
+    if (!isBoomerangAnchored(troop, state) && !troop.isDashActive()) {
       clampGroundTroopToWalkable(troop)
     }
   }

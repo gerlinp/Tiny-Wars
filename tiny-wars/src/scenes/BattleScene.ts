@@ -9,7 +9,7 @@ import { ForestBorder } from '@rendering/ForestBorder'
 import { DecorationLayer } from '@rendering/DecorationLayer'
 import { EntitySprite, type AttackSync, type DashSync, type HealSync } from '@rendering/EntitySprite'
 import { TowerSprite } from '@rendering/TowerSprite'
-import { EffectsPool, HealEffectPool, DeathPool, DustPool } from '@rendering/VFXPools'
+import { EffectsPool, HealEffectPool, DeathPool, DustPool, GroundSlamPool } from '@rendering/VFXPools'
 import { logicDisplayHeightForCard } from '@rendering/assetDisplaySize'
 import { ArrowPool, ArrowsSpellPool, TntPool, BarrelPool, BoneBoomerangPool, HexFireballPool, HexTransformPool, HexShamanOrbPool, LightningShamanPool, HarpoonRopePool } from '@rendering/ProjectilePools'
 import { hookAnchorPosition, hookRopeEndPosition } from '@core/HookSystem'
@@ -31,7 +31,7 @@ import { loadPlayerDeck } from '@data/PlayerDeck'
 import { BOT_DECKS, BOT_DIFFICULTY_LABELS, loadBotDifficulty } from '@data/BotDecks'
 import { createMatchupBanner, matchupLabel } from '@ui/matchupBanner'
 import { GAME_HEIGHT, CELL_SIZE, GRID_ROWS } from '@data/GameConstants'
-import { MINOTAUR_SPAWN_SLAM_RADIUS_CELLS } from '@data/CardAbilities'
+import { MINOTAUR_SPAWN_DROP_HEIGHT_CELLS } from '@data/CardAbilities'
 import { DevMode } from '@debug/DevMode'
 import { DevModeOverlay } from '@debug/DevModeOverlay'
 import { isRangedAttacker, isMeleeAttacker } from '@core/CombatHelpers'
@@ -40,6 +40,9 @@ import type { Entity } from '@core/entities/Entity'
 import type { Vec2 } from '@core/types'
 import type { PvPNetwork } from '@core/PvPNetwork'
 import { SoundManager } from '@audio/SoundManager'
+
+/** Small footprint-sized puffs for the Miner's dig trail — distinct dots, not one big blob. */
+const MINER_DIG_TRAIL_PUFF_SIZE = CELL_SIZE * 1.3
 
 export class BattleScene extends Phaser.Scene {
   private grid!: Grid
@@ -54,6 +57,7 @@ export class BattleScene extends Phaser.Scene {
   private effects!: EffectsPool
   private deaths!: DeathPool
   private dust!: DustPool
+  private groundSlam!: GroundSlamPool
   /** Miners currently digging — entity id → last dig-dust spawn time (ms). */
   private minerDigDustAt = new Map<string, number>()
   private arrows!: ArrowPool
@@ -126,6 +130,7 @@ export class BattleScene extends Phaser.Scene {
     this.effects  = new EffectsPool(this)
     this.deaths   = new DeathPool(this)
     this.dust     = new DustPool(this)
+    this.groundSlam = new GroundSlamPool(this)
     this.arrows   = new ArrowPool(this)
     this.hexFireballs = new HexFireballPool(this, this.effects)
     this.hexTransforms = new HexTransformPool(this)
@@ -303,24 +308,32 @@ export class BattleScene extends Phaser.Scene {
             card?.cardType !== CardType.SPELL
           ) {
             this.entityCardIds.set(event.entityId, event.cardId)
+            // Minotaur — Mega Knight-style spawn jump: starts high overhead and drops in;
+            // ground dust/impact fire on landing (GROUND_SLAM event), not here.
+            const spawnY = event.cardId === 'minotaur'
+              ? entity.position.y - MINOTAUR_SPAWN_DROP_HEIGHT_CELLS * CELL_SIZE
+              : entity.position.y
             const sprite = new EntitySprite(
               this,
               entity.position.x,
-              entity.position.y,
+              spawnY,
               event.cardId,
               entity.owner,
             )
             this.sprites.set(entity.id, sprite)
-            this.dust.spawn(entity.position.x, entity.position.y, logicDisplayHeightForCard(event.cardId))
-            // Minotaur — Mega Knight-style arrival slam blast.
-            if (event.cardId === 'minotaur') {
-              this.effects.spawn(
-                entity.position.x,
-                entity.position.y,
-                MINOTAUR_SPAWN_SLAM_RADIUS_CELLS * CELL_SIZE * 1.5,
-              )
+            // Miner — no puff at the target yet; the dig trail (below) traces in over
+            // MINER_BURROW_MS instead, so the first dust appears at the tunnel's start.
+            if (event.cardId !== 'minotaur' && event.cardId !== 'miner') {
+              this.dust.spawn(entity.position.x, entity.position.y, logicDisplayHeightForCard(event.cardId))
             }
           }
+          break
+        }
+        case 'GROUND_SLAM': {
+          // Minotaur — impact blast on spawn landing and on jump-attack landing. Uses the
+          // water-splash sheet so the ground itself appears to crack/splash under the hit.
+          this.dust.spawn(event.position.x, event.position.y, logicDisplayHeightForCard(event.cardId))
+          this.groundSlam.spawn(event.position.x, event.position.y, event.radius * CELL_SIZE * 1.8)
           break
         }
         case 'SPELL_CAST': {
@@ -458,15 +471,15 @@ export class BattleScene extends Phaser.Scene {
               this.lightningShaman.spawn(from, to, attacker.owner, attackRate, flash)
             } else if (cardId === 'wizard' || cardId === 'voodoo_shaman') {
               this.hexShamanOrbs.spawn(from, to, cardId, attacker.owner, attackRate, flash)
-            } else if (cardId === 'lizard' || cardId === 'torch_goblin' || cardId === 'bomb_fish' || cardId === 'spider') {
+            } else if (cardId === 'lizard' || cardId === 'torch_goblin' || cardId === 'fire_wizard' || cardId === 'bomb_fish' || cardId === 'spider') {
               this.hexFireballs.spawn(
                 from,
                 to,
                 attacker.owner,
                 attackRate,
                 flash,
-                cardId === 'spider'       ? { projectileTint: 0x55ee44, explosionTint: 0x44dd33 } :
-                cardId === 'torch_goblin' ? { projectileTint: 0xffcc22, explosionTint: 0xff8800 } :
+                cardId === 'spider'                                       ? { projectileTint: 0x55ee44, explosionTint: 0x44dd33 } :
+                cardId === 'torch_goblin' || cardId === 'fire_wizard'     ? { projectileTint: 0xffcc22, explosionTint: 0xff8800 } :
                 undefined,
               )
             } else if (
@@ -588,18 +601,24 @@ export class BattleScene extends Phaser.Scene {
         let attackSync: AttackSync | undefined
         let dashSync: DashSync | undefined
         let healSync: HealSync | undefined
+        let renderY = entity.position.y
 
         const cardId = this.entityCardIds.get(id) ?? entity.cardId ?? ''
 
-        // Miner underground — hide the body and churn dust until he surfaces.
+        // Miner underground — hide the body and trace a dig trail of small footprint puffs
+        // from his own king tower to the deploy point, like the CR reference (tunnel from the castle).
         if (cardId === 'miner' && entity.kind === EntityKind.TROOP) {
           const miner = entity as Troop
           if (miner.isUnderground) {
             sprite.setHidden(true)
             const lastDust = this.minerDigDustAt.get(id) ?? 0
-            if (this.time.now - lastDust > 300) {
+            if (this.time.now - lastDust > 90) {
               this.minerDigDustAt.set(id, this.time.now)
-              this.dust.spawn(entity.position.x, entity.position.y, logicDisplayHeightForCard(cardId))
+              const trailStart = this.minerDigTrailStart(entity.owner)
+              const progress = miner.getSpawnProgress()
+              const digX = trailStart.x + (entity.position.x - trailStart.x) * progress
+              const digY = trailStart.y + (entity.position.y - trailStart.y) * progress
+              this.dust.spawn(digX, digY, undefined, MINER_DIG_TRAIL_PUFF_SIZE)
             }
             continue
           } else if (this.minerDigDustAt.has(id)) {
@@ -625,6 +644,12 @@ export class BattleScene extends Phaser.Scene {
             }
           } else if (troop.state === TroopState.SPAWNING) {
             anim = 'idle'
+            // Minotaur spawn jump — falls from overhead (quadratic ease-in) onto the deploy cell;
+            // the GROUND_SLAM event fires the impact dust/blast right as this reaches 0.
+            if (cardId === 'minotaur') {
+              const fallRemaining = (1 - troop.getSpawnProgress()) ** 2
+              renderY = entity.position.y - MINOTAUR_SPAWN_DROP_HEIGHT_CELLS * CELL_SIZE * fallRemaining
+            }
           } else if (troop.isHealBurstActive() && cardId === 'monk' && troop.state === TroopState.WALKING) {
             healSync = { aimPoint: this.aimPointForTroop(troop) ?? undefined }
           } else if (troop.state === TroopState.WALKING) {
@@ -633,6 +658,9 @@ export class BattleScene extends Phaser.Scene {
             // Pig uses its run sheet as the attack clip — keep showing run between swings
             // so it looks active rather than standing idle while hammering the tower.
             if (cardId === 'pig') anim = 'run'
+            // Goblin Demolisher's kamikaze charge shouldn't visibly halt into an idle pose
+            // right before impact — keep the run animation through the windup/explosion.
+            if (cardId === 'goblin_demolisher' && troop.isBuildingChargeRunActive()) anim = 'run'
             attackSync = {
               cooldownMs: troop.getAttackCooldownMs(),
               // Boomerang throw clip is driven by BOOMERANG event only — not cooldown windup.
@@ -656,7 +684,7 @@ export class BattleScene extends Phaser.Scene {
 
         sprite.update(
           entity.position.x,
-          entity.position.y,
+          renderY,
           entity.kind === EntityKind.TROOP
             ? (entity as Troop).getHpFraction()
             : entity.hp / entity.maxHp,
@@ -822,6 +850,11 @@ export class BattleScene extends Phaser.Scene {
       }
     }
     return { x: 240, y: 193 }
+  }
+
+  /** Miner dig-trail origin — his own king tower, matching the CR reference (tunnel from the castle). */
+  private minerDigTrailStart(owner: Owner): Vec2 {
+    return owner === Owner.PLAYER ? this.getPlayerKingLaunchPos() : this.getBotKingLaunchPos()
   }
 
   private isUIArea(screenY: number): boolean {

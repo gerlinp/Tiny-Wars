@@ -8,7 +8,7 @@ import { Troop } from './entities/Troop'
 import { Tower } from './entities/Tower'
 import { Building } from './entities/Building'
 import { Spell } from './entities/Spell'
-import { Owner, CardType, EntityKind, UnitType } from './types'
+import { Owner, CardType, EntityKind } from './types'
 import type { Vec2 } from './types'
 import type { CardDefinition, EntityStats } from './types'
 import {
@@ -33,12 +33,6 @@ import { resolveTroopCollisions, restoreBoomerangThrowerAnchors } from './TroopC
 import { isTroopDeployCell, troopDeployPositions } from './DeploySystem'
 import { tickBoomerangs } from './BoomerangSystem'
 import { tickHooks } from './HookSystem'
-import { dealAreaDamage } from './AreaDamage'
-import {
-  MINOTAUR_SPAWN_SLAM_DAMAGE,
-  MINOTAUR_SPAWN_SLAM_RADIUS_CELLS,
-  MINOTAUR_SPAWN_SLAM_TOWER_DAMAGE_MULT,
-} from '@data/CardAbilities'
 
 export { troopDeployPositions } from './DeploySystem'
 
@@ -194,22 +188,8 @@ export class GameSimulator {
         troop.applySpawnHeal(this.state)
         this.state.events.push({ type: 'DEPLOY', entityId: troop.id, cardId: card.id, position: pos })
       }
-
-      // Minotaur — Mega Knight-style ground slam on arrival (ground targets only,
-      // crown towers take spell-style reduced damage).
-      if (card.id === 'minotaur') {
-        dealAreaDamage(
-          this.state,
-          owner,
-          worldPos,
-          MINOTAUR_SPAWN_SLAM_RADIUS_CELLS,
-          MINOTAUR_SPAWN_SLAM_DAMAGE,
-          entity => !(entity.kind === EntityKind.TROOP && (entity as Troop).stats.unitType === UnitType.AIR),
-          undefined,
-          undefined,
-          Math.round(MINOTAUR_SPAWN_SLAM_DAMAGE * MINOTAUR_SPAWN_SLAM_TOWER_DAMAGE_MULT),
-        )
-      }
+      // Minotaur's arrival slam now fires from Troop.onSpawnLanding (see GROUND_SLAM event)
+      // so it lands in sync with the drop-in animation instead of instantly on deploy.
       return true
     } else if (card.cardType === CardType.BUILDING) {
       const building = new Building(owner, card.stats as EntityStats, worldPos, card.id)

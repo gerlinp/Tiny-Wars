@@ -269,6 +269,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('button_red',       'assets/UI/Buttons/Button_Red.png')
     this.load.image('carved_panel',   'assets/UI/Banners/Carved_9Slides.png')
     this.load.image('banner_h',       'assets/UI/Banners/Banner_Horizontal.png')
+    this.load.image('placement_reticle', 'assets/UI/Pointers/02.png')
 
     // Health-bar art is already loaded by BootScene (so this scene's own loading
     // bar can use it from frame one) — no need to queue it again here.

@@ -556,7 +556,8 @@ export const HEX_SHAMAN_EXPLOSION_SPELL_SHEET = {
 } as const
 
 const BARREL_PATH = 'assets/Factions/Goblins/Troops/Barrel'
-const BARREL_FRAME = 192
+/** Sheet is a 6×6 grid of 128px cells — not FRAME_W (192px), which slices frames across icons. */
+const BARREL_FRAME = 128
 
 const TNT_PATH = 'assets/Factions/Goblins/Troops/TNT'
 const TNT_FRAME = FRAME_W
@@ -609,11 +610,11 @@ function barrelSheet(side: 'Blue' | 'Red'): SheetDef {
 
 function barrelSide(side: 'Blue' | 'Red'): SideAssets {
   const sheet = barrelSheet(side)
-  // 4×4 sheet: frame 0 rest, 1-7 hop-in, 12-14 crack-open (play once).
+  // 6×6 sheet: frame 0 rest, row 1 (6-11) hop-in, row 5 (30-32) crack-open (play once).
   return {
     idle: clip(sheet, 0, 0, 1, -1),
-    run: clip(sheet, 1, 7),
-    attack: clip(sheet, 12, 14, 8, 0),
+    run: clip(sheet, 6, 11),
+    attack: clip(sheet, 30, 32, 8, 0),
   }
 }
 
@@ -1307,7 +1308,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'miner',
-    avatar: humanAvatar('Avatars_06.png'),
+    avatar: { key: 'avatar_villagers', path: `${HUMAN_AVATARS}/Avatars_05.png` },
     contentFill: 0.52,
     attackHitFrame: 3,
     player: minerSide('Blue'),
@@ -1315,6 +1316,17 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'torch_goblin',
+    avatar: enemyAvatar('Torch Goblin.png'),
+    avatarCropRatio: 0.65,
+    contentFill: 0.55,
+    attackHitFrame: 3,
+    tintBotSide: true,
+    player: torchGoblinSide('blue'),
+    bot:    torchGoblinSide('red'),
+  },
+  {
+    /** Torch Goblin art, splash-caster stats — replaces the shaman-art wizard in rotation. */
+    cardId: 'fire_wizard',
     avatar: enemyAvatar('Torch Goblin.png'),
     avatarCropRatio: 0.65,
     contentFill: 0.55,
