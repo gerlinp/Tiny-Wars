@@ -80,7 +80,6 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   spear_goblin:  AT('2026-06-24T15:00:00.000Z'),
   troll:         AT('2024-09-15T12:00:00.000Z'),
   lizard:        AT('2024-10-01T12:00:00.000Z'),
-  torch_goblin:  AT('2024-10-15T12:00:00.000Z'),
   pig_rider:     AT('2024-11-01T12:00:00.000Z'),
   bomb_fish:     AT('2024-11-15T12:00:00.000Z'),
   goblin_demolisher: AT('2026-06-29T12:00:00.000Z'),
@@ -103,7 +102,7 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   lightning_shaman: AT('2026-06-30T12:00:00.000Z'),
   voodoo_shaman:    AT('2026-06-30T12:00:00.000Z'),
   miner:            AT('2026-07-07T12:00:00.000Z'),
-  fire_wizard:      AT('2026-07-08T12:00:00.000Z'),
+  torch_goblin:     AT('2026-07-08T12:00:00.000Z'),
 }
 
 function withAddedAtTimestamps(
@@ -336,23 +335,8 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     pushWeight: 3.0,  // Giant-class: bulldozes lighter allies out of the way
   }, 'bear_blue_idle', 'bear_red_idle'),
 
+  /** Splash-damage caster — Torch Goblin art, Fire Shaman/wizard stats. */
   torch_goblin: troop('torch_goblin', 'Torch Goblin',
-    'A very fast goblin lobbing fire at rapid pace. Effective at range against air and ground.',
-    3, {
-    maxHp: 466,
-    speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
-    damage: 199,
-    attackRate: 1 / 0.7,
-    // CR distance, map-tuned. Troops now measure tower range center-to-center (same as
-    // the tower measures back — see Troop.combatDistTo), so this 5.0 maps 1:1 and stays
-    // safely under the princess tower's 7.5, letting the tower outrange a goblin on the bridge.
-    attackRange: 5.0,
-    unitType: UnitType.GROUND,
-    attackType: AttackType.AIR_AND_GROUND,
-  }, 'torch_goblin_blue_idle', 'torch_goblin_red_idle'),
-
-  /** Torch Goblin art reworked as a splash-damage caster — replaces the shaman-art wizard in rotation. */
-  fire_wizard: troop('fire_wizard', 'Fire Wizard',
     'Launches fireballs that splash-damage all nearby enemies. Hits air and ground.',
     5, {
     maxHp: 997,
@@ -523,17 +507,17 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'monk_blue_idle', 'monk_red_idle'),
 
-  /** Melee + hook — pulls ground troops in or reels toward buildings. */
+  /** Ranged dart-thrower — reworked from melee/hook into torch_goblin's old role. */
   harpoon_shark: troop('harpoon_shark', 'Harpoon Shark',
-    'Hurls a harpoon on a rope. Pulls ground enemies close or yanks itself toward buildings.',
+    'A very fast shark hurling harpoons at rapid pace. Effective at range against air and ground.',
     3, {
-    maxHp: 1152,
-    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
-    damage: 257,
-    attackRate: 1 / 1.3,
-    attackRange: 1.2,
+    maxHp: 466,
+    speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
+    damage: 199,
+    attackRate: 1 / 0.7,
+    attackRange: 5.0,
     unitType: UnitType.GROUND,
-    attackType: AttackType.GROUND_ONLY,
+    attackType: AttackType.AIR_AND_GROUND,
   }, 'harpoon_shark_blue_idle', 'harpoon_shark_red_idle'),
 
   /** Witch-style spawner — Caveborn Spider art, green splash bolts + tiny spiderlings. */
@@ -615,7 +599,7 @@ export const DECK_EXCLUDED_CARD_IDS = ['wood_tower'] as const
 export const COLLECTION_HIDDEN_CARD_IDS = ['spiderling', 'villagers'] as const
 
 const ALL_DECK_CARD_IDS: string[] = [
-  'warrior', 'archer', 'skeleton', 'lancer', 'fire_wizard', 'harpoon_shark', 'arrows', 'wood_tower', 'tnt',
+  'warrior', 'archer', 'skeleton', 'lancer', 'torch_goblin', 'harpoon_shark', 'arrows', 'wood_tower', 'tnt',
 ]
 
 export const DEFAULT_DECK: string[] = ALL_DECK_CARD_IDS.filter(

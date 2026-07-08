@@ -2,8 +2,9 @@ import Phaser from 'phaser'
 import { Owner } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { arrowFlightMs } from '@data/ProjectileConstants'
-import { clipAnimKey, GNOLL_BONE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET, LIGHTNING_ARC_SHEET } from '@data/AssetManifest'
+import { clipAnimKey, GNOLL_BONE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET } from '@data/AssetManifest'
 import { HOOK_ROPE_TEXTURE_KEY, registerHookRopeTexture } from './hookRopeTexture'
+import { SNAKE_SPRAY_TEXTURE_KEY, registerSnakeSprayTexture } from './snakeSprayTexture'
 import { CELL_SIZE } from '@data/GameConstants'
 import { applyBombArcDisplaySize, BOMB_PROJECTILE_DISPLAY_SCALE, BOMB_SPIN_TIME_SCALE, FLAT_LOB_PEAK_SCALE, TOWER_CANNON_PROJECTILE_DISPLAY_SCALE } from './bombProjectileVisual'
 import { applyArrowSprite, arrowTextureKey } from './renderingUtils'
@@ -169,6 +170,8 @@ export interface TntProjectileStyle {
   projectileKey?: string
   spinAnimKey?: string
   displaySize?: number
+  /** Radians added to the 'straight' travel-angle rotation — for art not drawn pointing along +x. */
+  rotationOffset?: number
 }
 
 export class TntPool {
@@ -226,7 +229,7 @@ export class TntPool {
     bomb.setPosition(from.x, from.y)
     const dx = to.x - from.x
     const dy = to.y - from.y
-    bomb.setRotation(straight ? Math.atan2(dy, dx) : 0)
+    bomb.setRotation(straight ? Math.atan2(dy, dx) + (projectileStyle?.rotationOffset ?? 0) : 0)
     bomb.setVisible(true)
     bomb.setAlpha(1)
 
@@ -425,6 +428,8 @@ const HEX_PROJECTILE_DISPLAY = 128
 export interface HexFireballStyle {
   projectileTint?: number
   explosionTint?: number
+  /** Override the default explosion radius (e.g. match a card's real splashRadius stat). */
+  explosionRadiusPx?: number
 }
 
 export class HexFireballPool {
@@ -466,7 +471,7 @@ export class HexFireballPool {
     const dy = to.y - from.y
     const dist = Math.hypot(dx, dy)
     if (dist < 1) {
-      this.effects.spawn(to.x, to.y, undefined, style?.explosionTint)
+      this.effects.spawn(to.x, to.y, style?.explosionRadiusPx, style?.explosionTint)
       onHit?.()
       return
     }
@@ -495,7 +500,7 @@ export class HexFireballPool {
         bolt.setVisible(false)
         bolt.setData('flying', false)
         bolt.clearTint()
-        this.effects.spawn(to.x, to.y, undefined, style?.explosionTint)
+        this.effects.spawn(to.x, to.y, style?.explosionRadiusPx, style?.explosionTint)
         onHit?.()
       },
     })
@@ -661,89 +666,56 @@ export class HexTransformPool {
   }
 }
 
-// ─── LightningShamanPool ─────────────────────────────────────────────────────
-// Stretches the lightning arc sprite across the full attack line (instant zap,
-// no travel), then plays the transformation circle + explosion spell at the
-// impact point (same as HexTransformPool).
+// ─── SnakeSprayPool ──────────────────────────────────────────────────────────
+// Continuous venom jet — a wavy stream stretched across the full attack line for a
+// fixed duration (no travel time, no separate impact burst). Damage lands the instant
+// the jet appears, matching a continuous spray rather than a thrown projectile.
 
-const LIGHTNING_POOL_SIZE = 8
-const LIGHTNING_ARC_THICKNESS = 48
+const SNAKE_SPRAY_POOL_SIZE = 8
+const SNAKE_SPRAY_THICKNESS = 20
+const SNAKE_SPRAY_DURATION_MS = 320
 
-export class LightningShamanPool {
-  private bolts:      Phaser.GameObjects.Sprite[] = []
-  private transforms: Phaser.GameObjects.Sprite[] = []
-  private explosions: Phaser.GameObjects.Sprite[] = []
+export class SnakeSprayPool {
+  private jets: Phaser.GameObjects.Sprite[] = []
 
   constructor(private scene: Phaser.Scene) {
-    for (let i = 0; i < LIGHTNING_POOL_SIZE; i++) {
-      this.bolts.push(
-        scene.add.sprite(0, 0, LIGHTNING_ARC_SHEET.keys[0], 0)
-          .setDepth(22).setOrigin(0, 0.5).setVisible(false).setData('flying', false),
-      )
-      this.transforms.push(
-        scene.add.sprite(0, 0, HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key, 0)
-          .setDepth(22).setOrigin(0.5).setVisible(false).setData('playing', false),
-      )
-      this.explosions.push(
-        scene.add.sprite(0, 0, HEX_SHAMAN_EXPLOSION_SPELL_SHEET.key, 0)
-          .setDepth(23).setOrigin(0.5).setVisible(false).setData('playing', false),
+    registerSnakeSprayTexture(scene)
+    for (let i = 0; i < SNAKE_SPRAY_POOL_SIZE; i++) {
+      this.jets.push(
+        scene.add.sprite(0, 0, SNAKE_SPRAY_TEXTURE_KEY, 0)
+          .setDepth(22).setOrigin(0, 0.5).setVisible(false).setData('playing', false),
       )
     }
   }
 
-  spawn(from: Vec2, to: Vec2, _owner: Owner, attackRate: number, onHit?: () => void): void {
-    const bolt = this.bolts.find(b => !b.getData('flying'))
-    if (!bolt
-        || !this.scene.anims.exists(LIGHTNING_ARC_SHEET.animKey)
-        || !this.scene.anims.exists(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.animKey)
-        || !this.scene.anims.exists(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.animKey)) {
+  spawn(from: Vec2, to: Vec2, onHit?: () => void): void {
+    const jet = this.jets.find(j => !j.getData('playing'))
+    if (!jet) {
       onHit?.()
       return
     }
 
     const dx = to.x - from.x, dy = to.y - from.y
-    const d = Math.hypot(dx, dy)
-    const duration = arrowFlightMs(d, attackRate)
+    const d = Math.max(1, Math.hypot(dx, dy))
 
-    bolt.setData('flying', true)
-    bolt.setTexture(LIGHTNING_ARC_SHEET.keys[0], 0)
-    bolt.setDisplaySize(d, LIGHTNING_ARC_THICKNESS)
-    bolt.setPosition(from.x, from.y)
-    bolt.setRotation(Math.atan2(dy, dx))
-    bolt.setVisible(true).setAlpha(1)
-    // Custom frameRate so the 13-frame crackle always finishes exactly when the
-    // bolt should land, regardless of distance/attack speed.
-    const frameRate = Math.max(8, Math.round((LIGHTNING_ARC_SHEET.keys.length * 1000) / duration))
-    bolt.play({ key: LIGHTNING_ARC_SHEET.animKey, frameRate })
+    jet.setData('playing', true)
+    jet.setDisplaySize(d, SNAKE_SPRAY_THICKNESS)
+    jet.setPosition(from.x, from.y)
+    jet.setRotation(Math.atan2(dy, dx))
+    jet.setVisible(true)
+    jet.setAlpha(1)
 
-    bolt.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
-      bolt.setVisible(false).setData('flying', false)
-      onHit?.()
-      this.playImpact(to)
-    })
-  }
+    onHit?.()
 
-  private playImpact(to: Vec2): void {
-    const tspr = this.transforms.find(p => !p.getData('playing'))
-    if (!tspr) return
-    const display = CELL_SIZE * 4
-    tspr.setData('playing', true)
-    tspr.setTexture(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key, 0)
-    tspr.setPosition(to.x, to.y).setDisplaySize(display, display)
-    tspr.setVisible(true).setAlpha(1).anims.stop()
-    tspr.play(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.animKey)
-    tspr.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
-      tspr.setVisible(false).setData('playing', false)
-      const espr = this.explosions.find(p => !p.getData('playing'))
-      if (!espr) return
-      espr.setData('playing', true)
-      espr.setTexture(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.key, 0)
-      espr.setPosition(to.x, to.y).setDisplaySize(display, display)
-      espr.setVisible(true).setAlpha(1).anims.stop()
-      espr.play(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.animKey)
-      espr.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
-        espr.setVisible(false).setData('playing', false)
-      })
+    this.scene.tweens.add({
+      targets: jet,
+      alpha: { from: 1, to: 0.5 },
+      duration: SNAKE_SPRAY_DURATION_MS / 2,
+      yoyo: true,
+      onComplete: () => {
+        jet.setVisible(false)
+        jet.setData('playing', false)
+      },
     })
   }
 }

@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, WATER_SPLASH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, DUST_SHEETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET, PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET } from '@data/AssetManifest'
-import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx, registerAirBoatCrewFx, registerHexTransformFx, registerShamanOrbFx, registerLightningArcFx } from '@rendering/AnimationRegistry'
-import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HEX_SHAMAN_BASE_SHEETS, HEX_SHAMAN_BASE_AVATAR, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET, LIGHTNING_ARC_SHEET, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL } from '@data/AssetManifest'
+import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx, registerAirBoatCrewFx, registerHexTransformFx, registerShamanOrbFx } from '@rendering/AnimationRegistry'
+import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HEX_SHAMAN_BASE_SHEETS, HEX_SHAMAN_BASE_AVATAR, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL } from '@data/AssetManifest'
 import { generateAllShamanTextures } from '@rendering/PaletteSwap'
 import { TERRAIN_COLOR1, TERRAIN_ROAD, TERRAIN_PATH_FLAT, TERRAIN_PATH_STONE, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_DECK } from '@data/TerrainManifest'
 import { preloadClouds } from '@ui/clouds'
@@ -185,10 +185,6 @@ export class PreloadScene extends Phaser.Scene {
       HEX_SHAMAN_EXPLOSION_SHEET.path,
       { frameWidth: HEX_SHAMAN_EXPLOSION_SHEET.frameWidth, frameHeight: HEX_SHAMAN_EXPLOSION_SHEET.frameHeight },
     )
-    for (let i = 0; i < LIGHTNING_ARC_SHEET.keys.length; i++) {
-      this.load.image(LIGHTNING_ARC_SHEET.keys[i], LIGHTNING_ARC_SHEET.paths[i])
-    }
-
     // Base shaman sprite sheets — sources for runtime palette swaps
     for (const sheet of Object.values(HEX_SHAMAN_BASE_SHEETS)) {
       this.load.spritesheet(sheet.key, sheet.path, { frameWidth: sheet.frameWidth, frameHeight: sheet.frameHeight })
@@ -354,7 +350,6 @@ export class PreloadScene extends Phaser.Scene {
     registerExplosionFx(this)
     registerHexTransformFx(this)
     registerShamanOrbFx(this)
-    registerLightningArcFx(this)
     registerGnollBoneFx(this)
     registerGoblinDynamiteFx(this)
     registerAirBoatCrewFx(this)

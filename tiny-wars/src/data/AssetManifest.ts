@@ -458,7 +458,7 @@ function enemyAvatar(file: string): ImageDef {
   return { key: `avatar_${stem}`, path: `${ENEMY_AVATARS}/${file}` }
 }
 
-/** Reserved enemy portraits (no card wired yet): _07 snake, _11 spider, _14, _15 gnome. */
+/** Reserved enemy portraits (no card wired yet): _14, _15 gnome. */
 
 export const PIRATE_TOWER_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower'
 export const PIRATE_TOWER_GROUND = `${PIRATE_TOWER_PATH}/Pirate Tower_Ground.png`
@@ -503,21 +503,6 @@ export const HEX_SHAMAN_EXPLOSION_SHEET = {
   path: `${HEX_SHAMAN_PATH}/Hex Shaman_Explosion.png`,
   frameWidth: HEX_FX_FRAME,
   frameHeight: HEX_FX_FRAME,
-} as const
-
-/**
- * Lightning Shaman bolt — a jagged arc stretched between attacker and target,
- * built from 13 individually-authored crackle frames (not a single spritesheet).
- */
-const LIGHTNING_ARC_PATH = 'assets/Particle FX/lightning'
-const LIGHTNING_ARC_FRAME_COUNT = 13
-
-export const LIGHTNING_ARC_SHEET = {
-  keys: Array.from({ length: LIGHTNING_ARC_FRAME_COUNT }, (_, i) => `lightning_arc_${i + 1}`),
-  paths: Array.from({ length: LIGHTNING_ARC_FRAME_COUNT }, (_, i) => `${LIGHTNING_ARC_PATH}/lightning_v2_${i + 1}.png`),
-  frameWidth: 104,
-  frameHeight: 22,
-  animKey: 'lightning_arc_anim',
 } as const
 
 /** Base sprite sheets — loaded once and used as the source for all shaman palette swaps. */
@@ -1046,6 +1031,36 @@ function thiefSide(side: 'blue' | 'red'): SideAssets {
   }
 }
 
+const SNAKE_PATH = 'assets/Enemy Pack/Enemies/Caveborn/Snake'
+const SNAKE_FRAME = 192
+
+/** Enemy Pack Snake — Lightning Shaman card art. 192×192 frames. */
+function snakeSide(side: 'blue' | 'red'): SideAssets {
+  const idle: SheetDef = {
+    key: `lightning_shaman_${side}_idle`,
+    path: `${SNAKE_PATH}/Snake_Idle.png`,
+    frameWidth: SNAKE_FRAME,
+    frameHeight: SNAKE_FRAME,
+  }
+  const run: SheetDef = {
+    key: `lightning_shaman_${side}_run`,
+    path: `${SNAKE_PATH}/Snake_Run.png`,
+    frameWidth: SNAKE_FRAME,
+    frameHeight: SNAKE_FRAME,
+  }
+  const attack: SheetDef = {
+    key: `lightning_shaman_${side}_attack`,
+    path: `${SNAKE_PATH}/Snake_Attack.png`,
+    frameWidth: SNAKE_FRAME,
+    frameHeight: SNAKE_FRAME,
+  }
+  return {
+    idle:   clip(idle,   0, 7, 10, -1),
+    run:    clip(run,    0, 7, 14, -1),
+    attack: clip(attack, 0, 5, 14,  0),
+  }
+}
+
 const PANDA_PATH = 'assets/Enemy Pack/Enemies/Panda'
 const PANDA_FRAME = 256
 
@@ -1232,6 +1247,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
       frame: 0,
     },
     avatarCropRatio: 0.42,
+    avatarHandScale: 1.50,
     contentFill: 0.50,
     attackHitFrame: 27,
     player: knightsArcherSide('Blue'),
@@ -1248,6 +1264,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'lancer',
     avatar: humanAvatar('Avatars_02.png'),
+    avatarHandScale: 1.24,
     contentFill: 0.30,
     attackHitFrame: 2,
     player: lancerSide('Blue'),
@@ -1256,6 +1273,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'skeleton',
     avatar: enemyAvatar('Enemy Avatars_01.png'),
+    avatarHandScale: 1.12,
     contentFill: 0.55,
     attackHitFrame: 4,
     tintBotSide: true,
@@ -1282,6 +1300,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'troll',
     avatar: enemyAvatar('Enemy Avatars_16.png'),
+    avatarHandScale: 0.68,
     contentFill: 0.48,
     attackHitFrame: 4,
     tintBotSide: true,
@@ -1292,6 +1311,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'spear_goblin',
     avatar: { key: 'avatar_spear_goblin', path: `${ENEMY_AVATARS}/Spear Goblin.png` },
     avatarCropRatio: 0.55,
+    avatarHandScale: 1.12,
     contentFill: 0.55,
     attackHitFrame: 4,
     tintBotSide: true,
@@ -1301,6 +1321,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'villagers',
     avatar: { key: 'avatar_villagers', path: `${HUMAN_AVATARS}/Avatars_05.png` },
+    avatarHandScale: 1.11,
     contentFill: 0.52,
     attackHitFrame: 2,
     player: villagersSide('Blue'),
@@ -1309,6 +1330,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'miner',
     avatar: { key: 'avatar_villagers', path: `${HUMAN_AVATARS}/Avatars_05.png` },
+    avatarHandScale: 1.11,
     contentFill: 0.52,
     attackHitFrame: 3,
     player: minerSide('Blue'),
@@ -1318,17 +1340,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'torch_goblin',
     avatar: enemyAvatar('Torch Goblin.png'),
     avatarCropRatio: 0.65,
-    contentFill: 0.55,
-    attackHitFrame: 3,
-    tintBotSide: true,
-    player: torchGoblinSide('blue'),
-    bot:    torchGoblinSide('red'),
-  },
-  {
-    /** Torch Goblin art, splash-caster stats — replaces the shaman-art wizard in rotation. */
-    cardId: 'fire_wizard',
-    avatar: enemyAvatar('Torch Goblin.png'),
-    avatarCropRatio: 0.65,
+    avatarHandScale: 1.03,
     contentFill: 0.55,
     attackHitFrame: 3,
     tintBotSide: true,
@@ -1339,6 +1351,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'wizard',
     avatar: { key: 'avatar_wizard', path: '' },
     avatarCropRatio: 0.72,
+    avatarHandScale: 1.46,
     contentFill: 0.55,
     attackHitFrame: 6,
     tintBotSide: true,
@@ -1350,6 +1363,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'elder_shaman',
     avatar: { key: 'avatar_elder_shaman', path: '' },
     avatarCropRatio: 0.72,
+    avatarHandScale: 1.46,
     contentFill: 0.55,
     attackHitFrame: 6,
     tintBotSide: true,
@@ -1359,19 +1373,20 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'lightning_shaman',
-    avatar: { key: 'avatar_lightning_shaman', path: '' },
-    avatarCropRatio: 0.72,
+    avatar: enemyAvatar('Enemy Avatars_07.png'),
+    avatarCropRatio: 0.6,
+    avatarHandScale: 1.10,
     contentFill: 0.55,
-    attackHitFrame: 6,
+    attackHitFrame: 3,
     tintBotSide: true,
-    editorSpritePath: `${HEX_SHAMAN_PATH}/Hex Shaman_Idle.png`,
-    player: shamanSide('lightning_shaman', 'blue'),
-    bot:    shamanSide('lightning_shaman', 'red'),
+    player: snakeSide('blue'),
+    bot:    snakeSide('red'),
   },
   {
     cardId: 'voodoo_shaman',
     avatar: { key: 'avatar_voodoo_shaman', path: '' },
     avatarCropRatio: 0.72,
+    avatarHandScale: 1.46,
     contentFill: 0.55,
     attackHitFrame: 6,
     tintBotSide: true,
@@ -1383,6 +1398,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'lizard',
     avatar: enemyAvatar('Enemy Avatars_13.png'),
     avatarCropRatio: 0.65,
+    avatarHandScale: 0.93,
     contentFill: 0.55,
     attackHitFrame: 5,
     tintBotSide: true,
@@ -1422,6 +1438,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     },
     avatarBackdrop: AVATAR_BACKDROP_BANNER,
     avatarCropRatio: 0.55,
+    avatarHandScale: 1.50,
     contentFill: 0.50,
     attackHitFrame: 4,
     tintBotSide: true,
@@ -1432,6 +1449,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'pig_rider',
     avatar: enemyAvatar('Pig Rider.png'),
     avatarCropRatio: 0.62,
+    avatarHandScale: 1.11,
     contentFill: 0.52,
     attackHitFrame: 4,
     tintBotSide: true,
@@ -1449,6 +1467,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     },
     avatarBackdrop: AVATAR_BACKDROP_BANNER,
     avatarCropRatio: 0.55,
+    avatarHandScale: 1.50,
     contentFill: 0.50,
     attackHitFrame: 2,
     tintBotSide: true,
@@ -1459,6 +1478,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'bomb_fish',
     avatar: enemyAvatar('Bomb Fish.png'),
     avatarCropRatio: 0.65,
+    avatarHandScale: 1.08,
     contentFill: 0.55,
     attackHitFrame: 4,
     tintBotSide: true,
@@ -1474,6 +1494,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
       frameHeight: TNT_FRAME,
       frame: 0,
     },
+    avatarHandScale: 1.50,
     contentFill: 0.55,
     attackHitFrame: 17,
     player: goblinDemolisherSide('Blue'),
@@ -1483,6 +1504,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'minotaur',
     avatar: enemyAvatar('Enemy Avatars_09.png'),
     avatarCropRatio: 0.58,
+    avatarHandScale: 0.85,
     contentFill: 0.46,
     attackHitFrame: 5,
     tintBotSide: true,
@@ -1503,6 +1525,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'thief',
     avatar: enemyAvatar('Enemy Avatars_06.png'),
     avatarCropRatio: 0.62,
+    avatarHandScale: 1.03,
     contentFill: 0.55,
     attackHitFrame: 3,
     tintBotSide: true,
@@ -1513,6 +1536,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'turtle',
     avatar: enemyAvatar('Enemy Avatars_08.png'),
     avatarCropRatio: 0.58,
+    avatarHandScale: 1.29,
     contentFill: 0.50,
     attackHitFrame: 5,
     tintBotSide: true,
@@ -1523,6 +1547,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'panda',
     avatar: enemyAvatar('Enemy Avatars_12.png'),
     avatarCropRatio: 0.58,
+    avatarHandScale: 1.09,
     contentFill: 0.37,
     attackHitFrame: 6,
     tintBotSide: true,
@@ -1532,6 +1557,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'monk',
     avatar: humanAvatar('Avatars_04.png'),
+    avatarHandScale: 1.03,
     contentFill: 0.52,
     attackHitFrame: 5,
     player: monkSide('Blue'),
@@ -1541,6 +1567,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'harpoon_shark',
     avatar: { key: 'avatar_harpoon_shark', path: `${ENEMY_AVATARS}/Harpoon Shark.png` },
     avatarCropRatio: 0.55,
+    avatarHandScale: 1.17,
     contentFill: 0.52,
     attackHitFrame: 4,
     tintBotSide: true,
@@ -1551,6 +1578,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'spider',
     avatar: enemyAvatar('Enemy Avatars_11.png'),
     avatarCropRatio: 0.58,
+    avatarHandScale: 1.10,
     contentFill: 0.52,
     attackHitFrame: 4,
     tintBotSide: true,

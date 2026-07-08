@@ -27,12 +27,14 @@ export class EffectsPool {
     }
   }
 
-  spawn(x: number, y: number, radiusPx?: number, tint?: number): void {
+  /** @param sheet 'splash' swaps the round fire-explosion for a liquid spray burst (e.g. venom). */
+  spawn(x: number, y: number, radiusPx?: number, tint?: number, sheet: 'explosion' | 'splash' = 'explosion'): void {
+    const sheetDef = sheet === 'splash' ? WATER_SPLASH_SHEET : EXPLOSION_SHEET
     const spr = this.pool.find(p => !p.getData('playing'))
     if (
       !spr
-      || !this.scene.textures.exists(EXPLOSION_SHEET.key)
-      || !this.scene.anims.exists(EXPLOSION_SHEET.animKey)
+      || !this.scene.textures.exists(sheetDef.key)
+      || !this.scene.anims.exists(sheetDef.animKey)
     ) {
       return
     }
@@ -40,7 +42,7 @@ export class EffectsPool {
     const radius = radiusPx ?? DEFAULT_EXPLOSION_RADIUS_PX
     const size = Math.max(DEFAULT_EXPLOSION_RADIUS_PX, radius * 1.2)
     spr.setData('playing', true)
-    spr.setTexture(EXPLOSION_SHEET.key, 0)
+    spr.setTexture(sheetDef.key, 0)
     spr.setPosition(x, y)
     spr.setDisplaySize(size, size)
     spr.setVisible(true)
@@ -48,7 +50,7 @@ export class EffectsPool {
     if (tint !== undefined) spr.setTint(tint)
     else spr.clearTint()
     spr.anims.stop()
-    spr.play(EXPLOSION_SHEET.animKey)
+    spr.play(sheetDef.animKey)
 
     spr.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       spr.setVisible(false)

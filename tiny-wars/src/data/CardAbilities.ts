@@ -64,9 +64,9 @@ export const VOODOO_SHAMAN_MINION_SPAWN_INTERVAL_MS = 7000
 export const VOODOO_SHAMAN_MINION_SPAWN_INITIAL_DELAY_MS = 1000
 
 // ---------------------------------------------------------------------------
-// Lightning Shaman (Electro Wizard — chains bolt to a second target)
+// Snake (Electro Wizard — chains venom spray to a second target)
 // ---------------------------------------------------------------------------
-export const LIGHTNING_SHAMAN_CHAIN_RANGE_PX = 5 * 64  // 5 cells in pixels
+export const SNAKE_CHAIN_RANGE_PX = 5 * 64  // 5 cells in pixels
 
 // ---------------------------------------------------------------------------
 // Minotaur (Mega Knight-style spawn slam)

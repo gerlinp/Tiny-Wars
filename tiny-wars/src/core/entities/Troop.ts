@@ -56,8 +56,7 @@ import {
   HOOK_MIN_RANGE_CELLS, HOOK_MAX_RANGE_CELLS, HOOK_WINDUP_MS, HOOK_SLOW_DURATION_MS, HOOK_SLOW_SPEED_MULT,
   GOBLIN_DEMOLISHER_CHARGE_HP_FRACTION, GOBLIN_DEMOLISHER_CHARGE_SPEED_CR, GOBLIN_DEMOLISHER_CHARGE_ATTACK_RANGE,
   SPIDER_MINION_CARD_ID, SPIDER_MINION_SPAWN_COUNT, SPIDER_MINION_SPAWN_INTERVAL_MS, SPIDER_MINION_SPAWN_INITIAL_DELAY_MS,
-  VOODOO_SHAMAN_MINION_CARD_ID, VOODOO_SHAMAN_MINION_SPAWN_COUNT, VOODOO_SHAMAN_MINION_SPAWN_INTERVAL_MS,
-  LIGHTNING_SHAMAN_CHAIN_RANGE_PX,
+  SNAKE_CHAIN_RANGE_PX,
   MONK_HEAL_PER_PULSE, MONK_HEAL_PULSE_COUNT, MONK_HEAL_RADIUS,
   MONK_SPAWN_HEAL_PER_PULSE, MONK_SPAWN_HEAL_PULSE_COUNT, MONK_SPAWN_HEAL_RADIUS,
   MINER_BURROW_MS, MINER_TOWER_DAMAGE_MULT,
@@ -251,7 +250,7 @@ export class Troop extends Entity {
     this.pathfinder = new Pathfinder(grid)
     this.lastMarchDir = owner === Owner.PLAYER ? { x: 0, y: -1 } : { x: 0, y: 1 }
     this.spawnLane = position.x < BRIDGE_CENTER_COL * CELL_SIZE ? 'left' : 'right'
-    if (cardId === 'spider' || cardId === 'voodoo_shaman') {
+    if (cardId === 'spider') {
       this.spawnMinionCooldownMs = SPIDER_MINION_SPAWN_INITIAL_DELAY_MS
     }
   }
@@ -560,7 +559,7 @@ export class Troop extends Entity {
     } else {
       this.dealDamageTo(state, primary, false, damage)
     }
-    if (this.cardId === 'lightning_shaman') {
+    if (this.cardId === 'snake') {
       this.dealChainLightning(state, primary, damage)
     }
     this.resetCharge()
@@ -575,7 +574,7 @@ export class Troop extends Entity {
       if (entity.owner === this.owner || !entity.isAlive) continue
       if (!this.canAttack(entity)) continue
       const d = dist(primary.position, entity.position)
-      if (d <= LIGHTNING_SHAMAN_CHAIN_RANGE_PX && d < nearestDist) {
+      if (d <= SNAKE_CHAIN_RANGE_PX && d < nearestDist) {
         nearest = entity
         nearestDist = d
       }
@@ -584,7 +583,7 @@ export class Troop extends Entity {
       for (const tower of state.towers.values()) {
         if (tower.owner === this.owner || !tower.isAlive) continue
         const d = dist(primary.position, tower.position)
-        if (d <= LIGHTNING_SHAMAN_CHAIN_RANGE_PX && d < nearestDist) {
+        if (d <= SNAKE_CHAIN_RANGE_PX && d < nearestDist) {
           nearest = tower
           nearestDist = d
         }
@@ -852,8 +851,9 @@ export class Troop extends Entity {
     this.dashTargetEntity = null
   }
 
+  /** No card currently uses the hook-pull mechanic — harpoon_shark was reworked into a ranged dart-thrower. Reserved for a future card. */
   private hasHookAttack(): boolean {
-    return this.cardId === 'harpoon_shark'
+    return false
   }
 
   private canStartHook(distPx: number): boolean {
@@ -1590,7 +1590,6 @@ export class Troop extends Entity {
     // Special long-reach melee cards must detect targets out to their ability range so the
     // dash / hook can trigger before the unit is in normal melee range.
     if (this.cardId === 'thief') aggro = Math.max(aggro, THIEF_DASH_RANGE_CELLS)
-    if (this.cardId === 'harpoon_shark') aggro = Math.max(aggro, HOOK_MAX_RANGE_CELLS)
     return aggro
   }
 
