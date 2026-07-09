@@ -580,11 +580,9 @@ function goblinDemolisherSide(side: 'Blue' | 'Red'): SideAssets {
   }
 }
 
-export const BARREL_BLUE_KEY = 'barrel_blue'
-export const BARREL_RED_KEY = 'barrel_red'
 export const AVATAR_GOBLIN_BARREL_KEY = 'avatar_goblin_barrel'
 
-function barrelSheet(side: 'Blue' | 'Red'): SheetDef {
+function barrelSheet(side: 'Blue' | 'Red' | 'Yellow'): SheetDef {
   return {
     key: `barrel_${side.toLowerCase()}`,
     path: `${BARREL_PATH}/${side}/Barrel_${side}.png`,
@@ -593,7 +591,7 @@ function barrelSheet(side: 'Blue' | 'Red'): SheetDef {
   }
 }
 
-function barrelSide(side: 'Blue' | 'Red'): SideAssets {
+function barrelSide(side: 'Blue' | 'Red' | 'Yellow'): SideAssets {
   const sheet = barrelSheet(side)
   // 6×6 sheet: frame 0 rest, row 1 (6-11) hop-in, row 5 (30-32) crack-open (play once).
   return {
@@ -602,6 +600,20 @@ function barrelSide(side: 'Blue' | 'Red'): SideAssets {
     attack: clip(sheet, 30, 32, 8, 0),
   }
 }
+
+/**
+ * TNT Barrel low-HP tell — swaps to the Red barrel's crack-open row (frames 30-32) as a
+ * looping spark once the unit is badly hurt, regardless of which side deployed it. Reuses the
+ * already-loaded barrel_red sheet (bot side's texture), no separate asset load needed.
+ */
+export const TNT_BARREL_LOWHP_FX = {
+  key: barrelSheet('Red').key,
+  animKey: 'tnt_barrel_lowhp_spark',
+  frameStart: 30,
+  frameEnd: 32,
+  frameRate: 6,
+  hpFraction: 0.5,
+} as const
 
 const BOMB_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Bomb'
 const BOMB_FRAME = 128
@@ -1034,22 +1046,22 @@ function thiefSide(side: 'blue' | 'red'): SideAssets {
 const SNAKE_PATH = 'assets/Enemy Pack/Enemies/Caveborn/Snake'
 const SNAKE_FRAME = 192
 
-/** Enemy Pack Snake — Lightning Shaman card art. 192×192 frames. */
+/** Enemy Pack Snake — Snake card art. 192×192 frames. */
 function snakeSide(side: 'blue' | 'red'): SideAssets {
   const idle: SheetDef = {
-    key: `lightning_shaman_${side}_idle`,
+    key: `snake_${side}_idle`,
     path: `${SNAKE_PATH}/Snake_Idle.png`,
     frameWidth: SNAKE_FRAME,
     frameHeight: SNAKE_FRAME,
   }
   const run: SheetDef = {
-    key: `lightning_shaman_${side}_run`,
+    key: `snake_${side}_run`,
     path: `${SNAKE_PATH}/Snake_Run.png`,
     frameWidth: SNAKE_FRAME,
     frameHeight: SNAKE_FRAME,
   }
   const attack: SheetDef = {
-    key: `lightning_shaman_${side}_attack`,
+    key: `snake_${side}_attack`,
     path: `${SNAKE_PATH}/Snake_Attack.png`,
     frameWidth: SNAKE_FRAME,
     frameHeight: SNAKE_FRAME,
@@ -1348,18 +1360,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     bot:    torchGoblinSide('red'),
   },
   {
-    cardId: 'wizard',
-    avatar: { key: 'avatar_wizard', path: '' },
-    avatarCropRatio: 0.72,
-    avatarHandScale: 1.46,
-    contentFill: 0.55,
-    attackHitFrame: 6,
-    tintBotSide: true,
-    editorSpritePath: `${HEX_SHAMAN_PATH}/Hex Shaman_Idle.png`,
-    player: shamanSide('wizard', 'blue'),
-    bot:    shamanSide('wizard', 'red'),
-  },
-  {
     cardId: 'elder_shaman',
     avatar: { key: 'avatar_elder_shaman', path: '' },
     avatarCropRatio: 0.72,
@@ -1372,7 +1372,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     bot:    shamanSide('elder_shaman', 'red'),
   },
   {
-    cardId: 'lightning_shaman',
+    cardId: 'snake',
     avatar: enemyAvatar('Enemy Avatars_07.png'),
     avatarCropRatio: 0.6,
     avatarHandScale: 1.10,
@@ -1499,6 +1499,22 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     attackHitFrame: 17,
     player: goblinDemolisherSide('Blue'),
     bot:    goblinDemolisherSide('Red'),
+  },
+  {
+    // Rolling barrel bomb — hops toward buildings and cracks open on contact.
+    cardId: 'tnt_barrel',
+    avatar: {
+      key: 'avatar_tnt_barrel',
+      path: `${BARREL_PATH}/Blue/Barrel_Blue.png`,
+      frameWidth: BARREL_FRAME,
+      frameHeight: BARREL_FRAME,
+      frame: 0,
+    },
+    avatarBackdrop: AVATAR_BACKDROP_BANNER,
+    avatarHandScale: 0.82,
+    contentFill: 0.80,
+    player: barrelSide('Blue'),
+    bot:    barrelSide('Red'),
   },
   {
     cardId: 'minotaur',
@@ -1638,7 +1654,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'goblin_barrel',
     avatar: {
       key: AVATAR_GOBLIN_BARREL_KEY,
-      path: `${BARREL_PATH}/Blue/Barrel_Blue.png`,
+      path: `${BARREL_PATH}/Yellow/Barrel_Yellow.png`,
       frameWidth: BARREL_FRAME,
       frameHeight: BARREL_FRAME,
       frame: 0,
@@ -1646,8 +1662,8 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarBackdrop: AVATAR_BACKDROP_BANNER,
     avatarHandScale: 0.82,
     contentFill: 0.80,
-    player: barrelSide('Blue'),
-    bot:    barrelSide('Red'),
+    player: barrelSide('Yellow'),
+    bot:    barrelSide('Yellow'),
   },
 ]
 

@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, WATER_SPLASH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, DUST_SHEETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET, PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET } from '@data/AssetManifest'
-import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx, registerAirBoatCrewFx, registerHexTransformFx, registerShamanOrbFx } from '@rendering/AnimationRegistry'
+import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx, registerAirBoatCrewFx, registerHexTransformFx, registerShamanOrbFx, registerTntBarrelLowHpFx } from '@rendering/AnimationRegistry'
 import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HEX_SHAMAN_BASE_SHEETS, HEX_SHAMAN_BASE_AVATAR, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL } from '@data/AssetManifest'
 import { generateAllShamanTextures } from '@rendering/PaletteSwap'
 import { TERRAIN_COLOR1, TERRAIN_ROAD, TERRAIN_PATH_FLAT, TERRAIN_PATH_STONE, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_DECK } from '@data/TerrainManifest'
@@ -353,6 +353,7 @@ export class PreloadScene extends Phaser.Scene {
     registerGnollBoneFx(this)
     registerGoblinDynamiteFx(this)
     registerAirBoatCrewFx(this)
+    registerTntBarrelLowHpFx(this)
 
     this.time.delayedCall(waitMs, () => this.scene.start('MainMenuScene'))
   }

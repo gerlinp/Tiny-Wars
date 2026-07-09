@@ -138,17 +138,20 @@ export class DeathPool {
 
 // ─── GroundSlamPool ────────────────────────────────────────────────────────────
 
-/** Minotaur ground slam (spawn drop + jump landing) — reuses the water-splash sheet so it
- *  reads as the ground itself cracking/splashing under the impact. */
+/** Minotaur ground slam (spawn drop + jump landing) and Snake's deploy zap — both reuse the
+ *  water-splash sheet so the impact reads as the ground itself cracking/splashing. Snake's
+ *  is tinted green to read as venom rather than Minotaur's plain water/dust. */
 export class GroundSlamPool {
   constructor(private scene: Phaser.Scene) {}
 
-  spawn(x: number, y: number, size: number): void {
+  spawn(x: number, y: number, size: number, tint?: number): void {
     if (!this.scene.anims.exists(WATER_SPLASH_SHEET.animKey)) return
 
     const sprite = this.scene.add.sprite(x, y, WATER_SPLASH_SHEET.key, 0)
       .setDepth(19)
       .setDisplaySize(size, size)
+
+    if (tint !== undefined) sprite.setTint(tint)
 
     sprite.play(WATER_SPLASH_SHEET.animKey)
     sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => sprite.destroy())

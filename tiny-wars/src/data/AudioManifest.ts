@@ -41,6 +41,7 @@ export const CANNON_HIT_CARD_IDS = new Set<string>([
   'air_boat',
   'goblin_demolisher',
   'wood_tower',
+  'tnt_barrel',
 ])
 
 export function usesCannonHit(

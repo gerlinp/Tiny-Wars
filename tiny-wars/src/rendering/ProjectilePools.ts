@@ -290,7 +290,7 @@ export class BarrelPool {
   }
 
   private createProjectile(): Phaser.GameObjects.Sprite {
-    const key = this.scene.textures.exists('barrel_blue') ? 'barrel_blue' : 'placeholder_player'
+    const key = this.scene.textures.exists('barrel_yellow') ? 'barrel_yellow' : 'placeholder_player'
     const spr = this.scene.add.sprite(0, 0, key, 0)
       .setDepth(21)
       .setOrigin(0.5, 0.5)
@@ -302,7 +302,7 @@ export class BarrelPool {
   spawn(
     from: Vec2,
     to: Vec2,
-    owner: Owner,
+    _owner: Owner,
     flightMs: number,
     onHit?: () => void,
   ): void {
@@ -312,10 +312,8 @@ export class BarrelPool {
       return
     }
 
-    const textureKey = owner === Owner.PLAYER ? 'barrel_blue' : 'barrel_red'
-
     barrel.setData('flying', true)
-    barrel.setTexture(textureKey, 0)
+    barrel.setTexture('barrel_yellow', 0)
     barrel.setDisplaySize(BARREL_PROJECTILE_DISPLAY, BARREL_PROJECTILE_DISPLAY)
     barrel.setPosition(from.x, from.y)
     barrel.setRotation(0)

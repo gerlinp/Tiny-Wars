@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { HealthBar } from './HealthBar'
 import { resolveTexture } from './renderingUtils'
-import { clipAnimKey, idleSheetKey, getSideAssets, isAnimatedCard, usesTintedBotSide, BOT_SIDE_TINT, resolveAttackAnimKey, type AnimClip } from '@data/AssetManifest'
+import { clipAnimKey, idleSheetKey, getSideAssets, isAnimatedCard, usesTintedBotSide, BOT_SIDE_TINT, resolveAttackAnimKey, TNT_BARREL_LOWHP_FX, type AnimClip } from '@data/AssetManifest'
 import { Owner, CardType } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { CARD_DEFINITIONS } from '@data/CardData'
@@ -51,6 +51,7 @@ export class EntitySprite {
   private frozenPoseKey: string | null = null
   private frozenPoseFrame = -1
   private healLoopActive = false
+  private tntBarrelSparkActive = false
 
   constructor(
     private scene: Phaser.Scene,
@@ -158,6 +159,13 @@ export class EntitySprite {
         } else if (healSync) {
           this.clearFrozenPose()
           this.playHealLoop(healSync.aimPoint)
+        } else if (
+          this.cardId === 'tnt_barrel'
+          && hpFraction > 0
+          && hpFraction <= TNT_BARREL_LOWHP_FX.hpFraction
+        ) {
+          this.clearFrozenPose()
+          this.playTntBarrelSpark()
         } else {
           this.clearFrozenPose()
           this.playLocomotion(anim, moveSpeed)
@@ -251,6 +259,7 @@ export class EntitySprite {
     if (this.attackSwingPlaying) return
 
     this.healLoopActive = false
+    this.tntBarrelSparkActive = false
     this.clearFrozenPose()
 
     const aim = this.attackAimPoint
@@ -316,7 +325,23 @@ export class EntitySprite {
     if (this.healLoopActive && this.sprite.anims.currentAnim?.key === key) return
 
     this.healLoopActive = true
+    this.tntBarrelSparkActive = false
     this.currentAnim = 'attack'
+    this.sprite.anims.timeScale = 1
+    this.sprite.anims.play({ key, repeat: -1 }, true)
+  }
+
+  /** TNT Barrel below its low-HP threshold — spark loop, either side, until it detonates. */
+  private playTntBarrelSpark(): void {
+    if (!this.animated || !(this.sprite instanceof Phaser.GameObjects.Sprite)) return
+
+    const key = TNT_BARREL_LOWHP_FX.animKey
+    if (!this.scene.anims.exists(key)) return
+    if (this.tntBarrelSparkActive && this.sprite.anims.currentAnim?.key === key) return
+
+    this.healLoopActive = false
+    this.tntBarrelSparkActive = true
+    this.currentAnim = 'idle'
     this.sprite.anims.timeScale = 1
     this.sprite.anims.play({ key, repeat: -1 }, true)
   }
@@ -325,6 +350,7 @@ export class EntitySprite {
     if (!this.animated || !(this.sprite instanceof Phaser.GameObjects.Sprite)) return
 
     this.healLoopActive = false
+    this.tntBarrelSparkActive = false
 
     const key = clipAnimKey(this.cardId, this.owner, anim)
     if (!this.scene.anims.exists(key)) return

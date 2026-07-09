@@ -8,7 +8,7 @@ export enum AttackType {
   AIR_AND_GROUND = 'AIR_AND_GROUND',
 }
 
-export enum TroopState { SPAWNING = 'SPAWNING', WALKING = 'WALKING', ATTACKING = 'ATTACKING', DEAD = 'DEAD' }
+export enum TroopState { SPAWNING = 'SPAWNING', WALKING = 'WALKING', ATTACKING = 'ATTACKING', STUNNED = 'STUNNED', DEAD = 'DEAD' }
 
 export enum BuildingState { IDLE = 'IDLE', ATTACKING = 'ATTACKING' }
 
@@ -40,6 +40,11 @@ export interface EntityStats {
   deathSplashRadius?: number
   /** Death nova damage; defaults to {@link damage} when unset. */
   deathSplashDamage?: number
+  /**
+   * Death nova damage when killed before reaching its charge target (e.g. a TNT Barrel shot
+   * down mid-approach). Defaults to {@link deathSplashDamage} — no reduction — when unset.
+   */
+  deathSplashDamageOffTarget?: number
   /** Slow nearby enemies on death — speed multiplier (0.7 = 30% slower). */
   deathSlowSpeedMultiplier?: number
   /** How long the death slow lasts (ms). */

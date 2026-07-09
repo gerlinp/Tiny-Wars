@@ -10,14 +10,6 @@ const NX = 0xFFFFFF  // necklace shine
 // A palette is an ordered list of [sourceRGB, destRGB] pairs
 export type PaletteMap = ReadonlyArray<readonly [number, number]>
 
-// ── Blue 1 - Cobalt  /  Red 1 - Scarlet  (Fire Shaman) ──────────────────────
-const COBALT: PaletteMap = [
-  [S, 0x10245A], [M, 0x2454D3], [N, 0x579AFF], [H, 0xC9E3FF],
-]
-const SCARLET: PaletteMap = [
-  [S, 0x5A1019], [M, 0xB71931], [N, 0xF24F61], [H, 0xFFD0D6],
-]
-
 // ── Blue 2 - Cyan  /  Red 2 - Ember  (Elder Shaman) ─────────────────────────
 const CYAN: PaletteMap = [
   [S, 0x083F59], [M, 0x007FA8], [N, 0x22C7E8], [H, 0xB9F7FF],
@@ -40,7 +32,6 @@ const DEATH_RED: PaletteMap = [
 ]
 
 export const SHAMAN_PALETTES: Record<string, { player: PaletteMap; bot: PaletteMap }> = {
-  wizard:           { player: COBALT, bot: SCARLET  },
   elder_shaman:     { player: CYAN,   bot: EMBER    },
   voodoo_shaman:    { player: DEATH_BLUE, bot: DEATH_RED },
 }
@@ -49,11 +40,6 @@ export const SHAMAN_PALETTES: Record<string, { player: PaletteMap; bot: PaletteM
 // Applied to the projectile orb and explosion sprites so the fire always
 // reads as the card type regardless of which team is casting.
 
-// Fire Shaman: warm red→orange→yellow ramp (PDF page 2)
-const FIRE_ORANGE: PaletteMap = [
-  [S, 0x5A1A08], [M, 0xB72A14], [N, 0xF06A1A], [H, 0xFFC94A], [NX, 0xFFF4C7],
-]
-
 // Voodoo / Death Shaman: deep teal shadow → spectral green (PDF page 5)
 const VOODOO_GREEN: PaletteMap = [
   [S, 0x163B35], [M, 0x28705D], [N, 0x58C28A], [H, 0xA7F2B8], [NX, 0xE8FFE8],
@@ -61,6 +47,5 @@ const VOODOO_GREEN: PaletteMap = [
 
 /** Per-card fire palette for projectile + explosion sprites. Not faction-specific. */
 export const SHAMAN_FIRE_PALETTES: Record<string, PaletteMap> = {
-  wizard:           FIRE_ORANGE,
   voodoo_shaman:    VOODOO_GREEN,
 }

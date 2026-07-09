@@ -15,7 +15,7 @@ import {
   surfaceDistToEntity,
   troopCollisionRadius,
 } from '../EntityGeometry'
-import { dealAreaDamage, applySlowInRadius, applyHealInRadius } from '../AreaDamage'
+import { dealAreaDamage, applySlowInRadius, applyStunInRadius, applyHealInRadius } from '../AreaDamage'
 import { launchBoomerang, isBoomerangThrowerBusy } from '../BoomerangSystem'
 import { canHookTarget, isHookThrowerBusy, launchHook } from '../HookSystem'
 import { distSq, dist } from '../Vector2'
@@ -56,7 +56,8 @@ import {
   HOOK_MIN_RANGE_CELLS, HOOK_MAX_RANGE_CELLS, HOOK_WINDUP_MS, HOOK_SLOW_DURATION_MS, HOOK_SLOW_SPEED_MULT,
   GOBLIN_DEMOLISHER_CHARGE_HP_FRACTION, GOBLIN_DEMOLISHER_CHARGE_SPEED_CR, GOBLIN_DEMOLISHER_CHARGE_ATTACK_RANGE,
   SPIDER_MINION_CARD_ID, SPIDER_MINION_SPAWN_COUNT, SPIDER_MINION_SPAWN_INTERVAL_MS, SPIDER_MINION_SPAWN_INITIAL_DELAY_MS,
-  SNAKE_CHAIN_RANGE_PX,
+  SNAKE_CHAIN_RANGE_PX, SNAKE_STUN_DURATION_MS,
+  SNAKE_SPAWN_ZAP_DAMAGE, SNAKE_SPAWN_ZAP_RADIUS_CELLS, SNAKE_SPAWN_ZAP_TOWER_DAMAGE_MULT,
   MONK_HEAL_PER_PULSE, MONK_HEAL_PULSE_COUNT, MONK_HEAL_RADIUS,
   MONK_SPAWN_HEAL_PER_PULSE, MONK_SPAWN_HEAL_PULSE_COUNT, MONK_SPAWN_HEAL_RADIUS,
   MINER_BURROW_MS, MINER_TOWER_DAMAGE_MULT,
@@ -217,6 +218,8 @@ export class Troop extends Entity {
   private committedTargetId: string | null = null
   private slowSpeedMultiplier = 1
   private slowUntilMs = 0
+  /** CR Electro Wizard-style stun (Snake card) — fully freezes movement and attacks. */
+  private stunRemainingMs = 0
   private isDashing = false
   private dashWindupMsRemaining = 0
   /** Leap start distance — drives {@link getDashProgress} for the jump arc. */
@@ -322,10 +325,37 @@ export class Troop extends Entity {
     return 1 - this.spawnTimerMs / this.spawnTotalMs
   }
 
-  /** Minotaur hits the ground at the end of his spawn jump — Mega Knight arrival slam. */
+  /** Minotaur hits the ground at the end of his spawn jump — Mega Knight arrival slam.
+   *  Snake fires its deploy zap the moment its spawn freeze ends — CR Electro Wizard-style. */
   private onSpawnLanding(state: GameState): void {
-    if (this.cardId !== 'minotaur') return
-    this.groundSlam(state, MINOTAUR_SPAWN_SLAM_DAMAGE)
+    if (this.cardId === 'minotaur') {
+      this.groundSlam(state, MINOTAUR_SPAWN_SLAM_DAMAGE)
+    } else if (this.cardId === 'snake') {
+      this.snakeSpawnZap(state)
+    }
+  }
+
+  /** CR Electro Wizard deploy zap — damages and stuns everything (air or ground) around Snake. */
+  private snakeSpawnZap(state: GameState): void {
+    dealAreaDamage(
+      state,
+      this.owner,
+      this.position,
+      SNAKE_SPAWN_ZAP_RADIUS_CELLS,
+      SNAKE_SPAWN_ZAP_DAMAGE,
+      () => true,
+      this.id,
+      undefined,
+      Math.round(SNAKE_SPAWN_ZAP_DAMAGE * SNAKE_SPAWN_ZAP_TOWER_DAMAGE_MULT),
+    )
+    applyStunInRadius(state, this.owner, this.position, SNAKE_SPAWN_ZAP_RADIUS_CELLS, SNAKE_STUN_DURATION_MS)
+    state.events.push({
+      type: 'GROUND_SLAM',
+      entityId: this.id,
+      cardId: this.cardId ?? '',
+      position: { ...this.position },
+      radius: SNAKE_SPAWN_ZAP_RADIUS_CELLS,
+    })
   }
 
   /** Area slam under the Minotaur — ground targets only, spell-style reduced on towers. */
@@ -405,6 +435,12 @@ export class Troop extends Entity {
       this.spawnTimerMs -= deltaMs
       if (this.spawnTimerMs <= 0) this.onSpawnLanding(state)
       this.state = TroopState.SPAWNING
+      return
+    }
+
+    if (this.stunRemainingMs > 0) {
+      this.stunRemainingMs -= deltaMs
+      this.state = TroopState.STUNNED
       return
     }
 
@@ -560,10 +596,19 @@ export class Troop extends Entity {
       this.dealDamageTo(state, primary, false, damage)
     }
     if (this.cardId === 'snake') {
+      if (splash && splash > 0) {
+        applyStunInRadius(state, this.owner, primary.position, splash, SNAKE_STUN_DURATION_MS)
+      } else {
+        this.applySnakeStun(primary)
+      }
       this.dealChainLightning(state, primary, damage)
     }
     this.resetCharge()
     this.applyActiveHeal(state)
+  }
+
+  private applySnakeStun(target: Entity): void {
+    if (target.kind === EntityKind.TROOP) (target as Troop).applyStun(SNAKE_STUN_DURATION_MS)
   }
 
   private dealChainLightning(state: GameState, primary: Entity, damage: number): void {
@@ -591,6 +636,7 @@ export class Troop extends Entity {
     }
     if (!nearest) return
     nearest.takeDamage(damage)
+    this.applySnakeStun(nearest)
     state.events.push({
       type: 'DAMAGE',
       targetId: nearest.id,
@@ -603,6 +649,8 @@ export class Troop extends Entity {
 
   /** CR Goblin Demolisher — kamikaze at or below this HP fraction (e.g. 0.5 = half health). */
   inBuildingChargeMode(): boolean {
+    // Wall-Breaker-style units (EntityStats.suicideOnAttack) are always armed — no HP threshold.
+    if (this.stats.suicideOnAttack) return true
     if (this.buildingChargeArmed) return true
     const floor = this.buildingChargeHpThreshold()
     if (floor === null || this.maxHp <= 0) return false
@@ -759,6 +807,9 @@ export class Troop extends Entity {
   }
 
   private deathExplosionTriggered = false
+  /** Set right before a wall-breaker-style detonation — full damage vs. the reduced
+   *  off-target payload for units that die before reaching their charge target. */
+  private detonatedOnChargeTarget = false
 
   /** Death nova — area damage and optional slow (e.g. Turtle). */
   applyDeathNova(state: GameState): void {
@@ -767,7 +818,9 @@ export class Troop extends Entity {
     if (!radius) return
     this.deathExplosionTriggered = true
 
-    const damage = this.stats.deathSplashDamage ?? this.stats.damage
+    const damage = this.detonatedOnChargeTarget
+      ? (this.stats.deathSplashDamage ?? this.stats.damage)
+      : (this.stats.deathSplashDamageOffTarget ?? this.stats.deathSplashDamage ?? this.stats.damage)
     dealAreaDamage(state, this.owner, this.position, radius, damage, () => true, this.id)
 
     if (this.stats.deathSlowDurationMs && this.stats.deathSlowSpeedMultiplier !== undefined) {
@@ -784,6 +837,7 @@ export class Troop extends Entity {
 
   /** Wall-breaker style detonation on reaching a structure in charge mode. */
   private detonateOnStructure(state: GameState): void {
+    this.detonatedOnChargeTarget = true
     this.applyDeathNova(state)
     this.hp = 0
   }
@@ -791,6 +845,15 @@ export class Troop extends Entity {
   applySlow(durationMs: number, speedMultiplier: number): void {
     this.slowUntilMs = Math.max(this.slowUntilMs, durationMs)
     this.slowSpeedMultiplier = Math.min(this.slowSpeedMultiplier, speedMultiplier)
+  }
+
+  /** CR Electro Wizard-style stun — freezes movement and attacks for the duration. */
+  applyStun(durationMs: number): void {
+    this.stunRemainingMs = Math.max(this.stunRemainingMs, durationMs)
+  }
+
+  isStunned(): boolean {
+    return this.stunRemainingMs > 0
   }
 
   private tickSlow(deltaMs: number): void {
@@ -1180,9 +1243,11 @@ export class Troop extends Entity {
       const dy = this.position.y - center.y
       const d = Math.hypot(dx, dy)
       if (d < EPSILON_DISTANCE) return { x: this.position.x, y: this.position.y }
-      // Stop a touch inside range (half a cell) so float rounding never parks the unit
-      // just outside its own attack check.
-      const standoff = Math.max(0, range * CELL_SIZE - CELL_SIZE * 0.5)
+      // Stand off `range` cells from the tower's surface (its combat radius), not its
+      // center — matches combatDistTo. Stop a touch inside range (half a cell) so float
+      // rounding never parks the unit just outside its own attack check.
+      const targetR = entityCombatRadius(tower) ?? 0
+      const standoff = Math.max(0, targetR + range * CELL_SIZE - CELL_SIZE * 0.5)
       return { x: center.x + (dx / d) * standoff, y: center.y + (dy / d) * standoff }
     }
     if (target.kind === EntityKind.BUILDING || target.kind === EntityKind.TOWER) {
@@ -1761,10 +1826,14 @@ export class Troop extends Entity {
     )
   }
 
-  /** Melee uses edge-to-edge gap; ranged uses center-to-center. Building-charge uses edge gap on structures. */
+  /** Melee uses edge-to-edge gap; ranged uses edge-to-edge from the tower's combat radius
+   * (so attackRange means "cells from the tower's surface", matching melee/buildings — a
+   * plain center-to-center check would eat part of the unit's range on the tower's own
+   * radius and force ranged units to stand much closer than intended). */
   private combatDistTo(entity: Entity): number {
     const ranged = this.effectiveAttackRange() > 2
     if (entity.kind === EntityKind.TOWER && ranged) {
+      const targetR = entityCombatRadius(entity) ?? 0
       if ((entity as Tower).isKing) {
         const kingTower = entity as Tower
         const attackPoint = kingTowerRangedAttackPoint(
@@ -1772,11 +1841,10 @@ export class Troop extends Entity {
           kingTower.position.y,
           kingTower.owner,
         )
-        return Math.sqrt(distSq(this.position, attackPoint))
+        return Math.max(0, Math.sqrt(distSq(this.position, attackPoint)) - targetR)
       }
-      // Ranged vs non-king towers: center-to-center from the tower logic position.
-      // (King towers use a dedicated ranged attack point above.)
-      return Math.sqrt(distSq(this.position, entity.position))
+      // Ranged vs non-king towers: edge-to-edge from the tower's combat radius.
+      return Math.max(0, Math.sqrt(distSq(this.position, entity.position)) - targetR)
     }
     if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {
       // Buildings (and melee vs towers): surface-to-surface so attackRange means "cells

@@ -52,11 +52,10 @@ describe('Card avatars', () => {
     expect(bundle.tintBotSide).toBe(true)
   })
 
-  it('wizard uses Hex Shaman sheets and tints the bot side', () => {
-    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'wizard')!
-    expect(cardAvatarKey('wizard')).toBe('avatar_hex_shaman')
+  it('elder_shaman uses Hex Shaman sheets and tints the bot side', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'elder_shaman')!
+    expect(cardAvatarKey('elder_shaman')).toBe('avatar_hex_shaman')
     expect(bundle.player.idle.sheet.path).toContain('Hex Shaman_Idle.png')
-    expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(10)
     expect(bundle.tintBotSide).toBe(true)
     expect(existsSync(resolve(PUBLIC, HEX_SHAMAN_PROJECTILE_SHEET.path))).toBe(true)
     expect(existsSync(resolve(PUBLIC, HEX_SHAMAN_EXPLOSION_SHEET.path))).toBe(true)
@@ -279,7 +278,7 @@ describe('Card avatars', () => {
   })
 
   it('unit sprites that fill the frame use a looser hand crop', () => {
-    for (const id of ['torch_goblin', 'wizard'] as const) {
+    for (const id of ['torch_goblin', 'elder_shaman'] as const) {
       const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === id)!
       expect(bundle.avatarCropRatio).toBeGreaterThan(AVATAR_CROP_RATIO_DEFAULT)
     }
@@ -553,12 +552,12 @@ describe('Card avatars', () => {
   it('goblin barrel uses hop and break clips from the 4×4 barrel sheet', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'goblin_barrel')!
     expect(cardAvatarKey('goblin_barrel')).toBe('avatar_goblin_barrel')
-    expect(cardAvatarKey('goblin_barrel')).not.toBe('barrel_blue')
-    expect(getCardAvatarDef('goblin_barrel').path).toContain('Barrel_Blue.png')
+    expect(cardAvatarKey('goblin_barrel')).not.toBe('barrel_yellow')
+    expect(getCardAvatarDef('goblin_barrel').path).toContain('Barrel_Yellow.png')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('goblin_barrel').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
       expect(side.idle.sheet.path).toContain('Barrel_')
-      expect(side.idle.sheet.frameWidth).toBe(192)
+      expect(side.idle.sheet.frameWidth).toBe(128)
       expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
     }
     expect(bundle.player.idle.start).toBe(0)

@@ -9,6 +9,7 @@ import {
   EXPLOSION_SHEET,
   GOBLIN_DYNAMITE_SHEET,
   GNOLL_BONE_SHEET,
+  TNT_BARREL_LOWHP_FX,
   TROOP_DEATH_SHEET,
   WATER_SPLASH_SHEET,
   PADDLE_SHARK_IDLE_SHEET,
@@ -125,8 +126,8 @@ export function registerHexShamanFx(scene: Phaser.Scene): void {
 /** Per-card fire-colored orb projectile (3 frames, loops) + explosion (9 frames, one-shot).
  *  Keys are side-independent: the fire color is card-identity, not faction. */
 export function registerShamanOrbFx(scene: Phaser.Scene): void {
-  // elder_shaman uses HexTransformPool, lightning_shaman uses LightningShamanPool (static assets)
-  for (const cardId of ['wizard', 'voodoo_shaman']) {
+  // elder_shaman uses HexTransformPool, snake uses SnakeSprayPool (static assets)
+  for (const cardId of ['voodoo_shaman']) {
     const projKey  = `${cardId}_projectile`
     const projAnim = `${cardId}_projectile_anim`
     if (!scene.anims.exists(projAnim) && scene.textures.exists(projKey)) {
@@ -191,6 +192,21 @@ export function registerGnollBoneFx(scene: Phaser.Scene): void {
       end: GNOLL_BONE_SHEET.frameEnd,
     }),
     frameRate: GNOLL_BONE_SHEET.frameRate,
+    repeat: -1,
+  })
+}
+
+/** TNT Barrel low-HP spark loop — Red barrel's crack-open frames, either side. */
+export function registerTntBarrelLowHpFx(scene: Phaser.Scene): void {
+  if (scene.anims.exists(TNT_BARREL_LOWHP_FX.animKey)) return
+  if (!scene.textures.exists(TNT_BARREL_LOWHP_FX.key)) return
+  scene.anims.create({
+    key: TNT_BARREL_LOWHP_FX.animKey,
+    frames: scene.anims.generateFrameNumbers(TNT_BARREL_LOWHP_FX.key, {
+      start: TNT_BARREL_LOWHP_FX.frameStart,
+      end: TNT_BARREL_LOWHP_FX.frameEnd,
+    }),
+    frameRate: TNT_BARREL_LOWHP_FX.frameRate,
     repeat: -1,
   })
 }

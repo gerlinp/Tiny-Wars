@@ -72,7 +72,6 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   archer:        AT('2024-06-08T12:00:00.000Z'),
   skeleton:      AT('2024-06-15T12:00:00.000Z'),
   lancer:        AT('2024-06-22T12:00:00.000Z'),
-  wizard:        AT('2024-07-01T12:00:00.000Z'),
   arrows:        AT('2024-07-08T12:00:00.000Z'),
   elite_archer:  AT('2024-07-15T12:00:00.000Z'),
   skeleton_army: AT('2026-05-15T12:00:00.000Z'),
@@ -99,10 +98,11 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   spider:           AT('2026-06-28T18:00:00.000Z'),
   spiderling:       AT('2026-06-28T18:00:00.000Z'),
   elder_shaman:     AT('2026-06-30T12:00:00.000Z'),
-  lightning_shaman: AT('2026-06-30T12:00:00.000Z'),
+  snake:            AT('2026-06-30T12:00:00.000Z'),
   voodoo_shaman:    AT('2026-06-30T12:00:00.000Z'),
   miner:            AT('2026-07-07T12:00:00.000Z'),
   torch_goblin:     AT('2026-07-08T12:00:00.000Z'),
+  tnt_barrel:       AT('2026-07-08T18:00:00.000Z'),
 }
 
 function withAddedAtTimestamps(
@@ -131,7 +131,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   }, 'warrior_blue_idle', 'warrior_red_idle'),
 
   /** ×2 deploy — Knights faction archer art. */
-  archer: troop('archer', 'Archers',
+  archer: troop('archer', 'Archer',
     'A pair of archers who attack from range. Can target both air and ground units.',
     3, {
     maxHp: 201,
@@ -157,7 +157,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   }, 'archer_blue_idle', 'archer_red_idle'),
 
 /** ×3 deploy — Skull enemy art. */
-  skeleton: troop('skeleton', 'Skeletons',
+  skeleton: troop('skeleton', 'Skeleton',
     'Three fragile but fast skeletons. Cheap distraction that overwhelms through numbers.',
     1, {
     maxHp: 108,
@@ -185,7 +185,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   }, 'skeleton_blue_idle', 'skeleton_red_idle', 14),
 
   /** ×3 deploy — Spear Goblin art, armor absorbs damage first. */
-  spear_goblin: troop('spear_goblin', 'Spear Goblins',
+  spear_goblin: troop('spear_goblin', 'Spear Goblin',
     'Three spear-wielding brutes with armor. Armor absorbs damage before their health does.',
     3, {
     maxHp: 280,
@@ -239,19 +239,6 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     pushWeight: 1.5,  // Prince-class: fast charger shoves lighter units
   }, 'lancer_blue_idle', 'lancer_red_idle'),
 
-  wizard: troop('wizard', 'Fire Shaman',
-    'Launches fireballs that splash-damage all nearby enemies. Hits air and ground.',
-    5, {
-    maxHp: 997,
-    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
-    damage: 371,
-    attackRate: 1 / 1.4,
-    attackRange: 5.5,
-    unitType: UnitType.GROUND,
-    attackType: AttackType.AIR_AND_GROUND,
-    splashRadius: 1.5,
-  }, 'wizard_blue_idle', 'wizard_red_idle'),
-
   elder_shaman: troop('elder_shaman', 'Elder Shaman',
     'Hurls a transformation hex that splashes nearby enemies. Hits air and ground.',
     5, {
@@ -265,8 +252,8 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     splashRadius: 1.8,
   }, 'elder_shaman_blue_idle', 'elder_shaman_red_idle'),
 
-  lightning_shaman: troop('lightning_shaman', 'Lightning Shaman',
-    'Fires crackling lightning bolts that hit air and ground.',
+  snake: troop('snake', 'Snake',
+    'Fires crackling lightning bolts that chain to a second target and stun on hit. Hits air and ground.',
     4, {
     maxHp: 895,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
@@ -276,7 +263,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     unitType: UnitType.GROUND,
     attackType: AttackType.AIR_AND_GROUND,
     splashRadius: 1.5,
-  }, 'lightning_shaman_blue_idle', 'lightning_shaman_red_idle'),
+  }, 'snake_blue_idle', 'snake_red_idle'),
 
   voodoo_shaman: troop('voodoo_shaman', 'Voodoo Shaman',
     'Hurls dark bolts with splash damage and periodically summons skeletons. Hits air and ground.',
@@ -335,7 +322,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     pushWeight: 3.0,  // Giant-class: bulldozes lighter allies out of the way
   }, 'bear_blue_idle', 'bear_red_idle'),
 
-  /** Splash-damage caster — Torch Goblin art, Fire Shaman/wizard stats. */
+  /** Splash-damage caster — Torch Goblin art. */
   torch_goblin: troop('torch_goblin', 'Torch Goblin',
     'Launches fireballs that splash-damage all nearby enemies. Hits air and ground.',
     5, {
@@ -365,7 +352,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   }, 'pig_rider_blue_idle', 'pig_rider_red_idle'),
 
   /** ×4 deploy — Pig art. CR Royal Hogs (building-only rush). */
-  pig: troop('pig', 'Pigs',
+  pig: troop('pig', 'Pig',
     'Four fast hogs that ignore enemy troops and charge straight for buildings.',
     5, {
     maxHp: 1108,
@@ -407,6 +394,25 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     deathSplashRadius: 2.5,
     deathSplashDamage: 614,
   }, 'goblin_demolisher_blue_sheet', 'goblin_demolisher_red_sheet'),
+
+  /** ×2 deploy — rolling barrel bomb art. Always rushes buildings and detonates on first
+   *  contact, never engaging troops or standing to fight. Reduced payload if killed en route. */
+  tnt_barrel: troop('tnt_barrel', 'TNT Barrel',
+    'Two fragile goblins that ignore enemy troops and rush the nearest building, detonating on contact.',
+    2, {
+    maxHp: 240,
+    speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
+    damage: 700,
+    attackRate: 1,
+    attackRange: 1.0,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+    targetsBuildingsOnly: true,
+    suicideOnAttack: true,
+    deathSplashRadius: 0.8,
+    deathSplashDamage: 700,
+    deathSplashDamageOffTarget: 200,
+  }, 'goblin_demolisher_blue_sheet', 'goblin_demolisher_red_sheet', 2),
 
   /** Mega Knight analog — spawn slam handled in GameSimulator.deployCard. */
   minotaur: troop('minotaur', 'Minotaur',
@@ -570,7 +576,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   }, 'wood_tower_blue_sheet', 'wood_tower_red_sheet'),
 
   /** King-launched ground spell — Bomb enemy art. */
-  tnt: spell('tnt', 'Big Bomb',
+  tnt: spell('tnt', 'TNT',
     'A slow arcing bomb from your king tower. Huge damage on ground targets in a small radius.',
     6, {
     damage: 1960, radius: 2, duration: 0, groundOnly: true, delivery: 'rocket',
@@ -582,7 +588,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     3, {
     damage: 0, radius: 1.5, duration: 0, delivery: 'rocket',
     spawnCardId: 'villagers', spawnCount: 3,
-  }, 'barrel_blue', 'barrel_red'),
+  }, 'barrel_yellow', 'barrel_yellow'),
 }
 
 export const CARD_DEFINITIONS: Record<string, CardDefinition> =

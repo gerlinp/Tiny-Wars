@@ -78,6 +78,22 @@ export function applyHealInRadius(
   }
 }
 
+export function applyStunInRadius(
+  state: GameState,
+  owner: Owner,
+  center: Vec2,
+  radiusCells: number,
+  durationMs: number,
+): void {
+  const radiusPx = radiusCells * CELL_SIZE
+
+  for (const entity of state.entities.values()) {
+    if (entity.owner === owner || !entity.isAlive || entity.kind !== EntityKind.TROOP) continue
+    if (dist(center, entity.position) > radiusPx) continue
+    ;(entity as Troop).applyStun(durationMs)
+  }
+}
+
 export function applySlowInRadius(
   state: GameState,
   owner: Owner,

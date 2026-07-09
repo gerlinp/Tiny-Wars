@@ -64,9 +64,16 @@ export const VOODOO_SHAMAN_MINION_SPAWN_INTERVAL_MS = 7000
 export const VOODOO_SHAMAN_MINION_SPAWN_INITIAL_DELAY_MS = 1000
 
 // ---------------------------------------------------------------------------
-// Snake (Electro Wizard — chains venom spray to a second target)
+// Snake (Electro Wizard — chains venom spray to a second target, stuns on hit)
 // ---------------------------------------------------------------------------
 export const SNAKE_CHAIN_RANGE_PX = 5 * 64  // 5 cells in pixels
+/** Brief lock-up on every troop the venom hits — CR Electro Wizard-style stun. */
+export const SNAKE_STUN_DURATION_MS = 500
+/** CR Electro Wizard — deploy zap deals the same damage as a normal hit. */
+export const SNAKE_SPAWN_ZAP_DAMAGE = 300
+export const SNAKE_SPAWN_ZAP_RADIUS_CELLS = 1.5
+/** Crown towers take spell-style reduced damage from the deploy zap. */
+export const SNAKE_SPAWN_ZAP_TOWER_DAMAGE_MULT = 0.35
 
 // ---------------------------------------------------------------------------
 // Minotaur (Mega Knight-style spawn slam)

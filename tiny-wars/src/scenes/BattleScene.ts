@@ -332,8 +332,15 @@ export class BattleScene extends Phaser.Scene {
         case 'GROUND_SLAM': {
           // Minotaur — impact blast on spawn landing and on jump-attack landing. Uses the
           // water-splash sheet so the ground itself appears to crack/splash under the hit.
-          this.dust.spawn(event.position.x, event.position.y, logicDisplayHeightForCard(event.cardId))
-          this.groundSlam.spawn(event.position.x, event.position.y, event.radius * CELL_SIZE * 1.8)
+          // Snake's deploy zap reuses the same splash, tinted green to read as venom.
+          const isSnakeZap = event.cardId === 'snake'
+          if (!isSnakeZap) this.dust.spawn(event.position.x, event.position.y, logicDisplayHeightForCard(event.cardId))
+          this.groundSlam.spawn(
+            event.position.x,
+            event.position.y,
+            event.radius * CELL_SIZE * 1.8,
+            isSnakeZap ? 0x33dd55 : undefined,
+          )
           break
         }
         case 'SPELL_CAST': {
@@ -485,9 +492,9 @@ export class BattleScene extends Phaser.Scene {
               })
             } else if (cardId === 'elder_shaman') {
               this.hexTransforms.spawn(from, to, attacker.owner, attackRate, flash)
-            } else if (cardId === 'wizard' || cardId === 'voodoo_shaman') {
+            } else if (cardId === 'voodoo_shaman') {
               this.hexShamanOrbs.spawn(from, to, cardId, attacker.owner, attackRate, flash)
-            } else if (cardId === 'lightning_shaman') {
+            } else if (cardId === 'snake') {
               // Continuous venom jet — no travel time, no separate impact burst. Fires once for
               // the primary hit and again for the chain-lightning bounce (chainFrom → 2nd target),
               // reading as an Electro Wizard-style spray that hits multiple things at once.
