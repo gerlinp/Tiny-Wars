@@ -601,7 +601,7 @@ export class Troop extends Entity {
       } else {
         this.applySnakeStun(primary)
       }
-      this.dealChainLightning(state, primary, damage)
+      this.dealChainVenom(state, primary, damage)
     }
     this.resetCharge()
     this.applyActiveHeal(state)
@@ -611,7 +611,7 @@ export class Troop extends Entity {
     if (target.kind === EntityKind.TROOP) (target as Troop).applyStun(SNAKE_STUN_DURATION_MS)
   }
 
-  private dealChainLightning(state: GameState, primary: Entity, damage: number): void {
+  private dealChainVenom(state: GameState, primary: Entity, damage: number): void {
     let nearest: Entity | null = null
     let nearestDist = Infinity
     for (const entity of state.entities.values()) {

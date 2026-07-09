@@ -496,7 +496,7 @@ export class BattleScene extends Phaser.Scene {
               this.hexShamanOrbs.spawn(from, to, cardId, attacker.owner, attackRate, flash)
             } else if (cardId === 'snake') {
               // Continuous venom jet — no travel time, no separate impact burst. Fires once for
-              // the primary hit and again for the chain-lightning bounce (chainFrom → 2nd target),
+              // the primary hit and again for the chain-venom bounce (chainFrom → 2nd target),
               // reading as an Electro Wizard-style spray that hits multiple things at once.
               this.snakeSpray.spawn(from, to, flash)
             } else if (cardId === 'lizard' || cardId === 'torch_goblin' || cardId === 'bomb_fish' || cardId === 'spider') {

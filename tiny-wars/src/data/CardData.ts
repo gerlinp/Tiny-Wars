@@ -253,7 +253,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   }, 'elder_shaman_blue_idle', 'elder_shaman_red_idle'),
 
   snake: troop('snake', 'Snake',
-    'Fires crackling lightning bolts that chain to a second target and stun on hit. Hits air and ground.',
+    'Spits venom that splashes to a second target and stuns on hit. Hits air and ground.',
     4, {
     maxHp: 895,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
