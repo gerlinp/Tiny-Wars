@@ -381,7 +381,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   }, 'bomb_fish_blue_idle', 'bomb_fish_red_idle'),
 
   /** Building-only wall-breaker — Factions TNT goblin art. */
-  goblin_demolisher: troop('goblin_demolisher', 'Goblin Demolisher',
+  goblin_demolisher: troop('goblin_demolisher', 'TNT Goblin',
     'Lobs dynamite at ground troops. At half health, charges the nearest building and explodes on death.',
     4, {
     maxHp: 1300,
