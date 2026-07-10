@@ -31,7 +31,7 @@ import {
   worldRow,
 } from '../Movement'
 import { getLaneMarchGoal } from '../LaneMovement'
-import { kingTowerRangedAttackPoint, towerSlotOriginCenter } from '@rendering/towerRenderPosition'
+import { kingTowerRangedAttackPoint, towerSlotOriginCenter, towerVisualBounds } from '@rendering/towerRenderPosition'
 import { bombTowerMeleeLayout } from '@data/BombTowerMeleeLayout'
 import { kingTowerMeleeLayout } from '@data/KingTowerMeleeLayout'
 import { princessTowerMeleeLayout } from '@data/PrincessTowerMeleeLayout'
@@ -181,6 +181,25 @@ export class Troop extends Entity {
     return this.state === TroopState.ATTACKING
   }
 
+  /** Structure this unit was actively engaged with (in range, attack state) when it died —
+   *  e.g. Air Boat's dropped bomb lands at the base of the target once it's in the fight.
+   *  Killed mid-approach (still WALKING toward it, not yet in range) drops the bomb where the
+   *  unit actually died. */
+  getDeathStructureTargetPosition(): Vec2 | null {
+    if (this.state !== TroopState.ATTACKING) return null
+    if (!this.target || !this.target.isAlive) return null
+    if (this.target.kind === EntityKind.TOWER) {
+      const tower = this.target as Tower
+      const bounds = towerVisualBounds(tower.position.y, tower.owner, tower.isKing, tower.position.x)
+      return { x: tower.position.x, y: bounds.bottom }
+    }
+    if (this.target.kind === EntityKind.BUILDING) {
+      // Buildings are bottom-anchored sprites (origin.y = 1) — position is already the base.
+      return { ...this.target.position }
+    }
+    return null
+  }
+
   /** Snap back after collision resolution so the thrower stays planted. */
   restoreBoomerangAnchor(): void {
     if (!this.boomerangAnchorPos) return
@@ -241,7 +260,7 @@ export class Troop extends Entity {
   private armorHp = 0
   private boomerangAnchorPos: Vec2 | null = null
   private spawnMinionCooldownMs: number | null = null
-  /** Goblin Demolisher — HP clamped at charge threshold until the suicide run starts. */
+  /** TNT Goblin — HP clamped at charge threshold until the suicide run starts. */
   private buildingChargeArmed = false
   private buildingChargeRunActive = false
   private spawnTimerMs = 0
@@ -648,7 +667,7 @@ export class Troop extends Entity {
     })
   }
 
-  /** CR Goblin Demolisher — kamikaze at or below this HP fraction (e.g. 0.5 = half health). */
+  /** CR TNT Goblin — kamikaze at or below this HP fraction (e.g. 0.5 = half health). */
   inBuildingChargeMode(): boolean {
     // Wall-Breaker-style units (EntityStats.suicideOnAttack) are always armed — no HP threshold.
     if (this.stats.suicideOnAttack) return true
@@ -807,21 +826,36 @@ export class Troop extends Entity {
     if (!radius) return
     this.deathExplosionTriggered = true
 
+    const center = this.deathNovaCenter()
     const damage = this.detonatedOnChargeTarget
       ? (this.stats.deathSplashDamage ?? this.stats.damage)
       : (this.stats.deathSplashDamageOffTarget ?? this.stats.deathSplashDamage ?? this.stats.damage)
-    dealAreaDamage(state, this.owner, this.position, radius, damage, () => true, this.id)
+    dealAreaDamage(state, this.owner, center, radius, damage, () => true, this.id)
 
     if (this.stats.deathSlowDurationMs && this.stats.deathSlowSpeedMultiplier !== undefined) {
       applySlowInRadius(
         state,
         this.owner,
-        this.position,
+        center,
         radius,
         this.stats.deathSlowDurationMs,
         this.stats.deathSlowSpeedMultiplier,
       )
     }
+  }
+
+  /** Where the death nova is centered — usually this unit's own position, but Air Boat's
+   *  dropped bomb should land on the structure it was attacking, not wherever it was shot down. */
+  private deathNovaCenter(): Vec2 {
+    if (this.cardId === 'air_boat') {
+      return this.getDeathStructureTargetPosition() ?? this.position
+    }
+    return this.position
+  }
+
+  /** Public read of the resolved nova center — lets renderers sync VFX/drop position to it. */
+  getDeathNovaCenter(): Vec2 {
+    return this.deathNovaCenter()
   }
 
   /** Wall-breaker style detonation on reaching a structure in charge mode. */

@@ -31,6 +31,7 @@ export function resolveDeaths(state: GameState): void {
           cardId: troop.cardId,
           deathSplashRadius: troop.stats.deathSplashRadius,
           owner: troop.owner,
+          targetPosition: troop.getDeathNovaCenter(),
         })
       } else {
         state.events.push({ type: 'DEATH', entityId: id, position: { ...entity.position } })

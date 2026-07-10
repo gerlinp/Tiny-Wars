@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
-import { CARD_ASSET_BUNDLES, AVATAR_BACKDROP_BANNER, AVATAR_CROP_RATIO_DEFAULT, EXPLOSION_SHEET, GARRISON_CANNON_BALL, GNOLL_BONE_SHEET, GOBLIN_DYNAMITE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarCropRatio, getCardAvatarDef, getCardAvatarSwarmSource, getUseEditorCompositeAvatar, resolveAttackAnimKey } from '@data/AssetManifest'
+import { CARD_ASSET_BUNDLES, AVATAR_CROP_RATIO_DEFAULT, EXPLOSION_SHEET, GARRISON_CANNON_BALL, GNOLL_BONE_SHEET, GOBLIN_DYNAMITE_SHEET, HARPOON_PROJECTILE_SHEET, HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, cardAvatarKey, getCardAvatarBackdrop, getCardAvatarCropRatio, getCardAvatarDef, getCardAvatarSwarmSource, getUseEditorCompositeAvatar, resolveAttackAnimKey } from '@data/AssetManifest'
 import { DEFAULT_DECK, CARD_DEFINITIONS } from '@data/CardData'
 import { Owner } from '@core/types'
 
@@ -66,10 +66,8 @@ describe('Card avatars', () => {
     expect(getCardAvatarDef('big_bomb').path).toContain('Bomb_Idle.png')
   })
 
-  it('big_bomb layers bomb idle on the banner slot backdrop', () => {
-    const backdrop = getCardAvatarBackdrop('big_bomb')
-    expect(backdrop).toEqual(AVATAR_BACKDROP_BANNER)
-    expect(existsSync(resolve(PUBLIC, backdrop!.path))).toBe(true)
+  it('big_bomb shows the bare bomb icon with no banner backdrop', () => {
+    expect(getCardAvatarBackdrop('big_bomb')).toBeNull()
   })
 
   it('arrows uses the archer arrow sprite for the card hand', () => {

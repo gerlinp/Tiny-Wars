@@ -1646,7 +1646,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   {
     cardId: 'big_bomb',
     avatar: { key: 'avatar_bomb_idle', path: `${BOMB_PATH}/Bomb_Idle.png` },
-    avatarBackdrop: AVATAR_BACKDROP_BANNER,
     contentFill: 0.82,
     player: bombSide(),
     bot:    bombSide(),

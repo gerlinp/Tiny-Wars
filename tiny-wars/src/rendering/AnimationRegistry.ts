@@ -179,7 +179,7 @@ export function registerAirBoatCrewFx(scene: Phaser.Scene): void {
   }
 }
 
-/** Goblin Demolisher dynamite stick — spinning projectile strip. */
+/** TNT Goblin dynamite stick — spinning projectile strip. */
 export function registerGoblinDynamiteFx(scene: Phaser.Scene): void {
   const { key, animKey, frameEnd, frameRate } = GOBLIN_DYNAMITE_SHEET
   if (scene.anims.exists(animKey)) return

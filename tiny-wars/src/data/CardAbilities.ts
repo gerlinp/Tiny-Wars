@@ -40,7 +40,7 @@ export const HOOK_SLOW_DURATION_MS = 1500
 export const HOOK_SLOW_SPEED_MULT = 0.65
 
 // ---------------------------------------------------------------------------
-// Goblin Demolisher (building-charge / kamikaze mode)
+// TNT Goblin (building-charge / kamikaze mode)
 // ---------------------------------------------------------------------------
 /** At or below this HP fraction, enter building-charge mode. */
 export const GOBLIN_DEMOLISHER_CHARGE_HP_FRACTION = 0.5

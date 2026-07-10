@@ -24,7 +24,7 @@ import type { Building } from '@core/entities/Building'
 import { Owner, EntityKind, TroopState, BuildingState, CardType } from '@core/types'
 import type { EntityStats } from '@core/types'
 import { usesArrowProjectile, usesCannonHit } from '@data/AudioManifest'
-import { getAttackWindupMs, getRunLeapPose, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL, type AnimClip } from '@data/AssetManifest'
+import { getAttackWindupMs, getRunLeapPose, clipAnimKey, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL, type AnimClip } from '@data/AssetManifest'
 import { arrowFlightMs, rocketFlightMs } from '@data/ProjectileConstants'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { loadPlayerDeck } from '@data/PlayerDeck'
@@ -43,6 +43,12 @@ import { SoundManager } from '@audio/SoundManager'
 
 /** Small footprint-sized puffs for the Miner's dig trail — distinct dots, not one big blob. */
 const MINER_DIG_TRAIL_PUFF_SIZE = CELL_SIZE * 1.3
+
+/** Air Boat death bomb — how long it sits with a lit fuse on the ground before detonating. */
+const AIR_BOAT_BOMB_FUSE_MS = 1800
+/** Sized like the other TNT-family units on the map, not the smaller lobbed-projectile scale. */
+const AIR_BOAT_BOMB_DISPLAY =
+  (logicDisplayHeightForCard('goblin_demolisher') + logicDisplayHeightForCard('tnt_barrel')) / 2
 
 export class BattleScene extends Phaser.Scene {
   private grid!: Grid
@@ -543,18 +549,31 @@ export class BattleScene extends Phaser.Scene {
         }
         case 'DEATH': {
           if (event.deathSplashRadius && event.cardId === 'air_boat') {
-            // Balloon-style death: the boat drops a bomb barrel that falls and
-            // explodes a beat later, instead of detonating on the spot.
-            const { x, y } = event.position
-            this.barrelProjectiles.spawn(
+            // Balloon-style death: the boat drops a bomb that falls, sits lit on the
+            // ground for a beat, then detonates — instead of exploding on impact. Lands on
+            // the structure the boat was attacking (Troop.getDeathNovaCenter), not wherever
+            // it happened to be shot down, so the blast always reaches its target.
+            const { x, y } = event.targetPosition ?? event.position
+            const owner = event.owner ?? Owner.PLAYER
+            this.tntProjectiles.spawn(
               { x, y: y - CELL_SIZE * 1.5 },
               { x, y },
-              event.owner ?? Owner.PLAYER,
+              owner,
               450,
               () => {
-                this.sounds.playCannonHit()
-                this.effects.spawn(x, y, event.deathSplashRadius! * CELL_SIZE)
+                const fuseAnim = clipAnimKey('big_bomb', owner, 'attack')
+                const fuseSprite = this.add.sprite(x, y, 'bomb_fuse_lit', 0)
+                  .setDepth(21)
+                  .setDisplaySize(AIR_BOAT_BOMB_DISPLAY, AIR_BOAT_BOMB_DISPLAY)
+                if (this.anims.exists(fuseAnim)) fuseSprite.play(fuseAnim)
+                this.time.delayedCall(AIR_BOAT_BOMB_FUSE_MS, () => {
+                  fuseSprite.destroy()
+                  this.sounds.playCannonHit()
+                  this.effects.spawn(x, y, event.deathSplashRadius! * CELL_SIZE)
+                })
               },
+              'straight',
+              { projectileKey: 'bomb_idle', spinAnimKey: '' },
             )
           } else if (event.deathSplashRadius && event.cardId !== 'turtle') {
             // Turtle's chilling nova reads as the water splash death below, not a fire blast.
@@ -667,7 +686,7 @@ export class BattleScene extends Phaser.Scene {
             // Pig uses its run sheet as the attack clip — keep showing run between swings
             // so it looks active rather than standing idle while hammering the tower.
             if (cardId === 'pig') anim = 'run'
-            // Goblin Demolisher's kamikaze charge shouldn't visibly halt into an idle pose
+            // TNT Goblin's kamikaze charge shouldn't visibly halt into an idle pose
             // right before impact — keep the run animation through the windup/explosion.
             if (cardId === 'goblin_demolisher' && troop.isBuildingChargeRunActive()) anim = 'run'
             attackSync = {
