@@ -487,7 +487,7 @@ function pirateTowerSide(cardId: string, side: 'blue' | 'red'): SideAssets {
   )
 }
 
-const TORCH_GOBLIN_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin'
+const FIRE_GOBLIN_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin'
 const HEX_SHAMAN_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman'
 const HEX_FX_FRAME = 128
 
@@ -518,34 +518,34 @@ export const HEX_SHAMAN_BASE_AVATAR: ImageDef = {
   path: `${ENEMY_AVATARS}/Hex Shaman.png`,
 }
 
-/** Elder Shaman — transformation circle that plays at the impact point. */
-export const HEX_SHAMAN_TRANSFORM_SPELL_SHEET = {
-  key: 'hex_shaman_transform_spell',
-  path: `${HEX_SHAMAN_PATH}/Hex Shaman_Transformation Spell.png`,
-  frameWidth: FRAME_W,
-  frameHeight: FRAME_H,
-  frameEnd: 10,
-  frameRate: 14,
-  animKey: 'hex_shaman_transform_anim',
-} as const
-
-/** Elder Shaman — explosion spell that follows the transformation. */
-export const HEX_SHAMAN_EXPLOSION_SPELL_SHEET = {
-  key: 'hex_shaman_explosion_spell',
-  path: `${HEX_SHAMAN_PATH}/Hex Shaman_Explosion Spell.png`,
-  frameWidth: FRAME_W,
-  frameHeight: FRAME_H,
-  frameEnd: 9,
-  frameRate: 16,
-  animKey: 'hex_shaman_explosion_spell_anim',
-} as const
-
 const BARREL_PATH = 'assets/Factions/Goblins/Troops/Barrel'
 /** Sheet is a 6×6 grid of 128px cells — not FRAME_W (192px), which slices frames across icons. */
 const BARREL_FRAME = 128
 
 const TNT_PATH = 'assets/Factions/Goblins/Troops/TNT'
 const TNT_FRAME = FRAME_W
+
+const TORCH_PATH = 'assets/Factions/Goblins/Troops/Torch'
+const TORCH_FRAME = FRAME_W
+
+/** Factions Torch goblin — 7×5 sheet @192px. Row 0 idle, row 1 walk, row 2 torch swing. */
+function torchSheet(side: 'Blue' | 'Red'): SheetDef {
+  return {
+    key: `torch_${side.toLowerCase()}_sheet`,
+    path: `${TORCH_PATH}/${side}/Torch_${side}.png`,
+    frameWidth: TORCH_FRAME,
+    frameHeight: TORCH_FRAME,
+  }
+}
+
+function torchSide(side: 'Blue' | 'Red'): SideAssets {
+  const sheet = torchSheet(side)
+  return {
+    idle:   clip(sheet, 0,  6,  10, -1),
+    run:    clip(sheet, 7,  12, 14, -1),
+    attack: clip(sheet, 14, 19, 14,  0),
+  }
+}
 
 export const GOBLIN_DYNAMITE_SHEET = {
   key: 'goblin_dynamite',
@@ -638,19 +638,19 @@ function bombSide(): SideAssets {
   }
 }
 
-/** Enemy Pack Torch Goblin — separate clips per anim (matches card avatar). */
-function torchGoblinSide(side: 'blue' | 'red'): SideAssets {
+/** Enemy Pack Fire Goblin (Torch Goblin art) — separate clips per anim (matches card avatar). */
+function fireGoblinSide(side: 'blue' | 'red'): SideAssets {
   const idle: SheetDef = {
-    key: `torch_goblin_${side}_idle`,
-    path: `${TORCH_GOBLIN_PATH}/Torch Goblin_Idle.png`,
+    key: `fire_goblin_${side}_idle`,
+    path: `${FIRE_GOBLIN_PATH}/Torch Goblin_Idle.png`,
   }
   const run: SheetDef = {
-    key: `torch_goblin_${side}_run`,
-    path: `${TORCH_GOBLIN_PATH}/Torch Goblin_Run.png`,
+    key: `fire_goblin_${side}_run`,
+    path: `${FIRE_GOBLIN_PATH}/Torch Goblin_Run.png`,
   }
   const attack: SheetDef = {
-    key: `torch_goblin_${side}_attack`,
-    path: `${TORCH_GOBLIN_PATH}/Torch Goblin_Attack.png`,
+    key: `fire_goblin_${side}_attack`,
+    path: `${FIRE_GOBLIN_PATH}/Torch Goblin_Attack.png`,
   }
   return {
     idle:   clip(idle,   0, 7, 10, -1),
@@ -711,29 +711,27 @@ function villagersSide(side: 'Blue' | 'Red'): SideAssets {
   }
 }
 
-function minerSheet(side: 'Blue' | 'Red', clip: 'idle' | 'run' | 'attack'): SheetDef {
-  const folder = side === 'Blue' ? 'Blue Units' : 'Red Units'
-  const prefix = side === 'Blue' ? 'blue' : 'red'
-  const file = clip === 'idle' ? 'Pawn_Idle Pickaxe.png'
-    : clip === 'run' ? 'Pawn_Run Pickaxe.png'
-    : 'Pawn_Interact Pickaxe.png'
-  return {
-    key: `miner_${prefix}_${clip}`,
-    path: `assets/Units/${folder}/Pawn/${file}`,
-    frameWidth: FRAME_W,
-    frameHeight: FRAME_H,
-  }
-}
+const GNOME_PATH = 'assets/Enemy Pack/Enemies/Gnome'
 
-/** Pawn-with-pickaxe art — Miner card. Pickaxe interact clip = digging swing. */
+/** Enemy Pack Gnome art — Miner card. Single palette; bot side gets a red tint. */
 function minerSide(side: 'Blue' | 'Red'): SideAssets {
-  const idle   = minerSheet(side, 'idle')
-  const run    = minerSheet(side, 'run')
-  const attack = minerSheet(side, 'attack')
+  const prefix = side.toLowerCase()
+  const idle: SheetDef = {
+    key: `miner_${prefix}_idle`,
+    path: `${GNOME_PATH}/Gnome_Idle.png`,
+  }
+  const run: SheetDef = {
+    key: `miner_${prefix}_run`,
+    path: `${GNOME_PATH}/Gnome_Run.png`,
+  }
+  const attack: SheetDef = {
+    key: `miner_${prefix}_attack`,
+    path: `${GNOME_PATH}/Gnome_Attack.png`,
+  }
   return {
     idle:   clip(idle,   0, 7, 10, -1),
     run:    clip(run,    0, 5, 14, -1),
-    attack: clip(attack, 0, 5, 14,  0),
+    attack: clip(attack, 0, 6, 14,  0),
   }
 }
 
@@ -1341,35 +1339,35 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'miner',
-    avatar: { key: 'avatar_villagers', path: `${HUMAN_AVATARS}/Avatars_05.png` },
-    avatarHandScale: 1.11,
-    contentFill: 0.52,
-    attackHitFrame: 3,
+    avatar: enemyAvatar('Enemy Avatars_15.png'),
+    avatarHandScale: 0.93,
+    contentFill: 0.37,
+    tintBotSide: true,
     player: minerSide('Blue'),
     bot:    minerSide('Red'),
   },
   {
-    cardId: 'torch_goblin',
+    cardId: 'fire_goblin',
     avatar: enemyAvatar('Torch Goblin.png'),
     avatarCropRatio: 0.65,
     avatarHandScale: 1.03,
     contentFill: 0.55,
     attackHitFrame: 3,
     tintBotSide: true,
-    player: torchGoblinSide('blue'),
-    bot:    torchGoblinSide('red'),
+    player: fireGoblinSide('blue'),
+    bot:    fireGoblinSide('red'),
   },
   {
-    cardId: 'elder_shaman',
-    avatar: { key: 'avatar_elder_shaman', path: '' },
-    avatarCropRatio: 0.72,
-    avatarHandScale: 1.46,
+    cardId: 'pig_shaman',
+    avatar: { key: 'avatar_pig_shaman', path: '' },
+    avatarCropRatio: 0.65,
+    avatarHandScale: 1.0,
     contentFill: 0.55,
     attackHitFrame: 6,
     tintBotSide: true,
     editorSpritePath: `${HEX_SHAMAN_PATH}/Hex Shaman_Idle.png`,
-    player: shamanSide('elder_shaman', 'blue'),
-    bot:    shamanSide('elder_shaman', 'red'),
+    player: shamanSide('pig_shaman', 'blue'),
+    bot:    shamanSide('pig_shaman', 'red'),
   },
   {
     cardId: 'snake',
@@ -1381,18 +1379,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     tintBotSide: true,
     player: snakeSide('blue'),
     bot:    snakeSide('red'),
-  },
-  {
-    cardId: 'voodoo_shaman',
-    avatar: { key: 'avatar_voodoo_shaman', path: '' },
-    avatarCropRatio: 0.72,
-    avatarHandScale: 1.46,
-    contentFill: 0.55,
-    attackHitFrame: 6,
-    tintBotSide: true,
-    editorSpritePath: `${HEX_SHAMAN_PATH}/Hex Shaman_Idle.png`,
-    player: shamanSide('voodoo_shaman', 'blue'),
-    bot:    shamanSide('voodoo_shaman', 'red'),
   },
   {
     cardId: 'lizard',
@@ -1429,16 +1415,9 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
   },
   {
     cardId: 'bear',
-    avatar: {
-      key: 'avatar_bear',
-      path: `${BEAR_PATH}/Bear_Idle.png`,
-      frameWidth: BEAR_FRAME,
-      frameHeight: BEAR_FRAME,
-      frame: 0,
-    },
-    avatarBackdrop: AVATAR_BACKDROP_BANNER,
+    avatar: enemyAvatar('Enemy Avatars_14.png'),
     avatarCropRatio: 0.55,
-    avatarHandScale: 1.50,
+    avatarHandScale: 1.03,
     contentFill: 0.50,
     attackHitFrame: 4,
     tintBotSide: true,
@@ -1499,6 +1478,31 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     attackHitFrame: 17,
     player: goblinDemolisherSide('Blue'),
     bot:    goblinDemolisherSide('Red'),
+  },
+  {
+    // Ranged dart-thrower — reuses harpoon_shark's old stats now that harpoon_shark is back to hook-pull.
+    cardId: 'torch',
+    avatar: {
+      key: 'avatar_torch',
+      path: `${TORCH_PATH}/Blue/Torch_Blue.png`,
+      frameWidth: TORCH_FRAME,
+      frameHeight: TORCH_FRAME,
+      frame: 0,
+    },
+    avatarHandScale: 1.50,
+    contentFill: 0.41,
+    player: torchSide('Blue'),
+    bot:    torchSide('Red'),
+  },
+  {
+    // Cheap fast melee swarm — same hooded villager art + stats as the villagers spawn minion.
+    cardId: 'goblins',
+    avatar: { key: 'avatar_villagers', path: `${HUMAN_AVATARS}/Avatars_05.png` },
+    avatarHandScale: 1.11,
+    contentFill: 0.52,
+    attackHitFrame: 2,
+    player: villagersSide('Blue'),
+    bot:    villagersSide('Red'),
   },
   {
     // Rolling barrel bomb — hops toward buildings and cracks open on contact.

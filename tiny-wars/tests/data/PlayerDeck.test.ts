@@ -91,7 +91,7 @@ describe('getDeckCandidates', () => {
 describe('loadPlayerDeck migrations', () => {
   it('migrates legacy mega_minion id to bear in saved decks', () => {
     const storage = new Map<string, string>()
-    const deck = ['warrior', 'archer', 'skeleton', 'lancer', 'elder_shaman', 'torch_goblin', 'arrows', 'mega_minion']
+    const deck = ['warrior', 'archer', 'skeleton', 'lancer', 'pig_shaman', 'fire_goblin', 'arrows', 'mega_minion']
     storage.set('tinywars.playerDeck', JSON.stringify(deck))
     const ls = {
       getItem: (k: string) => storage.get(k) ?? null,

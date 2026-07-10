@@ -103,12 +103,12 @@ describe('BotAI', () => {
     const sim = makeSim()
     const bot = new BotAI('HARD')
     const cards = new CardSystem(BOT_DECKS.HARD)
-    handOf(cards, ['skeleton', 'torch_goblin', 'bear', 'elite_archer'])
+    handOf(cards, ['skeleton', 'fire_goblin', 'bear', 'elite_archer'])
     invade(sim, 'skeleton_army', { x: 13, y: 11 })
     sim.state.botElixir = 10
     const action = bot.tick(10_000, sim.state, cards)
     expect(action).not.toBeNull()
-    expect(action!.cardId).toBe('torch_goblin')
+    expect(action!.cardId).toBe('fire_goblin')
   })
 
   it('HARD finishes a near-dead tower with a spell', () => {
@@ -132,7 +132,7 @@ describe('BotAI', () => {
     const sim = makeSim()
     const bot = new BotAI('HARD')
     const cards = new CardSystem(BOT_DECKS.HARD)
-    handOf(cards, ['bear', 'skeleton', 'torch_goblin', 'elite_archer'])
+    handOf(cards, ['bear', 'skeleton', 'fire_goblin', 'elite_archer'])
     sim.state.botElixir = 10
     const action = bot.tick(10_000, sim.state, cards)
     expect(action).not.toBeNull()

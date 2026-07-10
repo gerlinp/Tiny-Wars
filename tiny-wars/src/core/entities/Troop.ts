@@ -56,7 +56,7 @@ import {
   HOOK_MIN_RANGE_CELLS, HOOK_MAX_RANGE_CELLS, HOOK_WINDUP_MS, HOOK_SLOW_DURATION_MS, HOOK_SLOW_SPEED_MULT,
   GOBLIN_DEMOLISHER_CHARGE_HP_FRACTION, GOBLIN_DEMOLISHER_CHARGE_SPEED_CR, GOBLIN_DEMOLISHER_CHARGE_ATTACK_RANGE,
   SPIDER_MINION_CARD_ID, SPIDER_MINION_SPAWN_COUNT, SPIDER_MINION_SPAWN_INTERVAL_MS, SPIDER_MINION_SPAWN_INITIAL_DELAY_MS,
-  VOODOO_SHAMAN_MINION_CARD_ID, VOODOO_SHAMAN_MINION_SPAWN_COUNT, VOODOO_SHAMAN_MINION_SPAWN_INTERVAL_MS,
+  PIG_SHAMAN_TRANSFORM_CARD_ID,
   SNAKE_CHAIN_RANGE_PX, SNAKE_STUN_DURATION_MS,
   SNAKE_SPAWN_ZAP_DAMAGE, SNAKE_SPAWN_ZAP_RADIUS_CELLS, SNAKE_SPAWN_ZAP_TOWER_DAMAGE_MULT,
   MONK_HEAL_PER_PULSE, MONK_HEAL_PULSE_COUNT, MONK_HEAL_RADIUS,
@@ -776,25 +776,13 @@ export class Troop extends Entity {
     if (this.spawnMinionCooldownMs > 0) return
 
     this.spawnMinions(state)
-    if (this.cardId === 'voodoo_shaman') {
-      this.spawnMinionCooldownMs = VOODOO_SHAMAN_MINION_SPAWN_INTERVAL_MS
-    } else {
-      this.spawnMinionCooldownMs = SPIDER_MINION_SPAWN_INTERVAL_MS
-    }
+    this.spawnMinionCooldownMs = SPIDER_MINION_SPAWN_INTERVAL_MS
   }
 
   private spawnMinions(state: GameState): void {
-    let minionCardId: string
-    let count: number
-    if (this.cardId === 'voodoo_shaman') {
-      minionCardId = VOODOO_SHAMAN_MINION_CARD_ID
-      count = VOODOO_SHAMAN_MINION_SPAWN_COUNT
-    } else if (this.cardId === 'spider') {
-      minionCardId = SPIDER_MINION_CARD_ID
-      count = SPIDER_MINION_SPAWN_COUNT
-    } else {
-      return
-    }
+    if (this.cardId !== 'spider') return
+    const minionCardId = SPIDER_MINION_CARD_ID
+    const count = SPIDER_MINION_SPAWN_COUNT
 
     const spawnDef = CARD_DEFINITIONS[minionCardId]
     if (!spawnDef?.stats) return
@@ -915,9 +903,9 @@ export class Troop extends Entity {
     this.dashTargetEntity = null
   }
 
-  /** No card currently uses the hook-pull mechanic — harpoon_shark was reworked into a ranged dart-thrower. Reserved for a future card. */
+  /** Fisherman-style hook-pull — harpoon_shark only (torch took over its old ranged-dart role). */
   private hasHookAttack(): boolean {
-    return false
+    return this.cardId === 'harpoon_shark'
   }
 
   private canStartHook(distPx: number): boolean {
@@ -1014,6 +1002,18 @@ export class Troop extends Entity {
       attackerId: this.id,
       splash,
     })
+    // CR Elder Witch — a kill transforms the victim into a friendly Pig on the spot.
+    if (this.cardId === 'pig_shaman' && target.kind === EntityKind.TROOP && !target.isAlive) {
+      this.spawnPigOnKill(state, target.position)
+    }
+  }
+
+  private spawnPigOnKill(state: GameState, position: Vec2): void {
+    const pigDef = CARD_DEFINITIONS[PIG_SHAMAN_TRANSFORM_CARD_ID]
+    if (!pigDef?.stats) return
+    const pig = new Troop(this.owner, pigDef.stats, { ...position }, this.grid, pigDef.id)
+    state.entities.set(pig.id, pig)
+    state.events.push({ type: 'DEPLOY', entityId: pig.id, cardId: pigDef.id, position: { ...position } })
   }
 
   private dealSplashDamage(state: GameState, center: Vec2, primaryId: string, damage: number): void {

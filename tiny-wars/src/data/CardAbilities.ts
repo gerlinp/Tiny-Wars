@@ -56,12 +56,9 @@ export const SPIDER_MINION_SPAWN_INTERVAL_MS = 7000
 export const SPIDER_MINION_SPAWN_INITIAL_DELAY_MS = 1000
 
 // ---------------------------------------------------------------------------
-// Voodoo Shaman (Witch — spawns Skeletons)
+// Pig Shaman (Elder Witch — a kill transforms the victim into a friendly Pig)
 // ---------------------------------------------------------------------------
-export const VOODOO_SHAMAN_MINION_CARD_ID = 'skeleton'
-export const VOODOO_SHAMAN_MINION_SPAWN_COUNT = 3
-export const VOODOO_SHAMAN_MINION_SPAWN_INTERVAL_MS = 7000
-export const VOODOO_SHAMAN_MINION_SPAWN_INITIAL_DELAY_MS = 1000
+export const PIG_SHAMAN_TRANSFORM_CARD_ID = 'pig'
 
 // ---------------------------------------------------------------------------
 // Snake (Electro Wizard — chains venom spray to a second target, stuns on hit)

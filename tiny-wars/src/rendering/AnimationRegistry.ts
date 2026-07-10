@@ -14,8 +14,6 @@ import {
   WATER_SPLASH_SHEET,
   PADDLE_SHARK_IDLE_SHEET,
   PADDLE_SHARK_ROW_SHEET,
-  HEX_SHAMAN_TRANSFORM_SPELL_SHEET,
-  HEX_SHAMAN_EXPLOSION_SPELL_SHEET,
   type AnimClip,
   type ClipDef,
   type SideAssets,
@@ -118,50 +116,6 @@ export function registerHexShamanFx(scene: Phaser.Scene): void {
       key: animKey,
       frames: scene.anims.generateFrameNumbers(sheetKey, { start: 0, end: 8 }),
       frameRate: 18,
-      repeat: 0,
-    })
-  }
-}
-
-/** Per-card fire-colored orb projectile (3 frames, loops) + explosion (9 frames, one-shot).
- *  Keys are side-independent: the fire color is card-identity, not faction. */
-export function registerShamanOrbFx(scene: Phaser.Scene): void {
-  // elder_shaman uses HexTransformPool, snake uses SnakeSprayPool (static assets)
-  for (const cardId of ['voodoo_shaman']) {
-    const projKey  = `${cardId}_projectile`
-    const projAnim = `${cardId}_projectile_anim`
-    if (!scene.anims.exists(projAnim) && scene.textures.exists(projKey)) {
-      scene.anims.create({ key: projAnim, frames: scene.anims.generateFrameNumbers(projKey, { start: 0, end: 2 }), frameRate: 12, repeat: -1 })
-    }
-    const exKey  = `${cardId}_explosion`
-    const exAnim = `${cardId}_explosion_anim`
-    if (!scene.anims.exists(exAnim) && scene.textures.exists(exKey)) {
-      scene.anims.create({ key: exAnim, frames: scene.anims.generateFrameNumbers(exKey, { start: 0, end: 8 }), frameRate: 18, repeat: 0 })
-    }
-  }
-}
-
-/** Elder Shaman transformation circle (11 frames) + explosion spell (10 frames). */
-export function registerHexTransformFx(scene: Phaser.Scene): void {
-  if (!scene.anims.exists(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.animKey)
-      && scene.textures.exists(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key)) {
-    scene.anims.create({
-      key: HEX_SHAMAN_TRANSFORM_SPELL_SHEET.animKey,
-      frames: scene.anims.generateFrameNumbers(HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key, {
-        start: 0, end: HEX_SHAMAN_TRANSFORM_SPELL_SHEET.frameEnd,
-      }),
-      frameRate: HEX_SHAMAN_TRANSFORM_SPELL_SHEET.frameRate,
-      repeat: 0,
-    })
-  }
-  if (!scene.anims.exists(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.animKey)
-      && scene.textures.exists(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.key)) {
-    scene.anims.create({
-      key: HEX_SHAMAN_EXPLOSION_SPELL_SHEET.animKey,
-      frames: scene.anims.generateFrameNumbers(HEX_SHAMAN_EXPLOSION_SPELL_SHEET.key, {
-        start: 0, end: HEX_SHAMAN_EXPLOSION_SPELL_SHEET.frameEnd,
-      }),
-      frameRate: HEX_SHAMAN_EXPLOSION_SPELL_SHEET.frameRate,
       repeat: 0,
     })
   }

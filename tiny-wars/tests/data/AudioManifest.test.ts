@@ -42,7 +42,7 @@ describe('AudioManifest melee strikes', () => {
     expect(usesArrowProjectile('elite_archer', EntityKind.TROOP)).toBe(true)
     expect(usesArrowProjectile('', EntityKind.TOWER, false)).toBe(true)
     expect(usesArrowProjectile('', EntityKind.TOWER, true)).toBe(false)
-    expect(usesArrowProjectile('torch_goblin', EntityKind.TROOP)).toBe(false)
+    expect(usesArrowProjectile('fire_goblin', EntityKind.TROOP)).toBe(false)
   })
 
   it('classifies every melee troop as blade or blunt', () => {

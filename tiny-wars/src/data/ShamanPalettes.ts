@@ -1,51 +1,27 @@
-// Original robe and necklace colors of the Hex Shaman base sprite
+// Original robe colors of the Hex Shaman base sprite
 const S  = 0x4F4F70  // robe shadow
 const M  = 0xA479CD  // robe midtone
 const N  = 0xEBAAEA  // robe main
 const H  = 0xFDB2FC  // robe highlight
-const NS = 0xAF9E93  // necklace shadow
-const NM = 0xF6D6A1  // necklace main
-const NX = 0xFFFFFF  // necklace shine
 
 // A palette is an ordered list of [sourceRGB, destRGB] pairs
 export type PaletteMap = ReadonlyArray<readonly [number, number]>
 
-// ── Blue 2 - Cyan  /  Red 2 - Ember  (Elder Shaman) ─────────────────────────
-const CYAN: PaletteMap = [
-  [S, 0x083F59], [M, 0x007FA8], [N, 0x22C7E8], [H, 0xB9F7FF],
-  [NS, 0x07566F], [NM, 0x12B9D6], [NX, 0xB9FAFF],
-]
-const EMBER: PaletteMap = [
-  [S, 0x5B2407], [M, 0xC94D00], [N, 0xFF8A20], [H, 0xFFD7AD],
-  [NS, 0x773005], [NM, 0xE56B11], [NX, 0xFFE0A8],
-]
-
-// ── Blue 4 - Death  /  Red 4 - Death  (Voodoo / Death Shaman) ───────────────
-// Uses Blue1/Red1 robe with silver necklace (matches PDF "Death Shaman")
-const DEATH_BLUE: PaletteMap = [
+// ── Default Hex Shaman colors — robe only re-tinted blue/red, necklace untouched (Pig Shaman) ──
+const BLUE_ROBE: PaletteMap = [
   [S, 0x10245A], [M, 0x2454D3], [N, 0x579AFF], [H, 0xC9E3FF],
-  [NS, 0x687080], [NM, 0xB8C0CC], [NX, 0xF1F5F9],
 ]
-const DEATH_RED: PaletteMap = [
+const RED_ROBE: PaletteMap = [
   [S, 0x5A1019], [M, 0xB71931], [N, 0xF24F61], [H, 0xFFD0D6],
-  [NS, 0x687080], [NM, 0xB8C0CC], [NX, 0xF1F5F9],
 ]
 
 export const SHAMAN_PALETTES: Record<string, { player: PaletteMap; bot: PaletteMap }> = {
-  elder_shaman:     { player: CYAN,   bot: EMBER    },
-  voodoo_shaman:    { player: DEATH_BLUE, bot: DEATH_RED },
+  pig_shaman:       { player: BLUE_ROBE, bot: RED_ROBE },
 }
 
 // ── Fire palettes — card-identity VFX colors, same for both factions ─────────
 // Applied to the projectile orb and explosion sprites so the fire always
 // reads as the card type regardless of which team is casting.
 
-// Voodoo / Death Shaman: deep teal shadow → spectral green (PDF page 5)
-const VOODOO_GREEN: PaletteMap = [
-  [S, 0x163B35], [M, 0x28705D], [N, 0x58C28A], [H, 0xA7F2B8], [NX, 0xE8FFE8],
-]
-
 /** Per-card fire palette for projectile + explosion sprites. Not faction-specific. */
-export const SHAMAN_FIRE_PALETTES: Record<string, PaletteMap> = {
-  voodoo_shaman:    VOODOO_GREEN,
-}
+export const SHAMAN_FIRE_PALETTES: Record<string, PaletteMap> = {}

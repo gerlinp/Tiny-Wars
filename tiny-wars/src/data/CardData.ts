@@ -97,12 +97,13 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   goblin_barrel: AT('2026-06-28T12:00:00.000Z'),
   spider:           AT('2026-06-28T18:00:00.000Z'),
   spiderling:       AT('2026-06-28T18:00:00.000Z'),
-  elder_shaman:     AT('2026-06-30T12:00:00.000Z'),
+  pig_shaman:       AT('2026-06-30T12:00:00.000Z'),
   snake:            AT('2026-06-30T12:00:00.000Z'),
-  voodoo_shaman:    AT('2026-06-30T12:00:00.000Z'),
   miner:            AT('2026-07-07T12:00:00.000Z'),
-  torch_goblin:     AT('2026-07-08T12:00:00.000Z'),
+  fire_goblin:      AT('2026-07-08T12:00:00.000Z'),
   tnt_barrel:       AT('2026-07-08T18:00:00.000Z'),
+  torch:            AT('2026-07-09T12:00:00.000Z'),
+  goblins:          AT('2026-07-09T14:00:00.000Z'),
 }
 
 function withAddedAtTimestamps(
@@ -211,6 +212,19 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'villagers_blue_idle', 'villagers_red_idle', 3),
 
+  /** ×3 deploy — same hooded villager art and knife attack as the villagers spawn minion. */
+  goblins: troop('goblins', 'Goblins',
+    'Three fast goblins that rush in with knives. Cheap swarm melee.',
+    2, {
+    maxHp: 289,
+    speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
+    damage: 255,
+    attackRate: 1 / 1.1,
+    attackRange: 0.5,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+  }, 'villagers_blue_idle', 'villagers_red_idle', 3),
+
   /** P.E.K.K.A analog — Troll enemy art. */
   troll: troop('troll', 'Troll',
     'A slow colossus with devastating single-target damage. Nothing survives its club for long.',
@@ -239,8 +253,8 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     pushWeight: 1.5,  // Prince-class: fast charger shoves lighter units
   }, 'lancer_blue_idle', 'lancer_red_idle'),
 
-  elder_shaman: troop('elder_shaman', 'Elder Shaman',
-    'Hurls a transformation hex that splashes nearby enemies. Hits air and ground.',
+  pig_shaman: troop('pig_shaman', 'Pig Shaman',
+    'Hurls a transformation hex that splashes nearby enemies. Kills turn the victim into a friendly Pig. Hits air and ground.',
     5, {
     maxHp: 930,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),
@@ -250,7 +264,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     unitType: UnitType.GROUND,
     attackType: AttackType.AIR_AND_GROUND,
     splashRadius: 1.8,
-  }, 'elder_shaman_blue_idle', 'elder_shaman_red_idle'),
+  }, 'pig_shaman_blue_idle', 'pig_shaman_red_idle'),
 
   snake: troop('snake', 'Snake',
     'Spits venom that splashes to a second target and stuns on hit. Hits air and ground.',
@@ -264,19 +278,6 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.AIR_AND_GROUND,
     splashRadius: 1.5,
   }, 'snake_blue_idle', 'snake_red_idle'),
-
-  voodoo_shaman: troop('voodoo_shaman', 'Voodoo Shaman',
-    'Hurls dark bolts with splash damage and periodically summons skeletons. Hits air and ground.',
-    5, {
-    maxHp: 1122,
-    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
-    damage: 282,
-    attackRate: 1 / 1.5,
-    attackRange: 5.0,
-    unitType: UnitType.GROUND,
-    attackType: AttackType.AIR_AND_GROUND,
-    splashRadius: 1.8,
-  }, 'voodoo_shaman_blue_idle', 'voodoo_shaman_red_idle'),
 
   lizard: troop('lizard', 'Lizard',
     'A flying lizard that breathes fire with wide splash. Attacks air and ground.',
@@ -323,7 +324,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   }, 'bear_blue_idle', 'bear_red_idle'),
 
   /** Splash-damage caster — Torch Goblin art. */
-  torch_goblin: troop('torch_goblin', 'Torch Goblin',
+  fire_goblin: troop('fire_goblin', 'Fire Goblin',
     'Launches fireballs that splash-damage all nearby enemies. Hits air and ground.',
     5, {
     maxHp: 997,
@@ -334,7 +335,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     unitType: UnitType.GROUND,
     attackType: AttackType.AIR_AND_GROUND,
     splashRadius: 1.5,
-  }, 'torch_goblin_blue_idle', 'torch_goblin_red_idle'),
+  }, 'fire_goblin_blue_idle', 'fire_goblin_red_idle'),
 
   /** Fast building-only melee — Pig Rider enemy art. */
   pig_rider: troop('pig_rider', 'Pig Rider',
@@ -513,9 +514,22 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackType: AttackType.GROUND_ONLY,
   }, 'monk_blue_idle', 'monk_red_idle'),
 
-  /** Ranged dart-thrower — reworked from melee/hook into torch_goblin's old role. */
+  /** Fisherman-style hook thrower — pulls ground enemies close (see Troop.hasHookAttack). */
   harpoon_shark: troop('harpoon_shark', 'Harpoon Shark',
-    'A very fast shark hurling harpoons at rapid pace. Effective at range against air and ground.',
+    'Hurls a harpoon on a rope. Pulls ground enemies close or yanks itself toward buildings.',
+    3, {
+    maxHp: 1152,
+    speed: crSpeedToCellsPerSec(CR_SPEED.medium),
+    damage: 257,
+    attackRate: 1 / 1.3,
+    attackRange: 1.2,
+    unitType: UnitType.GROUND,
+    attackType: AttackType.GROUND_ONLY,
+  }, 'harpoon_shark_blue_idle', 'harpoon_shark_red_idle'),
+
+  /** Ranged dart-thrower — Factions Torch goblin art, harpoon_shark's former stats/role. */
+  torch: troop('torch', 'Torch',
+    'A goblin hurling flaming darts at rapid pace. Effective at range against air and ground.',
     3, {
     maxHp: 466,
     speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
@@ -524,7 +538,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     attackRange: 5.0,
     unitType: UnitType.GROUND,
     attackType: AttackType.AIR_AND_GROUND,
-  }, 'harpoon_shark_blue_idle', 'harpoon_shark_red_idle'),
+  }, 'torch_blue_sheet', 'torch_red_sheet'),
 
   /** Witch-style spawner — Caveborn Spider art, green splash bolts + tiny spiderlings. */
   spider: troop('spider', 'Spider',
@@ -605,7 +619,7 @@ export const DECK_EXCLUDED_CARD_IDS = ['wood_tower'] as const
 export const COLLECTION_HIDDEN_CARD_IDS = ['spiderling', 'villagers'] as const
 
 const ALL_DECK_CARD_IDS: string[] = [
-  'warrior', 'archer', 'skeleton', 'lancer', 'torch_goblin', 'harpoon_shark', 'arrows', 'wood_tower', 'tnt',
+  'warrior', 'archer', 'skeleton', 'lancer', 'fire_goblin', 'harpoon_shark', 'arrows', 'wood_tower', 'tnt',
 ]
 
 export const DEFAULT_DECK: string[] = ALL_DECK_CARD_IDS.filter(

@@ -22,10 +22,10 @@ export const BOT_DECKS: Record<BotDifficulty, string[]> = {
   ],
   NORMAL: [
     'warrior', 'archer', 'skeleton', 'lancer',
-    'torch_goblin', 'harpoon_shark', 'arrows', 'pig_rider',
+    'fire_goblin', 'harpoon_shark', 'arrows', 'pig_rider',
   ],
   HARD: [
-    'bear', 'torch_goblin', 'elite_archer', 'snake',
+    'bear', 'fire_goblin', 'elite_archer', 'snake',
     'pig_rider', 'skeleton_army', 'arrows', 'skeleton',
   ],
 }

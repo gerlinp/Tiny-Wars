@@ -12,9 +12,9 @@ export const MAP_EDITOR_UNIT_OVERRIDES: Readonly<Record<string, Record<string, u
 /** Stable picker order; new game cards not listed here are appended with a sync warning. */
 export const MAP_EDITOR_CATALOG_ORDER: readonly string[] = [
   'warrior', 'archer', 'elite_archer', 'lancer', 'skeleton', 'skeleton_army', 'troll',
-  'spear_goblin', 'villagers', 'torch_goblin', 'elder_shaman', 'snake', 'voodoo_shaman', 'lizard', 'air_boat',
+  'spear_goblin', 'villagers', 'goblins', 'fire_goblin', 'pig_shaman', 'snake', 'lizard', 'air_boat',
   'bear', 'pig_rider', 'pig', 'bomb_fish', 'goblin_demolisher', 'tnt_barrel', 'minotaur',
-  'gnoll', 'thief', 'turtle', 'panda', 'monk', 'harpoon_shark', 'spider', 'spiderling', 'miner',
+  'gnoll', 'thief', 'turtle', 'panda', 'monk', 'harpoon_shark', 'torch', 'spider', 'spiderling', 'miner',
   'wood_tower', 'princess_tower', 'king_tower',
 ]
 

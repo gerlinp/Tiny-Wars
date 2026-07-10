@@ -46,7 +46,7 @@ describe('TroopCollision', () => {
 
   it('pushes a slower ally forward when a faster unit is behind', () => {
     const slow = new Troop(Owner.PLAYER, slowStats, { x: 200, y: 500 }, grid, 'warrior')
-    const fast = new Troop(Owner.PLAYER, fastStats, { x: 200, y: 510 }, grid, 'torch_goblin')
+    const fast = new Troop(Owner.PLAYER, fastStats, { x: 200, y: 510 }, grid, 'fire_goblin')
     const state = createInitialGameState()
     state.entities.set(slow.id, slow)
     state.entities.set(fast.id, fast)
@@ -78,8 +78,8 @@ describe('TroopCollision', () => {
 
   it('does not push ranged troops away from overlapping enemy melee', () => {
     const warrior = new Troop(Owner.PLAYER, slowStats, { x: 200, y: 500 }, grid, 'warrior')
-    const torchStats = CARD_DEFINITIONS.torch_goblin!.stats!
-    const torch = new Troop(Owner.BOT, torchStats, { x: 200, y: 500 }, grid, 'torch_goblin')
+    const torchStats = CARD_DEFINITIONS.fire_goblin!.stats!
+    const torch = new Troop(Owner.BOT, torchStats, { x: 200, y: 500 }, grid, 'fire_goblin')
     const state = createInitialGameState()
     state.entities.set(warrior.id, warrior)
     state.entities.set(torch.id, torch)

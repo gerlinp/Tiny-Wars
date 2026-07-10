@@ -36,8 +36,8 @@ describe('Card avatars', () => {
     expect(() => cardAvatarKey('not_a_card')).toThrow()
   })
 
-  it('torch goblin uses Enemy Pack sprite sheets with correct frame counts', () => {
-    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'torch_goblin')!
+  it('fire goblin uses Enemy Pack sprite sheets with correct frame counts', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'fire_goblin')!
     for (const side of [bundle.player, bundle.bot] as const) {
       expect(side.idle.sheet.path).toContain('Goblin Raiders/Torch Goblin/Torch Goblin_Idle.png')
       expect(side.run.sheet.path).toContain('Torch Goblin_Run.png')
@@ -52,9 +52,9 @@ describe('Card avatars', () => {
     expect(bundle.tintBotSide).toBe(true)
   })
 
-  it('elder_shaman uses Hex Shaman sheets and tints the bot side', () => {
-    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'elder_shaman')!
-    expect(cardAvatarKey('elder_shaman')).toBe('avatar_hex_shaman')
+  it('pig_shaman uses Hex Shaman sheets and tints the bot side', () => {
+    const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'pig_shaman')!
+    expect(cardAvatarKey('pig_shaman')).toBe('avatar_hex_shaman')
     expect(bundle.player.idle.sheet.path).toContain('Hex Shaman_Idle.png')
     expect(bundle.tintBotSide).toBe(true)
     expect(existsSync(resolve(PUBLIC, HEX_SHAMAN_PROJECTILE_SHEET.path))).toBe(true)
@@ -278,7 +278,7 @@ describe('Card avatars', () => {
   })
 
   it('unit sprites that fill the frame use a looser hand crop', () => {
-    for (const id of ['torch_goblin', 'elder_shaman'] as const) {
+    for (const id of ['fire_goblin', 'pig_shaman'] as const) {
       const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === id)!
       expect(bundle.avatarCropRatio).toBeGreaterThan(AVATAR_CROP_RATIO_DEFAULT)
     }
@@ -308,8 +308,8 @@ describe('Card avatars', () => {
   it('bear uses native 256×256 Bear sheets with idle portrait (Mega Knight rules)', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'bear')!
     expect(CARD_DEFINITIONS.bear!.displayName).toBe('Bear')
-    expect(cardAvatarKey('bear')).toBe('avatar_bear')
-    expect(getCardAvatarDef('bear').path).toContain('Caveborn/Bear/Bear_Idle.png')
+    expect(cardAvatarKey('bear')).toBe('avatar_enemy_avatars_14')
+    expect(getCardAvatarDef('bear').path).toContain('Enemy Avatars_14.png')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('bear').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
       expect(side.idle.sheet.path).toContain('Caveborn/Bear/Bear_Idle.png')

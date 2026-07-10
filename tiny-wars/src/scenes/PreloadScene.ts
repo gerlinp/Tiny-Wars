@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { FRAME_W, FRAME_H, getUniqueSheets, getCardAvatars, getCardAvatarBackdrops, getCardAvatarDef, TROOP_DEATH_SHEET, WATER_SPLASH_SHEET, DAMAGE_FIRE_SHEETS, EXPLOSION_SHEET, DUST_SHEETS, MONK_HEAL_EFFECT_SHEETS, GNOLL_BONE_SHEET, PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET } from '@data/AssetManifest'
-import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx, registerAirBoatCrewFx, registerHexTransformFx, registerShamanOrbFx, registerTntBarrelLowHpFx } from '@rendering/AnimationRegistry'
-import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HEX_SHAMAN_BASE_SHEETS, HEX_SHAMAN_BASE_AVATAR, HEX_SHAMAN_TRANSFORM_SPELL_SHEET, HEX_SHAMAN_EXPLOSION_SPELL_SHEET, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL } from '@data/AssetManifest'
+import { registerCardAnimations, registerTroopDeathAnim, registerDamageFireAnims, registerMonkHealFx, registerExplosionFx, registerGnollBoneFx, registerGoblinDynamiteFx, registerAirBoatCrewFx, registerTntBarrelLowHpFx } from '@rendering/AnimationRegistry'
+import { HEX_SHAMAN_EXPLOSION_SHEET, HEX_SHAMAN_PROJECTILE_SHEET, HEX_SHAMAN_BASE_SHEETS, HEX_SHAMAN_BASE_AVATAR, HARPOON_PROJECTILE_SHEET, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL } from '@data/AssetManifest'
 import { generateAllShamanTextures } from '@rendering/PaletteSwap'
 import { TERRAIN_COLOR1, TERRAIN_ROAD, TERRAIN_PATH_FLAT, TERRAIN_PATH_STONE, TERRAIN_WATER, TERRAIN_BRIDGE, BRIDGE_DECK } from '@data/TerrainManifest'
 import { preloadClouds } from '@ui/clouds'
@@ -191,17 +191,6 @@ export class PreloadScene extends Phaser.Scene {
     }
     this.load.image(HEX_SHAMAN_BASE_AVATAR.key, HEX_SHAMAN_BASE_AVATAR.path)
 
-    // Elder Shaman attack VFX sheets
-    this.load.spritesheet(
-      HEX_SHAMAN_TRANSFORM_SPELL_SHEET.key,
-      HEX_SHAMAN_TRANSFORM_SPELL_SHEET.path,
-      { frameWidth: HEX_SHAMAN_TRANSFORM_SPELL_SHEET.frameWidth, frameHeight: HEX_SHAMAN_TRANSFORM_SPELL_SHEET.frameHeight },
-    )
-    this.load.spritesheet(
-      HEX_SHAMAN_EXPLOSION_SPELL_SHEET.key,
-      HEX_SHAMAN_EXPLOSION_SPELL_SHEET.path,
-      { frameWidth: HEX_SHAMAN_EXPLOSION_SPELL_SHEET.frameWidth, frameHeight: HEX_SHAMAN_EXPLOSION_SPELL_SHEET.frameHeight },
-    )
     this.load.image(HARPOON_PROJECTILE_SHEET.key, HARPOON_PROJECTILE_SHEET.path)
     this.load.image(GARRISON_CANNON_BALL.key, GARRISON_CANNON_BALL.path)
 
@@ -348,8 +337,6 @@ export class PreloadScene extends Phaser.Scene {
     registerDamageFireAnims(this)
     registerMonkHealFx(this)
     registerExplosionFx(this)
-    registerHexTransformFx(this)
-    registerShamanOrbFx(this)
     registerGnollBoneFx(this)
     registerGoblinDynamiteFx(this)
     registerAirBoatCrewFx(this)

@@ -11,7 +11,7 @@ import { EntitySprite, type AttackSync, type DashSync, type HealSync } from '@re
 import { TowerSprite } from '@rendering/TowerSprite'
 import { EffectsPool, HealEffectPool, DeathPool, DustPool, GroundSlamPool } from '@rendering/VFXPools'
 import { logicDisplayHeightForCard } from '@rendering/assetDisplaySize'
-import { ArrowPool, ArrowsSpellPool, TntPool, BarrelPool, BoneBoomerangPool, HexFireballPool, HexTransformPool, HexShamanOrbPool, HarpoonRopePool, SnakeSprayPool } from '@rendering/ProjectilePools'
+import { ArrowPool, ArrowsSpellPool, TntPool, BarrelPool, BoneBoomerangPool, HexFireballPool, HarpoonRopePool, SnakeSprayPool } from '@rendering/ProjectilePools'
 import { hookAnchorPosition, hookRopeEndPosition } from '@core/HookSystem'
 import { ensurePlaceholders } from '@rendering/renderingUtils'
 import { CardDeployController } from '@input/CardDeployController'
@@ -24,7 +24,7 @@ import type { Building } from '@core/entities/Building'
 import { Owner, EntityKind, TroopState, BuildingState, CardType } from '@core/types'
 import type { EntityStats } from '@core/types'
 import { usesArrowProjectile, usesCannonHit } from '@data/AudioManifest'
-import { getAttackWindupMs, getRunLeapPose, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL, HARPOON_PROJECTILE_SHEET, type AnimClip } from '@data/AssetManifest'
+import { getAttackWindupMs, getRunLeapPose, GOBLIN_DYNAMITE_SHEET, GARRISON_CANNON_BALL, type AnimClip } from '@data/AssetManifest'
 import { arrowFlightMs, rocketFlightMs } from '@data/ProjectileConstants'
 import { CARD_DEFINITIONS } from '@data/CardData'
 import { loadPlayerDeck } from '@data/PlayerDeck'
@@ -62,8 +62,6 @@ export class BattleScene extends Phaser.Scene {
   private minerDigDustAt = new Map<string, number>()
   private arrows!: ArrowPool
   private hexFireballs!: HexFireballPool
-  private hexTransforms!: HexTransformPool
-  private hexShamanOrbs!: HexShamanOrbPool
   private snakeSpray!: SnakeSprayPool
   private healEffects!: HealEffectPool
   private boneBoomerangs!: BoneBoomerangPool
@@ -133,8 +131,6 @@ export class BattleScene extends Phaser.Scene {
     this.groundSlam = new GroundSlamPool(this)
     this.arrows   = new ArrowPool(this)
     this.hexFireballs = new HexFireballPool(this, this.effects)
-    this.hexTransforms = new HexTransformPool(this)
-    this.hexShamanOrbs = new HexShamanOrbPool(this)
     this.snakeSpray = new SnakeSprayPool(this)
     this.healEffects = new HealEffectPool(this)
     this.boneBoomerangs = new BoneBoomerangPool(this)
@@ -472,34 +468,12 @@ export class BattleScene extends Phaser.Scene {
                 spinAnimKey: GOBLIN_DYNAMITE_SHEET.animKey,
                 displaySize: 64,
               })
-            } else if (cardId === 'harpoon_shark') {
-              const launchFrom = event.attackerId
-                ? this.sprites.get(event.attackerId)?.getProjectileOrigin() ?? from
-                : from
-              const flightMs = arrowFlightMs(
-                Math.hypot(to.x - launchFrom.x, to.y - launchFrom.y),
-                attackRate,
-              )
-              this.tntProjectiles.spawn(launchFrom, to, attacker.owner, flightMs, () => {
-                this.sounds.playArrowHit()
-                flash()
-              }, 'straight', {
-                projectileKey: HARPOON_PROJECTILE_SHEET.key,
-                spinAnimKey: '',
-                displaySize: 32,
-                // Harpoon art is drawn tip-up-right (~50° off +x), not pointing along the travel axis.
-                rotationOffset: 50 * Math.PI / 180,
-              })
-            } else if (cardId === 'elder_shaman') {
-              this.hexTransforms.spawn(from, to, attacker.owner, attackRate, flash)
-            } else if (cardId === 'voodoo_shaman') {
-              this.hexShamanOrbs.spawn(from, to, cardId, attacker.owner, attackRate, flash)
             } else if (cardId === 'snake') {
               // Continuous venom jet — no travel time, no separate impact burst. Fires once for
               // the primary hit and again for the chain-venom bounce (chainFrom → 2nd target),
               // reading as an Electro Wizard-style spray that hits multiple things at once.
               this.snakeSpray.spawn(from, to, flash)
-            } else if (cardId === 'lizard' || cardId === 'torch_goblin' || cardId === 'bomb_fish' || cardId === 'spider') {
+            } else if (cardId === 'lizard' || cardId === 'fire_goblin' || cardId === 'torch' || cardId === 'bomb_fish' || cardId === 'spider' || cardId === 'pig_shaman') {
               this.hexFireballs.spawn(
                 from,
                 to,
@@ -507,7 +481,7 @@ export class BattleScene extends Phaser.Scene {
                 attackRate,
                 flash,
                 cardId === 'spider'                                       ? { projectileTint: 0x55ee44, explosionTint: 0x44dd33 } :
-                cardId === 'torch_goblin'                                 ? { projectileTint: 0xffcc22, explosionTint: 0xff8800 } :
+                cardId === 'fire_goblin' || cardId === 'torch'           ? { projectileTint: 0xffcc22, explosionTint: 0xff8800 } :
                 undefined,
               )
             } else if (
