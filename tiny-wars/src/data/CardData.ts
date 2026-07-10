@@ -93,7 +93,7 @@ export const CARD_ADDED_AT: Readonly<Record<string, number>> = {
   air_boat:      AT('2026-06-29T18:00:00.000Z'),
   pig:           AT('2026-06-30T12:00:00.000Z'),
   bear:          AT('2025-07-01T12:00:00.000Z'),
-  tnt:           AT('2026-06-01T12:00:00.000Z'),
+  big_bomb:      AT('2026-06-01T12:00:00.000Z'),
   goblin_barrel: AT('2026-06-28T12:00:00.000Z'),
   spider:           AT('2026-06-28T18:00:00.000Z'),
   spiderling:       AT('2026-06-28T18:00:00.000Z'),
@@ -403,17 +403,17 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
     2, {
     maxHp: 240,
     speed: crSpeedToCellsPerSec(CR_SPEED.veryFast),
-    damage: 700,
+    damage: 614,
     attackRate: 1,
     attackRange: 1.0,
     unitType: UnitType.GROUND,
     attackType: AttackType.GROUND_ONLY,
     targetsBuildingsOnly: true,
     suicideOnAttack: true,
-    deathSplashRadius: 0.8,
-    deathSplashDamage: 700,
-    deathSplashDamageOffTarget: 200,
-  }, 'goblin_demolisher_blue_sheet', 'goblin_demolisher_red_sheet', 2),
+    deathSplashRadius: 2.5,
+    deathSplashDamage: 614,
+    deathSplashDamageOffTarget: 180,
+  }, 'barrel_blue', 'barrel_red', 2),
 
   /** Mega Knight analog — spawn slam handled in GameSimulator.deployCard. */
   minotaur: troop('minotaur', 'Minotaur',
@@ -590,7 +590,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   }, 'wood_tower_blue_sheet', 'wood_tower_red_sheet'),
 
   /** King-launched ground spell — Bomb enemy art. */
-  tnt: spell('tnt', 'TNT',
+  big_bomb: spell('big_bomb', 'Big Bomb',
     'A slow arcing bomb from your king tower. Huge damage on ground targets in a small radius.',
     6, {
     damage: 1960, radius: 2, duration: 0, groundOnly: true, delivery: 'rocket',
@@ -619,7 +619,7 @@ export const DECK_EXCLUDED_CARD_IDS = ['wood_tower'] as const
 export const COLLECTION_HIDDEN_CARD_IDS = ['spiderling', 'villagers'] as const
 
 const ALL_DECK_CARD_IDS: string[] = [
-  'warrior', 'archer', 'skeleton', 'lancer', 'fire_goblin', 'harpoon_shark', 'arrows', 'wood_tower', 'tnt',
+  'warrior', 'archer', 'skeleton', 'lancer', 'fire_goblin', 'harpoon_shark', 'arrows', 'wood_tower', 'big_bomb',
 ]
 
 export const DEFAULT_DECK: string[] = ALL_DECK_CARD_IDS.filter(

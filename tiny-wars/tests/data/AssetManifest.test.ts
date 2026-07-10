@@ -61,13 +61,13 @@ describe('Card avatars', () => {
     expect(existsSync(resolve(PUBLIC, HEX_SHAMAN_EXPLOSION_SHEET.path))).toBe(true)
   })
 
-  it('tnt uses the bomb idle sprite for the card hand, not a fish avatar', () => {
-    expect(cardAvatarKey('tnt')).toBe('avatar_bomb_idle')
-    expect(getCardAvatarDef('tnt').path).toContain('Bomb_Idle.png')
+  it('big_bomb uses the bomb idle sprite for the card hand, not a fish avatar', () => {
+    expect(cardAvatarKey('big_bomb')).toBe('avatar_bomb_idle')
+    expect(getCardAvatarDef('big_bomb').path).toContain('Bomb_Idle.png')
   })
 
-  it('tnt layers bomb idle on the banner slot backdrop', () => {
-    const backdrop = getCardAvatarBackdrop('tnt')
+  it('big_bomb layers bomb idle on the banner slot backdrop', () => {
+    const backdrop = getCardAvatarBackdrop('big_bomb')
     expect(backdrop).toEqual(AVATAR_BACKDROP_BANNER)
     expect(existsSync(resolve(PUBLIC, backdrop!.path))).toBe(true)
   })
@@ -138,7 +138,7 @@ describe('Card avatars', () => {
     expect(cardAvatarKey('skeleton_army')).toBe('avatar_skeleton_army')
     expect(getCardAvatarDef('skeleton_army').path).toContain('Skull_Idle.png')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('skeleton_army').path))).toBe(true)
-    expect(getCardAvatarBackdrop('skeleton_army')).toBe(AVATAR_BACKDROP_BANNER)
+    expect(getCardAvatarBackdrop('skeleton_army')).toBeNull()
     expect(bundle.avatarSwarmSourceCardId).toBe('skeleton')
     expect(getCardAvatarSwarmSource('skeleton_army')).toBe('skeleton')
     for (const side of [bundle.player, bundle.bot] as const) {

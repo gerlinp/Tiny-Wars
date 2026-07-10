@@ -11,7 +11,7 @@ import {
   PADDLE_SHARK_IDLE_SHEET,
 } from '@data/AssetManifest'
 import { BOMB_TOWER_CREW_CARD_ID } from '@rendering/towerGarrison'
-import { applyCardAvatarTexture, applyArrowSprite, ARROW_DISPLAY_W } from '@rendering/renderingUtils'
+import { applyCardAvatarTexture } from '@rendering/renderingUtils'
 import { troopSwarmPortraitLayout } from '@core/DeploySystem'
 import { TROOP_DEPLOY_SPREAD_CELLS } from '@data/GameConstants'
 import { targetHeightForCard } from '@rendering/assetDisplaySize'
@@ -68,6 +68,51 @@ function createCompositePortrait(
   }
 
   return [composite]
+}
+
+/** Arrows spell — a small cluster of full arrow sprites fanned out on a raining diagonal,
+ *  instead of one flight-crop sliver stretched to fill the card (CR's card shows a shower
+ *  of several arrows, not a single stick). Reuses the in-battle arrow art at full frame. */
+const ARROW_FULL_FRAME = 64
+const ARROWS_CLUSTER_LAYOUT = [
+  { dx: -0.15, dy: -0.16, scale: 0.80, rot: -2.55 },
+  { dx: 0.14,  dy: -0.22, scale: 1.00, rot: -2.30 },
+  { dx: 0.02,  dy: 0.06,  scale: 0.92, rot: -2.45 },
+  { dx: -0.24, dy: 0.16,  scale: 0.70, rot: -2.60 },
+] as const
+
+function createArrowsPortrait(
+  scene: Phaser.Scene,
+  card: CardDefinition,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): CardPortraitNode[] {
+  const nodes: CardPortraitNode[] = []
+
+  const backdropDef = getCardAvatarBackdrop(card.id)
+  if (backdropDef) {
+    const backdrop = scene.add.image(x, y, backdropDef.key)
+    applyBackdropDisplaySize(backdrop, w, h)
+    nodes.push(backdrop)
+  }
+
+  // Callers (e.g. CardSlot) reposition each returned node to a single shared center on
+  // every re-layout, which would collapse independently-offset images into one point —
+  // so the fanned arrows must live inside one container node, moved as a unit.
+  const cluster = scene.add.container(x, y)
+  const baseScale = (Math.min(w, h) / ARROW_FULL_FRAME) * 0.9
+  for (const layer of ARROWS_CLUSTER_LAYOUT) {
+    const arrow = scene.add.image(layer.dx * w, layer.dy * h, cardAvatarKey(card.id))
+    applyCardAvatarTexture(arrow, scene, card.id)
+    arrow.setScale(baseScale * layer.scale)
+    arrow.setRotation(layer.rot)
+    cluster.add(arrow)
+  }
+  nodes.push(cluster)
+
+  return nodes
 }
 
 function createSwarmPortrait(
@@ -128,6 +173,10 @@ export function createCardPortrait(
   w: number,
   h: number,
 ): CardPortraitNode[] {
+  if (card.id === 'arrows') {
+    return createArrowsPortrait(scene, card, x, y, w, h)
+  }
+
   if (getCardAvatarSwarmSource(card.id)) {
     return createSwarmPortrait(scene, card, x, y, w, h)
   }
@@ -147,12 +196,7 @@ export function createCardPortrait(
 
   const icon = scene.add.image(x, y, cardAvatarKey(card.id))
   applyCardAvatarTexture(icon, scene, card.id)
-  if (card.id === 'arrows') {
-    applyArrowSprite(icon)
-    icon.setScale((w / ARROW_DISPLAY_W) * 1.35).setRotation(-2.35)
-  } else {
-    applyCardAvatarIconSize(icon, card.id, w, h, backdrop !== null)
-  }
+  applyCardAvatarIconSize(icon, card.id, w, h, backdrop !== null)
   images.push(icon)
 
   return images

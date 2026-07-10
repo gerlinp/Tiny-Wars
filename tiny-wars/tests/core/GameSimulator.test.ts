@@ -130,7 +130,7 @@ describe('GameSimulator', () => {
 
     it('rocket spell can target anywhere on the arena', () => {
       const sim = makeSim()
-      const card = CARD_DEFINITIONS['tnt']!
+      const card = CARD_DEFINITIONS['big_bomb']!
       sim.state.playerElixir = 10
       expect(sim.canDeployAt(Owner.PLAYER, card, { x: 11, y: 5 })).toBe(true)
       expect(sim.deployCard(Owner.PLAYER, card, { x: 11, y: 5 })).toBe(true)

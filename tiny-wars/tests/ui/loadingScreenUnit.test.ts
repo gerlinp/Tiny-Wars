@@ -12,7 +12,7 @@ describe('loadingScreenUnit', () => {
     }
     expect(candidates).not.toContain('arrows')
     expect(candidates).not.toContain('wood_tower')
-    expect(candidates).not.toContain('tnt')
+    expect(candidates).not.toContain('big_bomb')
   })
 
   it('pickRandomLoadingUnitId returns a valid candidate', () => {

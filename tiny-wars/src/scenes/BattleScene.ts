@@ -548,15 +548,17 @@ export class BattleScene extends Phaser.Scene {
               450,
               () => {
                 this.sounds.playCannonHit()
-                this.effects.spawn(x, y, event.deathSplashRadius! * CELL_SIZE * 1.5)
+                this.effects.spawn(x, y, event.deathSplashRadius! * CELL_SIZE)
               },
             )
           } else if (event.deathSplashRadius && event.cardId !== 'turtle') {
             // Turtle's chilling nova reads as the water splash death below, not a fire blast.
+            // VFX radius matches the real hit radius (Troop.applyDeathNova) exactly — a bigger
+            // circle here would visually oversell what the blast actually damages.
             this.effects.spawn(
               event.position.x,
               event.position.y,
-              event.deathSplashRadius * CELL_SIZE * 1.5,
+              event.deathSplashRadius * CELL_SIZE,
             )
           }
           const sprite = this.sprites.get(event.entityId)

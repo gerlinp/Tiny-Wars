@@ -10,7 +10,7 @@ describe('Spell', () => {
       Owner.PLAYER,
       { damage: 493, radius: 2, duration: 0 },
       { x: 230, y: 110 },
-      'tnt',
+      'big_bomb',
       1000,
     )
     state.entities.set(spell.id, spell)

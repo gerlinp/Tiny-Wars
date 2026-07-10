@@ -78,7 +78,7 @@ export class Spell extends Entity {
 
     state.events.push({
       type: 'SPELL_IMPACT',
-      cardId: this.cardId ?? 'tnt',
+      cardId: this.cardId ?? 'big_bomb',
       position: { ...this.position },
       radius: radiusPx,
     })

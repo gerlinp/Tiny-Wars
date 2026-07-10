@@ -81,19 +81,19 @@ export class PlacementGhost {
       const stats = card.spellStats!
       this.ring.setRadius(stats.radius * CELL_SIZE)
 
-      if (card.id === 'tnt') {
-        const side = getSideAssets('tnt', Owner.PLAYER)!
+      if (card.id === 'big_bomb') {
+        const side = getSideAssets('big_bomb', Owner.PLAYER)!
         const key = resolveTexture(this.scene, side.idle.sheet.key, 'placeholder_player')
         const sprite = this.ensureTroopSprite(0)
         sprite.setOrigin(0.5, 0.5)
         sprite.setTexture(key, 0)
-        applyCardDisplaySize(sprite, this.scene, 'tnt', key, 0)
+        applyCardDisplaySize(sprite, this.scene, 'big_bomb', key, 0)
         sprite.setScale(sprite.scaleX * 0.5, sprite.scaleY * 0.5)
         sprite.setAlpha(0.75)
         sprite.clearTint()
-        playCardAnim(sprite, this.scene, 'tnt', Owner.PLAYER, 'idle', -1)
+        playCardAnim(sprite, this.scene, 'big_bomb', Owner.PLAYER, 'idle', -1)
         this.troopPreviewCount = 1
-        this.troopPreviewCardId = 'tnt'
+        this.troopPreviewCardId = 'big_bomb'
         for (let i = 1; i < this.troopSprites.length; i++) {
           this.troopSprites[i].setVisible(false)
           this.troopSprites[i].anims.stop()
@@ -143,7 +143,7 @@ export class PlacementGhost {
   show(): void {
     if (this.isSpell) {
       this.ring.setVisible(true)
-      if (this.spellCardId === 'tnt') {
+      if (this.spellCardId === 'big_bomb') {
         this.ensureTroopSprite(0).setVisible(true)
       } else if (this.troopPreviewCount > 0) {
         for (let i = 0; i < this.troopPreviewCount; i++) {
@@ -187,7 +187,7 @@ export class PlacementGhost {
       const sprite = this.ensureTroopSprite(i)
       sprite.setVisible(true)
       sprite.setPosition(positions[i].x, positions[i].y)
-      sprite.setTint(this.spellCardId === 'tnt' ? (valid ? 0xffffff : 0xffaaaa) : tint)
+      sprite.setTint(this.spellCardId === 'big_bomb' ? (valid ? 0xffffff : 0xffaaaa) : tint)
     }
   }
 
@@ -209,7 +209,7 @@ export class PlacementGhost {
       this.ring.setFillStyle(valid ? 0xff6622 : 0xff2222, valid ? 0.14 : 0.1)
       this.ring.setStrokeStyle(2, valid ? 0xff8844 : 0xff4444, valid ? 0.6 : 0.45)
 
-      if (this.spellCardId === 'tnt') {
+      if (this.spellCardId === 'big_bomb') {
         const sprite = this.ensureTroopSprite(0)
         sprite.setVisible(true)
         sprite.setPosition(world.x, world.y - 8)

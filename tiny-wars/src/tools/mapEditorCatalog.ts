@@ -128,7 +128,7 @@ export interface MapEditorGeneratedConstants {
   cardDisplayVisualScale: typeof CARD_DISPLAY_VISUAL_SCALE
 }
 
-const SPELL_CARD_IDS = new Set(['arrows', 'tnt', 'goblin_barrel'])
+const SPELL_CARD_IDS = new Set(['arrows', 'big_bomb', 'goblin_barrel'])
 const COMPOSITE_EDITOR_UNIT_IDS = ['wood_tower', 'air_boat'] as const
 
 function buildBalanceEntry(cardId: string): MapEditorBalanceEntry | undefined {

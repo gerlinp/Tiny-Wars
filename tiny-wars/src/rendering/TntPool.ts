@@ -32,7 +32,7 @@ export class TntPool {
     const bomb = this.pool.find(b => !b.getData('flying'))
     if (!bomb) return
 
-    const spinKey = clipAnimKey('tnt', owner, 'run')
+    const spinKey = clipAnimKey('big_bomb', owner, 'run')
 
     bomb.setData('flying', true)
     bomb.setTexture(BOMB_SPIN_SHEET, 0)

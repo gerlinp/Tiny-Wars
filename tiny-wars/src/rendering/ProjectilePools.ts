@@ -218,7 +218,7 @@ export class TntPool {
     if (!this.scene.textures.exists(projectileKey)) {
       projectileKey = this.scene.textures.exists(BOMB_SPIN_SHEET) ? BOMB_SPIN_SHEET : 'placeholder_player'
     }
-    const spinKey = projectileStyle?.spinAnimKey ?? clipAnimKey('tnt', owner, 'run')
+    const spinKey = projectileStyle?.spinAnimKey ?? clipAnimKey('big_bomb', owner, 'run')
 
     bomb.setData('flying', true)
     bomb.setData('projectileDisplay', baseSize)
