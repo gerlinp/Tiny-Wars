@@ -474,15 +474,20 @@ export class BattleScene extends Phaser.Scene {
               // reading as an Electro Wizard-style spray that hits multiple things at once.
               this.snakeSpray.spawn(from, to, flash)
             } else if (cardId === 'lizard' || cardId === 'fire_goblin' || cardId === 'torch' || cardId === 'bomb_fish' || cardId === 'spider' || cardId === 'pig_shaman') {
+              const splashRadius = (attacker.stats as EntityStats).splashRadius
+              const explosionRadiusPx = splashRadius !== undefined ? splashRadius * CELL_SIZE : undefined
               this.hexFireballs.spawn(
                 from,
                 to,
                 attacker.owner,
                 attackRate,
                 flash,
-                cardId === 'spider'                                       ? { projectileTint: 0x55ee44, explosionTint: 0x44dd33 } :
-                cardId === 'fire_goblin' || cardId === 'torch'           ? { projectileTint: 0xffcc22, explosionTint: 0xff8800 } :
-                undefined,
+                {
+                  ...(cardId === 'spider' ? { projectileTint: 0x55ee44, explosionTint: 0x44dd33 } :
+                    cardId === 'fire_goblin' || cardId === 'torch' ? { projectileTint: 0xffcc22, explosionTint: 0xff8800 } :
+                    {}),
+                  explosionRadiusPx,
+                },
               )
             } else if (
               attacker

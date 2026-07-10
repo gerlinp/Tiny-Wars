@@ -7,7 +7,9 @@
 // ---------------------------------------------------------------------------
 // Gnoll (Executioner-style boomerang)
 // ---------------------------------------------------------------------------
-export const GNOLL_BOOMERANG_TRAVEL_CELLS = 7.5
+/** Slightly past Gnoll's 4.5-cell attack range — pierces just beyond the primary target,
+ *  not the old 7.5 which sent it nearly double the attack range out. */
+export const GNOLL_BOOMERANG_TRAVEL_CELLS = 5.0
 
 // ---------------------------------------------------------------------------
 // Thief (Bandit-style dash)

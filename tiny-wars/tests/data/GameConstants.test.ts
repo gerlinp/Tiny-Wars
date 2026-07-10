@@ -164,7 +164,7 @@ describe('Arena 26 balance (level 14)', () => {
     expect(CARD_DEFINITIONS.gnoll!.stats!.attackRate).toBeCloseTo(1 / 2.4, 5)
     expect(CARD_DEFINITIONS.gnoll!.stats!.attackRange).toBe(4.5)
     expect(CARD_DEFINITIONS.gnoll!.stats!.splashRadius).toBe(1.5)
-    expect(GNOLL_BOOMERANG_TRAVEL_CELLS).toBe(7.5)
+    expect(GNOLL_BOOMERANG_TRAVEL_CELLS).toBe(5.0)
     expect(CARD_DEFINITIONS.spider!.elixirCost).toBe(5)
     expect(CARD_DEFINITIONS.spider!.stats!.maxHp).toBe(1111)
     expect(CARD_DEFINITIONS.spider!.stats!.damage).toBe(179)

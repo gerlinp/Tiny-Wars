@@ -1,7 +1,6 @@
 import Phaser from 'phaser'
 import { Owner } from '@core/types'
-import { CINZEL_FONT } from '../ui/cardHandLayout'
-import { createMenuButton, menuButtonRowCenters, MENU_BUTTON_SCALE } from '../ui/SceneButton'
+import { createWideButton, wideButtonDisplayHeight, DEEP_BLUE, DEEP_PURPLE, DEEP_RED, DEEP_GREEN } from '../ui/SceneButton'
 import { createBannerPopup } from '../ui/matchupBanner'
 import { startBattleLoading } from '../ui/loadingScreenUi'
 import type { PvPNetwork } from '@core/PvPNetwork'
@@ -57,71 +56,68 @@ export class ResultScene extends Phaser.Scene {
   }
 
   private buildSoloButtons(width: number, height: number): void {
-    const playAgain = createMenuButton(this, width / 2, height * 0.56, 'PLAY AGAIN', '76px', 10,
-      () => this.leaveBattle(() => startBattleLoading(this)))
-    const deck = createMenuButton(this, width / 2, height * 0.66, 'DECK', '76px', 10,
-      () => this.leaveBattle(() => this.scene.start('DeckBuilderScene')))
-    const menuLabel = this.add.text(width / 2, height * 0.75, 'Main Menu', {
-      fontSize: '40px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#aabbff', stroke: '#000022', strokeThickness: 5,
-    }).setOrigin(0.5).setDepth(11)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.leaveBattle(() => this.scene.start('MainMenuScene')))
+    // Same wide pill buttons + stacked layout as MainMenuScene's PLAY/ONLINE/DECK column.
+    const btnStep = wideButtonDisplayHeight() + 26
+    const btnYs = [0, 1, 2].map(i => height * 0.55 + i * btnStep)
 
-    this.fadeInGroup([playAgain.button, playAgain.label, deck.button, deck.label, menuLabel])
+    const playAgain = createWideButton(this, width / 2, btnYs[0]!, 'PLAY AGAIN', '64px', 10,
+      () => this.leaveBattle(() => startBattleLoading(this)), { tint: DEEP_BLUE })
+    const deck = createWideButton(this, width / 2, btnYs[1]!, 'DECK', '64px', 10,
+      () => this.leaveBattle(() => this.scene.start('DeckBuilderScene')), { tint: DEEP_RED })
+    const menu = createWideButton(this, width / 2, btnYs[2]!, 'MAIN MENU', '64px', 10,
+      () => this.leaveBattle(() => this.scene.start('MainMenuScene')), { tint: DEEP_PURPLE })
+
+    this.fadeInGroup([
+      playAgain.button, playAgain.label,
+      deck.button, deck.label,
+      menu.button, menu.label,
+    ])
   }
 
   private buildPvPButtons(width: number, height: number, network: PvPNetwork): void {
     let localReady  = false
     let remoteReady = false
 
-    const statusText = this.add.text(width / 2, height * 0.52, '', {
+    const statusText = this.add.text(width / 2, height * 0.50, '', {
       fontSize: '37px',
       fontFamily: "'Philosopher', Georgia, serif",
       color: '#aabbff',
       align: 'center',
     }).setOrigin(0.5).setDepth(11)
 
-    // REMATCH button — built inline so we can update its appearance
-    const [rematchX, menuX] = menuButtonRowCenters(width, 2, 40)
-    const rematchBtn = this.add.image(rematchX, height * 0.62, 'button_blue')
-      .setInteractive({ useHandCursor: true })
-      .setScale(MENU_BUTTON_SCALE)
-      .setDepth(10)
-    const rematchLabel = this.add.text(rematchX, height * 0.62, 'REMATCH', {
-      fontSize: '37px', fontFamily: CINZEL_FONT, fontStyle: 'bold',
-      color: '#ffffff', stroke: '#000022', strokeThickness: 7,
-    }).setOrigin(0.5).setDepth(11)
-    rematchBtn.on('pointerover', () => { if (!localReady) rematchBtn.setTint(0xdddddd) })
-    rematchBtn.on('pointerout',  () => { if (!localReady) rematchBtn.clearTint() })
-    rematchBtn.on('pointerdown', () => {
+    // Same wide pill buttons as MainMenuScene, stacked (they're too wide to sit side by side).
+    const btnStep = wideButtonDisplayHeight() + 26
+    const rematchY = height * 0.58
+    const menuY = rematchY + btnStep
+
+    const rematch = createWideButton(this, width / 2, rematchY, 'REMATCH', '64px', 10, () => {
       if (localReady) return
       localReady = true
       network.sendRematch()
       // Dim the button to show we've committed
       rematchPulse?.stop()
-      rematchBtn.setTint(0x888888).disableInteractive()
-      rematchLabel.setColor('#888888')
+      rematch.button.setTint(0x888888).disableInteractive()
+      rematch.label.setColor('#888888')
       if (!remoteReady) statusText.setText('Waiting for opponent...')
       checkBothReady()
-    })
+    }, { tint: DEEP_GREEN })
 
-    const menuBtn = createMenuButton(this, menuX, height * 0.62, 'MENU', '60px', 10, () => {
+    const menuBtn = createWideButton(this, width / 2, menuY, 'MENU', '64px', 10, () => {
       network.destroy()
       this.leaveBattle(() => this.scene.start('MainMenuScene'))
-    })
+    }, { tint: DEEP_PURPLE })
 
-    this.fadeInGroup([statusText, rematchBtn, rematchLabel, menuBtn.button, menuBtn.label])
+    this.fadeInGroup([statusText, rematch.button, rematch.label, menuBtn.button, menuBtn.label])
 
     // Pulsing tween shown when opponent has clicked but we haven't yet
     let rematchPulse: Phaser.Tweens.Tween | null = null
     const startRematchPulse = () => {
-      rematchBtn.setTint(0xffdd44)
-      rematchLabel.setColor('#ffdd44')
+      rematch.button.setTint(0xffdd44)
+      rematch.label.setColor('#ffdd44')
       rematchPulse = this.tweens.add({
-        targets: rematchBtn,
-        scaleX: MENU_BUTTON_SCALE * 1.08,
-        scaleY: MENU_BUTTON_SCALE * 1.08,
+        targets: rematch.button,
+        scaleX: rematch.button.scaleX * 1.08,
+        scaleY: rematch.button.scaleY * 1.08,
         duration: 500,
         yoyo: true,
         repeat: -1,

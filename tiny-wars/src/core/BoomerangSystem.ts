@@ -6,8 +6,12 @@ import type { Vec2 } from './types'
 import { CELL_SIZE } from '@data/GameConstants'
 import { dist } from './Vector2'
 
-export const BOOMERANG_OUT_SPEED_PX_PER_SEC = 130
-export const BOOMERANG_RETURN_SPEED_PX_PER_SEC = 85
+// CR Executioner's axe is a fast, snappy throw — the full out-and-back loop finishes well
+// inside Gnoll's 2.4s attack cycle. At the 5.0-cell travel limit (250px) these give ~0.9s out,
+// ~1.0s back (~1.9s round trip), versus the old 130/85 pairing which took ~7.3s total — visibly
+// crawling and effectively throttling Gnoll's attack rate far below its stated 2.4s.
+export const BOOMERANG_OUT_SPEED_PX_PER_SEC = 280
+export const BOOMERANG_RETURN_SPEED_PX_PER_SEC = 240
 
 export interface ActiveBoomerang {
   id: string

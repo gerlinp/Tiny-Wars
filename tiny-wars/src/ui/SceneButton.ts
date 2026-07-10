@@ -1,12 +1,7 @@
 import Phaser from 'phaser'
 import { CINZEL_FONT } from './cardHandLayout'
 
-export const MENU_BUTTON_SCALE = 4.4
 const MENU_BUTTON_SRC_W = 64
-
-export function menuButtonDisplayWidth(): number {
-  return MENU_BUTTON_SRC_W * MENU_BUTTON_SCALE
-}
 
 // Wide 3-slice button (192×64 source) — full-width bars stacked in a column.
 export const WIDE_BUTTON_SCALE = 3.2
@@ -42,30 +37,10 @@ export function footerButtonRowLayout(
   return { centers, scale, btnW }
 }
 
-/** Center X positions for N menu buttons in a horizontal row. */
-export function menuButtonRowCenters(screenWidth: number, count: number, gap: number): number[] {
-  const btnW = menuButtonDisplayWidth()
-  const rowW = count * btnW + (count - 1) * gap
-  const startX = screenWidth / 2 - rowW / 2 + btnW / 2
-  return Array.from({ length: count }, (_, i) => startX + i * (btnW + gap))
-}
-
 export interface MenuButtonHandle {
   button: Phaser.GameObjects.Image
   label: Phaser.GameObjects.Text
   setVisible(visible: boolean): void
-}
-
-export function createMenuButton(
-  scene: Phaser.Scene,
-  x: number,
-  y: number,
-  label: string,
-  fontSize: string,
-  depth: number,
-  onPress: () => void,
-): MenuButtonHandle {
-  return makeSceneButton(scene, x, y, 'button_blue', MENU_BUTTON_SCALE, label, fontSize, depth, onPress)
 }
 
 export interface WideButtonOptions {
