@@ -38,6 +38,8 @@ const ALLY_AVOID_LATERAL_BLEND_STATIONARY = 0.80
 interface AllyBlock {
   lateral: 1 | -1
   allyStationary: boolean
+  /** Squeeze mode: overlap is tolerated — steer just enough to slide around the body. */
+  squeezing: boolean
 }
 
 function isMeleeTroop(troop: Troop): boolean {
@@ -102,6 +104,7 @@ export function findBlockingAlly(troop: Troop, goal: Vec2, state: GameState): Al
   let bestAhead = Infinity
   let bestLateral: 1 | -1 = 1
   let bestStationary = false
+  let bestSqueezing = false
 
   for (const ally of groundAllies(troop, state)) {
     const allyRadius = troopCollisionRadius(ally)
@@ -127,9 +130,12 @@ export function findBlockingAlly(troop: Troop, goal: Vec2, state: GameState): Al
     const cross = dir.x * toAllyY - dir.y * toAllyX
     bestLateral = cross >= 0 ? -1 : 1
     bestStationary = allyStationary
+    bestSqueezing = troop.isSqueezingPast(ally)
   }
 
-  return bestAhead < Infinity ? { lateral: bestLateral, allyStationary: bestStationary } : null
+  return bestAhead < Infinity
+    ? { lateral: bestLateral, allyStationary: bestStationary, squeezing: bestSqueezing }
+    : null
 }
 
 /** Move toward goal, steering around allies that block the path (CR-style local avoidance). */
@@ -152,7 +158,11 @@ export function moveTowardWithAllyAvoidance(
 
   const perpX = -dir.y * block.lateral
   const perpY = dir.x * block.lateral
-  const blend = block.allyStationary ? ALLY_AVOID_LATERAL_BLEND_STATIONARY : ALLY_AVOID_LATERAL_BLEND
+  // Squeezing: mostly forward with a light tangential slide — enough to work around the
+  // body it is allowed to overlap, instead of dead-ending on a head-on separation push.
+  const blend = block.squeezing ? 0.35
+    : block.allyStationary ? ALLY_AVOID_LATERAL_BLEND_STATIONARY
+    : ALLY_AVOID_LATERAL_BLEND
   const fwd = 1 - blend
   const mx = dir.x * fwd + perpX * blend
   const my = dir.y * fwd + perpY * blend
@@ -163,7 +173,14 @@ export function moveTowardWithAllyAvoidance(
   const altMy = dir.y * fwd + (-perpY) * ALLY_AVOID_LATERAL_BLEND
   if (moveStepIfWalkable(pos, altMx, altMy, step, grid)) return
 
-  moveStepIfWalkable(pos, dir.x, dir.y, step, grid)
+  if (moveStepIfWalkable(pos, dir.x, dir.y, step, grid)) return
+
+  // Squeezing against an unwalkable footprint: crawl purely sideways along the wall
+  // rather than freezing — the surround ring continues past the corner.
+  if (block.squeezing) {
+    if (moveStepIfWalkable(pos, perpX, perpY, step, grid)) return
+    moveStepIfWalkable(pos, -perpX, -perpY, step, grid)
+  }
 }
 
 /**
@@ -172,6 +189,7 @@ export function moveTowardWithAllyAvoidance(
  */
 export function tryAllyLateralSeparation(rear: Troop, front: Troop): boolean {
   if (!isMeleeTroop(rear)) return false
+  if (rear.isSqueezingPast(front)) return false
   if (rear.stats.speed > front.stats.speed && front.state !== TroopState.ATTACKING) return false
 
   const dir = rear.getMarchDirection()

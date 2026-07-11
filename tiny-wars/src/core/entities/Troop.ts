@@ -1,5 +1,5 @@
 import { Entity, nextEntityId } from './Entity'
-import { EntityKind, TroopState, UnitType, Owner, DEFAULT_TARGET_PRIORITY } from '../types'
+import { EntityKind, TroopState, UnitType, Owner } from '../types'
 import type { EntityStats, TargetClass, Vec2 } from '../types'
 import type { GameState } from '../GameState'
 import type { Grid } from '../Grid'
@@ -18,7 +18,7 @@ import {
 import { dealAreaDamage, applySlowInRadius, applyStunInRadius, applyHealInRadius } from '../AreaDamage'
 import { launchBoomerang, isBoomerangThrowerBusy } from '../BoomerangSystem'
 import { canHookTarget, isHookThrowerBusy, launchHook } from '../HookSystem'
-import { distSq, dist } from '../Vector2'
+import { distSq, dist, gridKey } from '../Vector2'
 import { findNearestEnemy, findNearestEnemyStructure, isAttackableTower } from '../TargetSelection'
 import type { Tower } from './Tower'
 import {
@@ -46,7 +46,7 @@ import {
   LEFT_BRIDGE_COLS, RIGHT_BRIDGE_COLS,
   HEAL_PULSE_INTERVAL_MS,
   TROOP_DEPLOY_SPREAD_CELLS, BRIDGE_CENTER_COL,
-  TROOP_SPAWN_DELAY_MS, TROOP_AGGRO_RANGE_CELLS,
+  TROOP_SPAWN_DELAY_MS, TROOP_AGGRO_RANGE_CELLS, TROOP_SCAN_INTERVAL_MS,
   COMBAT_LEASH_MULTIPLIER, RETARGET_GRACE_MS,
 } from '@data/GameConstants'
 import {
@@ -78,8 +78,9 @@ const PATH_REPLAN_DIST_SQ = CELL_SIZE * CELL_SIZE * 4
 
 export type DashPhase = 'windup' | 'leap'
 
-/** Attacker snapshot for swarm-slot assignment (claim = slot index held last tick, -1 = none). */
-interface SlotAttacker { id: string; pos: Vec2; claim: number }
+/** Attacker snapshot for swarm-slot assignment (claim = slot index held last tick, -1 = none;
+ *  rooted = already attacking, so it physically blocks whatever ground it stands on). */
+interface SlotAttacker { id: string; pos: Vec2; claim: number; rooted: boolean }
 
 /** Ground troop is "stuck" after this long with almost no forward progress while walking. */
 const STUCK_RECOVER_MS = 600
@@ -251,6 +252,13 @@ export class Troop extends Entity {
   private attackRecoveryRemainingMs = 0
   /** How long the current troop target has been beyond the retention leash (ms). */
   private leashExceededMs = 0
+  /** CR-style overlap squeeze: while > 0, rooted allies on the same structure target are
+   *  not obstacles — the unit walks straight through the front row with soft separation.
+   *  Armed by stuck recovery when a pinch (slot corridor narrower than a body) is detected. */
+  private squeezeRemainingMs = 0
+  /** Time until the next acquisition scan while unengaged — 0 forces an immediate scan,
+   *  so retarget events (stun end, target death) reset it for event-driven reacquisition. */
+  private scanCooldownMs = 0
   private dashTarget: Vec2 | null = null
   private dashTargetEntity: Entity | null = null
   private isHooking = false
@@ -460,6 +468,7 @@ export class Troop extends Entity {
 
     if (this.stunRemainingMs > 0) {
       this.stunRemainingMs -= deltaMs
+      if (this.stunRemainingMs <= 0) this.onStunEnded()
       this.state = TroopState.STUNNED
       return
     }
@@ -467,13 +476,14 @@ export class Troop extends Entity {
     this.tickHealPulses(deltaMs, state)
     this.tickMinionSpawns(deltaMs, state)
     this.tickSlow(deltaMs)
+    if (this.squeezeRemainingMs > 0) this.squeezeRemainingMs -= deltaMs
 
     if (this.attackCooldownMs > 0) this.attackCooldownMs -= deltaMs
 
     this.syncBuildingChargeState()
     this.syncBuildingChargeTransition()
     this.tickTargetLeash(deltaMs, state)
-    this.refreshCombatTarget(state)
+    this.refreshCombatTarget(deltaMs, state)
 
     if (this.target) {
       const attackReach = this.effectiveAttackRange() * CELL_SIZE
@@ -870,9 +880,22 @@ export class Troop extends Entity {
     this.slowSpeedMultiplier = Math.min(this.slowSpeedMultiplier, speedMultiplier)
   }
 
-  /** CR Electro Wizard-style stun — freezes movement and attacks for the duration. */
+  /** CR Electro Wizard-style stun — freezes movement and attacks for the duration.
+   *  Cancels any in-flight swing/dash/hook; the unit retargets when the stun ends. */
   applyStun(durationMs: number): void {
     this.stunRemainingMs = Math.max(this.stunRemainingMs, durationMs)
+    this.attackWindupRemainingMs = null
+    this.cancelDash()
+    this.cancelHook()
+  }
+
+  /** CR: stun/freeze forces a fresh target search on resume and resets charge ramps. */
+  private onStunEnded(): void {
+    this.target = null
+    this.committedTargetId = null
+    this.leashExceededMs = 0
+    this.scanCooldownMs = 0
+    this.resetCharge()
   }
 
   isStunned(): boolean {
@@ -1120,6 +1143,7 @@ export class Troop extends Entity {
         id: ally.id,
         pos: ally.position,
         claim: ally.slotClaimTargetId === target.id ? ally.slotClaimIndex : -1,
+        rooted: ally.state === TroopState.ATTACKING,
       })
     }
     if (attackers.length <= 1) return null
@@ -1133,14 +1157,20 @@ export class Troop extends Entity {
         const origin = towerSlotOriginCenter(
           tower.position.x, tower.position.y, tower.owner, tower.isKing,
         )
-        return this.nearestOpenSlot(target.id, origin, layout.slotPositions, attackers)
+        return this.nearestOpenSlot(
+          target.id, origin, layout.slotPositions, attackers,
+          entityCollisionCenter(tower), this.slotReachLimit(tower),
+        )
       }
     }
 
     if (target.kind === EntityKind.BUILDING && target.cardId === BOMB_TOWER_CARD_ID) {
       const building = target as Building
       const origin = buildingCombatCenter(building)
-      return this.nearestOpenSlot(target.id, origin, bombTowerMeleeLayout().slotPositions, attackers)
+      return this.nearestOpenSlot(
+        target.id, origin, bombTowerMeleeLayout().slotPositions, attackers,
+        entityCollisionCenter(building), this.slotReachLimit(building),
+      )
     }
 
     // Troop target — use a virtual radial ring for melee contact spacing.
@@ -1173,6 +1203,7 @@ export class Troop extends Entity {
         id: ally.id,
         pos: ally.position,
         claim: ally.slotClaimTargetId === tower.id ? ally.slotClaimIndex : -1,
+        rooted: ally.state === TroopState.ATTACKING,
       })
     }
     if (attackers.length <= 1) return null
@@ -1190,73 +1221,124 @@ export class Troop extends Entity {
     return this.nearestOpenSlot(tower.id, origin, slots, attackers)
   }
 
+  /** Farthest a slot may sit from `target`'s collision centre while this unit can still
+   *  hit from it — mirrors meleeApproachPoint's standoff (slack keeps float rounding
+   *  from parking the unit just outside its own range check). */
+  private slotReachLimit(target: Entity): number {
+    const targetR = entityCombatRadius(target) ?? 0
+    const attackerR = entityCombatRadius(this) ?? 0
+    return targetR + attackerR + this.effectiveAttackRange() * CELL_SIZE - CELL_SIZE * 0.5
+  }
+
   /**
-   * Exclusive greedy slot assignment: each slot is awarded to whichever attacker is
-   * closest to it. Ties broken by ID for determinism. This unit receives its won slot;
-   * overflow units (more attackers than slots) get the globally nearest walkable slot.
+   * One-to-one greedy slot assignment: (attacker, slot) pairs are matched in ascending
+   * distance order — each attacker gets exactly one slot and each slot one attacker.
+   * Ties broken by attacker ID / slot index so every unit, running the same matching
+   * over the same inputs, agrees on the result. This unit receives its matched slot;
+   * overflow units (more attackers than walkable slots) get the globally nearest slot.
+   *
+   * When `reach` is given (melee layouts), slots farther than `reach` from `reachCenter`
+   * are radially pulled onto that ring — hand-tuned layouts can place slots beyond a
+   * short melee range, which used to park units permanently out of range, never attacking.
    */
   private nearestOpenSlot(
     targetId: string,
     origin: Vec2,
     slots: readonly { x: number; y: number }[],
     attackers: readonly SlotAttacker[],
+    reachCenter: Vec2 | null = null,
+    reach = Infinity,
   ): Vec2 | null {
     if (slots.length === 0) return null
 
-    // Materialise world positions, filter to walkable slots only.
+    // Materialise world positions (clamped into attack reach), walkable slots only.
     const worldSlots: (Vec2 | null)[] = slots.map(s => {
-      const wx = origin.x + s.x * CELL_SIZE
-      const wy = origin.y + s.y * CELL_SIZE
+      let wx = origin.x + s.x * CELL_SIZE
+      let wy = origin.y + s.y * CELL_SIZE
+      if (reachCenter && Number.isFinite(reach)) {
+        const dx = wx - reachCenter.x
+        const dy = wy - reachCenter.y
+        const d = Math.hypot(dx, dy)
+        if (d > reach && d > EPSILON_DISTANCE) {
+          wx = reachCenter.x + (dx / d) * reach
+          wy = reachCenter.y + (dy / d) * reach
+        }
+      }
       if (this.stats.unitType === UnitType.GROUND && !isWorldWalkable(this.grid, wx, wy)) return null
       return { x: wx, y: wy }
     })
 
-    // For each walkable slot find the nearest attacker (owner of that slot). A slot's
-    // previous claimant gets a distance bias so assignments settle instead of churning
-    // as the swarm shuffles — this is what makes surrounds look deliberate.
-    const slotOwner: (string | null)[] = worldSlots.map((slot, slotIdx) => {
-      if (!slot) return null
-      let bestId: string | null = null
-      let bestDist = Infinity
+    // A rooted (attacking) ally parked on a slot it does not claim still occupies that
+    // ground — attackers regularly root at squeezed off-slot contact points. Without
+    // this, latecomers get matched to a "free" slot buried inside the rooted front row,
+    // can never physically squeeze onto it, and walk in place forever.
+    const bodyDiameter = troopCollisionRadius(this) * 2
+    const physicallyBlocked: boolean[] = worldSlots.map((slot, si) => {
+      if (!slot) return false
       for (const a of attackers) {
+        if (a.id === this.id || !a.rooted || a.claim === si) continue
+        const dx = a.pos.x - slot.x
+        const dy = a.pos.y - slot.y
+        if (Math.hypot(dx, dy) < bodyDiameter * 0.9) return true
+      }
+      return false
+    })
+
+    // All candidate pairs by biased distance. A slot's previous claimant gets a
+    // distance bias so assignments settle instead of churning as the swarm
+    // shuffles — this is what makes surrounds look deliberate.
+    const pairs: { attackerIdx: number; slotIdx: number; d: number }[] = []
+    for (let ai = 0; ai < attackers.length; ai++) {
+      const a = attackers[ai]!
+      for (let si = 0; si < worldSlots.length; si++) {
+        const slot = worldSlots[si]
+        if (!slot || (physicallyBlocked[si] && a.claim !== si)) continue
         const dx = a.pos.x - slot.x
         const dy = a.pos.y - slot.y
         let d = dx * dx + dy * dy
-        if (a.claim === slotIdx) d *= SLOT_CLAIM_STICKINESS * SLOT_CLAIM_STICKINESS
-        if (d < bestDist || (d === bestDist && (bestId === null || a.id < bestId))) {
-          bestDist = d
-          bestId = a.id
-        }
+        if (a.claim === si) d *= SLOT_CLAIM_STICKINESS * SLOT_CLAIM_STICKINESS
+        pairs.push({ attackerIdx: ai, slotIdx: si, d })
       }
-      return bestId
+    }
+    pairs.sort((p, q) => {
+      if (p.d !== q.d) return p.d - q.d
+      const idA = attackers[p.attackerIdx]!.id
+      const idB = attackers[q.attackerIdx]!.id
+      if (idA !== idB) return idA < idB ? -1 : 1
+      return p.slotIdx - q.slotIdx
     })
 
-    // Return the slot this unit won that is nearest to its current position.
-    let bestSlot: Vec2 | null = null
-    let bestIdx = -1
-    let bestDistSq = Infinity
-    for (let i = 0; i < worldSlots.length; i++) {
-      const slot = worldSlots[i]
-      if (!slot || slotOwner[i] !== this.id) continue
-      const dx = this.position.x - slot.x
-      const dy = this.position.y - slot.y
-      const dSq = dx * dx + dy * dy
-      if (dSq < bestDistSq) { bestDistSq = dSq; bestSlot = slot; bestIdx = i }
-    }
-    if (bestSlot) {
-      this.slotClaimTargetId = targetId
-      this.slotClaimIndex = bestIdx
-      return bestSlot
+    const slotTaken = new Array<boolean>(worldSlots.length).fill(false)
+    const assignedSlotOf = new Array<number>(attackers.length).fill(-1)
+    for (const pair of pairs) {
+      if (assignedSlotOf[pair.attackerIdx] !== -1 || slotTaken[pair.slotIdx]) continue
+      assignedSlotOf[pair.attackerIdx] = pair.slotIdx
+      slotTaken[pair.slotIdx] = true
     }
 
-    // Overflow: more attackers than slots — go to the nearest walkable slot.
-    for (let i = 0; i < worldSlots.length; i++) {
-      const slot = worldSlots[i]
-      if (!slot) continue
-      const dx = this.position.x - slot.x
-      const dy = this.position.y - slot.y
-      const dSq = dx * dx + dy * dy
-      if (dSq < bestDistSq) { bestDistSq = dSq; bestSlot = slot }
+    const myIdx = attackers.findIndex(a => a.id === this.id)
+    const mySlotIdx = myIdx >= 0 ? assignedSlotOf[myIdx]! : -1
+    if (mySlotIdx >= 0) {
+      this.slotClaimTargetId = targetId
+      this.slotClaimIndex = mySlotIdx
+      return worldSlots[mySlotIdx]!
+    }
+
+    // Overflow: more attackers than slots — nearest walkable slot, preferring ones
+    // not physically buried under a rooted ally.
+    let bestSlot: Vec2 | null = null
+    let bestDistSq = Infinity
+    for (const preferClear of [true, false]) {
+      for (let si = 0; si < worldSlots.length; si++) {
+        const slot = worldSlots[si]
+        if (!slot) continue
+        if (preferClear && physicallyBlocked[si]) continue
+        const dx = this.position.x - slot.x
+        const dy = this.position.y - slot.y
+        const dSq = dx * dx + dy * dy
+        if (dSq < bestDistSq) { bestDistSq = dSq; bestSlot = slot }
+      }
+      if (bestSlot) break
     }
     this.slotClaimTargetId = null
     this.slotClaimIndex = -1
@@ -1357,12 +1439,12 @@ export class Troop extends Entity {
         moveTowardWithAllyAvoidance(this.position, this, nextWorld, speed, state, this.grid)
       } else {
         // At goal cell or unreachable — fall back to A*.
-        if (this.needsReplan(goal)) this.replanPath(goal)
+        if (this.needsReplan(goal)) this.replanPath(goal, state)
         this.moveAlongPath(speed, goal, state)
       }
     } else {
       // A* for non-tower targets (enemy troops, buildings) or when flow fields unavailable.
-      if (this.needsReplan(goal)) this.replanPath(goal)
+      if (this.needsReplan(goal)) this.replanPath(goal, state)
       this.moveAlongPath(speed, goal, state)
     }
 
@@ -1413,6 +1495,24 @@ export class Troop extends Entity {
     this.stuckMs = 0
     this.progressMsSinceRecovery = 0
     this.stuckRecoveryLevel = Math.min(this.stuckRecoveryLevel + 1, 2)
+
+    // Stuck while closing on a structure that allies are already hitting → the approach
+    // corridor is pinched. Squeeze through the front row CR-style instead of bouncing
+    // between two rooted bodies forever.
+    if (
+      this.target?.isAlive
+      && (this.target.kind === EntityKind.BUILDING || this.target.kind === EntityKind.TOWER)
+    ) {
+      this.squeezeRemainingMs = 4000
+    }
+  }
+
+  /** True while this unit is allowed to push through `ally` (rooted on the same structure
+   *  target) instead of steering around it — see {@link squeezeRemainingMs}. */
+  isSqueezingPast(ally: Troop): boolean {
+    if (this.squeezeRemainingMs <= 0) return false
+    if (ally.state !== TroopState.ATTACKING) return false
+    return ally.target !== null && ally.target.id === (this.target?.id ?? null)
   }
 
   /**
@@ -1559,7 +1659,7 @@ export class Troop extends Entity {
     return this.pathWaypoints.length === 0
   }
 
-  private replanPath(goal: Vec2): void {
+  private replanPath(goal: Vec2, state?: GameState): void {
     this.pathGoal = { x: goal.x, y: goal.y }
 
     // Crossing the river: funnel to the bridge entrance on the unit's own side, cross
@@ -1570,7 +1670,19 @@ export class Troop extends Entity {
       return
     }
 
-    this.pathWaypoints = this.pathfinder.findPathWorld(this.position, goal, this.stats.unitType)
+    // While squeezing, the rooted row is intentionally passable — don't route around it.
+    const avoidRooted = state && this.squeezeRemainingMs <= 0
+      ? this.rootedAllyBlocker(state)
+      : undefined
+    this.pathWaypoints = this.pathfinder.findPathWorld(
+      this.position, goal, this.stats.unitType, avoidRooted,
+    )
+    if (avoidRooted) {
+      // Path smoothing only checks grid walkability — it would straighten the detour
+      // right back through the rooted allies the overlay just routed around.
+      if (!this.isValidPath(goal)) this.pathWaypoints = [goal]
+      return
+    }
 
     if (!this.isValidPath(goal)) {
       const bridge = nearestBridgeApproach(this.grid, this.position, goal)
@@ -1580,6 +1692,28 @@ export class Troop extends Entity {
     }
 
     this.smoothPath()
+  }
+
+  /**
+   * Soft-obstacle overlay for A*: cells occupied by rooted (attacking) allies on the same
+   * target. A* ignores troops, so without this a latecomer's path to a free far-side slot
+   * runs straight through the immovable front row — the unit shoves against it forever
+   * instead of arcing around the surround ring.
+   */
+  private rootedAllyBlocker(state: GameState): ((col: number, row: number) => boolean) | undefined {
+    if (!this.target?.isAlive || this.effectiveAttackRange() > 2) return undefined
+    const cells = new Set<number>()
+    for (const entity of state.entities.values()) {
+      if (!entity.isAlive || entity.kind !== EntityKind.TROOP) continue
+      if (entity.owner !== this.owner || entity.id === this.id) continue
+      const ally = entity as Troop
+      if (ally.state !== TroopState.ATTACKING) continue
+      if (ally.target?.id !== this.target.id) continue
+      const cell = this.grid.worldToCell(ally.position.x, ally.position.y)
+      cells.add(gridKey(cell.x, cell.y))
+    }
+    if (cells.size === 0) return undefined
+    return (col, row) => cells.has(gridKey(col, row))
   }
 
   /**
@@ -1703,14 +1837,16 @@ export class Troop extends Entity {
     if (entity.kind === EntityKind.BUILDING || entity.kind === EntityKind.TOWER) {
       return surfaceDistToEntity(this.position, entity)
     }
-    return Math.sqrt(distSq(this.position, entity.position))
+    // CR acquisition uses collision-edge distance, so big-bodied units are noticed
+    // at the same surface gap as small ones (matches combatDistTo's melee metric).
+    return edgeDistBetweenEntities(this, entity)
   }
 
   /**
    * Closest enemy in aggro range while marching; once in attack range, stick until it dies.
    * Giant-style troops only consider buildings and towers.
    */
-  private refreshCombatTarget(state: GameState): void {
+  private refreshCombatTarget(deltaMs: number, state: GameState): void {
     const engagedTarget = this.target?.isAlive ? this.target : null
     if (!engagedTarget) this.committedTargetId = null
 
@@ -1735,15 +1871,39 @@ export class Troop extends Entity {
       }
     }
 
+    // Target death is a retarget event — clear the lock and rescan this tick.
+    if (this.target && !this.target.isAlive) {
+      this.target = null
+      this.scanCooldownMs = 0
+    }
+
+    // CR: unengaged acquisition (and structure-march re-evaluation) is a periodic
+    // scan, not per-tick. Retarget events zero the cooldown so reacquisition
+    // stays event-driven.
+    this.scanCooldownMs -= deltaMs
+    if (this.scanCooldownMs > 0) return
+    this.scanCooldownMs = TROOP_SCAN_INTERVAL_MS
+
     if (this.effectiveTargetsBuildingsOnly()) {
       if (this.target?.kind === EntityKind.TROOP) this.target = null
+      // CR building pull: a defensive building inside sight range hijacks the march.
+      // The sight cap doubles as a sight-clipping approximation — buildings beyond it
+      // never yank the unit off its lane route.
+      const pullBuilding = findNearestEnemy(state, {
+        owner: this.owner,
+        from: this.position,
+        includeTowers: false,
+        maxDistance: this.aggroRangePx(),
+        canAttack: (entity) => entity.kind === EntityKind.BUILDING && this.canAttack(entity),
+        distance: (_from, entity) => this.engageDistTo(entity, state),
+      })
       // Lane-aware tower selection (same as normal troops below) so building-only rushers
       // march to their assigned side's princess/king instead of detouring cross-map to
       // whichever structure has the shortest raw path cost.
       const laneAwareTower = state.flowFields
         ? state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.spawnLane)
         : null
-      this.target = this.stickyStructureTarget(laneAwareTower ?? findNearestEnemyStructure(state, {
+      this.target = this.stickyStructureTarget(pullBuilding ?? laneAwareTower ?? findNearestEnemyStructure(state, {
         owner: this.owner,
         from: this.position,
         canAttack: (entity) => this.canAttack(entity),
@@ -1779,9 +1939,11 @@ export class Troop extends Entity {
   }
 
   /**
-   * Choose between a troop candidate and a structure candidate by this unit's
-   * {@link EntityStats.targetPriority} (most-preferred class first), tie-broken by distance.
-   * The default order keeps troops preferred over structures (legacy behavior).
+   * Choose between a troop candidate and a structure candidate.
+   *
+   * CR default: nearest valid target wins, regardless of class — a unit walking past
+   * a closer tower must not skip it to chase a troop. Cards that define
+   * {@link EntityStats.targetPriority} still rank by class first (distance tie-break).
    */
   private pickByPriority(
     troopTarget: Entity | null,
@@ -1791,10 +1953,12 @@ export class Troop extends Entity {
     if (!troopTarget) return structureTarget
     if (!structureTarget) return troopTarget
 
-    const priority = this.stats.targetPriority ?? DEFAULT_TARGET_PRIORITY
-    const troopRank = targetPriorityIndex(priority, entityTargetClass(troopTarget))
-    const structureRank = targetPriorityIndex(priority, entityTargetClass(structureTarget))
-    if (troopRank !== structureRank) return troopRank < structureRank ? troopTarget : structureTarget
+    const priority = this.stats.targetPriority
+    if (priority) {
+      const troopRank = targetPriorityIndex(priority, entityTargetClass(troopTarget))
+      const structureRank = targetPriorityIndex(priority, entityTargetClass(structureTarget))
+      if (troopRank !== structureRank) return troopRank < structureRank ? troopTarget : structureTarget
+    }
 
     return this.engageDistTo(troopTarget, state) <= this.engageDistTo(structureTarget, state)
       ? troopTarget

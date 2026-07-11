@@ -195,6 +195,14 @@ export const BOMB_TOWER_LIFETIME_MS = 30_000
 /** Melee troop detection radius (ranged troops use their attack range instead) */
 export const TROOP_AGGRO_RANGE_CELLS = 6
 
+/** How often an unengaged troop scans for targets (CR: acquisition is a periodic scan
+ *  while advancing; retargeting while engaged is event-driven, never per-tick). */
+export const TROOP_SCAN_INTERVAL_MS = 100
+
+/** Largest frame delta the simulation consumes in one tick — a backgrounded tab
+ *  resumes in brief slow-motion catch-up instead of one giant step that tunnels units. */
+export const SIM_MAX_TICK_MS = 250
+
 /** How far beyond sight range a troop target can flee before it is dropped.
  *  Default retention = sight range × this; override per-card with targetRetentionRangeCells. */
 export const COMBAT_LEASH_MULTIPLIER = 2.0

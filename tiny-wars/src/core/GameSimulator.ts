@@ -22,6 +22,7 @@ import {
   BOT_KING_COL,
   BOT_TOWER_ROW,
   BOT_TOWER_COLS,
+  SIM_MAX_TICK_MS,
 } from '@data/GameConstants'
 import { getActiveMapConfig } from '@data/ActiveMapConfig'
 import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
@@ -85,6 +86,8 @@ export class GameSimulator {
 
   tick(deltaMs: number): GameState {
     if (this.state.phase === 'ENDED') return this.state
+
+    deltaMs = Math.min(deltaMs, SIM_MAX_TICK_MS)
 
     if (this.flowFieldsDirty) {
       this.state.flowFields?.rebuild(this.state)

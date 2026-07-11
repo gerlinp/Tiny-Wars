@@ -120,6 +120,16 @@ export function resolveTroopCollisions(state: GameState, deltaMs: number): void 
 
         if (!allyLaterallySeparated && circlesOverlap(a.position, rA, b.position, rB)) {
           if (a.owner === b.owner) {
+            // A walker squeezing through a pinched surround wedges in CR-style: soft
+            // separation shared BOTH ways, so the rooted front row yields sideways a
+            // little (attack-hold hysteresis tolerates the drift) and a gap opens.
+            const squeezingA = a.isSqueezingPast(b)
+            const squeezingB = b.isSqueezingPast(a)
+            if (squeezingA || squeezingB) {
+              const moveRatioA = squeezingA ? 0.35 : 0.65
+              separateCirclePair(a.position, rA, b.position, rB, moveRatioA, 0.3)
+              continue
+            }
             if (rootedA && rootedB) continue
             const moveRatioA = rootedA ? 0 : rootedB ? 1 : 0.5
             separateCirclePair(a.position, rA, b.position, rB, moveRatioA, ALLY_SEPARATION_FRACTION)

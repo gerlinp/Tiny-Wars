@@ -15,13 +15,20 @@ interface Node {
 export class Pathfinder {
   constructor(private grid: Grid) {}
 
-  /** Returns world-space waypoints (cell centres) from current position to goal. */
-  findPathWorld(fromWorld: Vec2, toWorld: Vec2, unitType: UnitType): Vec2[] {
+  /** Returns world-space waypoints (cell centres) from current position to goal.
+   *  `isBlocked` is an optional soft-obstacle overlay (e.g. rooted allies) applied on
+   *  top of the grid — the goal cell itself is always allowed. */
+  findPathWorld(
+    fromWorld: Vec2,
+    toWorld: Vec2,
+    unitType: UnitType,
+    isBlocked?: (col: number, row: number) => boolean,
+  ): Vec2[] {
     if (unitType === UnitType.AIR) return [toWorld]
 
     const from = this.grid.worldToCell(fromWorld.x, fromWorld.y)
     const to = this.grid.worldToCell(toWorld.x, toWorld.y)
-    const gridPath = this.findPath(from, to, unitType)
+    const gridPath = this.findPath(from, to, unitType, isBlocked)
 
     return gridPath.map(cell => this.grid.cellToWorld(cell.x, cell.y))
   }
@@ -79,7 +86,12 @@ export class Pathfinder {
     return { col, row }
   }
 
-  findPath(from: Vec2, to: Vec2, unitType: UnitType): Vec2[] {
+  findPath(
+    from: Vec2,
+    to: Vec2,
+    unitType: UnitType,
+    isBlocked?: (col: number, row: number) => boolean,
+  ): Vec2[] {
     if (unitType === UnitType.AIR) return [to]
 
     const rawCol = Math.round(from.x)
@@ -121,6 +133,9 @@ export class Pathfinder {
       for (const { col, row, cost } of this.grid.neighbors(current.col, current.row)) {
         const key = gridKey(col, row)
         if (closedSet.has(key)) continue
+        // Soft-obstacle overlay — never applies to the goal itself, so a goal beside
+        // (or under) an overlay obstacle stays reachable.
+        if (isBlocked && !(col === goalCol && row === goalRow) && isBlocked(col, row)) continue
 
         const g = current.g + cost
         const existing = openMap.get(key)

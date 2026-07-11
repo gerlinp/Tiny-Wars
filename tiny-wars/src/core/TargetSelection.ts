@@ -81,14 +81,30 @@ export function findNearestEnemyStructure(
 /**
  * Global targeting rule (troops, buildings, towers):
  * - Pick the closest valid enemy when acquiring a new target.
- * - Keep attacking that enemy until it dies.
- * - Only then select the next closest enemy.
+ * - Keep attacking that enemy while it stays valid (lock, no comparing against
+ *   newly nearby enemies).
+ * - Drop it only on a retarget event: death, becoming untargetable/invalid, or
+ *   leaving `maxDistance` (CR towers and buildings release targets that exit
+ *   their range) — then select the next closest enemy.
  */
 export function refreshStickyTarget(
   current: Entity | null,
   state: GameState,
   opts: NearestEnemyOptions,
 ): Entity | null {
-  if (current?.isAlive) return current
+  if (current && isStickyTargetValid(current, state, opts)) return current
   return findNearestEnemy(state, opts)
+}
+
+function isStickyTargetValid(
+  current: Entity,
+  _state: GameState,
+  opts: NearestEnemyOptions,
+): boolean {
+  if (!current.isAlive || !current.isTargetable) return false
+  if (opts.canAttack && !opts.canAttack(current)) return false
+  if (opts.maxDistance !== undefined && opts.distance(opts.from, current) > opts.maxDistance) {
+    return false
+  }
+  return true
 }
