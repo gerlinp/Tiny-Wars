@@ -628,7 +628,17 @@ export class BattleScene extends Phaser.Scene {
               // the primary hit and again for the chain-venom bounce (chainFrom → 2nd target),
               // reading as an Electro Wizard-style spray that hits multiple things at once.
               this.snakeSpray.spawn(from, to, flash)
-            } else if (cardId === 'lizard' || cardId === 'fire_goblin' || cardId === 'torch' || cardId === 'bomb_fish' || cardId === 'spider' || cardId === 'pig_shaman') {
+            } else if (cardId === 'bomb_fish') {
+              // Lobbed spinning bomb (same projectile as the bomb tower's crew throws),
+              // not a fireball — arcs to the target and detonates with a splash burst.
+              const splashR = (attacker.stats as EntityStats).splashRadius ?? 1.5
+              const flightMs = rocketFlightMs(Math.hypot(to.x - from.x, to.y - from.y))
+              this.tntProjectiles.spawn(from, to, attacker.owner, flightMs, () => {
+                this.sounds.playCannonHit()
+                this.effects.spawn(to.x, to.y, splashR * CELL_SIZE)
+                flash()
+              })
+            } else if (cardId === 'lizard' || cardId === 'fire_goblin' || cardId === 'torch' || cardId === 'spider' || cardId === 'pig_shaman') {
               const splashRadius = (attacker.stats as EntityStats).splashRadius
               const explosionRadiusPx = splashRadius !== undefined ? splashRadius * CELL_SIZE : undefined
               this.hexFireballs.spawn(
@@ -807,6 +817,7 @@ export class BattleScene extends Phaser.Scene {
 
         if (entity.kind === EntityKind.TROOP) {
           const troop = entity as Troop
+          sprite.setCursed(troop.isCursedAt(state.elapsedMs))
           moveSpeed = troop.isBoomerangAnchored(state) ? 0 : troop.getEffectiveSpeed()
           const aimPoint = this.aimPointForTroop(troop) ?? undefined
           const hookPhase = troop.getHookPhase()

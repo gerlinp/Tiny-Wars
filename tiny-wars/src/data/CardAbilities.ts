@@ -58,9 +58,12 @@ export const SPIDER_MINION_SPAWN_INTERVAL_MS = 7000
 export const SPIDER_MINION_SPAWN_INITIAL_DELAY_MS = 1000
 
 // ---------------------------------------------------------------------------
-// Pig Shaman (Elder Witch — a kill transforms the victim into a friendly Pig)
+// Pig Shaman (CR Mother Witch — hits curse enemy troops; a cursed troop that
+// dies from ANY source within the window respawns as the shaman's Pig)
 // ---------------------------------------------------------------------------
 export const PIG_SHAMAN_TRANSFORM_CARD_ID = 'pig'
+/** How long the transformation hex lingers after a hit (CR Mother Witch: 5s). */
+export const PIG_SHAMAN_CURSE_MS = 5000
 
 // ---------------------------------------------------------------------------
 // Snake (Electro Wizard — chains venom spray to a second target, stuns on hit)

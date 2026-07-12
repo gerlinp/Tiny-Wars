@@ -24,6 +24,9 @@ export function resolveDeaths(state: GameState): void {
       } else if (entity.kind === EntityKind.TROOP) {
         const troop = entity as Troop
         troop.applyDeathNova(state)
+        // Pig Shaman hex (CR Mother Witch) — dying while cursed spawns the curser's Pig.
+        // Map insertion during iteration is safe; the new pig is alive so this loop skips it.
+        troop.applyCurseTransform(state)
         state.events.push({
           type: 'DEATH',
           entityId: id,

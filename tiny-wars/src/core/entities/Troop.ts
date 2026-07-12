@@ -56,7 +56,7 @@ import {
   HOOK_MIN_RANGE_CELLS, HOOK_MAX_RANGE_CELLS, HOOK_WINDUP_MS, HOOK_SLOW_DURATION_MS, HOOK_SLOW_SPEED_MULT,
   GOBLIN_DEMOLISHER_CHARGE_HP_FRACTION, GOBLIN_DEMOLISHER_CHARGE_SPEED_CR, GOBLIN_DEMOLISHER_CHARGE_ATTACK_RANGE,
   SPIDER_MINION_CARD_ID, SPIDER_MINION_SPAWN_COUNT, SPIDER_MINION_SPAWN_INTERVAL_MS, SPIDER_MINION_SPAWN_INITIAL_DELAY_MS,
-  PIG_SHAMAN_TRANSFORM_CARD_ID,
+  PIG_SHAMAN_TRANSFORM_CARD_ID, PIG_SHAMAN_CURSE_MS,
   SNAKE_CHAIN_RANGE_PX, SNAKE_STUN_DURATION_MS,
   SNAKE_SPAWN_ZAP_DAMAGE, SNAKE_SPAWN_ZAP_RADIUS_CELLS, SNAKE_SPAWN_ZAP_TOWER_DAMAGE_MULT,
   MONK_HEAL_PER_PULSE, MONK_HEAL_PULSE_COUNT, MONK_HEAL_RADIUS,
@@ -278,6 +278,9 @@ export class Troop extends Entity {
   private buildingChargeArmed = false
   private buildingChargeRunActive = false
   private spawnTimerMs = 0
+  /** Pig Shaman hex — while cursed, dying (from any source) spawns the curser's Pig. */
+  private curseOwner: Owner | null = null
+  private curseUntilMs = 0
 
   constructor(owner: Owner, stats: EntityStats, position: Vec2, grid: Grid, cardId: string) {
     super(nextEntityId(), owner, EntityKind.TROOP, position, stats.maxHp, cardId)
@@ -1078,18 +1081,31 @@ export class Troop extends Entity {
       attackerId: this.id,
       splash,
     })
-    // CR Elder Witch — a kill transforms the victim into a friendly Pig on the spot.
-    if (this.cardId === 'pig_shaman' && target.kind === EntityKind.TROOP && !target.isAlive) {
-      this.spawnPigOnKill(state, target.position)
+    // CR Mother Witch — every hit curses enemy troops. A cursed troop that dies from
+    // ANY source within the window respawns as the shaman's Pig (applyCurseTransform,
+    // called from resolveDeaths). A killing blow curses first, so it still transforms.
+    if (this.cardId === 'pig_shaman' && target.kind === EntityKind.TROOP) {
+      ;(target as Troop).applyCurse(this.owner, state.elapsedMs + PIG_SHAMAN_CURSE_MS)
     }
   }
 
-  private spawnPigOnKill(state: GameState, position: Vec2): void {
+  applyCurse(byOwner: Owner, untilMs: number): void {
+    this.curseOwner = byOwner
+    this.curseUntilMs = untilMs
+  }
+
+  isCursedAt(elapsedMs: number): boolean {
+    return this.curseOwner !== null && elapsedMs <= this.curseUntilMs
+  }
+
+  /** Called on death (resolveDeaths) — a troop dying while cursed becomes the curser's Pig. */
+  applyCurseTransform(state: GameState): void {
+    if (this.curseOwner === null || state.elapsedMs > this.curseUntilMs) return
     const pigDef = CARD_DEFINITIONS[PIG_SHAMAN_TRANSFORM_CARD_ID]
     if (!pigDef?.stats) return
-    const pig = new Troop(this.owner, pigDef.stats, { ...position }, this.grid, pigDef.id)
+    const pig = new Troop(this.curseOwner, pigDef.stats, { ...this.position }, this.grid, pigDef.id)
     state.entities.set(pig.id, pig)
-    state.events.push({ type: 'DEPLOY', entityId: pig.id, cardId: pigDef.id, position: { ...position } })
+    state.events.push({ type: 'DEPLOY', entityId: pig.id, cardId: pigDef.id, position: { ...this.position } })
   }
 
   private dealSplashDamage(state: GameState, center: Vec2, primaryId: string, damage: number): void {

@@ -254,7 +254,7 @@ const CARD_DEFINITIONS_BASE: Record<string, Omit<CardDefinition, 'addedAt'>> = {
   }, 'lancer_blue_idle', 'lancer_red_idle'),
 
   pig_shaman: troop('pig_shaman', 'Pig Shaman',
-    'Hurls a transformation hex that splashes nearby enemies. Kills turn the victim into a friendly Pig. Hits air and ground.',
+    'Hurls a transformation hex that splashes and curses nearby enemies. Cursed troops that die become friendly Pigs. Hits air and ground.',
     5, {
     maxHp: 930,
     speed: crSpeedToCellsPerSec(CR_SPEED.medium),

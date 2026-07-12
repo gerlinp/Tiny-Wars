@@ -31,12 +31,17 @@ export interface HealSync {
   aimPoint?: Vec2
 }
 
+/** Pig Shaman hex — purple wash on cursed units so the transform threat reads at a glance. */
+const CURSE_TINT = 0xcc66ff
+
 export class EntitySprite {
   readonly sprite: DisplayObject
   private healthBar: HealthBar
   private lastX: number
   private flashTween: Phaser.Tweens.Tween | null = null
   private currentAnim: AnimClip = 'idle'
+  /** Pig Shaman hex active on this unit — tinted purple until it expires. */
+  private cursed = false
   private attackSwingPlaying = false
   private readonly cardId: string
   private readonly owner: Owner
@@ -106,11 +111,21 @@ export class EntitySprite {
   }
 
   private applyTeamTint(): void {
-    if (usesTintedBotSide(this.cardId) && this.owner === Owner.BOT) {
+    if (this.cursed) {
+      this.sprite.setTint(CURSE_TINT)
+    } else if (usesTintedBotSide(this.cardId) && this.owner === Owner.BOT) {
       this.sprite.setTint(BOT_SIDE_TINT)
     } else {
       this.sprite.clearTint()
     }
+  }
+
+  /** Pig Shaman hex — purple tint while the transformation curse is active. */
+  setCursed(cursed: boolean): void {
+    if (this.cursed === cursed) return
+    this.cursed = cursed
+    // A damage flash in progress re-applies the (curse-aware) tint when it ends
+    if (!this.flashTween) this.applyTeamTint()
   }
 
   /** Hide the body while keeping the sprite alive (e.g. Miner underground). */
