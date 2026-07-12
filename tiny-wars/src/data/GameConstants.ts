@@ -203,6 +203,22 @@ export const TROOP_SCAN_INTERVAL_MS = 100
  *  resumes in brief slow-motion catch-up instead of one giant step that tunnels units. */
 export const SIM_MAX_TICK_MS = 250
 
+/** Fixed simulation step. PvP determinism requires both clients to advance the sim
+ *  in identical steps — never tick with a raw frame delta in a network match. */
+export const SIM_STEP_MS = 1000 / 60
+
+/** PvP input delay: a deploy executes this many ticks after it is issued, giving the
+ *  message time to reach the opponent so both sims apply it at the same tick (~250ms). */
+export const PVP_INPUT_DELAY_TICKS = 15
+
+/** Host broadcasts authoritative tower HP every this many ticks (~2s) — a safety net
+ *  that stops any residual sim drift from ever disagreeing about tower kills. */
+export const PVP_TOWER_SYNC_TICKS = 120
+
+/** Cap on the fixed-step catch-up backlog after a stall — beyond this the sim drops
+ *  time rather than freezing the frame to replay it. */
+export const SIM_CATCHUP_MAX_MS = 1000
+
 /** How far beyond sight range a troop target can flee before it is dropped.
  *  Default retention = sight range × this; override per-card with targetRetentionRangeCells. */
 export const COMBAT_LEASH_MULTIPLIER = 2.0

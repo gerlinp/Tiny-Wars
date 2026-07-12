@@ -101,8 +101,8 @@ describe('PvPNetwork — existing message handling is unaffected', () => {
   it('fires onDeploy for DEPLOY messages', () => {
     const onDeploy = vi.fn()
     net.onDeploy = onDeploy
-    conn.emit('data', { type: 'DEPLOY', cardId: 'lancer', gridPos: { x: 3, y: 10 } })
-    expect(onDeploy).toHaveBeenCalledWith('lancer', { x: 3, y: 10 }, undefined)
+    conn.emit('data', { type: 'DEPLOY', cardId: 'lancer', gridPos: { x: 3, y: 10 }, tick: 120 })
+    expect(onDeploy).toHaveBeenCalledWith('lancer', { x: 3, y: 10 }, 120, undefined)
   })
 
   it('forwards the precise world position when present', () => {
@@ -112,9 +112,24 @@ describe('PvPNetwork — existing message handling is unaffected', () => {
       type: 'DEPLOY',
       cardId: 'lancer',
       gridPos: { x: 3, y: 10 },
+      tick: 120,
       pos: { x: 224, y: 672 },
     })
-    expect(onDeploy).toHaveBeenCalledWith('lancer', { x: 3, y: 10 }, { x: 224, y: 672 })
+    expect(onDeploy).toHaveBeenCalledWith('lancer', { x: 3, y: 10 }, 120, { x: 224, y: 672 })
+  })
+
+  it('fires onTowerSync with the tower entries', () => {
+    const onTowerSync = vi.fn()
+    net.onTowerSync = onTowerSync
+    const towers = [{ x: 175, king: false, mine: true, hp: 812 }]
+    conn.emit('data', { type: 'TOWER_SYNC', towers })
+    expect(onTowerSync).toHaveBeenCalledWith(towers)
+  })
+
+  it('marks opponentReady when READY arrives before the callback is registered', () => {
+    expect(net.opponentReady).toBe(false)
+    conn.emit('data', { type: 'READY' })
+    expect(net.opponentReady).toBe(true)
   })
 
   it('fires onRematch for REMATCH messages', () => {

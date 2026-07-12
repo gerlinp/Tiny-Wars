@@ -16,6 +16,9 @@ import {
   PLAYER_POCKET_ROW_MAX,
   DEPLOY_LANE_SPLIT_COL,
   CELL_SIZE,
+  LEFT_BRIDGE_COLS,
+  RIVER_ROW_START,
+  RIVER_ROW_END,
 } from '@data/GameConstants'
 import { setActiveMapConfig, getActiveMapConfig } from '@data/ActiveMapConfig'
 import { DEFAULT_MAP_CONFIG } from '@data/DefaultMapConfig'
@@ -135,12 +138,22 @@ describe('painted spawnZones', () => {
 
     const rects = deployOverlayRects(Owner.PLAYER, { left: true, right: false }, PAINTED_SPAWN_ZONES)
     const expanded = rects.filter(r => r.kind === 'expanded')
-    expect(expanded).toHaveLength(1)
-    expect(expanded[0]).toMatchObject({
+    // Painted unlock cell + the unlocked left-lane bridge tiles (CR bridge placement).
+    const bridgeRects = LEFT_BRIDGE_COLS.length * (RIVER_ROW_END - RIVER_ROW_START + 1)
+    expect(expanded).toHaveLength(1 + bridgeRects)
+    expect(expanded).toContainEqual({
       x: 4 * CELL_SIZE,
       y: 8 * CELL_SIZE,
       w: CELL_SIZE,
       h: CELL_SIZE,
+      kind: 'expanded',
+    })
+    expect(expanded).toContainEqual({
+      x: LEFT_BRIDGE_COLS[0]! * CELL_SIZE,
+      y: RIVER_ROW_START * CELL_SIZE,
+      w: CELL_SIZE,
+      h: CELL_SIZE,
+      kind: 'expanded',
     })
   })
 })

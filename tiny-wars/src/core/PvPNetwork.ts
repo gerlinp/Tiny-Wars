@@ -1,9 +1,19 @@
 import { Peer, type DataConnection } from 'peerjs'
 import type { Vec2 } from './types'
 
+/** One tower's authoritative HP, identified engine-independently: `mine` is relative
+ *  to the sender (host), `x` matches on both clients (only y is mirrored in PvP). */
+export interface TowerSyncEntry {
+  x: number
+  king: boolean
+  mine: boolean
+  hp: number
+}
+
 export type PvPMessage =
   | { type: 'READY' }
-  | { type: 'DEPLOY'; cardId: string; gridPos: Vec2; pos?: Vec2 }
+  | { type: 'DEPLOY'; cardId: string; gridPos: Vec2; tick: number; pos?: Vec2 }
+  | { type: 'TOWER_SYNC'; towers: TowerSyncEntry[] }
   | { type: 'REMATCH' }
   | { type: 'HELLO'; name: string }
 
@@ -35,10 +45,16 @@ export class PvPNetwork {
   opponentName = ''
 
   onConnected: (() => void) | null = null
-  onDeploy: ((cardId: string, gridPos: Vec2, pos?: Vec2) => void) | null = null
+  onDeploy: ((cardId: string, gridPos: Vec2, tick: number, pos?: Vec2) => void) | null = null
+  onTowerSync: ((towers: TowerSyncEntry[]) => void) | null = null
   onDisconnected: (() => void) | null = null
   onRematch: (() => void) | null = null
   onOpponentName: ((name: string) => void) | null = null
+  onOpponentReady: (() => void) | null = null
+
+  /** Sticky flag so a READY that arrives before BattleScene registers its
+   *  callback isn't lost — BattleScene resets it when the battle starts. */
+  opponentReady = false
 
   private mmAborted = false
 
@@ -211,12 +227,20 @@ export class PvPNetwork {
     this.mmAborted = true
   }
 
-  sendDeploy(cardId: string, gridPos: Vec2, pos?: Vec2): void {
-    this.send({ type: 'DEPLOY', cardId, gridPos, pos })
+  sendDeploy(cardId: string, gridPos: Vec2, tick: number, pos?: Vec2): void {
+    this.send({ type: 'DEPLOY', cardId, gridPos, tick, pos })
+  }
+
+  sendTowerSync(towers: TowerSyncEntry[]): void {
+    this.send({ type: 'TOWER_SYNC', towers })
   }
 
   sendRematch(): void {
     this.send({ type: 'REMATCH' })
+  }
+
+  sendReady(): void {
+    this.send({ type: 'READY' })
   }
 
   private send(msg: PvPMessage): void {
@@ -238,12 +262,17 @@ export class PvPNetwork {
     conn.on('data', (raw) => {
       const msg = raw as PvPMessage
       if (msg.type === 'DEPLOY') {
-        this.onDeploy?.(msg.cardId, msg.gridPos, msg.pos)
+        this.onDeploy?.(msg.cardId, msg.gridPos, msg.tick, msg.pos)
+      } else if (msg.type === 'TOWER_SYNC') {
+        this.onTowerSync?.(msg.towers)
       } else if (msg.type === 'REMATCH') {
         this.onRematch?.()
       } else if (msg.type === 'HELLO') {
         this.opponentName = msg.name
         this.onOpponentName?.(msg.name)
+      } else if (msg.type === 'READY') {
+        this.opponentReady = true
+        this.onOpponentReady?.()
       }
     })
     conn.on('close', () => {

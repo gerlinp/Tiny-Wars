@@ -23,6 +23,8 @@ import {
   BOT_TOWER_ROW,
   BOT_TOWER_COLS,
   SIM_MAX_TICK_MS,
+  RIVER_ROW_START,
+  RIVER_ROW_END,
 } from '@data/GameConstants'
 import { getActiveMapConfig } from '@data/ActiveMapConfig'
 import { KING_TOWER, PRINCESS_TOWER } from '@data/TowerData'
@@ -86,6 +88,10 @@ export class GameSimulator {
 
   tick(deltaMs: number): GameState {
     if (this.state.phase === 'ENDED') return this.state
+    // Zero-delta calls (intro freeze frames) must not advance state.tick — in PvP the
+    // tick counter is the shared timeline deploys are scheduled on, and each client
+    // renders a different number of intro frames.
+    if (deltaMs <= 0) return this.state
 
     deltaMs = Math.min(deltaMs, SIM_MAX_TICK_MS)
 
@@ -133,6 +139,13 @@ export class GameSimulator {
 
     // Miner burrows to any walkable cell — spawn zones don't apply.
     if (card.id !== 'miner' && !isTroopDeployCell(owner, gridPos, this.state.enemyLaneDeploy)) return false
+
+    // Buildings never sit on the bridge — troops may deploy there once the lane unlocks,
+    // but a building footprint would block the only crossing.
+    if (
+      card.cardType === CardType.BUILDING
+      && gridPos.y >= RIVER_ROW_START && gridPos.y <= RIVER_ROW_END
+    ) return false
 
     if (!this.grid.isWalkable(gridPos.x, gridPos.y)) return false
 

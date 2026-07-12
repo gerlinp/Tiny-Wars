@@ -3,6 +3,8 @@ import { CINZEL_FONT } from '../ui/cardHandLayout'
 import { PvPNetwork } from '@core/PvPNetwork'
 import { loadPlayerName, savePlayerName } from '@data/PlayerName'
 import { createWideButton, DEEP_BLUE, DEEP_PURPLE, DEEP_RED, DEEP_GREEN, type WideButtonOptions } from '../ui/SceneButton'
+import { createLoadingWalker } from '../ui/loadingScreenUnit'
+import { loadingWalkerCandidates } from '../ui/loadingScreenUnitPick'
 
 const BODY_FONT = "'Philosopher', Georgia, serif"
 
@@ -40,6 +42,7 @@ export class PvPLobbyScene extends Phaser.Scene {
 
   private lobbyState: LobbyState = 'MENU'
   private network: PvPNetwork | null = null
+  private matchWalker: Phaser.GameObjects.Sprite | null = null
   private dotTimer: Phaser.Time.TimerEvent | null = null
   private dotCount = 0
   private domInput: HTMLInputElement | null = null   // room code input
@@ -430,6 +433,8 @@ export class PvPLobbyScene extends Phaser.Scene {
     this.matchmakingContainer.setVisible(true)
     this.statusText.setText('')
 
+    this.spawnMatchWalker()
+
     this.network = new PvPNetwork()
     this.network.localName = this.getLocalName()
     this.network.onConnected = () => this.startBattle()
@@ -449,11 +454,36 @@ export class PvPLobbyScene extends Phaser.Scene {
     this.network?.cancelFindMatch()
     this.network?.destroy()
     this.network = null
+    this.matchWalker?.destroy()
+    this.matchWalker = null
     this.matchmakingContainer.setVisible(false)
     this.setNameInputVisible(true)
     this.lobbyState = 'MENU'
     this.menuContainer.setVisible(true)
     this.statusText.setText('')
+  }
+
+  /**
+   * Run-in-place unit above the status text so matchmaking never looks frozen.
+   * Same walker as the loading screen, scaled down to fit between the name
+   * label (~y 0.20) and the matchmaking container (~y 0.44).
+   */
+  private spawnMatchWalker(): void {
+    if (this.matchWalker) return
+    const candidates = loadingWalkerCandidates()
+      // air_boat is a composite (boat + crew sprites) laid out at full loading-screen
+      // size — it doesn't survive the rescale below, so skip it here.
+      .filter(id => id !== 'air_boat')
+    Phaser.Utils.Array.Shuffle(candidates)
+    for (const id of candidates) {
+      // createLoadingWalker returns null if the run sheet isn't loaded yet — try the next pick
+      const sprite = createLoadingWalker(this, id, this.scale.width / 2, this.scale.height * 0.31)
+      if (sprite) {
+        sprite.setScale(sprite.scaleX * 0.45, sprite.scaleY * 0.45)
+        this.matchWalker = sprite
+        return
+      }
+    }
   }
 
   private startBattle(): void {

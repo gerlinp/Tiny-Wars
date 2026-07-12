@@ -92,6 +92,9 @@ const STUCK_LEVEL_DECAY_MS = 1500
 const SLOT_CLAIM_STICKINESS = 0.6
 /** A new structure objective must be at least this much closer before a marching troop switches. */
 const STRUCTURE_SWITCH_MARGIN = CELL_SIZE * 2
+/** Dead zone (cells) either side of the bridge centre column inside which a troop keeps its
+ *  current lane — prevents lane flip-flop for units marching up the middle. */
+const LANE_SWITCH_HYSTERESIS_CELLS = 1.5
 /**
  * Once in ATTACKING state, the unit stays attacking even if the target drifts up to this many
  * pixels beyond attackReach — prevents single-tick walk/attack oscillation from separation pushes.
@@ -222,7 +225,10 @@ export class Troop extends Entity {
   private lastObjectiveId: string | null = null
   /** Tower ID the unit is currently marching toward — used to sample the right flow field. */
   private marchTowerId: string | null = null
-  private readonly spawnLane: 'left' | 'right'
+  /** Which side's towers this unit marches toward. Starts as the spawn side but follows the
+   *  unit's actual position (with hysteresis) — a troop kited across the arena goes for the
+   *  near side's tower instead of walking back to the lane it was deployed in. */
+  private laneSide: 'left' | 'right'
   private lastMarchDir: Vec2
   private walkDistanceCells = 0
   private isCharging = false
@@ -280,7 +286,7 @@ export class Troop extends Entity {
     this.grid = grid
     this.pathfinder = new Pathfinder(grid)
     this.lastMarchDir = owner === Owner.PLAYER ? { x: 0, y: -1 } : { x: 0, y: 1 }
-    this.spawnLane = position.x < BRIDGE_CENTER_COL * CELL_SIZE ? 'left' : 'right'
+    this.laneSide = position.x < BRIDGE_CENTER_COL * CELL_SIZE ? 'left' : 'right'
     if (cardId === 'spider') {
       this.spawnMinionCooldownMs = SPIDER_MINION_SPAWN_INITIAL_DELAY_MS
     }
@@ -332,6 +338,18 @@ export class Troop extends Entity {
   /** March direction for ally push-from-behind (normalized when moving). */
   getMarchDirection(): Vec2 {
     return this.lastMarchDir
+  }
+
+  /** Follow the unit's actual side of the arena, with a dead zone around the bridge centre
+   *  so units marching up the middle don't flip lanes every tick. A kited troop that ends
+   *  up across the map re-evaluates toward the now-nearest side. */
+  private updateLaneSide(): void {
+    const col = this.position.x / CELL_SIZE
+    if (col < BRIDGE_CENTER_COL - LANE_SWITCH_HYSTERESIS_CELLS) {
+      this.laneSide = 'left'
+    } else if (col > BRIDGE_CENTER_COL + LANE_SWITCH_HYSTERESIS_CELLS) {
+      this.laneSide = 'right'
+    }
   }
 
   /** True while deploy or attack heal pulses are still ticking. */
@@ -482,6 +500,7 @@ export class Troop extends Entity {
 
     this.syncBuildingChargeState()
     this.syncBuildingChargeTransition()
+    this.updateLaneSide()
     this.tickTargetLeash(deltaMs, state)
     this.refreshCombatTarget(deltaMs, state)
 
@@ -1864,7 +1883,7 @@ export class Troop extends Entity {
     // This unit's tower target just died — redirect using lane-aware selection so we
     // hit the same-side princess next (if alive) or the king, not the cross-side tower.
     if (this.target?.kind === EntityKind.TOWER && !this.target.isAlive && state.flowFields) {
-      const next = state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.spawnLane)
+      const next = state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.laneSide)
       if (next) {
         this.target = next
         return
@@ -1901,7 +1920,7 @@ export class Troop extends Entity {
       // march to their assigned side's princess/king instead of detouring cross-map to
       // whichever structure has the shortest raw path cost.
       const laneAwareTower = state.flowFields
-        ? state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.spawnLane)
+        ? state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.laneSide)
         : null
       this.target = this.stickyStructureTarget(pullBuilding ?? laneAwareTower ?? findNearestEnemyStructure(state, {
         owner: this.owner,
@@ -1925,7 +1944,7 @@ export class Troop extends Entity {
     // (not the globally cheapest tower). Fall back to findNearestEnemyStructure only
     // if no tower is reachable (e.g., targets a placed building in the way).
     const laneAwareTower = state.flowFields
-      ? state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.spawnLane)
+      ? state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.laneSide)
       : null
     const structureTarget = laneAwareTower ?? findNearestEnemyStructure(state, {
       owner: this.owner,
@@ -1991,7 +2010,7 @@ export class Troop extends Entity {
   private getMarchGoal(state: GameState): Vec2 {
     // Prefer flow field: lane-aware selection keeps units on their spawn side.
     if (state.flowFields) {
-      const tower = state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.spawnLane)
+      const tower = state.flowFields.nearestEnemyTower(state, this.position, this.owner, this.laneSide)
       if (tower) {
         this.marchTowerId = tower.id
         return this.moveGoalFor(tower)

@@ -22,6 +22,10 @@ import {
   PLAYER_TOWER_COLS,
   BOT_POCKET_ROW_MIN,
   PLAYER_POCKET_ROW_MAX,
+  RIVER_ROW_START,
+  RIVER_ROW_END,
+  LEFT_BRIDGE_COLS,
+  RIGHT_BRIDGE_COLS,
 } from '@data/GameConstants'
 
 // ─── DeployPerspective ────────────────────────────────────────────────────────
@@ -79,6 +83,20 @@ export function deployOverlayRects(
     h: (friendly.max - friendly.min + 1) * CELL_SIZE,
     kind: 'friendly',
   }]
+
+  // Unlocked bridge tiles (CR bridge placement) — same for painted and fallback zones.
+  for (let row = RIVER_ROW_START; row <= RIVER_ROW_END; row++) {
+    for (const col of [...LEFT_BRIDGE_COLS, ...RIGHT_BRIDGE_COLS]) {
+      if (!isUnlockedBridgeCell(col, row, unlocks)) continue
+      rects.push({
+        x: col * CELL_SIZE,
+        y: row * CELL_SIZE,
+        w: CELL_SIZE,
+        h: CELL_SIZE,
+        kind: 'expanded',
+      })
+    }
+  }
 
   if (hasSpawnZoneMap(zones)) {
     for (const { col, row } of enemyUnlockOverlayCells(zones, enemy.min, enemy.max, unlocks)) {
@@ -147,6 +165,15 @@ export function isCellInLane(col: number, lane: TowerLane): boolean {
   return col >= DEPLOY_LANE_SPLIT_COL && col < GRID_COLS
 }
 
+/** CR-style bridge placement: once a lane's tower is down, that lane's bridge tiles
+ *  (river rows at the bridge columns) become valid deploy cells for the attacker. */
+export function isUnlockedBridgeCell(col: number, row: number, unlocks: LaneUnlocks): boolean {
+  if (row < RIVER_ROW_START || row > RIVER_ROW_END) return false
+  if (unlocks.left && (LEFT_BRIDGE_COLS as readonly number[]).includes(col)) return true
+  if (unlocks.right && (RIGHT_BRIDGE_COLS as readonly number[]).includes(col)) return true
+  return false
+}
+
 function enemyUnlockAllowsDeploy(
   col: number,
   row: number,
@@ -183,6 +210,7 @@ export function isTroopDeployCell(
   const zones = spawnZones ?? spawnZonesFromConfig(getActiveMapConfig())
 
   if (row >= friendly.min && row <= friendly.max) return true
+  if (isUnlockedBridgeCell(col, row, unlocks)) return true
   return enemyUnlockAllowsDeploy(col, row, enemy, unlocks, zones)
 }
 

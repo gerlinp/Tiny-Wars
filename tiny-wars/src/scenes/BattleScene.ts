@@ -30,15 +30,18 @@ import { CARD_DEFINITIONS } from '@data/CardData'
 import { loadPlayerDeck } from '@data/PlayerDeck'
 import { BOT_DECKS, BOT_DIFFICULTY_LABELS, loadBotDifficulty } from '@data/BotDecks'
 import { createMatchupBanner, matchupLabel } from '@ui/matchupBanner'
-import { GAME_HEIGHT, CELL_SIZE, GRID_ROWS } from '@data/GameConstants'
+import {
+  GAME_HEIGHT, CELL_SIZE, GRID_ROWS,
+  SIM_STEP_MS, SIM_CATCHUP_MAX_MS, PVP_INPUT_DELAY_TICKS, PVP_TOWER_SYNC_TICKS,
+} from '@data/GameConstants'
 import { MINOTAUR_SPAWN_DROP_HEIGHT_CELLS } from '@data/CardAbilities'
 import { DevMode } from '@debug/DevMode'
 import { DevModeOverlay } from '@debug/DevModeOverlay'
 import { isRangedAttacker, isMeleeAttacker } from '@core/CombatHelpers'
 import type { GameState } from '@core/GameState'
 import type { Entity } from '@core/entities/Entity'
-import type { Vec2 } from '@core/types'
-import type { PvPNetwork } from '@core/PvPNetwork'
+import type { CardDefinition, Vec2 } from '@core/types'
+import type { PvPNetwork, TowerSyncEntry } from '@core/PvPNetwork'
 import { SoundManager } from '@audio/SoundManager'
 
 /** Small footprint-sized puffs for the Miner's dig trail — distinct dots, not one big blob. */
@@ -49,6 +52,18 @@ const AIR_BOAT_BOMB_FUSE_MS = 1800
 /** Sized like the other TNT-family units on the map, not the smaller lobbed-projectile scale. */
 const AIR_BOAT_BOMB_DISPLAY =
   (logicDisplayHeightForCard('goblin_demolisher') + logicDisplayHeightForCard('tnt_barrel')) / 2
+
+/** A deploy waiting for its shared execute tick — PvP applies every input at the same
+ *  simulation tick on both clients so the two sims stay in lockstep. */
+interface PendingDeploy {
+  tick: number
+  /** Issued by the match host — same-tick deploys apply host-first on both clients. */
+  fromHost: boolean
+  owner: Owner
+  card: CardDefinition
+  cell: Vec2
+  precise?: Vec2
+}
 
 export class BattleScene extends Phaser.Scene {
   private grid!: Grid
@@ -84,6 +99,9 @@ export class BattleScene extends Phaser.Scene {
   /** Sim time is frozen until the match intro ("X vs Y" → "Battle Start!") finishes. */
   private battleStarted = false
   private gameEnded = false
+  /** Fixed-timestep accumulator — the sim only ever advances in SIM_STEP_MS steps. */
+  private simAccum = 0
+  private pendingDeploys: PendingDeploy[] = []
 
   constructor() {
     super({ key: 'BattleScene' })
@@ -91,6 +109,11 @@ export class BattleScene extends Phaser.Scene {
 
   init(data: { pvpNetwork?: PvPNetwork }): void {
     this.pvpNetwork = data?.pvpNetwork ?? null
+    // Phaser reuses the scene instance across restarts (rematch) — reset per-battle state
+    this.battleStarted = false
+    this.gameEnded = false
+    this.simAccum = 0
+    this.pendingDeploys = []
   }
 
   create(): void {
@@ -112,7 +135,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (this.pvpNetwork) {
-      this.pvpNetwork.onDeploy = (cardId, gridPos, pos) => {
+      this.pvpNetwork.onDeploy = (cardId, gridPos, tick, pos) => {
         const card = CARD_DEFINITIONS[cardId]
         if (card) {
           // Mirror the opponent's Y coordinate so their bottom-half deploy
@@ -121,9 +144,19 @@ export class BattleScene extends Phaser.Scene {
           // Mirror the precise world position the same way (GAME_HEIGHT - y) so both clients
           // spawn the unit at the identical spot and the sim stays deterministic.
           const mirroredPrecise = pos ? { x: pos.x, y: GAME_HEIGHT - pos.y } : undefined
-          this.simulator.deployCard(Owner.BOT, card, mirroredCell, mirroredPrecise)
+          this.pendingDeploys.push({
+            // A message that arrives after its tick already ran (latency spike beyond the
+            // input-delay buffer) applies on the next tick — tower sync mops up the drift.
+            tick: Math.max(tick, this.simulator.state.tick + 1),
+            fromHost: this.pvpNetwork!.role === 'GUEST',
+            owner: Owner.BOT,
+            card,
+            cell: mirroredCell,
+            precise: mirroredPrecise,
+          })
         }
       }
+      this.pvpNetwork.onTowerSync = (towers) => this.applyTowerSync(towers)
       this.pvpNetwork.onDisconnected = () => {
         this.simulator.state.phase = 'ENDED'
         this.simulator.state.winner = Owner.PLAYER
@@ -174,9 +207,8 @@ export class BattleScene extends Phaser.Scene {
     )
 
     if (this.pvpNetwork) {
-      this.deployCtrl.onDeploy = (cardId, gridPos, worldPos) => {
-        this.pvpNetwork!.sendDeploy(cardId, gridPos, worldPos)
-      }
+      this.deployCtrl.deployOverride = (card, gridPos, worldPos) =>
+        this.queueLocalDeploy(card, gridPos, worldPos)
     }
 
     // Drag-to-aim on the arena — deploy on pointer up so touch users can aim precisely.
@@ -252,27 +284,132 @@ export class BattleScene extends Phaser.Scene {
     // fade out, swap to "Battle Start!", and fade back in — slow enough to read
     // clearly instead of flickering — and unfreeze the sim on the swap.
     this.time.delayedCall(3400 + 1000, () => {
+      // In PvP the two clients reach this point at different times (loading and
+      // scene-start are local), so gate the start on a READY handshake — the sim
+      // unfreezes on both screens within one network hop instead of seconds apart.
+      if (this.pvpNetwork) {
+        this.awaitOpponentReady(banner)
+      } else {
+        this.flipToBattleStart(banner)
+      }
+    })
+  }
+
+  /** Send READY, then start once the opponent's READY has arrived too. */
+  private awaitOpponentReady(banner: Phaser.GameObjects.Text): void {
+    const net = this.pvpNetwork!
+    net.sendReady()
+    const start = () => {
+      // Consume the flag so a rematch (same connection, fresh BattleScene) waits again
+      net.opponentReady = false
+      net.onOpponentReady = null
+      this.flipToBattleStart(banner)
+    }
+    if (net.opponentReady) {
+      start()
+    } else {
+      banner.setText('Waiting for opponent...')
+      net.onOpponentReady = start
+    }
+  }
+
+  private flipToBattleStart(banner: Phaser.GameObjects.Text): void {
+    this.tweens.add({
+      targets: banner,
+      alpha: 0,
+      duration: 400,
+      onComplete: () => {
+        banner.setText('Battle Start!')
+        this.sounds.playWarHorn()
+        this.battleStarted = true
+        this.tweens.add({ targets: banner, alpha: 1, duration: 400 })
+      },
+    })
+    // Hold "Battle Start!" fully visible for as long as the "vs" line was (~1750ms).
+    this.time.delayedCall(400 + 1750, () => {
       this.tweens.add({
         targets: banner,
         alpha: 0,
-        duration: 400,
-        onComplete: () => {
-          banner.setText('Battle Start!')
-          this.sounds.playWarHorn()
-          this.battleStarted = true
-          this.tweens.add({ targets: banner, alpha: 1, duration: 400 })
-        },
-      })
-      // Hold "Battle Start!" fully visible for as long as the "vs" line was (~1750ms).
-      this.time.delayedCall(400 + 1750, () => {
-        this.tweens.add({
-          targets: banner,
-          alpha: 0,
-          duration: 700,
-          onComplete: () => banner.destroy(),
-        })
+        duration: 700,
+        onComplete: () => banner.destroy(),
       })
     })
+  }
+
+  /**
+   * PvP local deploy: validate now, but execute at a tick far enough ahead that the
+   * message reaches the opponent first — both clients then apply it at the same tick.
+   */
+  private queueLocalDeploy(card: CardDefinition, gridPos: Vec2, worldPos: Vec2): boolean {
+    const state = this.simulator.state
+    if (!this.simulator.canDeployAt(Owner.PLAYER, card, gridPos)) return false
+    // The sim only deducts elixir when the deploy executes — reserve the cost of
+    // already-queued deploys so a burst inside the delay window can't overspend.
+    const reserved = this.pendingDeploys
+      .filter(p => p.owner === Owner.PLAYER)
+      .reduce((sum, p) => sum + p.card.elixirCost, 0)
+    if (state.playerElixir - reserved < card.elixirCost) return false
+
+    const tick = state.tick + PVP_INPUT_DELAY_TICKS
+    this.pendingDeploys.push({
+      tick,
+      fromHost: this.pvpNetwork!.role === 'HOST',
+      owner: Owner.PLAYER,
+      card,
+      cell: gridPos,
+      precise: worldPos,
+    })
+    this.pvpNetwork!.sendDeploy(card.id, gridPos, tick, worldPos)
+    return true
+  }
+
+  /** Apply every queued deploy due at the upcoming tick, host's deploys first so
+   *  both clients insert same-tick entities in the same order. */
+  private applyDueDeploys(): void {
+    const nextTick = this.simulator.state.tick + 1
+    const due = this.pendingDeploys.filter(p => p.tick <= nextTick)
+    if (due.length === 0) return
+    this.pendingDeploys = this.pendingDeploys.filter(p => p.tick > nextTick)
+    due.sort((a, b) => (a.tick - b.tick) || (Number(b.fromHost) - Number(a.fromHost)))
+    for (const p of due) {
+      this.simulator.deployCard(p.owner, p.card, p.cell, p.precise)
+    }
+  }
+
+  /** Host: periodically broadcast authoritative tower HP — the safety net that keeps
+   *  both screens agreeing on tower kills even if the sims drift. */
+  private maybeSendTowerSync(): void {
+    if (this.pvpNetwork?.role !== 'HOST') return
+    const state = this.simulator.state
+    if (state.tick % PVP_TOWER_SYNC_TICKS !== 0) return
+    this.pvpNetwork.sendTowerSync(
+      [...state.towers.values()].map(t => ({
+        x: t.position.x,
+        king: t.isKing,
+        mine: t.owner === Owner.PLAYER,
+        hp: t.hp,
+      })),
+    )
+  }
+
+  /** Guest: snap local tower HP to the host's values. Towers are matched by side +
+   *  king flag + x (columns are identical on both clients; only y is mirrored).
+   *  Death is not applied here — resolveDeaths sees hp 0 on the next tick and runs
+   *  the full crown/win flow with its usual events. */
+  private applyTowerSync(towers: TowerSyncEntry[]): void {
+    if (this.pvpNetwork?.role !== 'GUEST') return
+    for (const entry of towers) {
+      const owner = entry.mine ? Owner.BOT : Owner.PLAYER
+      for (const tower of this.simulator.state.towers.values()) {
+        if (tower.owner !== owner || tower.isKing !== entry.king) continue
+        if (Math.abs(tower.position.x - entry.x) > CELL_SIZE / 2) continue
+        const diff = entry.hp - tower.hp
+        // takeDamage/heal (not raw hp writes) keep king-activation semantics intact
+        if (diff < 0) tower.takeDamage(-diff)
+        else if (diff > 0) tower.heal(diff)
+        break
+      }
+    }
   }
 
   update(_time: number, delta: number): void {
@@ -284,8 +421,20 @@ export class BattleScene extends Phaser.Scene {
       return
     }
 
-    // Tick the simulation (dt 0 during the intro — arena renders but time is frozen)
-    const state = this.simulator.tick(this.battleStarted ? delta : 0)
+    // Advance the sim in fixed steps (frozen during the intro). Variable frame deltas
+    // would make PvP clients diverge; fixed steps keep every tick bit-identical.
+    const state = this.simulator.state
+    if (this.battleStarted) {
+      // Cap the catch-up backlog after a stall so we drop time instead of freezing
+      // the frame to replay it (tower sync reconciles the resulting PvP drift).
+      this.simAccum = Math.min(this.simAccum + delta, SIM_CATCHUP_MAX_MS)
+      while (this.simAccum >= SIM_STEP_MS && state.phase !== 'ENDED') {
+        this.simAccum -= SIM_STEP_MS
+        this.applyDueDeploys()
+        this.simulator.tick(SIM_STEP_MS)
+        this.maybeSendTowerSync()
+      }
+    }
 
     // Bot AI (solo only — in PvP opponent actions come via network)
     if (this.battleStarted && this.botAI && this.botCardSystem) {

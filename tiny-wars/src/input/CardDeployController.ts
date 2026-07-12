@@ -6,7 +6,7 @@ import type { DeployZoneOverlay } from '@rendering/DeployZoneOverlay'
 import type { PlacementGhost } from '@rendering/PlacementGhost'
 import { Owner } from '@core/types'
 import { CardType } from '@core/types'
-import type { Vec2 } from '@core/types'
+import type { CardDefinition, Vec2 } from '@core/types'
 import { GAME_HEIGHT } from '@data/GameConstants'
 import { LOCAL_OWNER, enemyLaneUnlocksFor } from '@core/DeploySystem'
 
@@ -19,6 +19,11 @@ export class CardDeployController {
   private aimPointerActive = false
 
   onDeploy: ((cardId: string, gridPos: Vec2, worldPos: Vec2) => void) | null = null
+
+  /** When set, replaces the direct sim deploy — PvP routes deploys through a tick-stamped
+   *  queue so both clients execute them at the same simulation tick. Must return whether
+   *  the deploy was accepted (same contract as GameSimulator.deployCard). */
+  deployOverride: ((card: CardDefinition, gridPos: Vec2, worldPos: Vec2) => boolean) | null = null
 
   constructor(
     private scene: Phaser.Scene,
@@ -143,7 +148,9 @@ export class CardDeployController {
 
     const cell = this.grid.worldToCell(x, y)
     const worldPos: Vec2 = { x, y }
-    const success = this.simulator.deployCard(Owner.PLAYER, card, cell, worldPos)
+    const success = this.deployOverride
+      ? this.deployOverride(card, cell, worldPos)
+      : this.simulator.deployCard(Owner.PLAYER, card, cell, worldPos)
     if (success) {
       this.onDeploy?.(card.id, cell, worldPos)
       this.cardSystem.consumeCard(this.selectedIndex)
