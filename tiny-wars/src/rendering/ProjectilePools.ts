@@ -172,6 +172,8 @@ export interface TntProjectileStyle {
   displaySize?: number
   /** Radians added to the 'straight' travel-angle rotation — for art not drawn pointing along +x. */
   rotationOffset?: number
+  /** Overrides the mid-flight arc scale-up (1 = no scale change) — the 'rocket' lob-height tell is opt-in per style. */
+  peakScale?: number
 }
 
 export class TntPool {
@@ -211,7 +213,7 @@ export class TntPool {
     const flat = lobStyle === 'flat'
     const straight = lobStyle === 'straight'
     const baseSize = projectileStyle?.displaySize ?? (flat ? TOWER_CANNON_PROJECTILE_DISPLAY : TNT_PROJECTILE_DISPLAY)
-    const peakScale = flat ? FLAT_LOB_PEAK_SCALE : undefined
+    const peakScale = projectileStyle?.peakScale ?? (flat ? FLAT_LOB_PEAK_SCALE : undefined)
 
     let projectileKey = projectileStyle?.projectileKey
       ?? (this.scene.textures.exists(BOMB_SPIN_SHEET) ? BOMB_SPIN_SHEET : 'placeholder_player')

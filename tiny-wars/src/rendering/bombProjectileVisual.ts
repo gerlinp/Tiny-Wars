@@ -1,8 +1,8 @@
 /** Peak scale at the midpoint of lob flight — reads as maximum arc height. */
-export const BOMB_ARC_PEAK_SCALE = 4
+export const BOMB_ARC_PEAK_SCALE = 1.75
 
 /** Spin animation playback during lob flight (1 = native sheet rate). */
-export const BOMB_SPIN_TIME_SCALE = 0.35
+export const BOMB_SPIN_TIME_SCALE = 1
 
 /** On-screen size of lobbed bomb / rocket projectiles. */
 export const BOMB_PROJECTILE_DISPLAY_SCALE = 2.75

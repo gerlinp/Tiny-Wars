@@ -12,6 +12,7 @@ import { TowerSprite } from '@rendering/TowerSprite'
 import { EffectsPool, HealEffectPool, DeathPool, DustPool, GroundSlamPool } from '@rendering/VFXPools'
 import { logicDisplayHeightForCard } from '@rendering/assetDisplaySize'
 import { ArrowPool, ArrowsSpellPool, TntPool, BarrelPool, BoneBoomerangPool, HexFireballPool, HarpoonRopePool, SnakeSprayPool } from '@rendering/ProjectilePools'
+import { FLAT_LOB_PEAK_SCALE } from '@rendering/bombProjectileVisual'
 import { hookAnchorPosition, hookRopeEndPosition } from '@core/HookSystem'
 import { ensurePlaceholders } from '@rendering/renderingUtils'
 import { CardDeployController } from '@input/CardDeployController'
@@ -629,15 +630,15 @@ export class BattleScene extends Phaser.Scene {
               // reading as an Electro Wizard-style spray that hits multiple things at once.
               this.snakeSpray.spawn(from, to, flash)
             } else if (cardId === 'bomb_fish') {
-              // Lobbed spinning bomb (same projectile as the bomb tower's crew throws),
-              // not a fireball — arcs to the target and detonates with a splash burst.
+              // Same spinning-bomb sprite as the bomb tower's crew throw, but no mid-flight
+              // scale-up — that's a big-bomb-only tell for its higher lob arc.
               const splashR = (attacker.stats as EntityStats).splashRadius ?? 1.5
               const flightMs = rocketFlightMs(Math.hypot(to.x - from.x, to.y - from.y))
               this.tntProjectiles.spawn(from, to, attacker.owner, flightMs, () => {
                 this.sounds.playCannonHit()
                 this.effects.spawn(to.x, to.y, splashR * CELL_SIZE)
                 flash()
-              })
+              }, 'rocket', { peakScale: FLAT_LOB_PEAK_SCALE })
             } else if (cardId === 'lizard' || cardId === 'fire_goblin' || cardId === 'torch' || cardId === 'spider' || cardId === 'pig_shaman') {
               const splashRadius = (attacker.stats as EntityStats).splashRadius
               const explosionRadiusPx = splashRadius !== undefined ? splashRadius * CELL_SIZE : undefined
