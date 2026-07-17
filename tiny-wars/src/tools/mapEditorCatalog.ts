@@ -71,7 +71,6 @@ export interface MapEditorUnitEntry {
   isTower?: boolean
   isKing?: boolean
   isBuilding?: boolean
-  tintBotSide?: boolean
   spriteOriginY?: number
   footprintWidthRatio?: number
   footprintHeightRatio?: number
@@ -259,7 +258,6 @@ function buildCardEntry(cardId: string): MapEditorUnitEntry | null {
   }
 
   if (card.cardType === CardType.BUILDING) entry.isBuilding = true
-  if (bundle.tintBotSide) entry.tintBotSide = true
   if (bundle.footprintWidthRatio !== undefined) entry.footprintWidthRatio = bundle.footprintWidthRatio
   if (bundle.footprintHeightRatio !== undefined) entry.footprintHeightRatio = bundle.footprintHeightRatio
 
@@ -321,7 +319,6 @@ function formatEntry(entry: MapEditorUnitEntry): string {
   if (entry.isBuilding) parts.push('isBuilding:true')
   if (entry.isTower) parts.push('isTower:true')
   if (entry.isKing) parts.push('isKing:true')
-  if (entry.tintBotSide) parts.push('tintBotSide:true')
   if (entry.spriteOriginY !== undefined) parts.push(`spriteOriginY:${entry.spriteOriginY}`)
   if (entry.footprintWidthRatio !== undefined) parts.push(`footprintWidthRatio:${entry.footprintWidthRatio}`)
   if (entry.footprintHeightRatio !== undefined) parts.push(`footprintHeightRatio:${entry.footprintHeightRatio}`)

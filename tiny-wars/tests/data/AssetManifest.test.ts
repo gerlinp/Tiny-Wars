@@ -49,14 +49,12 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(8)
-    expect(bundle.tintBotSide).toBe(true)
   })
 
-  it('pig_shaman uses Hex Shaman sheets and tints the bot side', () => {
+  it('pig_shaman uses Hex Shaman sheets', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'pig_shaman')!
     expect(cardAvatarKey('pig_shaman')).toBe('avatar_hex_shaman')
     expect(bundle.player.idle.sheet.path).toContain('Hex Shaman_Idle.png')
-    expect(bundle.tintBotSide).toBe(true)
     expect(existsSync(resolve(PUBLIC, HEX_SHAMAN_PROJECTILE_SHEET.path))).toBe(true)
     expect(existsSync(resolve(PUBLIC, HEX_SHAMAN_EXPLOSION_SHEET.path))).toBe(true)
   })
@@ -117,7 +115,7 @@ describe('Card avatars', () => {
     expect(cardAvatarKey('skeleton')).toBe('avatar_enemy_avatars_01')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('skeleton').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
-      expect(side.idle.sheet.path).toContain('Enemies/Skull/Skull_Idle.png')
+      expect(side.idle.sheet.path).toContain('Skull/Skull_Idle.png')
       expect(side.run.sheet.path).toContain('Skull_Run.png')
       expect(side.attack.sheet.path).toContain('Skull_Attack.png')
       expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
@@ -127,7 +125,6 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(7)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(4)
   })
 
@@ -140,10 +137,9 @@ describe('Card avatars', () => {
     expect(bundle.avatarSwarmSourceCardId).toBe('skeleton')
     expect(getCardAvatarSwarmSource('skeleton_army')).toBe('skeleton')
     for (const side of [bundle.player, bundle.bot] as const) {
-      expect(side.idle.sheet.path).toContain('Enemies/Skull/Skull_Idle.png')
+      expect(side.idle.sheet.path).toContain('Skull/Skull_Idle.png')
       expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
     }
-    expect(bundle.tintBotSide).toBe(true)
   })
 
   it('spear goblins uses enemy Spear Goblin sheets with dedicated avatar', () => {
@@ -163,7 +159,6 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(8)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(4)
   })
 
@@ -184,7 +179,6 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(4)
-    expect(bundle.tintBotSide).toBeFalsy()
     expect(bundle.attackHitFrame).toBe(2)
   })
 
@@ -203,7 +197,6 @@ describe('Card avatars', () => {
       expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
     }
     expect(existsSync(resolve(PUBLIC, HARPOON_PROJECTILE_SHEET.path))).toBe(true)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(4)
   })
 
@@ -219,7 +212,7 @@ describe('Card avatars', () => {
     expect(getCardAvatarDef('troll').path).toContain('Enemy Avatars_16.png')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('troll').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
-      expect(side.idle.sheet.path).toContain('Enemies/Troll/Troll_Idle.png')
+      expect(side.idle.sheet.path).toContain('Troll/Troll_Idle.png')
       expect(side.run.sheet.path).toContain('Troll_Walk.png')
       expect(side.attack.sheet.path).toContain('Troll_Attack.png')
       expect(side.idle.sheet.frameWidth).toBe(384)
@@ -230,7 +223,6 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(12)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(10)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(6)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(4)
   })
 
@@ -283,7 +275,7 @@ describe('Card avatars', () => {
     expect(getCardAvatarCropRatio('warrior')).toBe(AVATAR_CROP_RATIO_DEFAULT)
   })
 
-  it('lizard uses Lizard sheets with bot-side tint and idle portrait', () => {
+  it('lizard uses Lizard sheets with idle portrait', () => {
     const bundle = CARD_ASSET_BUNDLES.find(b => b.cardId === 'lizard')!
     expect(cardAvatarKey('lizard')).toBe('avatar_enemy_avatars_13')
     expect(getCardAvatarDef('lizard').path).toContain('Enemy Avatars_13.png')
@@ -299,7 +291,6 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(7)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(9)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(5)
   })
 
@@ -322,7 +313,6 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(5)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(9)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(4)
   })
 
@@ -343,7 +333,6 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(4)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(7)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(4)
   })
 
@@ -363,7 +352,6 @@ describe('Card avatars', () => {
     }
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(10)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(4)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(2)
   })
 
@@ -384,7 +372,6 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(7)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(4)
   })
 
@@ -394,7 +381,7 @@ describe('Card avatars', () => {
     expect(getCardAvatarDef('minotaur').path).toContain('Enemy Avatars_09.png')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('minotaur').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
-      expect(side.idle.sheet.path).toContain('Enemies/Minotaur/Minotaur_Idle.png')
+      expect(side.idle.sheet.path).toContain('Minotaur/Minotaur_Idle.png')
       expect(side.run.sheet.path).toContain('Minotaur_Walk.png')
       expect(side.attack.sheet.path).toContain('Minotaur_Attack.png')
       expect(side.idle.sheet.frameWidth).toBe(320)
@@ -405,7 +392,6 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(16)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(8)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(12)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(5)
   })
 
@@ -416,7 +402,7 @@ describe('Card avatars', () => {
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('gnoll').path))).toBe(true)
     expect(existsSync(resolve(PUBLIC, GNOLL_BONE_SHEET.path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
-      expect(side.idle.sheet.path).toContain('Enemies/Gnoll/Gnoll_Idle.png')
+      expect(side.idle.sheet.path).toContain('Gnoll/Gnoll_Idle.png')
       expect(side.run.sheet.path).toContain('Gnoll_Walk.png')
       expect(side.attack.sheet.path).toContain('Gnoll_Throw.png')
       expect(existsSync(resolve(PUBLIC, side.idle.sheet.path))).toBe(true)
@@ -425,7 +411,6 @@ describe('Card avatars', () => {
     }
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(6)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(8)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(4)
   })
 
@@ -435,7 +420,7 @@ describe('Card avatars', () => {
     expect(getCardAvatarDef('thief').path).toContain('Enemy Avatars_06.png')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('thief').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
-      expect(side.idle.sheet.path).toContain('Enemies/Thief/Thief_Idle.png')
+      expect(side.idle.sheet.path).toContain('Thief/Thief_Idle.png')
       expect(side.run.sheet.path).toContain('Thief_Run.png')
       expect(side.attack.sheet.path).toContain('Thief_Attack.png')
       expect(side.idle.sheet.frameWidth).toBe(192)
@@ -444,7 +429,6 @@ describe('Card avatars', () => {
       expect(existsSync(resolve(PUBLIC, side.attack.sheet.path))).toBe(true)
     }
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(6)
-    expect(bundle.tintBotSide).toBe(true)
   })
 
   it('turtle uses Turtle sheets with dedicated enemy avatar', () => {
@@ -463,7 +447,6 @@ describe('Card avatars', () => {
     }
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(10)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(7)
-    expect(bundle.tintBotSide).toBe(true)
   })
 
   it('panda uses Panda sheets with dedicated enemy avatar', () => {
@@ -473,7 +456,7 @@ describe('Card avatars', () => {
     expect(getCardAvatarDef('panda').path).toContain('Enemy Avatars_12.png')
     expect(existsSync(resolve(PUBLIC, getCardAvatarDef('panda').path))).toBe(true)
     for (const side of [bundle.player, bundle.bot] as const) {
-      expect(side.idle.sheet.path).toContain('Enemies/Panda/Panda_Idle.png')
+      expect(side.idle.sheet.path).toContain('Panda/Panda_Idle.png')
       expect(side.run.sheet.path).toContain('Panda_Run.png')
       expect(side.attack.sheet.path).toContain('Panda_Attack.png')
       expect(side.idle.sheet.frameWidth).toBe(256)
@@ -484,7 +467,6 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(10)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(6)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(13)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(6)
   })
 
@@ -504,7 +486,6 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(6)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(4)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(11)
-    expect(bundle.tintBotSide).toBeUndefined()
     expect(existsSync(resolve(PUBLIC, 'assets/Units/Blue Units/Monk/Heal_Effect.png'))).toBe(true)
     expect(existsSync(resolve(PUBLIC, 'assets/Units/Red Units/Monk/Heal_Effect.png'))).toBe(true)
   })
@@ -526,7 +507,6 @@ describe('Card avatars', () => {
     expect(bundle.player.idle.end - bundle.player.idle.start + 1).toBe(8)
     expect(bundle.player.run.end - bundle.player.run.start + 1).toBe(5)
     expect(bundle.player.attack.end - bundle.player.attack.start + 1).toBe(8)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.attackHitFrame).toBe(4)
   })
 
@@ -542,7 +522,6 @@ describe('Card avatars', () => {
     expect(getUseEditorCompositeAvatar('wood_tower')).toBe(true)
     expect(getUseEditorCompositeAvatar('air_boat')).toBe(true)
     expect(getUseEditorCompositeAvatar('warrior')).toBe(false)
-    expect(bundle.tintBotSide).toBe(true)
     expect(bundle.player.idle.sheet.path).toContain('Pirate Tower_Ground.png')
     expect(existsSync(resolve(PUBLIC, def.path))).toBe(true)
   })

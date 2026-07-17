@@ -243,11 +243,6 @@ export interface CardAssetBundle {
   /** Sheet frame index where the strike/release lands (defaults to last attack frame) */
   attackHitFrame?: number
   /**
-   * Enemy Pack units with one palette — bot side gets a red battle tint.
-   * Player and bot share the same sprite files (separate texture keys for anims).
-   */
-  tintBotSide?: boolean
-  /**
    * Fallback sprite path used by the map editor when player.idle.sheet.path is empty
    * (i.e. palette-swap sentinels that have no physical file of their own).
    */
@@ -460,8 +455,13 @@ function enemyAvatar(file: string): ImageDef {
 
 /** Reserved enemy portraits (no card wired yet): _14, _15 gnome. */
 
+/** Enemy Pack ships separate Blue/Red art per unit — insert the team folder into the base path. */
+function sidePath(base: string, side: 'blue' | 'red'): string {
+  return base.replace('Enemy Pack/Enemies/', `Enemy Pack/Enemies/${side === 'blue' ? 'Blue' : 'Red'}/`)
+}
+
 export const PIRATE_TOWER_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Pirate Tower'
-export const PIRATE_TOWER_GROUND = `${PIRATE_TOWER_PATH}/Pirate Tower_Ground.png`
+export const PIRATE_TOWER_GROUND = `${sidePath(PIRATE_TOWER_PATH, 'blue')}/Pirate Tower_Ground.png`
 export const PIRATE_TOWER_FRAME = { width: 128, height: 192 } as const
 
 const ICON_FRAME = 64
@@ -481,14 +481,15 @@ function staticImageSide(key: string, path: string, frameWidth: number, frameHei
 function pirateTowerSide(cardId: string, side: 'blue' | 'red'): SideAssets {
   return staticImageSide(
     `${cardId}_${side}_idle`,
-    PIRATE_TOWER_GROUND,
+    `${sidePath(PIRATE_TOWER_PATH, side)}/Pirate Tower_Ground.png`,
     PIRATE_TOWER_FRAME.width,
     PIRATE_TOWER_FRAME.height,
   )
 }
 
 const FIRE_GOBLIN_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Torch Goblin'
-const HEX_SHAMAN_PATH = 'assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman'
+/** Palette-swap source only (see PaletteSwap.ts) — no team variance, Blue folder is canonical. */
+const HEX_SHAMAN_PATH = sidePath('assets/Enemy Pack/Enemies/Goblin Raiders/Hex Shaman', 'blue')
 const HEX_FX_FRAME = 128
 
 export const HEX_SHAMAN_PROJECTILE_SHEET = {
@@ -615,7 +616,7 @@ export const TNT_BARREL_LOWHP_FX = {
   hpFraction: 0.5,
 } as const
 
-const BOMB_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Bomb'
+const BOMB_PATH = sidePath('assets/Enemy Pack/Enemies/Pirate Fish/Bomb', 'blue')
 const BOMB_FRAME = 128
 
 function bombSheet(suffix: string, file: string): SheetDef {
@@ -640,17 +641,18 @@ function bombSide(): SideAssets {
 
 /** Enemy Pack Fire Goblin (Torch Goblin art) — separate clips per anim (matches card avatar). */
 function fireGoblinSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(FIRE_GOBLIN_PATH, side)
   const idle: SheetDef = {
     key: `fire_goblin_${side}_idle`,
-    path: `${FIRE_GOBLIN_PATH}/Torch Goblin_Idle.png`,
+    path: `${base}/Torch Goblin_Idle.png`,
   }
   const run: SheetDef = {
     key: `fire_goblin_${side}_run`,
-    path: `${FIRE_GOBLIN_PATH}/Torch Goblin_Run.png`,
+    path: `${base}/Torch Goblin_Run.png`,
   }
   const attack: SheetDef = {
     key: `fire_goblin_${side}_attack`,
-    path: `${FIRE_GOBLIN_PATH}/Torch Goblin_Attack.png`,
+    path: `${base}/Torch Goblin_Attack.png`,
   }
   return {
     idle:   clip(idle,   0, 7, 10, -1),
@@ -663,17 +665,18 @@ const SKULL_PATH = 'assets/Enemy Pack/Enemies/Skull'
 
 /** Enemy Pack Skull — separate clips per anim; Guard sheet unused (block pose only). */
 function skullSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(SKULL_PATH, side)
   const idle: SheetDef = {
     key: `skeleton_${side}_idle`,
-    path: `${SKULL_PATH}/Skull_Idle.png`,
+    path: `${base}/Skull_Idle.png`,
   }
   const run: SheetDef = {
     key: `skeleton_${side}_run`,
-    path: `${SKULL_PATH}/Skull_Run.png`,
+    path: `${base}/Skull_Run.png`,
   }
   const attack: SheetDef = {
     key: `skeleton_${side}_attack`,
-    path: `${SKULL_PATH}/Skull_Attack.png`,
+    path: `${base}/Skull_Attack.png`,
   }
   return {
     idle:   clip(idle,   0, 7, 10, -1),
@@ -715,18 +718,19 @@ const GNOME_PATH = 'assets/Enemy Pack/Enemies/Gnome'
 
 /** Enemy Pack Gnome art — Miner card. Single palette; bot side gets a red tint. */
 function minerSide(side: 'Blue' | 'Red'): SideAssets {
-  const prefix = side.toLowerCase()
+  const prefix = side.toLowerCase() as 'blue' | 'red'
+  const base = sidePath(GNOME_PATH, prefix)
   const idle: SheetDef = {
     key: `miner_${prefix}_idle`,
-    path: `${GNOME_PATH}/Gnome_Idle.png`,
+    path: `${base}/Gnome_Idle.png`,
   }
   const run: SheetDef = {
     key: `miner_${prefix}_run`,
-    path: `${GNOME_PATH}/Gnome_Run.png`,
+    path: `${base}/Gnome_Run.png`,
   }
   const attack: SheetDef = {
     key: `miner_${prefix}_attack`,
-    path: `${GNOME_PATH}/Gnome_Attack.png`,
+    path: `${base}/Gnome_Attack.png`,
   }
   return {
     idle:   clip(idle,   0, 7, 10, -1),
@@ -737,21 +741,22 @@ function minerSide(side: 'Blue' | 'Red'): SideAssets {
 
 /** Enemy Pack Spear Goblin — ×3 melee with armor. */
 function spearGoblinSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(SPEAR_GOBLIN_PATH, side)
   const idle: SheetDef = {
     key: `spear_goblin_${side}_idle`,
-    path: `${SPEAR_GOBLIN_PATH}/Spear Goblin_Idle.png`,
+    path: `${base}/Spear Goblin_Idle.png`,
     frameWidth: SPEAR_GOBLIN_FRAME,
     frameHeight: SPEAR_GOBLIN_FRAME,
   }
   const run: SheetDef = {
     key: `spear_goblin_${side}_run`,
-    path: `${SPEAR_GOBLIN_PATH}/Spear Goblin_Run.png`,
+    path: `${base}/Spear Goblin_Run.png`,
     frameWidth: SPEAR_GOBLIN_FRAME,
     frameHeight: SPEAR_GOBLIN_FRAME,
   }
   const attack: SheetDef = {
     key: `spear_goblin_${side}_attack`,
-    path: `${SPEAR_GOBLIN_PATH}/Spear Goblin_Attack Strong.png`,
+    path: `${base}/Spear Goblin_Attack Strong.png`,
     frameWidth: SPEAR_GOBLIN_FRAME,
     frameHeight: SPEAR_GOBLIN_FRAME,
   }
@@ -765,17 +770,18 @@ function spearGoblinSide(side: 'blue' | 'red'): SideAssets {
 const LIZARD_PATH = 'assets/Enemy Pack/Enemies/Caveborn/Lizard'
 
 function lizardSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(LIZARD_PATH, side)
   const idle: SheetDef = {
     key: `lizard_${side}_idle`,
-    path: `${LIZARD_PATH}/Lizard_Idle_Flying.png`,
+    path: `${base}/Lizard_Idle_Flying.png`,
   }
   const run: SheetDef = {
     key: `lizard_${side}_run`,
-    path: `${LIZARD_PATH}/Flying_Lizard_Run.png`,
+    path: `${base}/Flying_Lizard_Run.png`,
   }
   const attack: SheetDef = {
     key: `lizard_${side}_attack`,
-    path: `${LIZARD_PATH}/Flying_Lizard_Attack.png`,
+    path: `${base}/Flying_Lizard_Attack.png`,
   }
   return {
     idle:   clip(idle, 0, 6, 10, -1),
@@ -790,7 +796,7 @@ const AIR_BOAT_FRAME = 256
 function airBoatSide(side: 'blue' | 'red'): SideAssets {
   const sheet: SheetDef = {
     key: `air_boat_${side}_idle`,
-    path: `${AIR_BOAT_PATH}/AirBoat_Idle.png`,
+    path: `${sidePath(AIR_BOAT_PATH, side)}/AirBoat_Idle.png`,
     frameWidth: AIR_BOAT_FRAME,
     frameHeight: AIR_BOAT_FRAME,
   }
@@ -806,15 +812,16 @@ const PIG_FRAME = 192
 
 /** Enemy Pack Pig — 192×192 frames (native sheet resolution); no attack sheet — run reused. */
 function pigSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(PIG_PATH, side)
   const idle: SheetDef = {
     key: `pig_${side}_idle`,
-    path: `${PIG_PATH}/Pig_Idle.png`,
+    path: `${base}/Pig_Idle.png`,
     frameWidth: PIG_FRAME,
     frameHeight: PIG_FRAME,
   }
   const run: SheetDef = {
     key: `pig_${side}_run`,
-    path: `${PIG_PATH}/Pig_Run.png`,
+    path: `${base}/Pig_Run.png`,
     frameWidth: PIG_FRAME,
     frameHeight: PIG_FRAME,
   }
@@ -831,21 +838,22 @@ const PIG_RIDER_FRAME = 256
 
 /** Enemy Pack Pig Rider Spear Goblin — 256×256 frames. */
 function pigRiderSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(PIG_RIDER_PATH, side)
   const idle: SheetDef = {
     key: `pig_rider_${side}_idle`,
-    path: `${PIG_RIDER_PATH}/Pig Rider_Idle.png`,
+    path: `${base}/Pig Rider_Idle.png`,
     frameWidth: PIG_RIDER_FRAME,
     frameHeight: PIG_RIDER_FRAME,
   }
   const run: SheetDef = {
     key: `pig_rider_${side}_run`,
-    path: `${PIG_RIDER_PATH}/Pig Rider_Run.png`,
+    path: `${base}/Pig Rider_Run.png`,
     frameWidth: PIG_RIDER_FRAME,
     frameHeight: PIG_RIDER_FRAME,
   }
   const attack: SheetDef = {
     key: `pig_rider_${side}_attack`,
-    path: `${PIG_RIDER_PATH}/Pig Rider_Attack.png`,
+    path: `${base}/Pig Rider_Attack.png`,
     frameWidth: PIG_RIDER_FRAME,
     frameHeight: PIG_RIDER_FRAME,
   }
@@ -861,21 +869,22 @@ const BOMB_FISH_FRAME = 192
 
 /** Enemy Pack Bomb Fish — Shoot sheet used as attack. */
 function bombFishSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(BOMB_FISH_PATH, side)
   const idle: SheetDef = {
     key: `bomb_fish_${side}_idle`,
-    path: `${BOMB_FISH_PATH}/Bomb Fish_Idle.png`,
+    path: `${base}/Bomb Fish_Idle.png`,
     frameWidth: BOMB_FISH_FRAME,
     frameHeight: BOMB_FISH_FRAME,
   }
   const run: SheetDef = {
     key: `bomb_fish_${side}_run`,
-    path: `${BOMB_FISH_PATH}/Bomb Fish_Run.png`,
+    path: `${base}/Bomb Fish_Run.png`,
     frameWidth: BOMB_FISH_FRAME,
     frameHeight: BOMB_FISH_FRAME,
   }
   const attack: SheetDef = {
     key: `bomb_fish_${side}_attack`,
-    path: `${BOMB_FISH_PATH}/Bomb Fish_Shoot.png`,
+    path: `${base}/Bomb Fish_Shoot.png`,
     frameWidth: BOMB_FISH_FRAME,
     frameHeight: BOMB_FISH_FRAME,
   }
@@ -891,21 +900,22 @@ const MINOTAUR_FRAME = 320
 
 /** Enemy Pack Minotaur — 320×320 frames; Guard sheet unused. */
 function minotaurSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(MINOTAUR_PATH, side)
   const idle: SheetDef = {
     key: `minotaur_${side}_idle`,
-    path: `${MINOTAUR_PATH}/Minotaur_Idle.png`,
+    path: `${base}/Minotaur_Idle.png`,
     frameWidth: MINOTAUR_FRAME,
     frameHeight: MINOTAUR_FRAME,
   }
   const run: SheetDef = {
     key: `minotaur_${side}_run`,
-    path: `${MINOTAUR_PATH}/Minotaur_Walk.png`,
+    path: `${base}/Minotaur_Walk.png`,
     frameWidth: MINOTAUR_FRAME,
     frameHeight: MINOTAUR_FRAME,
   }
   const attack: SheetDef = {
     key: `minotaur_${side}_attack`,
-    path: `${MINOTAUR_PATH}/Minotaur_Attack.png`,
+    path: `${base}/Minotaur_Attack.png`,
     frameWidth: MINOTAUR_FRAME,
     frameHeight: MINOTAUR_FRAME,
   }
@@ -921,7 +931,7 @@ const THIEF_FRAME = 192
 
 const GNOLL_PATH = 'assets/Enemy Pack/Enemies/Gnoll'
 
-const PADDLE_SHARK_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Paddle Shark'
+const PADDLE_SHARK_PATH = sidePath('assets/Enemy Pack/Enemies/Pirate Fish/Paddle Shark', 'blue')
 
 export const PADDLE_SHARK_IDLE_SHEET = {
   key: 'paddle_shark_idle',
@@ -947,7 +957,7 @@ export const PADDLE_SHARK_ROW_SHEET = {
 
 export const GNOLL_BONE_SHEET = {
   key: 'gnoll_bone',
-  path: `${GNOLL_PATH}/Gnoll_Bone.png`,
+  path: `${sidePath(GNOLL_PATH, 'blue')}/Gnoll_Bone.png`,
   frameWidth: 64,
   frameHeight: 64,
   animKey: 'gnoll_bone_spin',
@@ -958,17 +968,18 @@ export const GNOLL_BONE_SHEET = {
 
 /** Enemy Pack Gnoll — boomerang bone thrower. */
 function gnollSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(GNOLL_PATH, side)
   const idle: SheetDef = {
     key: `gnoll_${side}_idle`,
-    path: `${GNOLL_PATH}/Gnoll_Idle.png`,
+    path: `${base}/Gnoll_Idle.png`,
   }
   const run: SheetDef = {
     key: `gnoll_${side}_run`,
-    path: `${GNOLL_PATH}/Gnoll_Walk.png`,
+    path: `${base}/Gnoll_Walk.png`,
   }
   const attack: SheetDef = {
     key: `gnoll_${side}_attack`,
-    path: `${GNOLL_PATH}/Gnoll_Throw.png`,
+    path: `${base}/Gnoll_Throw.png`,
   }
   return {
     idle:   clip(idle,   0, 5, 10, -1),
@@ -982,28 +993,29 @@ const HARPOON_SHARK_FRAME = 192
 
 export const HARPOON_PROJECTILE_SHEET = {
   key: 'harpoon_projectile',
-  path: `${HARPOON_SHARK_PATH}/Harpoon.png`,
+  path: `${sidePath(HARPOON_SHARK_PATH, 'blue')}/Harpoon.png`,
   frameWidth: 64,
   frameHeight: 64,
 } as const
 
 /** Enemy Pack Harpoon Shark — fisherman-style hook thrower. */
 function harpoonSharkSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(HARPOON_SHARK_PATH, side)
   const idle: SheetDef = {
     key: `harpoon_shark_${side}_idle`,
-    path: `${HARPOON_SHARK_PATH}/Harpoon Shark_Idle.png`,
+    path: `${base}/Harpoon Shark_Idle.png`,
     frameWidth: HARPOON_SHARK_FRAME,
     frameHeight: HARPOON_SHARK_FRAME,
   }
   const run: SheetDef = {
     key: `harpoon_shark_${side}_run`,
-    path: `${HARPOON_SHARK_PATH}/Harpoon Shark_Run.png`,
+    path: `${base}/Harpoon Shark_Run.png`,
     frameWidth: HARPOON_SHARK_FRAME,
     frameHeight: HARPOON_SHARK_FRAME,
   }
   const attack: SheetDef = {
     key: `harpoon_shark_${side}_attack`,
-    path: `${HARPOON_SHARK_PATH}/Harpoon Shark_Throw.png`,
+    path: `${base}/Harpoon Shark_Throw.png`,
     frameWidth: HARPOON_SHARK_FRAME,
     frameHeight: HARPOON_SHARK_FRAME,
   }
@@ -1016,21 +1028,22 @@ function harpoonSharkSide(side: 'blue' | 'red'): SideAssets {
 
 /** Enemy Pack Thief — 192×192 frames. */
 function thiefSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(THIEF_PATH, side)
   const idle: SheetDef = {
     key: `thief_${side}_idle`,
-    path: `${THIEF_PATH}/Thief_Idle.png`,
+    path: `${base}/Thief_Idle.png`,
     frameWidth: THIEF_FRAME,
     frameHeight: THIEF_FRAME,
   }
   const run: SheetDef = {
     key: `thief_${side}_run`,
-    path: `${THIEF_PATH}/Thief_Run.png`,
+    path: `${base}/Thief_Run.png`,
     frameWidth: THIEF_FRAME,
     frameHeight: THIEF_FRAME,
   }
   const attack: SheetDef = {
     key: `thief_${side}_attack`,
-    path: `${THIEF_PATH}/Thief_Attack.png`,
+    path: `${base}/Thief_Attack.png`,
     frameWidth: THIEF_FRAME,
     frameHeight: THIEF_FRAME,
   }
@@ -1046,21 +1059,22 @@ const SNAKE_FRAME = 192
 
 /** Enemy Pack Snake — Snake card art. 192×192 frames. */
 function snakeSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(SNAKE_PATH, side)
   const idle: SheetDef = {
     key: `snake_${side}_idle`,
-    path: `${SNAKE_PATH}/Snake_Idle.png`,
+    path: `${base}/Snake_Idle.png`,
     frameWidth: SNAKE_FRAME,
     frameHeight: SNAKE_FRAME,
   }
   const run: SheetDef = {
     key: `snake_${side}_run`,
-    path: `${SNAKE_PATH}/Snake_Run.png`,
+    path: `${base}/Snake_Run.png`,
     frameWidth: SNAKE_FRAME,
     frameHeight: SNAKE_FRAME,
   }
   const attack: SheetDef = {
     key: `snake_${side}_attack`,
-    path: `${SNAKE_PATH}/Snake_Attack.png`,
+    path: `${base}/Snake_Attack.png`,
     frameWidth: SNAKE_FRAME,
     frameHeight: SNAKE_FRAME,
   }
@@ -1076,21 +1090,22 @@ const PANDA_FRAME = 256
 
 /** Enemy Pack Panda — 256×256 frames; Guard sheet unused. */
 function pandaSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(PANDA_PATH, side)
   const idle: SheetDef = {
     key: `panda_${side}_idle`,
-    path: `${PANDA_PATH}/Panda_Idle.png`,
+    path: `${base}/Panda_Idle.png`,
     frameWidth: PANDA_FRAME,
     frameHeight: PANDA_FRAME,
   }
   const run: SheetDef = {
     key: `panda_${side}_run`,
-    path: `${PANDA_PATH}/Panda_Run.png`,
+    path: `${base}/Panda_Run.png`,
     frameWidth: PANDA_FRAME,
     frameHeight: PANDA_FRAME,
   }
   const attack: SheetDef = {
     key: `panda_${side}_attack`,
-    path: `${PANDA_PATH}/Panda_Attack.png`,
+    path: `${base}/Panda_Attack.png`,
     frameWidth: PANDA_FRAME,
     frameHeight: PANDA_FRAME,
   }
@@ -1106,21 +1121,22 @@ const TURTLE_FRAME = 320
 
 /** Enemy Pack Turtle — 320×320 frames; Guard sheets unused. */
 function turtleSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(TURTLE_PATH, side)
   const idle: SheetDef = {
     key: `turtle_${side}_idle`,
-    path: `${TURTLE_PATH}/Turtle_Idle.png`,
+    path: `${base}/Turtle_Idle.png`,
     frameWidth: TURTLE_FRAME,
     frameHeight: TURTLE_FRAME,
   }
   const run: SheetDef = {
     key: `turtle_${side}_run`,
-    path: `${TURTLE_PATH}/Turtle_Walk.png`,
+    path: `${base}/Turtle_Walk.png`,
     frameWidth: TURTLE_FRAME,
     frameHeight: TURTLE_FRAME,
   }
   const attack: SheetDef = {
     key: `turtle_${side}_attack`,
-    path: `${TURTLE_PATH}/Turtle_Attack.png`,
+    path: `${base}/Turtle_Attack.png`,
     frameWidth: TURTLE_FRAME,
     frameHeight: TURTLE_FRAME,
   }
@@ -1136,21 +1152,22 @@ const BEAR_FRAME = 256
 
 /** Caveborn Bear — Mega Knight rules (7 elixir ground splash melee). */
 function bearTroopSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(BEAR_PATH, side)
   const idle: SheetDef = {
     key: `bear_${side}_idle`,
-    path: `${BEAR_PATH}/Bear_Idle.png`,
+    path: `${base}/Bear_Idle.png`,
     frameWidth: BEAR_FRAME,
     frameHeight: BEAR_FRAME,
   }
   const run: SheetDef = {
     key: `bear_${side}_run`,
-    path: `${BEAR_PATH}/Bear_Run.png`,
+    path: `${base}/Bear_Run.png`,
     frameWidth: BEAR_FRAME,
     frameHeight: BEAR_FRAME,
   }
   const attack: SheetDef = {
     key: `bear_${side}_attack`,
-    path: `${BEAR_PATH}/Bear_Attack.png`,
+    path: `${base}/Bear_Attack.png`,
     frameWidth: BEAR_FRAME,
     frameHeight: BEAR_FRAME,
   }
@@ -1166,21 +1183,22 @@ const SPIDER_FRAME = 192
 
 /** Enemy Pack Spider — Witch-style spawner; shared art for spiderling minions. */
 function spiderSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(SPIDER_PATH, side)
   const idle: SheetDef = {
     key: `spider_${side}_idle`,
-    path: `${SPIDER_PATH}/Spider_Idle.png`,
+    path: `${base}/Spider_Idle.png`,
     frameWidth: SPIDER_FRAME,
     frameHeight: SPIDER_FRAME,
   }
   const run: SheetDef = {
     key: `spider_${side}_run`,
-    path: `${SPIDER_PATH}/Spider_Run.png`,
+    path: `${base}/Spider_Run.png`,
     frameWidth: SPIDER_FRAME,
     frameHeight: SPIDER_FRAME,
   }
   const attack: SheetDef = {
     key: `spider_${side}_attack`,
-    path: `${SPIDER_PATH}/Spider_Attack.png`,
+    path: `${base}/Spider_Attack.png`,
     frameWidth: SPIDER_FRAME,
     frameHeight: SPIDER_FRAME,
   }
@@ -1196,21 +1214,22 @@ const TROLL_FRAME = 384
 
 /** Enemy Pack Troll — 384×384 frames; Windup/Recovery/Dead sheets unused. */
 function trollSide(side: 'blue' | 'red'): SideAssets {
+  const base = sidePath(TROLL_PATH, side)
   const idle: SheetDef = {
     key: `troll_${side}_idle`,
-    path: `${TROLL_PATH}/Troll_Idle.png`,
+    path: `${base}/Troll_Idle.png`,
     frameWidth: TROLL_FRAME,
     frameHeight: TROLL_FRAME,
   }
   const run: SheetDef = {
     key: `troll_${side}_run`,
-    path: `${TROLL_PATH}/Troll_Walk.png`,
+    path: `${base}/Troll_Walk.png`,
     frameWidth: TROLL_FRAME,
     frameHeight: TROLL_FRAME,
   }
   const attack: SheetDef = {
     key: `troll_${side}_attack`,
-    path: `${TROLL_PATH}/Troll_Attack.png`,
+    path: `${base}/Troll_Attack.png`,
     frameWidth: TROLL_FRAME,
     frameHeight: TROLL_FRAME,
   }
@@ -1229,12 +1248,6 @@ function shamanSide(cardId: string, side: 'blue' | 'red'): SideAssets {
     run:    clip(sheet('run'),    0, 3, 14, -1),
     attack: clip(sheet('attack'), 0, 9, 14,  0),
   }
-}
-
-export const BOT_SIDE_TINT = 0xff9999
-
-export function usesTintedBotSide(cardId: string): boolean {
-  return CARD_ASSET_BUNDLES.find(b => b.cardId === cardId)?.tintBotSide === true
 }
 
 export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
@@ -1286,7 +1299,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.12,
     contentFill: 0.55,
     attackHitFrame: 4,
-    tintBotSide: true,
     player: skullSide('blue'),
     bot:    skullSide('red'),
   },
@@ -1294,7 +1306,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'skeleton_army',
     avatar: {
       key: 'avatar_skeleton_army',
-      path: `${SKULL_PATH}/Skull_Idle.png`,
+      path: `${sidePath(SKULL_PATH, 'blue')}/Skull_Idle.png`,
       frameWidth: FRAME_W,
       frameHeight: FRAME_H,
       frame: 0,
@@ -1302,7 +1314,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarSwarmSourceCardId: 'skeleton',
     contentFill: 0.55,
     attackHitFrame: 4,
-    tintBotSide: true,
     player: skullSide('blue'),
     bot:    skullSide('red'),
   },
@@ -1312,7 +1323,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 0.68,
     contentFill: 0.48,
     attackHitFrame: 4,
-    tintBotSide: true,
     player: trollSide('blue'),
     bot:    trollSide('red'),
   },
@@ -1323,7 +1333,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.12,
     contentFill: 0.55,
     attackHitFrame: 4,
-    tintBotSide: true,
     player: spearGoblinSide('blue'),
     bot:    spearGoblinSide('red'),
   },
@@ -1341,7 +1350,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatar: enemyAvatar('Enemy Avatars_15.png'),
     avatarHandScale: 0.93,
     contentFill: 0.37,
-    tintBotSide: true,
     player: minerSide('Blue'),
     bot:    minerSide('Red'),
   },
@@ -1352,7 +1360,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.03,
     contentFill: 0.55,
     attackHitFrame: 3,
-    tintBotSide: true,
     player: fireGoblinSide('blue'),
     bot:    fireGoblinSide('red'),
   },
@@ -1363,7 +1370,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.0,
     contentFill: 0.55,
     attackHitFrame: 6,
-    tintBotSide: true,
     editorSpritePath: `${HEX_SHAMAN_PATH}/Hex Shaman_Idle.png`,
     player: shamanSide('pig_shaman', 'blue'),
     bot:    shamanSide('pig_shaman', 'red'),
@@ -1375,7 +1381,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.10,
     contentFill: 0.55,
     attackHitFrame: 3,
-    tintBotSide: true,
     player: snakeSide('blue'),
     bot:    snakeSide('red'),
   },
@@ -1386,7 +1391,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 0.93,
     contentFill: 0.55,
     attackHitFrame: 5,
-    tintBotSide: true,
     player: lizardSide('blue'),
     bot:    lizardSide('red'),
   },
@@ -1394,7 +1398,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'air_boat',
     avatar: {
       key: 'avatar_air_boat',
-      path: `${AIR_BOAT_PATH}/AirBoat_Idle.png`,
+      path: `${sidePath(AIR_BOAT_PATH, 'blue')}/AirBoat_Idle.png`,
       frameWidth: AIR_BOAT_FRAME,
       frameHeight: AIR_BOAT_FRAME,
       frame: 0,
@@ -1408,7 +1412,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     useEditorCompositeAvatar: true,
     spriteOriginY: 1.28,
     attackHitFrame: 4,
-    tintBotSide: true,
     player: airBoatSide('blue'),
     bot:    airBoatSide('red'),
   },
@@ -1419,7 +1422,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.03,
     contentFill: 0.50,
     attackHitFrame: 4,
-    tintBotSide: true,
     player: bearTroopSide('blue'),
     bot:    bearTroopSide('red'),
   },
@@ -1430,7 +1432,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.11,
     contentFill: 0.52,
     attackHitFrame: 4,
-    tintBotSide: true,
     player: pigRiderSide('blue'),
     bot:    pigRiderSide('red'),
   },
@@ -1438,7 +1439,7 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'pig',
     avatar: {
       key: 'avatar_pig',
-      path: `${PIG_PATH}/Pig_Idle.png`,
+      path: `${sidePath(PIG_PATH, 'blue')}/Pig_Idle.png`,
       frameWidth: PIG_FRAME,
       frameHeight: PIG_FRAME,
       frame: 0,
@@ -1447,7 +1448,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.50,
     contentFill: 0.50,
     attackHitFrame: 2,
-    tintBotSide: true,
     player: pigSide('blue'),
     bot:    pigSide('red'),
   },
@@ -1458,7 +1458,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.08,
     contentFill: 0.55,
     attackHitFrame: 4,
-    tintBotSide: true,
     player: bombFishSide('blue'),
     bot:    bombFishSide('red'),
   },
@@ -1524,7 +1523,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 0.85,
     contentFill: 0.46,
     attackHitFrame: 5,
-    tintBotSide: true,
     player: minotaurSide('blue'),
     bot:    minotaurSide('red'),
   },
@@ -1534,7 +1532,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarCropRatio: 0.58,
     contentFill: 0.55,
     attackHitFrame: 4,
-    tintBotSide: true,
     player: gnollSide('blue'),
     bot:    gnollSide('red'),
   },
@@ -1545,7 +1542,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.03,
     contentFill: 0.55,
     attackHitFrame: 3,
-    tintBotSide: true,
     player: thiefSide('blue'),
     bot:    thiefSide('red'),
   },
@@ -1556,7 +1552,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.29,
     contentFill: 0.50,
     attackHitFrame: 5,
-    tintBotSide: true,
     player: turtleSide('blue'),
     bot:    turtleSide('red'),
   },
@@ -1567,7 +1562,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.09,
     contentFill: 0.37,
     attackHitFrame: 6,
-    tintBotSide: true,
     player: pandaSide('blue'),
     bot:    pandaSide('red'),
   },
@@ -1587,7 +1581,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.17,
     contentFill: 0.52,
     attackHitFrame: 4,
-    tintBotSide: true,
     player: harpoonSharkSide('blue'),
     bot:    harpoonSharkSide('red'),
   },
@@ -1598,7 +1591,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     avatarHandScale: 1.10,
     contentFill: 0.52,
     attackHitFrame: 4,
-    tintBotSide: true,
     player: spiderSide('blue'),
     bot:    spiderSide('red'),
   },
@@ -1606,14 +1598,13 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     cardId: 'spiderling',
     avatar: {
       key: 'avatar_spiderling',
-      path: `${SPIDER_PATH}/Spider_Idle.png`,
+      path: `${sidePath(SPIDER_PATH, 'blue')}/Spider_Idle.png`,
       frameWidth: SPIDER_FRAME,
       frameHeight: SPIDER_FRAME,
       frame: 0,
     },
     contentFill: 0.82,
     attackHitFrame: 4,
-    tintBotSide: true,
     player: spiderSide('blue'),
     bot:    spiderSide('red'),
   },
@@ -1639,7 +1630,6 @@ export const CARD_ASSET_BUNDLES: CardAssetBundle[] = [
     useEditorCompositeAvatar: true,
     animated: false,
     contentFill: 0.72,
-    tintBotSide: true,
     player: pirateTowerSide('wood_tower', 'blue'),
     bot:    pirateTowerSide('wood_tower', 'red'),
   },
@@ -1867,7 +1857,7 @@ export function getUniqueSheets(): SheetDef[] {
   return sheets
 }
 
-const GARRISON_CANNON_PATH = 'assets/Enemy Pack/Enemies/Pirate Fish/Cannon'
+const GARRISON_CANNON_PATH = sidePath('assets/Enemy Pack/Enemies/Pirate Fish/Cannon', 'blue')
 const GARRISON_CANNON_FRAME = 128
 
 /** King-tower attack projectile — static 128×128 ball from the garrison cannon folder. */

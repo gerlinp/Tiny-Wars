@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { Owner } from '@core/types'
 import type { Vec2 } from '@core/types'
-import { clipAnimKey, BOT_SIDE_TINT, getAttackWindupMs } from '@data/AssetManifest'
+import { clipAnimKey, getAttackWindupMs } from '@data/AssetManifest'
 import { COMPOSITE_LAYER_OFFSETS } from '@data/CompositeLayerOffsets'
 import { BOMB_TOWER_CREW_CARD_ID, BOMB_TOWER_DECK_Y_FRAC, BOMB_TOWER_BOMBER_FEET_Y } from '@rendering/towerGarrison'
 import { displaySizeForCard } from '@rendering/assetDisplaySize'
@@ -30,10 +30,6 @@ export class BombTowerCrew {
     this.sprite = scene.add.sprite(0, 0, idleSheet, 0)
       .setDepth(CREW_DEPTH)
       .setDisplaySize(this.crewSize.width, this.crewSize.height)
-
-    if (owner === Owner.BOT) {
-      this.sprite.setTint(BOT_SIDE_TINT)
-    }
 
     this.applyIdleFacing()
 

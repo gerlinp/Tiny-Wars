@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { Owner } from '@core/types'
-import { BOT_SIDE_TINT, PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET } from '@data/AssetManifest'
+import { PADDLE_SHARK_IDLE_SHEET, PADDLE_SHARK_ROW_SHEET } from '@data/AssetManifest'
 import { displaySizeForTroopSheet } from './assetDisplaySize'
 
 const CREW_DEPTH = 5.5
@@ -68,11 +68,9 @@ export class AirBoatCrew {
     owner: Owner,
   ) {
     this.originY = airBoatOriginY(owner)
-    const tint = owner === Owner.BOT ? BOT_SIDE_TINT : undefined
 
     this.paddleShark = scene.add.sprite(0, 0, PADDLE_SHARK_IDLE_SHEET.key, 0)
       .setDepth(CREW_DEPTH)
-    if (tint) this.paddleShark.setTint(tint)
     this.playPaddleSharkIdle()
 
     this.ropeGfx = scene.add.graphics().setDepth(CREW_DEPTH - 0.1)

@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { HealthBar } from './HealthBar'
 import { resolveTexture } from './renderingUtils'
-import { clipAnimKey, idleSheetKey, getSideAssets, isAnimatedCard, usesTintedBotSide, BOT_SIDE_TINT, resolveAttackAnimKey, TNT_BARREL_LOWHP_FX, type AnimClip } from '@data/AssetManifest'
+import { clipAnimKey, idleSheetKey, getSideAssets, isAnimatedCard, resolveAttackAnimKey, TNT_BARREL_LOWHP_FX, type AnimClip } from '@data/AssetManifest'
 import { Owner, CardType } from '@core/types'
 import type { Vec2 } from '@core/types'
 import { CARD_DEFINITIONS } from '@data/CardData'
@@ -113,8 +113,6 @@ export class EntitySprite {
   private applyTeamTint(): void {
     if (this.cursed) {
       this.sprite.setTint(CURSE_TINT)
-    } else if (usesTintedBotSide(this.cardId) && this.owner === Owner.BOT) {
-      this.sprite.setTint(BOT_SIDE_TINT)
     } else {
       this.sprite.clearTint()
     }
